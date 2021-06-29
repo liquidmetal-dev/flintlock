@@ -17,7 +17,7 @@ jobs:
       uses: aslafy-z/conventional-pr-title-action@master
       with:
         success-state: Title follows the specification.
-        failure-state: Title does not follow the specification.
+        failure-state: Title does not follow the specification. See https://www.conventionalcommits.org/en/v1.0.0/
         context-name: conventional-pr-title
         preset: conventional-changelog-angular@latest
       env:

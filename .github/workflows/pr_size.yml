@@ -1,4 +1,4 @@
-name: pr_checks
+name: pr_size
 
 on: [pull_request]
 
