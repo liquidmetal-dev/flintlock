@@ -1,0 +1,29 @@
+run:
+    timeout: 10m
+    tests: false
+    allow-parallel-runners: true
+
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  exclude-rules:
+    - linters: [golint]
+      text: "should not use dot imports|don't use an underscore in package name"
+
+linters-settings:
+  funlen:
+    lines: 110
+    statements: 60
+  staticcheck:
+    go: "1.16"
+  stylecheck:
+    go: "1.16"
+
+linters:
+    enable-all: true
+    disable:
+    - gochecknoglobals
+    - gochecknoinits
+    - wsl
+    - tagliatelle
+    - exhaustivestruct
