@@ -2,6 +2,8 @@ run:
     timeout: 10m
     tests: false
     allow-parallel-runners: true
+    skip-dirs:
+      - pkg/provider/mock
 
 issues:
   max-same-issues: 0
@@ -27,3 +29,4 @@ linters:
     - wsl
     - tagliatelle
     - exhaustivestruct
+    - godox # remove in the future

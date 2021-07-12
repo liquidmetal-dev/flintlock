@@ -1,4 +1,3 @@
-
 # Build Information
 build_date := $(shell date +%Y-%m-%dT%H:%M:%SZ)
 git_commit := $(shell git rev-parse --short HEAD)
@@ -23,20 +22,20 @@ $(TOOLS_BIN_DIR):
 $(TOOLS_SHARE_DIR):
 	mkdir -p $@
 
-
 # Binaries
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 BUF := $(TOOLS_BIN_DIR)/buf
+MOCKGEN:= $(TOOLS_BIN_DIR)/mockgen
 
 .DEFAULT_GOAL := help
 
 ##@ Generate
 
 .PHONY: generate
-generate: $(BUF) ## Generate code
-	$(BUF) generate
-
+generate: $(BUF) $(MOCKGEN) ## Generate code
+	go generate ./...
+	
 ##@ Linting
 
 .PHONY: lint
@@ -44,6 +43,10 @@ lint: $(GOLANGCI_LINT) ## Lint
 	$(GOLANGCI_LINT) run -v --fast=false
 
 ##@ Testing
+
+.PHONY: test
+test: ## Run unit tests
+	go test ./...
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
@@ -61,6 +64,8 @@ $(GOLANGCI_LINT): hack/tools/go.mod # Get and build golangci-lint
 $(GINKGO): hack/tools/go.mod  # Get and build gginkgo
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/ginkgo
 
+$(MOCKGEN): hack/tools/go.mod  # Get and build mockgen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golang/mock/mockgen
 
 BUF_TARGET := buf-Linux-x86_64.tar.gz
 
