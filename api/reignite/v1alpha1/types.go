@@ -1,34 +1,11 @@
-package provider
+package v1alpha1
 
-// Machine represents a microvm machine that is created via a provider.
-type Machine struct {
-	// ID is the unique identifier for a machine.
-	ID string `json:"id" validate:"required"`
-
-	// MachineSpec is the spec of the machine.
-	MachineSpec `json:",inline" validate:"required"`
-}
-
-// MachineSpec represents the specification of a microvm machine.
-type MachineSpec struct {
-	// Kernel specifies the kernel and its argments to use.
-	Kernel KernelSpec `json:"kernel" validate:"required"`
-	// InitrdImage is an optional initial ramdisk to use.
-	InitrdImage ContainerImage `json:"initrd_image,omitempty"`
-	// VCPU specifies how many vcpu the machine will be allocated.
-	VCPU uint64 `json:"vcpu" validate:"required,gt=0"`
-	// MemoryInMb is the amount of memory in megabytes that the machine will be allocated.
-	MemoryInMb uint64 `json:"memory_inmb" validate:"required,gt=0"`
-	// NetworkInterfaces specifies the network interfaces attached to the machine.
-	NetworkInterfaces []NetworkInterface `json:"network_interfaces" validate:"required"`
-	// Volumes specifies the volumes to be attached to the the machine.
-	Volumes []Volume `json:"volumes" validate:"required"`
-}
-
-// KernelSpec is the specification of the kernel and its arguments.
-type KernelSpec struct {
+// Kernel is the specification of the kernel and its arguments.
+type Kernel struct {
 	// Image is the container image to use for the kernel.
 	Image ContainerImage `json:"image" validate:"required"`
+	// Filename is the name of the kernel filename in the container.
+	Filename string
 	// CmdLine are the args to use for the kernel cmdline.
 	CmdLine string `json:"cmdline,omitempty"`
 }

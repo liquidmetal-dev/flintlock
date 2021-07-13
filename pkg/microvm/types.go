@@ -1,14 +1,21 @@
-package provider
+package microvm
 
-import "context"
+import (
+	"context"
 
-// Factory is a factory function that is used to create an instance of the provider.
-type Factory func(ctx context.Context, runtime *Runtime) (MicrovmProvider, error)
+	reignitev1 "github.com/weaveworks/reignite/api/reignite/v1alpha1"
+)
 
-// MicrovmProvider is the interface that a microvm plugin needs to implement.
-type MicrovmProvider interface {
-	// Name is the name of the provider.
-	Name() string
+const (
+	ProviderFirecracker = "firecracker"
+)
+
+var (
+	Providers = []string{ProviderFirecracker}
+)
+
+// Provider is the interface that a microvm provider needs to implement.
+type Provider interface {
 	// Capabilities returns a list of the capabilities the provider supports.
 	Capabilities() Capabilities
 
@@ -29,24 +36,16 @@ type MicrovmProvider interface {
 	ListVMs(ctx context.Context, input *ListVMsInput) (*ListVMsOutput, error)
 }
 
-// Capabaility represents a capability of a provider.
-type Capability string
-
-// Capability represents a list of capabilities.
-type Capabilities []Capability
-
 // CreateVMInput is the input to CreateVM.
 type CreateVMInput struct {
-	// ID the optional ID to use for the microvm.
-	ID string `json:"id,omitempty"`
 	// Spec is the specification of the microvm to create.
-	Spec MachineSpec `json:"spec" validate:"required"`
+	Spec reignitev1.MicroVM `json:"spec" validate:"required"`
 }
 
 // CreateVMOutput is the output from CreateVM.
 type CreateVMOutput struct {
 	// VM is the details of the newly created microvm.
-	VM *Machine
+	VM *reignitev1.MicroVM
 }
 
 // StartVMInput is the input to StartVM.
@@ -103,5 +102,5 @@ type ListVMsInput struct {
 // ListVMsOutput is the output of ListVMs.
 type ListVMsOutput struct {
 	// VMS is the list of VMs managed by this provider.
-	VMS []Machine
+	VMS reignitev1.MicroVMList
 }
