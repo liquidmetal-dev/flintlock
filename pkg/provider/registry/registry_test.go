@@ -14,35 +14,53 @@ import (
 )
 
 func TestRegistry_RegisterProvider(t *testing.T) {
-	RegisterTestingT(t)
-	t.Cleanup(registry.Reset)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	testCases := []struct {
+		name              string
+		pluginsToRegister []string
+		expectRegError    []bool
+	}{
+		{
+			name:              "No plugins registered",
+			pluginsToRegister: []string{"prov1"},
+			expectRegError:    []bool{false},
+		},
+		{
+			name:              "Plugin already registered",
+			pluginsToRegister: []string{"prov1", "prov1"},
+			expectRegError:    []bool{false, true},
+		},
+	}
 
-	err := registry.RegisterProvider("prov1", mockRegisterPluginFactor(false, ctrl))
-	Expect(err).NotTo(HaveOccurred())
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			defer registry.Reset()
 
-func TestRegistry_RegisterProviderDuplicate(t *testing.T) {
-	RegisterTestingT(t)
-	t.Cleanup(registry.Reset)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+			Expect(len(tc.pluginsToRegister)).To(Equal(len(tc.expectRegError)), "length of pluginsToRegister must be the same as expectRegError")
 
-	providerName := "prov1"
+			for i := range tc.pluginsToRegister {
+				pluginName := tc.pluginsToRegister[i]
+				expectErr := tc.expectRegError[i]
 
-	err := registry.RegisterProvider(providerName, mockRegisterPluginFactor(false, ctrl))
-	Expect(err).NotTo(HaveOccurred())
-
-	err = registry.RegisterProvider(providerName, mockRegisterPluginFactor(false, ctrl))
-	Expect(err).To(HaveOccurred())
+				actualErr := registry.RegisterProvider(pluginName, mockRegisterPluginFactor(false, ctrl))
+				if expectErr {
+					Expect(actualErr).To(HaveOccurred())
+				} else {
+					Expect(actualErr).ToNot(HaveOccurred())
+				}
+			}
+		})
+	}
 }
 
 func TestRegistry_GetInstance(t *testing.T) {
 	RegisterTestingT(t)
-	t.Cleanup(registry.Reset)
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+
+	t.Cleanup(registry.Reset)
+	t.Cleanup(ctrl.Finish)
 
 	providerName := "prov1"
 	factoryCalled := false
@@ -61,9 +79,10 @@ func TestRegistry_GetInstance(t *testing.T) {
 
 func TestRegistry_GetInstanceNotExist(t *testing.T) {
 	RegisterTestingT(t)
-	t.Cleanup(registry.Reset)
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+
+	t.Cleanup(registry.Reset)
+	t.Cleanup(ctrl.Finish)
 
 	providerName := "prov1"
 
@@ -72,28 +91,40 @@ func TestRegistry_GetInstanceNotExist(t *testing.T) {
 	Expect(p).To(BeNil())
 }
 
-func TestRegistry_ListAllEmpty(t *testing.T) {
+func TestRegistry_ListAll(t *testing.T) {
 	RegisterTestingT(t)
-	t.Cleanup(registry.Reset)
 
-	registered := registry.ListPlugins()
-	Expect(registered).To(HaveLen(0))
-}
+	testCases := []struct {
+		name              string
+		registeredPlugins []string
+		expectedLen       int
+	}{
+		{
+			name:        "No plugins registered",
+			expectedLen: 0,
+		},
+		{
+			name:              "Plugins registered",
+			registeredPlugins: []string{"prov1", "prov2"},
+			expectedLen:       2,
+		},
+	}
 
-func TestRegistry_ListAllNotEmpty(t *testing.T) {
-	RegisterTestingT(t)
-	t.Cleanup(registry.Reset)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			defer registry.Reset()
 
-	err := registry.RegisterProvider("prov1", mockRegisterPluginFactor(false, ctrl))
-	Expect(err).NotTo(HaveOccurred())
+			for _, pluginName := range tc.registeredPlugins {
+				err := registry.RegisterProvider(pluginName, mockRegisterPluginFactor(false, ctrl))
+				Expect(err).NotTo(HaveOccurred())
+			}
 
-	err = registry.RegisterProvider("prov2", mockRegisterPluginFactor(false, ctrl))
-	Expect(err).NotTo(HaveOccurred())
-
-	registered := registry.ListPlugins()
-	Expect(registered).To(HaveLen(2))
+			registered := registry.ListPlugins()
+			Expect(registered).To(HaveLen(tc.expectedLen))
+		})
+	}
 }
 
 func mockRegisterPluginFactor(shouldFailCreate bool, ctrl *gomock.Controller) provider.Factory {

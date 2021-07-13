@@ -18,8 +18,8 @@ func RegisterProvider(name string, factory provider.Factory) error {
 	pluginsLock.Lock()
 	defer pluginsLock.Unlock()
 
-	if _, exists := plugins[name]; exists {
-		return ErrDuplicatePlugin
+	if _, ok := plugins[name]; ok {
+		return fmt.Errorf("plugin %s has already been registered", name) //nolint:goerr113
 	}
 
 	plugins[name] = factory
@@ -33,11 +33,11 @@ func GetPluginInstance(ctx context.Context, name string, runtime *provider.Runti
 	pluginsLock.RLock()
 	defer pluginsLock.RUnlock()
 
-	if factoryFunc, exists := plugins[name]; exists {
+	if factoryFunc, ok := plugins[name]; ok {
 		return factoryFunc(ctx, runtime)
 	}
 
-	return nil, fmt.Errorf("getting plugin %s: %w", name, ErrPluginNotFound)
+	return nil, fmt.Errorf("plugin %s not found", name) // nolint:goerr113
 }
 
 // ListPlugins returns a list of the plugin names that have been registered.
@@ -45,11 +45,9 @@ func ListPlugins() []string {
 	pluginsLock.RLock()
 	defer pluginsLock.RUnlock()
 
-	names := make([]string, len(plugins))
-	i := 0
+	names := make([]string, 0, len(plugins))
 	for name := range plugins {
-		names[i] = name
-		i++
+		names = append(names, name)
 	}
 
 	return names
