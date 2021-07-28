@@ -72,7 +72,7 @@ func testSSHToHost(t *testing.T, terraformOptions *terraform.Options, keyPair *s
 }
 
 func configureTerraformOptionsAndSave(t *testing.T, dir string) *terraform.Options {
-	//NOTE: ioutil has been used in places to write the file so that the contents aren't output to the logs
+	// NOTE: ioutil has been used in places to write the file so that the contents aren't output to the logs
 	// Generate and save the options the kaypair
 	keyPair := ssh.GenerateRSAKeyPair(t, 4096)
 	test_structure.SaveSshKeyPair(t, dir, keyPair)
