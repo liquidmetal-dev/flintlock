@@ -30,3 +30,4 @@ linters:
     - tagliatelle
     - exhaustivestruct
     - godox # remove in the future
+    - gci

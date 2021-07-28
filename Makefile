@@ -5,10 +5,13 @@ OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
 
-# versions
+# Versions
 BUF_VERSION := v0.43.2
 
 # Directories
+REPO_ROOT := $(shell git rev-parse --show-toplevel)
+BIN_DIR := bin
+REIGNITED_CMD := cmd/reignited
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
@@ -22,11 +25,25 @@ $(TOOLS_BIN_DIR):
 $(TOOLS_SHARE_DIR):
 	mkdir -p $@
 
+
+$(BIN_DIR):
+	mkdir -p $@
+
 # Binaries
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 BUF := $(TOOLS_BIN_DIR)/buf
 MOCKGEN:= $(TOOLS_BIN_DIR)/mockgen
+CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
+DEFAULTER_GEN := $(TOOLS_BIN_DIR)/defaulter-gen
+CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+
+# Set --output-base for conversion-gen if we are not within GOPATH
+ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/github/weaveworks/reignited)
+	GEN_OUTPUT_BASE := --output-base=$(REPO_ROOT)
+else
+	export GOPATH := $(shell go env GOPATH)
+endif
 
 .DEFAULT_GOAL := help
 
@@ -34,7 +51,31 @@ MOCKGEN:= $(TOOLS_BIN_DIR)/mockgen
 
 .PHONY: generate
 generate: $(BUF) $(MOCKGEN) ## Generate code
+generate: ## Generate code
+	$(MAKE) generate-go
+##	$(MAKE) generate-proto
+
+.PHONY: generate-go
+generate-go: $(MOCKGEN) $(CONVERSION_GEN) $(DEFAULTER_GEN) $(CONTROLLER_GEN) ## Generate Go Code
 	go generate ./...
+	go generate ./...
+	$(CONTROLLER_GEN) \
+		paths=./api/reignite/... \
+		object:headerFile=./hack/boilerplate.generatego.txt
+
+#	$(DEFAULTER_GEN) \
+		--input-dirs=./api/reignite/v1alpha1 \
+		--v=0 $(GEN_OUTPUT_BASE) \
+		--go-header-file=./hack/boilerplate.generatego.txt
+
+# $(CONVERSION_GEN) \
+ 	--input-dirs=/api/reignite/... \
+ 	--output-file-base=zz_generated.conversion \
+ 	--go-header-file=./hack/boilerplate.generatego.txt
+
+.PHONY: generate-proto ## Generate protobuf/grpc code
+generate-proto: $(BUF) 
+	$(BUF) generate
 	
 ##@ Linting
 
@@ -58,14 +99,23 @@ compile-e2e: # Test e2e compilation
 
 ##@ Tools binaries
 
-$(GOLANGCI_LINT): hack/tools/go.mod # Get and build golangci-lint
+$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Get and build golangci-lint
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golangci/golangci-lint/cmd/golangci-lint
 
-$(GINKGO): hack/tools/go.mod  # Get and build gginkgo
+$(GINKGO): $(TOOLS_DIR)/go.mod  # Get and build gginkgo
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/ginkgo
 
-$(MOCKGEN): hack/tools/go.mod  # Get and build mockgen
+$(MOCKGEN): $(TOOLS_DIR)/go.mod  # Get and build mockgen
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golang/mock/mockgen
+
+$(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/code-generator/cmd/conversion-gen
+
+$(DEFAULTER_GEN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/code-generator/cmd/defaulter-gen
+
+$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) sigs.k8s.io/controller-tools/cmd/controller-gen
 
 BUF_TARGET := buf-Linux-x86_64.tar.gz
 
