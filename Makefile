@@ -63,16 +63,6 @@ generate-go: $(MOCKGEN) $(CONVERSION_GEN) $(DEFAULTER_GEN) $(CONTROLLER_GEN) ## 
 		paths=./api/reignite/... \
 		object:headerFile=./hack/boilerplate.generatego.txt
 
-#	$(DEFAULTER_GEN) \
-		--input-dirs=./api/reignite/v1alpha1 \
-		--v=0 $(GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate.generatego.txt
-
-# $(CONVERSION_GEN) \
- 	--input-dirs=/api/reignite/... \
- 	--output-file-base=zz_generated.conversion \
- 	--go-header-file=./hack/boilerplate.generatego.txt
-
 .PHONY: generate-proto ## Generate protobuf/grpc code
 generate-proto: $(BUF) 
 	$(BUF) generate

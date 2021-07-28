@@ -56,10 +56,9 @@ func TestMicroVMRepo_SaveAndGet(t *testing.T) {
 
 			ctx := context.Background()
 
-			store, contentDir := getLocalContentStore(t)
-			defer os.RemoveAll(contentDir)
+			store := getLocalContentStore(t)
 
-			repo := repository.NewContainerDMicroVM(store)
+			repo := repository.NewContainerdRepository(store)
 
 			for _, specToAdd := range tc.existingSpecs {
 				_, saveErr := repo.Save(ctx, specToAdd)
@@ -118,10 +117,9 @@ func TestMicroVMRepo_Delete(t *testing.T) {
 
 			ctx := context.Background()
 
-			store, contentDir := getLocalContentStore(t)
-			defer os.RemoveAll(contentDir)
+			store := getLocalContentStore(t)
 
-			repo := repository.NewContainerDMicroVM(store)
+			repo := repository.NewContainerdRepository(store)
 
 			for _, specToAdd := range tc.existingSpecs {
 				_, saveErr := repo.Save(ctx, specToAdd)
@@ -192,10 +190,9 @@ func TestMicroVMRepo_GetAll(t *testing.T) {
 
 			ctx := context.Background()
 
-			store, contentDir := getLocalContentStore(t)
-			defer os.RemoveAll(contentDir)
+			store := getLocalContentStore(t)
 
-			repo := repository.NewContainerDMicroVM(store)
+			repo := repository.NewContainerdRepository(store)
 
 			for _, specToAdd := range tc.existingSpecs {
 				_, saveErr := repo.Save(ctx, specToAdd)
@@ -215,9 +212,8 @@ func TestMicroVMRepo_GetAll(t *testing.T) {
 	}
 }
 
-func getLocalContentStore(t *testing.T) (content.Store, string) {
-	parentDir := os.TempDir()
-	contentDir, err := ioutil.TempDir(parentDir, "reignite-store-*")
+func getLocalContentStore(t *testing.T) content.Store {
+	contentDir, err := ioutil.TempDir(os.TempDir(), "reignite-store-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +228,11 @@ func getLocalContentStore(t *testing.T) (content.Store, string) {
 		t.Fatal(err)
 	}
 
-	return store, contentDir
+	t.Cleanup(func() {
+		_ = os.RemoveAll(contentDir)
+	})
+
+	return store
 }
 
 func makeSpec(name, namespace string) *reignitev1.MicroVM {

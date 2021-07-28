@@ -16,13 +16,16 @@ import (
 )
 
 var (
-	IDLabel        = fmt.Sprintf("%s/vmid", defaults.Domain)
+	// IDLabel is the name of the containerd content store label used for the microvm identifier.
+	IDLabel = fmt.Sprintf("%s/vmid", defaults.Domain)
+	// NamespaceLabel is the name of the containerd content store label used for the microvm namespace.
 	NamespaceLabel = fmt.Sprintf("%s/ns", defaults.Domain)
-	TypeLabel      = fmt.Sprintf("%s/type", defaults.Domain)
+	// TypeLabel is the name of the containerd content store label used to denote the type of content.
+	TypeLabel = fmt.Sprintf("%s/type", defaults.Domain)
 )
 
-// MicroVM is the repoitory definition for a microvm repository.
-type MicroVM interface {
+// MicroVMRepository is the repository definition for a microvm repository.
+type MicroVMRepository interface {
 	// Save will save the supplied microvm spec.
 	Save(ctx context.Context, microvm *reignitev1.MicroVM) (*reignitev1.MicroVM, error)
 	// Delete will delete the supplied microvm.
@@ -33,8 +36,8 @@ type MicroVM interface {
 	GetAll(ctx context.Context, namespace string) (*reignitev1.MicroVMList, error)
 }
 
-// NewContainerDMicroVM will create a new containerd backed microvm repository.
-func NewContainerDMicroVM(store content.Store) MicroVM {
+// NewContainerdRepository will create a new containerd backed microvm repository.
+func NewContainerdRepository(store content.Store) MicroVMRepository {
 	return &containerdRepo{
 		store: store,
 		locks: map[string]*sync.RWMutex{},
@@ -48,7 +51,7 @@ type containerdRepo struct {
 	locksMu sync.Mutex
 }
 
-// Save will save the supplied microvm spec to the containredd content store.
+// Save will save the supplied microvm spec to the containred content store.
 func (r *containerdRepo) Save(ctx context.Context, microvm *reignitev1.MicroVM) (*reignitev1.MicroVM, error) {
 	mu := r.getMutex(microvm.Name)
 	mu.Lock()
@@ -158,7 +161,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 		Digest: *metadigest,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("reading content %s: %w", metadigest.String(), ErrFailedReadingContent)
+		return nil, fmt.Errorf("reading content %s: %w", metadigest, ErrFailedReadingContent)
 	}
 
 	microvm := &reignitev1.MicroVM{}
@@ -181,7 +184,7 @@ func (r *containerdRepo) findDigestForSpec(ctx context.Context, name string) (*d
 		return nil
 	}, idLabelFilter)
 	if err != nil {
-		return nil, fmt.Errorf("walking content store: %w", err)
+		return nil, fmt.Errorf("walking content store for %s: %w", name, err)
 	}
 	if metaDigest.String() == "" {
 		return nil, nil
