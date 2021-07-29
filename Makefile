@@ -58,7 +58,6 @@ generate: ## Generate code
 .PHONY: generate-go
 generate-go: $(MOCKGEN) $(CONVERSION_GEN) $(DEFAULTER_GEN) $(CONTROLLER_GEN) ## Generate Go Code
 	go generate ./...
-	go generate ./...
 	$(CONTROLLER_GEN) \
 		paths=./api/reignite/... \
 		object:headerFile=./hack/boilerplate.generatego.txt

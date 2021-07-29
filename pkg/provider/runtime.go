@@ -1,9 +1,11 @@
 package provider
 
-import "go.uber.org/zap"
+import (
+	"github.com/sirupsen/logrus"
+)
 
 // Runetime represents the provider runtime environment.
 type Runtime struct {
-	Logger    *zap.SugaredLogger
+	Logger    *logrus.Entry
 	StatePath string
 }
