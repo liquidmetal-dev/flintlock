@@ -37,6 +37,8 @@ MOCKGEN:= $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 DEFAULTER_GEN := $(TOOLS_BIN_DIR)/defaulter-gen
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+PROTOC_GEN_GO := $(TOOLS_BIN_DIR)/protoc-gen-go
+PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
 
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/github/weaveworks/reignited)
@@ -53,17 +55,17 @@ endif
 generate: $(BUF) $(MOCKGEN) ## Generate code
 generate: ## Generate code
 	$(MAKE) generate-go
-##	$(MAKE) generate-proto
+	$(MAKE) generate-proto
 
 .PHONY: generate-go
 generate-go: $(MOCKGEN) $(CONVERSION_GEN) $(DEFAULTER_GEN) $(CONTROLLER_GEN) ## Generate Go Code
 	go generate ./...
 	$(CONTROLLER_GEN) \
-		paths=./api/reignite/... \
+		paths=./api/kinds/... \
 		object:headerFile=./hack/boilerplate.generatego.txt
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
-generate-proto: $(BUF) 
+generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC)
 	$(BUF) generate
 	
 ##@ Linting
@@ -106,6 +108,12 @@ $(DEFAULTER_GEN): $(TOOLS_DIR)/go.mod
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) sigs.k8s.io/controller-tools/cmd/controller-gen
 
+$(PROTOC_GEN_GO): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) google.golang.org/protobuf/cmd/protoc-gen-go
+
+$(PROTOC_GEN_GO_GRPC): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	
 BUF_TARGET := buf-Linux-x86_64.tar.gz
 
 ifeq ($(OS), darwin)

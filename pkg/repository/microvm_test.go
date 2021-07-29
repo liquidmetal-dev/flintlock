@@ -13,7 +13,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	reignitev1 "github.com/weaveworks/reignite/api/reignite/v1alpha1"
+	reignitev1 "github.com/weaveworks/reignite/api/kinds/v1alpha1"
 	"github.com/weaveworks/reignite/pkg/repository"
 )
 

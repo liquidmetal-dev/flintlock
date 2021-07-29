@@ -19,6 +19,8 @@ require (
 	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
+	google.golang.org/grpc v1.33.2 // indirect
+	google.golang.org/protobuf v1.26.0 // indirect
 	k8s.io/apimachinery v0.21.2
 	sigs.k8s.io/controller-runtime v0.9.3
 )
