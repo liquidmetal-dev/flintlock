@@ -6,4 +6,7 @@ const (
 
 	// ContainerdNamespace is the name of the namespace to use with containerd.
 	ContainerdNamespace = "reignite"
+
+	// FirecrackerBin is the name of the firecracker binary.
+	FirecrackerBin = "firecracker"
 )

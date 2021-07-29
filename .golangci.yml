@@ -3,7 +3,7 @@ run:
     tests: false
     allow-parallel-runners: true
     skip-dirs:
-      - pkg/provider/mock
+      - pkg/microvm/mock
 
 issues:
   max-same-issues: 0
