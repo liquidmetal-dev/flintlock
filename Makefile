@@ -39,6 +39,8 @@ DEFAULTER_GEN := $(TOOLS_BIN_DIR)/defaulter-gen
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 PROTOC_GEN_GO := $(TOOLS_BIN_DIR)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
+PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
+PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
 
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/github/weaveworks/reignited)
@@ -48,6 +50,12 @@ else
 endif
 
 .DEFAULT_GOAL := help
+
+##@ Build
+
+.PHONY: build
+build: $(BIN_DIR) ## Build the binaries
+	go build -o $(BIN_DIR)/reignited ./cmd/reignited
 
 ##@ Generate
 
@@ -65,14 +73,15 @@ generate-go: $(MOCKGEN) $(CONVERSION_GEN) $(DEFAULTER_GEN) $(CONTROLLER_GEN) ## 
 		object:headerFile=./hack/boilerplate.generatego.txt
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
-generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC)
+generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI)
 	$(BUF) generate
 	
 ##@ Linting
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) ## Lint
+lint: $(GOLANGCI_LINT) $(BUF) ## Lint
 	$(GOLANGCI_LINT) run -v --fast=false
+	$(BUF) lint
 
 ##@ Testing
 
@@ -113,7 +122,13 @@ $(PROTOC_GEN_GO): $(TOOLS_DIR)/go.mod
 
 $(PROTOC_GEN_GO_GRPC): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) google.golang.org/grpc/cmd/protoc-gen-go-grpc
-	
+
+$(PROTO_GEN_GRPC_GW): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+
+$(PROTO_GEN_GRPC_OAPI): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+
 BUF_TARGET := buf-Linux-x86_64.tar.gz
 
 ifeq ($(OS), darwin)

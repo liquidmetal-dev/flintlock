@@ -21,6 +21,53 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type HostPathVolumeSource_HostPathType int32
+
+const (
+	HostPathVolumeSource_UNKNOWN HostPathVolumeSource_HostPathType = 0
+	// RAW_FILE represents a file on the host to use as a source for a volume. It should be a raw fs.
+	HostPathVolumeSource_RAW_FILE HostPathVolumeSource_HostPathType = 1
+)
+
+// Enum value maps for HostPathVolumeSource_HostPathType.
+var (
+	HostPathVolumeSource_HostPathType_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "RAW_FILE",
+	}
+	HostPathVolumeSource_HostPathType_value = map[string]int32{
+		"UNKNOWN":  0,
+		"RAW_FILE": 1,
+	}
+)
+
+func (x HostPathVolumeSource_HostPathType) Enum() *HostPathVolumeSource_HostPathType {
+	p := new(HostPathVolumeSource_HostPathType)
+	*p = x
+	return p
+}
+
+func (x HostPathVolumeSource_HostPathType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HostPathVolumeSource_HostPathType) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_microvm_proto_enumTypes[0].Descriptor()
+}
+
+func (HostPathVolumeSource_HostPathType) Type() protoreflect.EnumType {
+	return &file_types_microvm_proto_enumTypes[0]
+}
+
+func (x HostPathVolumeSource_HostPathType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HostPathVolumeSource_HostPathType.Descriptor instead.
+func (HostPathVolumeSource_HostPathType) EnumDescriptor() ([]byte, []int) {
+	return file_types_microvm_proto_rawDescGZIP(), []int{6, 0}
+}
+
 // MicroVMSpec represents the specification for a microvm.
 type MicroVMSpec struct {
 	state         protoimpl.MessageState
@@ -518,7 +565,7 @@ type HostPathVolumeSource struct {
 	// Path on the host of the file/device to use as a source for a volume.
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// Type is the type of file/device on the host.
-	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Type HostPathVolumeSource_HostPathType `protobuf:"varint,2,opt,name=type,proto3,enum=reignite.types.HostPathVolumeSource_HostPathType" json:"type,omitempty"`
 }
 
 func (x *HostPathVolumeSource) Reset() {
@@ -560,11 +607,11 @@ func (x *HostPathVolumeSource) GetPath() string {
 	return ""
 }
 
-func (x *HostPathVolumeSource) GetType() string {
+func (x *HostPathVolumeSource) GetType() HostPathVolumeSource_HostPathType {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return HostPathVolumeSource_UNKNOWN
 }
 
 var File_types_microvm_proto protoreflect.FileDescriptor
@@ -661,14 +708,20 @@ var file_types_microvm_proto_rawDesc = []byte{
 	0x65, 0x22, 0x2d, 0x0a, 0x15, 0x43, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x65, 0x72, 0x56, 0x6f,
 	0x6c, 0x75, 0x6d, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6d,
 	0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65,
-	0x22, 0x3e, 0x0a, 0x14, 0x48, 0x6f, 0x73, 0x74, 0x50, 0x61, 0x74, 0x68, 0x56, 0x6f, 0x6c, 0x75,
-	0x6d, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x12, 0x0a, 0x04,
-	0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65,
-	0x42, 0x30, 0x5a, 0x2e, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x77,
-	0x65, 0x61, 0x76, 0x65, 0x77, 0x6f, 0x72, 0x6b, 0x73, 0x2f, 0x72, 0x65, 0x69, 0x67, 0x6e, 0x69,
-	0x74, 0x65, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x3b, 0x74, 0x79, 0x70,
-	0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x22, 0x9c, 0x01, 0x0a, 0x14, 0x48, 0x6f, 0x73, 0x74, 0x50, 0x61, 0x74, 0x68, 0x56, 0x6f, 0x6c,
+	0x75, 0x6d, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74,
+	0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x45, 0x0a,
+	0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x31, 0x2e, 0x72, 0x65,
+	0x69, 0x67, 0x6e, 0x69, 0x74, 0x65, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x48, 0x6f, 0x73,
+	0x74, 0x50, 0x61, 0x74, 0x68, 0x56, 0x6f, 0x6c, 0x75, 0x6d, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x2e, 0x48, 0x6f, 0x73, 0x74, 0x50, 0x61, 0x74, 0x68, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04,
+	0x74, 0x79, 0x70, 0x65, 0x22, 0x29, 0x0a, 0x0c, 0x48, 0x6f, 0x73, 0x74, 0x50, 0x61, 0x74, 0x68,
+	0x54, 0x79, 0x70, 0x65, 0x12, 0x0b, 0x0a, 0x07, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10,
+	0x00, 0x12, 0x0c, 0x0a, 0x08, 0x52, 0x41, 0x57, 0x5f, 0x46, 0x49, 0x4c, 0x45, 0x10, 0x01, 0x42,
+	0x30, 0x5a, 0x2e, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x77, 0x65,
+	0x61, 0x76, 0x65, 0x77, 0x6f, 0x72, 0x6b, 0x73, 0x2f, 0x72, 0x65, 0x69, 0x67, 0x6e, 0x69, 0x74,
+	0x65, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x3b, 0x74, 0x79, 0x70, 0x65,
+	0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -683,32 +736,35 @@ func file_types_microvm_proto_rawDescGZIP() []byte {
 	return file_types_microvm_proto_rawDescData
 }
 
+var file_types_microvm_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_types_microvm_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_types_microvm_proto_goTypes = []interface{}{
-	(*MicroVMSpec)(nil),           // 0: reignite.types.MicroVMSpec
-	(*Kernel)(nil),                // 1: reignite.types.Kernel
-	(*NetworkInterface)(nil),      // 2: reignite.types.NetworkInterface
-	(*Volume)(nil),                // 3: reignite.types.Volume
-	(*VolumeSource)(nil),          // 4: reignite.types.VolumeSource
-	(*ContainerVolumeSource)(nil), // 5: reignite.types.ContainerVolumeSource
-	(*HostPathVolumeSource)(nil),  // 6: reignite.types.HostPathVolumeSource
-	nil,                           // 7: reignite.types.MicroVMSpec.LabelsEntry
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(HostPathVolumeSource_HostPathType)(0), // 0: reignite.types.HostPathVolumeSource.HostPathType
+	(*MicroVMSpec)(nil),                    // 1: reignite.types.MicroVMSpec
+	(*Kernel)(nil),                         // 2: reignite.types.Kernel
+	(*NetworkInterface)(nil),               // 3: reignite.types.NetworkInterface
+	(*Volume)(nil),                         // 4: reignite.types.Volume
+	(*VolumeSource)(nil),                   // 5: reignite.types.VolumeSource
+	(*ContainerVolumeSource)(nil),          // 6: reignite.types.ContainerVolumeSource
+	(*HostPathVolumeSource)(nil),           // 7: reignite.types.HostPathVolumeSource
+	nil,                                    // 8: reignite.types.MicroVMSpec.LabelsEntry
+	(*timestamppb.Timestamp)(nil),          // 9: google.protobuf.Timestamp
 }
 var file_types_microvm_proto_depIdxs = []int32{
-	7, // 0: reignite.types.MicroVMSpec.labels:type_name -> reignite.types.MicroVMSpec.LabelsEntry
-	1, // 1: reignite.types.MicroVMSpec.kernel:type_name -> reignite.types.Kernel
-	3, // 2: reignite.types.MicroVMSpec.volumes:type_name -> reignite.types.Volume
-	2, // 3: reignite.types.MicroVMSpec.interfaces:type_name -> reignite.types.NetworkInterface
-	8, // 4: reignite.types.MicroVMSpec.created_at:type_name -> google.protobuf.Timestamp
-	8, // 5: reignite.types.MicroVMSpec.updated_at:type_name -> google.protobuf.Timestamp
-	4, // 6: reignite.types.Volume.source:type_name -> reignite.types.VolumeSource
-	6, // 7: reignite.types.VolumeSource.hostpath_source:type_name -> reignite.types.HostPathVolumeSource
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	8, // 0: reignite.types.MicroVMSpec.labels:type_name -> reignite.types.MicroVMSpec.LabelsEntry
+	2, // 1: reignite.types.MicroVMSpec.kernel:type_name -> reignite.types.Kernel
+	4, // 2: reignite.types.MicroVMSpec.volumes:type_name -> reignite.types.Volume
+	3, // 3: reignite.types.MicroVMSpec.interfaces:type_name -> reignite.types.NetworkInterface
+	9, // 4: reignite.types.MicroVMSpec.created_at:type_name -> google.protobuf.Timestamp
+	9, // 5: reignite.types.MicroVMSpec.updated_at:type_name -> google.protobuf.Timestamp
+	5, // 6: reignite.types.Volume.source:type_name -> reignite.types.VolumeSource
+	7, // 7: reignite.types.VolumeSource.hostpath_source:type_name -> reignite.types.HostPathVolumeSource
+	0, // 8: reignite.types.HostPathVolumeSource.type:type_name -> reignite.types.HostPathVolumeSource.HostPathType
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_types_microvm_proto_init() }
@@ -812,13 +868,14 @@ func file_types_microvm_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_types_microvm_proto_rawDesc,
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_types_microvm_proto_goTypes,
 		DependencyIndexes: file_types_microvm_proto_depIdxs,
+		EnumInfos:         file_types_microvm_proto_enumTypes,
 		MessageInfos:      file_types_microvm_proto_msgTypes,
 	}.Build()
 	File_types_microvm_proto = out.File

@@ -105,6 +105,13 @@ message ContainerVolumeSource {
 message HostPathVolumeSource {
   // Path on the host of the file/device to use as a source for a volume.
   string path = 1;
+
+  enum HostPathType {
+    UNKNOWN = 0;
+    // RAW_FILE represents a file on the host to use as a source for a volume. It should be a raw fs.
+    RAW_FILE = 1;
+  }
+
   // Type is the type of file/device on the host.
-  string type = 2;
+  HostPathType type = 2;
 }

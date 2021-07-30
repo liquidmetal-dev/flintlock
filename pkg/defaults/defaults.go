@@ -9,4 +9,10 @@ const (
 
 	// FirecrackerBin is the name of the firecracker binary.
 	FirecrackerBin = "firecracker"
+
+	// ConfigurationDir is the default configuration directory.
+	ConfigurationDir = "/etc/opt/reignited"
+
+	// APIPortis the default port number to use for the API.
+	APIPort = 9090
 )

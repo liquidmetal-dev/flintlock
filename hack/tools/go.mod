@@ -11,6 +11,7 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golangci/golangci-lint v1.41.1
 	github.com/gophercloud/gophercloud v0.1.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
