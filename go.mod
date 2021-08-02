@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/containerd/containerd v1.5.4
 	github.com/golang/mock v1.6.0
-	github.com/gruntwork-io/terratest v0.36.3
+	github.com/gruntwork-io/terratest v0.37.2
 	github.com/onsi/gomega v1.14.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.1
