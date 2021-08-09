@@ -11,7 +11,7 @@ const (
 	ProviderFirecracker = "firecracker"
 )
 
-// Providers is a list of supported.
+// Providers is a list of supported microvm providers.
 var Providers = []string{ProviderFirecracker}
 
 // Provider is the interface that a microvm provider needs to implement.

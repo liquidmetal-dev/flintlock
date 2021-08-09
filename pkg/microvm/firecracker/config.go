@@ -15,11 +15,11 @@ func (p *fcProvider) getConfig(machine *reignitev1.MicroVM) (*firecracker.Config
 	// TODO: get the metadata data and populate the rest of firecracker.Config
 
 	conf := &firecracker.Config{
-		SocketPath:      p.config.SocketPath,
-		LogFifo:         "",
-		LogLevel:        "",
-		MetricsFifo:     "",
-		FifoLogWriter:   nil,
+		SocketPath: p.config.SocketPath,
+		// LogFifo:         "",
+		// LogLevel:        "",
+		// MetricsFifo:     "",
+		// FifoLogWriter:   nil,
 		KernelImagePath: string(machine.Spec.Kernel.Image),
 		KernelArgs:      machine.Spec.Kernel.CmdLine,
 		// Drives: ,
@@ -31,8 +31,8 @@ func (p *fcProvider) getConfig(machine *reignitev1.MicroVM) (*firecracker.Config
 			// HtEnabled: ,
 			MemSizeMib: firecracker.Int64(machine.Spec.MemoryInMb),
 		},
-		JailerCfg: nil,
-		VMID:      machine.Name,
+		// JailerCfg: nil,
+		VMID: machine.Name,
 	}
 
 	return conf, nil

@@ -6,7 +6,7 @@ type Capability string
 const (
 	// MetadataServiceCapability is a capability that indicates the microvm provider
 	// has a metadata service.
-	MetadataServiceCapability = Capability("metadata-service")
+	MetadataServiceCapability = "metadata-service"
 )
 
 // Capabilities represents a list of capabilities.
