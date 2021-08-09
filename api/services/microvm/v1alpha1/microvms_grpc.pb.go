@@ -19,12 +19,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MicroVMClient interface {
-	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
-	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
-	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
-	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
-	ListStream(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (MicroVM_ListStreamClient, error)
+	CreateMicroVM(ctx context.Context, in *CreateMicroVMRequest, opts ...grpc.CallOption) (*CreateMicroVMResponse, error)
+	UpdateMicroVM(ctx context.Context, in *UpdateMicroVMRequest, opts ...grpc.CallOption) (*UpdateMicroVMResponse, error)
+	DeleteMicroVM(ctx context.Context, in *DeleteMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetMicroVM(ctx context.Context, in *GetMicroVMRequest, opts ...grpc.CallOption) (*GetMicroVMResponse, error)
+	ListMicroVMs(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (*ListMicroVMsResponse, error)
+	ListMicroVMsStream(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (MicroVM_ListMicroVMsStreamClient, error)
 }
 
 type microVMClient struct {
@@ -35,57 +35,57 @@ func NewMicroVMClient(cc grpc.ClientConnInterface) MicroVMClient {
 	return &microVMClient{cc}
 }
 
-func (c *microVMClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error) {
-	out := new(CreateResponse)
-	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/Create", in, out, opts...)
+func (c *microVMClient) CreateMicroVM(ctx context.Context, in *CreateMicroVMRequest, opts ...grpc.CallOption) (*CreateMicroVMResponse, error) {
+	out := new(CreateMicroVMResponse)
+	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/CreateMicroVM", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *microVMClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error) {
-	out := new(UpdateResponse)
-	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/Update", in, out, opts...)
+func (c *microVMClient) UpdateMicroVM(ctx context.Context, in *UpdateMicroVMRequest, opts ...grpc.CallOption) (*UpdateMicroVMResponse, error) {
+	out := new(UpdateMicroVMResponse)
+	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/UpdateMicroVM", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *microVMClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *microVMClient) DeleteMicroVM(ctx context.Context, in *DeleteMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/Delete", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/DeleteMicroVM", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *microVMClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
-	out := new(GetResponse)
-	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/Get", in, out, opts...)
+func (c *microVMClient) GetMicroVM(ctx context.Context, in *GetMicroVMRequest, opts ...grpc.CallOption) (*GetMicroVMResponse, error) {
+	out := new(GetMicroVMResponse)
+	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/GetMicroVM", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *microVMClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
-	out := new(ListResponse)
-	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/List", in, out, opts...)
+func (c *microVMClient) ListMicroVMs(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (*ListMicroVMsResponse, error) {
+	out := new(ListMicroVMsResponse)
+	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/ListMicroVMs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *microVMClient) ListStream(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (MicroVM_ListStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &MicroVM_ServiceDesc.Streams[0], "/microvm.services.api.v1alpha1.MicroVM/ListStream", opts...)
+func (c *microVMClient) ListMicroVMsStream(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (MicroVM_ListMicroVMsStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &MicroVM_ServiceDesc.Streams[0], "/microvm.services.api.v1alpha1.MicroVM/ListMicroVMsStream", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &microVMListStreamClient{stream}
+	x := &microVMListMicroVMsStreamClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -95,16 +95,16 @@ func (c *microVMClient) ListStream(ctx context.Context, in *ListRequest, opts ..
 	return x, nil
 }
 
-type MicroVM_ListStreamClient interface {
+type MicroVM_ListMicroVMsStreamClient interface {
 	Recv() (*ListMessage, error)
 	grpc.ClientStream
 }
 
-type microVMListStreamClient struct {
+type microVMListMicroVMsStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *microVMListStreamClient) Recv() (*ListMessage, error) {
+func (x *microVMListMicroVMsStreamClient) Recv() (*ListMessage, error) {
 	m := new(ListMessage)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -116,35 +116,35 @@ func (x *microVMListStreamClient) Recv() (*ListMessage, error) {
 // All implementations should embed UnimplementedMicroVMServer
 // for forward compatibility
 type MicroVMServer interface {
-	Create(context.Context, *CreateRequest) (*CreateResponse, error)
-	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
-	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
-	Get(context.Context, *GetRequest) (*GetResponse, error)
-	List(context.Context, *ListRequest) (*ListResponse, error)
-	ListStream(*ListRequest, MicroVM_ListStreamServer) error
+	CreateMicroVM(context.Context, *CreateMicroVMRequest) (*CreateMicroVMResponse, error)
+	UpdateMicroVM(context.Context, *UpdateMicroVMRequest) (*UpdateMicroVMResponse, error)
+	DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error)
+	GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error)
+	ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error)
+	ListMicroVMsStream(*ListMicroVMsRequest, MicroVM_ListMicroVMsStreamServer) error
 }
 
 // UnimplementedMicroVMServer should be embedded to have forward compatible implementations.
 type UnimplementedMicroVMServer struct {
 }
 
-func (UnimplementedMicroVMServer) Create(context.Context, *CreateRequest) (*CreateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+func (UnimplementedMicroVMServer) CreateMicroVM(context.Context, *CreateMicroVMRequest) (*CreateMicroVMResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateMicroVM not implemented")
 }
-func (UnimplementedMicroVMServer) Update(context.Context, *UpdateRequest) (*UpdateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+func (UnimplementedMicroVMServer) UpdateMicroVM(context.Context, *UpdateMicroVMRequest) (*UpdateMicroVMResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateMicroVM not implemented")
 }
-func (UnimplementedMicroVMServer) Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+func (UnimplementedMicroVMServer) DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMicroVM not implemented")
 }
-func (UnimplementedMicroVMServer) Get(context.Context, *GetRequest) (*GetResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+func (UnimplementedMicroVMServer) GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMicroVM not implemented")
 }
-func (UnimplementedMicroVMServer) List(context.Context, *ListRequest) (*ListResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+func (UnimplementedMicroVMServer) ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMicroVMs not implemented")
 }
-func (UnimplementedMicroVMServer) ListStream(*ListRequest, MicroVM_ListStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method ListStream not implemented")
+func (UnimplementedMicroVMServer) ListMicroVMsStream(*ListMicroVMsRequest, MicroVM_ListMicroVMsStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListMicroVMsStream not implemented")
 }
 
 // UnsafeMicroVMServer may be embedded to opt out of forward compatibility for this service.
@@ -158,114 +158,114 @@ func RegisterMicroVMServer(s grpc.ServiceRegistrar, srv MicroVMServer) {
 	s.RegisterService(&MicroVM_ServiceDesc, srv)
 }
 
-func _MicroVM_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateRequest)
+func _MicroVM_CreateMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMicroVMRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MicroVMServer).Create(ctx, in)
+		return srv.(MicroVMServer).CreateMicroVM(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/Create",
+		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/CreateMicroVM",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroVMServer).Create(ctx, req.(*CreateRequest))
+		return srv.(MicroVMServer).CreateMicroVM(ctx, req.(*CreateMicroVMRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MicroVM_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateRequest)
+func _MicroVM_UpdateMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMicroVMRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MicroVMServer).Update(ctx, in)
+		return srv.(MicroVMServer).UpdateMicroVM(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/Update",
+		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/UpdateMicroVM",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroVMServer).Update(ctx, req.(*UpdateRequest))
+		return srv.(MicroVMServer).UpdateMicroVM(ctx, req.(*UpdateMicroVMRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MicroVM_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteRequest)
+func _MicroVM_DeleteMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMicroVMRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MicroVMServer).Delete(ctx, in)
+		return srv.(MicroVMServer).DeleteMicroVM(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/Delete",
+		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/DeleteMicroVM",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroVMServer).Delete(ctx, req.(*DeleteRequest))
+		return srv.(MicroVMServer).DeleteMicroVM(ctx, req.(*DeleteMicroVMRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MicroVM_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRequest)
+func _MicroVM_GetMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMicroVMRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MicroVMServer).Get(ctx, in)
+		return srv.(MicroVMServer).GetMicroVM(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/Get",
+		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/GetMicroVM",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroVMServer).Get(ctx, req.(*GetRequest))
+		return srv.(MicroVMServer).GetMicroVM(ctx, req.(*GetMicroVMRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MicroVM_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListRequest)
+func _MicroVM_ListMicroVMs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMicroVMsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MicroVMServer).List(ctx, in)
+		return srv.(MicroVMServer).ListMicroVMs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/List",
+		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/ListMicroVMs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroVMServer).List(ctx, req.(*ListRequest))
+		return srv.(MicroVMServer).ListMicroVMs(ctx, req.(*ListMicroVMsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MicroVM_ListStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ListRequest)
+func _MicroVM_ListMicroVMsStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListMicroVMsRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(MicroVMServer).ListStream(m, &microVMListStreamServer{stream})
+	return srv.(MicroVMServer).ListMicroVMsStream(m, &microVMListMicroVMsStreamServer{stream})
 }
 
-type MicroVM_ListStreamServer interface {
+type MicroVM_ListMicroVMsStreamServer interface {
 	Send(*ListMessage) error
 	grpc.ServerStream
 }
 
-type microVMListStreamServer struct {
+type microVMListMicroVMsStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *microVMListStreamServer) Send(m *ListMessage) error {
+func (x *microVMListMicroVMsStreamServer) Send(m *ListMessage) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -277,30 +277,30 @@ var MicroVM_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*MicroVMServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Create",
-			Handler:    _MicroVM_Create_Handler,
+			MethodName: "CreateMicroVM",
+			Handler:    _MicroVM_CreateMicroVM_Handler,
 		},
 		{
-			MethodName: "Update",
-			Handler:    _MicroVM_Update_Handler,
+			MethodName: "UpdateMicroVM",
+			Handler:    _MicroVM_UpdateMicroVM_Handler,
 		},
 		{
-			MethodName: "Delete",
-			Handler:    _MicroVM_Delete_Handler,
+			MethodName: "DeleteMicroVM",
+			Handler:    _MicroVM_DeleteMicroVM_Handler,
 		},
 		{
-			MethodName: "Get",
-			Handler:    _MicroVM_Get_Handler,
+			MethodName: "GetMicroVM",
+			Handler:    _MicroVM_GetMicroVM_Handler,
 		},
 		{
-			MethodName: "List",
-			Handler:    _MicroVM_List_Handler,
+			MethodName: "ListMicroVMs",
+			Handler:    _MicroVM_ListMicroVMs_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ListStream",
-			Handler:       _MicroVM_ListStream_Handler,
+			StreamName:    "ListMicroVMsStream",
+			Handler:       _MicroVM_ListMicroVMsStream_Handler,
 			ServerStreams: true,
 		},
 	},

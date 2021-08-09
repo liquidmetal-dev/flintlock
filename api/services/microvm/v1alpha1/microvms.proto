@@ -5,57 +5,89 @@ package microvm.services.api.v1alpha1;
 import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/field_mask.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "types/microvm.proto";
 
 option go_package = "github.com/weaveworks/reignite/api/services/microvm/v1alpha1";
 
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+      title: "Reignite MicroVM API",
+      version: "0.1";
+      description: "The Reignite MicroVM API handles operations for provisioning and managing microvms";
+    };
+    consumes: "application/json";
+    produces: "application/json";
+};
+
 // MicroVM providers a service to create and manage the lifecycle of microvms.
 service MicroVM {
-  rpc Create(CreateRequest) returns (CreateResponse);
-  rpc Update(UpdateRequest) returns (UpdateResponse);
-  rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
-  rpc Get(GetRequest) returns (GetResponse);
-  rpc List(ListRequest) returns (ListResponse);
-  rpc ListStream(ListRequest) returns (stream ListMessage);
+  rpc CreateMicroVM(CreateMicroVMRequest) returns (CreateMicroVMResponse) {
+    option (google.api.http) = {
+      post: "/v1alpha1/microvm"
+    };
+  }
+  rpc UpdateMicroVM(UpdateMicroVMRequest) returns (UpdateMicroVMResponse) {
+    option (google.api.http) = {
+      put: "/v1alpha1/microvm/{microvm.namespace}/{microvm.id}"
+    };
+  }
+  rpc DeleteMicroVM(DeleteMicroVMRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1alpha1/microvm/{namespace}/{id}"
+    }; 
+  }
+  rpc GetMicroVM(GetMicroVMRequest) returns (GetMicroVMResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/microvm/{namespace}/{id}"
+    };
+  }
+  rpc ListMicroVMs(ListMicroVMsRequest) returns (ListMicroVMsResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/microvm/{namespace}"
+    };
+  }
+  rpc ListMicroVMsStream(ListMicroVMsRequest) returns (stream ListMessage);
 }
 
-message CreateRequest {
+message CreateMicroVMRequest {
   reignite.types.MicroVMSpec microvm = 1;
   map<string, google.protobuf.Any> metadata = 2;
 }
 
-message CreateResponse {
+message CreateMicroVMResponse {
   reignite.types.MicroVMSpec  microvm = 1;
 }
 
-message DeleteRequest {
+message DeleteMicroVMRequest {
   string id = 1;
   string namespace = 2;
 }
 
-message UpdateRequest {
+message UpdateMicroVMRequest {
   reignite.types.MicroVMSpec  microvm = 1;
   google.protobuf.FieldMask update_mask = 2;
 }
 
-message UpdateResponse {
+message UpdateMicroVMResponse {
   reignite.types.MicroVMSpec  microvm = 1;
 }
 
-message GetRequest {
+message GetMicroVMRequest {
   string id = 1;
   string namespace = 2;
 }
 
-message GetResponse {
+message GetMicroVMResponse {
   reignite.types.MicroVMSpec  microvm = 1;
 }
 
-message ListRequest {
-  optional string namespace = 2;
+message ListMicroVMsRequest {
+  string namespace = 1;
 }
 
-message ListResponse {
+message ListMicroVMsResponse {
   repeated reignite.types.MicroVMSpec  microvm = 1;
 }
 

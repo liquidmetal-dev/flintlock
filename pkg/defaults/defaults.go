@@ -13,6 +13,9 @@ const (
 	// ConfigurationDir is the default configuration directory.
 	ConfigurationDir = "/etc/opt/reignited"
 
-	// APIPortis the default port number to use for the API.
-	APIPort = 9090
+	// GRPCEndpoint is the endpoint for the gRPC server.
+	GRPCAPIEndpoint = "localhost:9090"
+
+	// HTTPAPIEndpoint is the endpoint for the HHTP proxy for the gRPC service..
+	HTTPAPIEndpoint = "localhost:8090"
 )

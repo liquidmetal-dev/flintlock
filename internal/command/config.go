@@ -2,7 +2,7 @@ package command
 
 import (
 	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/provider"
+	"github.com/weaveworks/reignite/pkg/microvm"
 )
 
 // Config represents the reignited configuration.
@@ -12,7 +12,9 @@ type Config struct {
 	// Logging contains the logging related config.
 	Logging log.Config
 	// MicroVM contains the microvm provider specific config.
-	MicroVM provider.MicrovmProvider
-	// PortNumber contains the port number for the API.
-	PortNumber int
+	MicroVM microvm.Provider
+	// GRPCEndpoint is the endpoint for the gRPC server.
+	GRPCAPIEndpoint string
+	// HTTPAPIEndpoint is the endpoint for the HHTP proxy for the gRPC service..
+	HTTPAPIEndpoint string
 }

@@ -1,8 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "services/microvm/v1alpha1/microvms.proto",
-    "version": "version not set"
+    "title": "Reignite MicroVM API",
+    "description": "The Reignite MicroVM API handles operations for provisioning and managing microvms",
+    "version": "0.1"
   },
   "tags": [
     {
@@ -15,7 +16,168 @@
   "produces": [
     "application/json"
   ],
-  "paths": {},
+  "paths": {
+    "/v1alpha1/microvm": {
+      "post": {
+        "operationId": "MicroVM_CreateMicroVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1CreateMicroVMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "MicroVM"
+        ]
+      }
+    },
+    "/v1alpha1/microvm/{microvm.namespace}/{microvm.id}": {
+      "put": {
+        "operationId": "MicroVM_UpdateMicroVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1UpdateMicroVMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "microvm.namespace",
+            "description": "Namespace is the name of the namespace the microvm belongs to.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "microvm.id",
+            "description": "ID is the identifier of the microvm.\nIf this empty at creation time a ID will be automatically generated.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
+    },
+    "/v1alpha1/microvm/{namespace}": {
+      "get": {
+        "operationId": "MicroVM_ListMicroVMs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1ListMicroVMsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
+    },
+    "/v1alpha1/microvm/{namespace}/{id}": {
+      "get": {
+        "operationId": "MicroVM_GetMicroVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1GetMicroVMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      },
+      "delete": {
+        "operationId": "MicroVM_DeleteMicroVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
+    }
+  },
   "definitions": {
     "HostPathVolumeSourceHostPathType": {
       "type": "string",
@@ -220,7 +382,7 @@
       },
       "description": "VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs."
     },
-    "v1alpha1CreateResponse": {
+    "v1alpha1CreateMicroVMResponse": {
       "type": "object",
       "properties": {
         "microvm": {
@@ -228,7 +390,7 @@
         }
       }
     },
-    "v1alpha1GetResponse": {
+    "v1alpha1GetMicroVMResponse": {
       "type": "object",
       "properties": {
         "microvm": {
@@ -244,7 +406,7 @@
         }
       }
     },
-    "v1alpha1ListResponse": {
+    "v1alpha1ListMicroVMsResponse": {
       "type": "object",
       "properties": {
         "microvm": {
@@ -255,7 +417,7 @@
         }
       }
     },
-    "v1alpha1UpdateResponse": {
+    "v1alpha1UpdateMicroVMResponse": {
       "type": "object",
       "properties": {
         "microvm": {

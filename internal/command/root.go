@@ -31,7 +31,7 @@ func NewRootCommand() (*cobra.Command, error) {
 		},
 	}
 
-	log.AddFlags(cmd.PersistentFlags(), &cfg.Logging)
+	log.AddFlagsToCommand(cmd, &cfg.Logging)
 	addRootSubCommands(cmd, cfg)
 
 	cobra.OnInitialize(initCobra)

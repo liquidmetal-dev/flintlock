@@ -3,13 +3,17 @@ package command
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/reignite/pkg/defaults"
@@ -32,14 +36,25 @@ func newRunCommand(cfg *Config) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().IntVarP(&cfg.PortNumber, "port", "p", defaults.APIPort, "The port number of the API server.")
+	addFlagsToCommand(cmd, cfg)
 
 	return cmd
 }
 
+func addFlagsToCommand(cmd *cobra.Command, cfg *Config) {
+	cmd.Flags().StringVar(&cfg.GRPCAPIEndpoint,
+		"grpc-endpoint",
+		defaults.GRPCAPIEndpoint,
+		"The endpoint for the gRPC server to listen on.")
+	cmd.Flags().StringVar(&cfg.HTTPAPIEndpoint,
+		"http-endpoint",
+		defaults.HTTPAPIEndpoint,
+		"The endpoint for the HTTP proxy to the gRPC service to listen on.")
+}
+
 func runServer(ctx context.Context, cfg *Config) error {
 	logger := log.GetLogger(ctx)
-	logger.Infof("reignited api server starting on port %d\n", cfg.PortNumber)
+	logger.Info("reignited api server starting")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
@@ -74,12 +89,24 @@ func serveAPI(ctx context.Context, cfg *Config) error {
 
 	// TODO: create the dependencies for the server
 
-	if err := mvmv1.RegisterMicroVMHandlerServer(ctx, mux, server.NewServer()); err != nil {
+	grpcServer := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+	)
+	mvmv1.RegisterMicroVMServer(grpcServer, server.NewServer())
+	grpc_prometheus.Register(grpcServer)
+	http.Handle("/metrics", promhttp.Handler())
+
+	opts := []grpc.DialOption{
+		grpc.WithInsecure(),
+	}
+
+	if err := mvmv1.RegisterMicroVMHandlerFromEndpoint(ctx, mux, cfg.GRPCAPIEndpoint, opts); err != nil {
 		return fmt.Errorf("could not register microvm server: %w", err)
 	}
 
 	s := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.PortNumber),
+		Addr:    cfg.HTTPAPIEndpoint,
 		Handler: mux,
 	}
 
@@ -89,10 +116,25 @@ func serveAPI(ctx context.Context, cfg *Config) error {
 		if err := s.Shutdown(context.Background()); err != nil {
 			logger.Errorf("failed to shutdown http gateway server: %v", err)
 		}
+		logger.Infof("shutting down grpc server")
+		grpcServer.GracefulStop()
 	}()
 
+	logger.Debugf("starting grpc server listening on endpoint %s", cfg.GRPCAPIEndpoint)
+	l, err := net.Listen("tcp", cfg.GRPCAPIEndpoint)
+	if err != nil {
+		return fmt.Errorf("setting up gRPC api listener: %w", err)
+	}
+	defer l.Close()
+	go func() {
+		if err := grpcServer.Serve(l); err != nil {
+			logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal
+		}
+	}()
+
+	logger.Debugf("starting http server listening on endpoint %s", cfg.HTTPAPIEndpoint)
 	if err := s.ListenAndServe(); err != nil {
-		return fmt.Errorf("listening and serving api: %w", err)
+		return fmt.Errorf("listening and serving http api: %w", err)
 	}
 
 	return nil
