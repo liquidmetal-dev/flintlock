@@ -8,9 +8,12 @@ import (
 	"github.com/oklog/ulid"
 )
 
-// New will generate a new unique identifier with a random source based on the unix time now.
+// DefaultRand is a random source based on the unix time not.
+var DefaultRand = rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+
+// New will generate a new unique identifier using the default random source.
 func New() (string, error) {
-	return NewWithRand(rand.New(rand.NewSource(time.Now().UnixNano()))) //nolint:gosec
+	return NewWithRand(DefaultRand)
 }
 
 // NewWithRand will generate a unique identifier with a specific random source.
