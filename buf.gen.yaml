@@ -6,3 +6,10 @@ plugins:
   - name: go-grpc
     out: api
     opt: paths=source_relative,require_unimplemented_servers=false
+  - name: grpc-gateway
+    out: api
+    opt:
+      - paths=source_relative
+      - generate_unbound_methods=true
+  - name: openapiv2
+    out: api

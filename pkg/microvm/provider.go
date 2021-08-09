@@ -3,7 +3,7 @@ package microvm
 import (
 	"context"
 
-	reignitev1 "github.com/weaveworks/reignite/api/reignite/v1alpha1"
+	reignitev1 "github.com/weaveworks/reignite/api/kinds/v1alpha1"
 )
 
 const (
