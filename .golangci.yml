@@ -4,6 +4,7 @@ run:
     allow-parallel-runners: true
     skip-dirs:
       - pkg/microvm/mock
+      - pkg/events/mock
 
 issues:
   max-same-issues: 0
