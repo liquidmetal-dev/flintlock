@@ -11,28 +11,27 @@ import (
 	"github.com/containerd/containerd/content/local"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	reignitev1 "github.com/weaveworks/reignite/api/kinds/v1alpha1"
+	"github.com/weaveworks/reignite/pkg/models"
 	"github.com/weaveworks/reignite/pkg/repository"
 )
 
 func TestMicroVMRepo_SaveAndGet(t *testing.T) {
 	testCases := []struct {
 		name          string
-		existingSpecs []*reignitev1.MicroVM
+		existingSpecs []*models.MicroVM
 		specToGet     string
 		expectErr     bool
 	}{
 		{
 			name:          "empty",
-			existingSpecs: []*reignitev1.MicroVM{},
+			existingSpecs: []*models.MicroVM{},
 			specToGet:     "test1",
 			expectErr:     true,
 		},
 		{
 			name: "has existing entry",
-			existingSpecs: []*reignitev1.MicroVM{
+			existingSpecs: []*models.MicroVM{
 				makeSpec("test1", "ns1"),
 				makeSpec("test2", "ns1"),
 			},
@@ -41,7 +40,7 @@ func TestMicroVMRepo_SaveAndGet(t *testing.T) {
 		},
 		{
 			name: "existing entries but no matching spec name",
-			existingSpecs: []*reignitev1.MicroVM{
+			existingSpecs: []*models.MicroVM{
 				makeSpec("test1", "ns1"),
 				makeSpec("test2", "ns1"),
 			},
@@ -72,7 +71,7 @@ func TestMicroVMRepo_SaveAndGet(t *testing.T) {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(mvm).ToNot(BeNil())
-				Expect(mvm.Name).To(Equal(tc.specToGet))
+				Expect(mvm.ID).To(Equal(tc.specToGet))
 			}
 		})
 	}
@@ -81,19 +80,19 @@ func TestMicroVMRepo_SaveAndGet(t *testing.T) {
 func TestMicroVMRepo_Delete(t *testing.T) {
 	testCases := []struct {
 		name          string
-		existingSpecs []*reignitev1.MicroVM
+		existingSpecs []*models.MicroVM
 		specToDelete  string
 		expectErr     bool
 	}{
 		{
 			name:          "empty",
-			existingSpecs: []*reignitev1.MicroVM{},
+			existingSpecs: []*models.MicroVM{},
 			specToDelete:  "test1",
 			expectErr:     false,
 		},
 		{
 			name: "has existing entry",
-			existingSpecs: []*reignitev1.MicroVM{
+			existingSpecs: []*models.MicroVM{
 				makeSpec("test1", "ns1"),
 				makeSpec("test2", "ns1"),
 			},
@@ -102,7 +101,7 @@ func TestMicroVMRepo_Delete(t *testing.T) {
 		},
 		{
 			name: "existing entries but no matching spec",
-			existingSpecs: []*reignitev1.MicroVM{
+			existingSpecs: []*models.MicroVM{
 				makeSpec("test1", "ns1"),
 				makeSpec("test2", "ns1"),
 			},
@@ -140,21 +139,21 @@ func TestMicroVMRepo_Delete(t *testing.T) {
 func TestMicroVMRepo_GetAll(t *testing.T) {
 	testCases := []struct {
 		name             string
-		existingSpecs    []*reignitev1.MicroVM
+		existingSpecs    []*models.MicroVM
 		nsToGet          string
 		expectErr        bool
 		expectedNumItems int
 	}{
 		{
 			name:             "empty",
-			existingSpecs:    []*reignitev1.MicroVM{},
+			existingSpecs:    []*models.MicroVM{},
 			nsToGet:          "ns1",
 			expectErr:        false,
 			expectedNumItems: 0,
 		},
 		{
 			name: "has existing entry",
-			existingSpecs: []*reignitev1.MicroVM{
+			existingSpecs: []*models.MicroVM{
 				makeSpec("test1", "ns1"),
 				makeSpec("test2", "ns1"),
 			},
@@ -164,7 +163,7 @@ func TestMicroVMRepo_GetAll(t *testing.T) {
 		},
 		{
 			name: "different ns - has existing entry",
-			existingSpecs: []*reignitev1.MicroVM{
+			existingSpecs: []*models.MicroVM{
 				makeSpec("test1", "ns1"),
 				makeSpec("test2", "ns2"),
 			},
@@ -174,7 +173,7 @@ func TestMicroVMRepo_GetAll(t *testing.T) {
 		},
 		{
 			name: "existing entries but no matching spec",
-			existingSpecs: []*reignitev1.MicroVM{
+			existingSpecs: []*models.MicroVM{
 				makeSpec("test1", "ns1"),
 				makeSpec("test2", "ns1"),
 			},
@@ -206,7 +205,7 @@ func TestMicroVMRepo_GetAll(t *testing.T) {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(items).ToNot(BeNil())
-				Expect(len(items.Items)).To(Equal(tc.expectedNumItems))
+				Expect(len(items)).To(Equal(tc.expectedNumItems))
 			}
 		})
 	}
@@ -235,13 +234,12 @@ func getLocalContentStore(t *testing.T) content.Store {
 	return store
 }
 
-func makeSpec(name, namespace string) *reignitev1.MicroVM {
-	return &reignitev1.MicroVM{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: reignitev1.MicroVMSpec{},
+func makeSpec(name, namespace string) *models.MicroVM {
+	return &models.MicroVM{
+		ID:        name,
+		Namespace: namespace,
+		Version:   1,
+		Spec:      models.MicroVMSpec{},
 	}
 }
 

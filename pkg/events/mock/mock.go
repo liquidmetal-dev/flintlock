@@ -64,15 +64,15 @@ func (mr *MockEventBusMockRecorder) Publish(arg0, arg1, arg2 interface{}) *gomoc
 }
 
 // Subscribe mocks base method.
-func (m *MockEventBus) Subscribe(arg0 context.Context, arg1 string, arg2 events.Handler, arg3 events.ErrorHandler) error {
+func (m *MockEventBus) Subscribe(arg0 context.Context, arg1 string, arg2 events.Handlers) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Subscribe", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "Subscribe", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Subscribe indicates an expected call of Subscribe.
-func (mr *MockEventBusMockRecorder) Subscribe(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockEventBusMockRecorder) Subscribe(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockEventBus)(nil).Subscribe), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockEventBus)(nil).Subscribe), arg0, arg1, arg2)
 }

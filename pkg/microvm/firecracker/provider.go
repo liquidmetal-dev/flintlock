@@ -61,7 +61,7 @@ func (p *fcProvider) CreateVM(ctx context.Context, input *microvm.CreateVMInput)
 
 	m, err := firecracker.NewMachine(ctx, *cfg, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("creating new machine for %s: %w", input.Spec.Name, err)
+		return nil, fmt.Errorf("creating new machine for %s: %w", input.Spec.ID, err)
 	}
 	logger.Trace(m)
 

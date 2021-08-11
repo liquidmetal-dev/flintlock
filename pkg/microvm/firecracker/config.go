@@ -2,12 +2,11 @@ package firecracker
 
 import (
 	"github.com/firecracker-microvm/firecracker-go-sdk"
-	"github.com/firecracker-microvm/firecracker-go-sdk/client/models"
-
-	reignitev1 "github.com/weaveworks/reignite/api/kinds/v1alpha1"
+	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
+	"github.com/weaveworks/reignite/pkg/models"
 )
 
-func (p *fcProvider) getConfig(machine *reignitev1.MicroVM) (*firecracker.Config, error) {
+func (p *fcProvider) getConfig(machine *models.MicroVM) (*firecracker.Config, error) {
 	if p.config.SocketPath == "" {
 		return nil, errSocketPathRequired
 	}
@@ -25,14 +24,14 @@ func (p *fcProvider) getConfig(machine *reignitev1.MicroVM) (*firecracker.Config
 		// Drives: ,
 		// NetworkInterfaces: ,
 		// VsockDevices: ,
-		MachineCfg: models.MachineConfiguration{
+		MachineCfg: fcmodels.MachineConfiguration{
 			VcpuCount: firecracker.Int64(machine.Spec.VCPU),
 			// CPUTemplate: ,
 			// HtEnabled: ,
 			MemSizeMib: firecracker.Int64(machine.Spec.MemoryInMb),
 		},
 		// JailerCfg: nil,
-		VMID: machine.Name,
+		VMID: machine.ID,
 	}
 
 	return conf, nil

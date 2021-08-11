@@ -11,8 +11,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	reignitev1 "github.com/weaveworks/reignite/api/kinds/v1alpha1"
 	"github.com/weaveworks/reignite/pkg/defaults"
+	"github.com/weaveworks/reignite/pkg/models"
 )
 
 var (
@@ -27,13 +27,13 @@ var (
 // MicroVMRepository is the repository definition for a microvm repository.
 type MicroVMRepository interface {
 	// Save will save the supplied microvm spec.
-	Save(ctx context.Context, microvm *reignitev1.MicroVM) (*reignitev1.MicroVM, error)
+	Save(ctx context.Context, microvm *models.MicroVM) (*models.MicroVM, error)
 	// Delete will delete the supplied microvm.
-	Delete(ctx context.Context, microvm *reignitev1.MicroVM) error
+	Delete(ctx context.Context, microvm *models.MicroVM) error
 	// Get will get the microvm spec with the given name/namespace.
-	Get(ctx context.Context, name, namespace string) (*reignitev1.MicroVM, error)
+	Get(ctx context.Context, name, namespace string) (*models.MicroVM, error)
 	// GetAll will get a list of microvm details.
-	GetAll(ctx context.Context, namespace string) (*reignitev1.MicroVMList, error)
+	GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error)
 }
 
 // NewContainerdRepository will create a new containerd backed microvm repository.
@@ -52,16 +52,16 @@ type containerdRepo struct {
 }
 
 // Save will save the supplied microvm spec to the containred content store.
-func (r *containerdRepo) Save(ctx context.Context, microvm *reignitev1.MicroVM) (*reignitev1.MicroVM, error) {
-	mu := r.getMutex(microvm.Name)
+func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*models.MicroVM, error) {
+	mu := r.getMutex(microvm.ID)
 	mu.Lock()
 	defer mu.Unlock()
 
 	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 
-	microvm.Generation++
+	microvm.Version++
 
-	refName := fmt.Sprintf("%s/%s", microvm.Namespace, microvm.Name)
+	refName := fmt.Sprintf("%s/%s", microvm.Namespace, microvm.ID)
 	writer, err := r.store.Writer(namespaceCtx, content.WithRef(refName))
 	if err != nil {
 		return nil, fmt.Errorf("getting containerd writer: %w", err)
@@ -87,7 +87,7 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *reignitev1.MicroVM) 
 }
 
 // Get will get the microvm spec with the given name/namespace from the containerd content store.
-func (r *containerdRepo) Get(ctx context.Context, name, namespace string) (*reignitev1.MicroVM, error) {
+func (r *containerdRepo) Get(ctx context.Context, name, namespace string) (*models.MicroVM, error) {
 	mu := r.getMutex(name)
 	mu.RLock()
 	defer mu.RUnlock()
@@ -106,22 +106,20 @@ func (r *containerdRepo) Get(ctx context.Context, name, namespace string) (*reig
 }
 
 // GetAll will get a list of microvm details from the containerd content store.
-func (r *containerdRepo) GetAll(ctx context.Context, namespace string) (*reignitev1.MicroVMList, error) {
+func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
 	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 
-	list := &reignitev1.MicroVMList{
-		Items: []reignitev1.MicroVM{},
-	}
+	items := []*models.MicroVM{}
 
 	nsLabelFilter := fmt.Sprintf("labels.\"%s\"==\"%s\"", NamespaceLabel, namespace)
 
 	err := r.store.Walk(namespaceCtx, func(i content.Info) error {
-		microvm, getErr := r.getWithDigest(namespaceCtx, &i.Digest)
+		vm, getErr := r.getWithDigest(namespaceCtx, &i.Digest)
 		if getErr != nil {
 			return fmt.Errorf("getting microvm spec: %w", getErr)
 		}
 
-		list.Items = append(list.Items, *microvm)
+		items = append(items, vm)
 
 		return nil
 	}, nsLabelFilter)
@@ -129,20 +127,20 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) (*reignit
 		return nil, fmt.Errorf("walking content store: %w", err)
 	}
 
-	return list, nil
+	return items, nil
 }
 
 // Delete will delete the supplied microvm details from the containerd content store.
-func (r *containerdRepo) Delete(ctx context.Context, microvm *reignitev1.MicroVM) error {
-	mu := r.getMutex(microvm.Name)
+func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) error {
+	mu := r.getMutex(microvm.ID)
 	mu.Lock()
 	defer mu.Unlock()
 
 	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 
-	metadigest, err := r.findDigestForSpec(namespaceCtx, microvm.Name)
+	metadigest, err := r.findDigestForSpec(namespaceCtx, microvm.ID)
 	if err != nil {
-		return fmt.Errorf("finding digest for %s: %w", microvm.Name, err)
+		return fmt.Errorf("finding digest for %s: %w", microvm.ID, err)
 	}
 	if metadigest == nil {
 		// Ignore not found
@@ -156,7 +154,7 @@ func (r *containerdRepo) Delete(ctx context.Context, microvm *reignitev1.MicroVM
 	return nil
 }
 
-func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.Digest) (*reignitev1.MicroVM, error) {
+func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.Digest) (*models.MicroVM, error) {
 	readData, err := content.ReadBlob(ctx, r.store, v1.Descriptor{
 		Digest: *metadigest,
 	})
@@ -164,7 +162,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 		return nil, fmt.Errorf("reading content %s: %w", metadigest, ErrFailedReadingContent)
 	}
 
-	microvm := &reignitev1.MicroVM{}
+	microvm := &models.MicroVM{}
 	err = json.Unmarshal(readData, microvm)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling json content to microvm: %w", err)
@@ -208,9 +206,9 @@ func (r *containerdRepo) getMutex(name string) *sync.RWMutex {
 	return mu
 }
 
-func getVMLabels(microvm *reignitev1.MicroVM) map[string]string {
+func getVMLabels(microvm *models.MicroVM) map[string]string {
 	labels := map[string]string{
-		IDLabel:        microvm.Name,
+		IDLabel:        microvm.ID,
 		NamespaceLabel: microvm.Namespace,
 		TypeLabel:      "microvm",
 	}
