@@ -1,4 +1,4 @@
-package command
+package config
 
 import (
 	"github.com/weaveworks/reignite/pkg/log"
