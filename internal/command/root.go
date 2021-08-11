@@ -7,13 +7,16 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/weaveworks/reignite/internal/command/gw"
+	"github.com/weaveworks/reignite/internal/command/run"
+	"github.com/weaveworks/reignite/internal/config"
 	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/flags"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
 func NewRootCommand() (*cobra.Command, error) {
-	cfg := &Config{}
+	cfg := &config.Config{}
 
 	cmd := &cobra.Command{
 		Use:   "reignited",
@@ -54,7 +57,10 @@ func initCobra() {
 	viper.ReadInConfig() //nolint: errcheck
 }
 
-func addRootSubCommands(cmd *cobra.Command, cfg *Config) {
-	runCmd := newRunCommand(cfg)
+func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) {
+	runCmd := run.NewCommand(cfg)
 	cmd.AddCommand(runCmd)
+
+	gwCmd := gw.NewCommand(cfg)
+	cmd.AddCommand(gwCmd)
 }
