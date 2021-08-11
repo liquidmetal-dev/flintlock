@@ -3,7 +3,7 @@ package microvm
 import (
 	"context"
 
-	reignitev1 "github.com/weaveworks/reignite/api/kinds/v1alpha1"
+	"github.com/weaveworks/reignite/pkg/models"
 )
 
 const (
@@ -39,13 +39,13 @@ type Provider interface {
 // CreateVMInput is the input to CreateVM.
 type CreateVMInput struct {
 	// Spec is the specification of the microvm to create.
-	Spec reignitev1.MicroVM `json:"spec"`
+	Spec models.MicroVM `json:"spec"`
 }
 
 // CreateVMOutput is the output from CreateVM.
 type CreateVMOutput struct {
 	// VM is the details of the newly created microvm.
-	VM *reignitev1.MicroVM
+	VM *models.MicroVM
 }
 
 // StartVMInput is the input to StartVM.
@@ -102,5 +102,5 @@ type ListVMsInput struct {
 // ListVMsOutput is the output of ListVMs.
 type ListVMsOutput struct {
 	// VMS is the list of VMs managed by this provider.
-	VMS reignitev1.MicroVMList
+	VMS []models.MicroVM
 }
