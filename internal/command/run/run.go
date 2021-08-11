@@ -9,21 +9,28 @@ import (
 	"os/signal"
 	"sync"
 
+	"github.com/containerd/containerd"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
+	"github.com/weaveworks/reignite/core/application"
+	"github.com/weaveworks/reignite/infrastructure/providers/microvm/firecracker"
+	containerd_repo "github.com/weaveworks/reignite/infrastructure/repositories/microvm/containerd"
+	"github.com/weaveworks/reignite/infrastructure/services/event/transport"
+	"github.com/weaveworks/reignite/infrastructure/services/id/ulid"
+	"github.com/weaveworks/reignite/infrastructure/services/microvmgrpc"
 	cmdflags "github.com/weaveworks/reignite/internal/command/flags"
 	"github.com/weaveworks/reignite/internal/config"
+	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/flags"
 	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/server"
 )
 
 // NewCommand creates a new cobra command for running reignite.
-func NewCommand(cfg *config.Config) *cobra.Command {
+func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Start running the reignite API",
@@ -38,8 +45,12 @@ func NewCommand(cfg *config.Config) *cobra.Command {
 	}
 
 	cmdflags.AddGRPCServerFlagsToCommand(cmd, cfg)
+	cmdflags.AddContainerdFlagsToCommand(cmd, cfg)
+	if err := firecracker.AddFlagsToCommand(cmd, &cfg.Firecracker); err != nil {
+		return nil, fmt.Errorf("adding firecracker flags to run command: %w", err)
+	}
 
-	return cmd
+	return cmd, nil
 }
 
 func runServer(ctx context.Context, cfg *config.Config) error {
@@ -76,13 +87,28 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 func serveAPI(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
-	// TODO: create the dependencies for the server
+	// TODO: Use CI framework to inject these -------
+	containerdClient, err := containerd.New(cfg.ContainerdSocketPath)
+	if err != nil {
+		return fmt.Errorf("creating containerd client: %w", err)
+	}
+	repo := containerd_repo.New(containerdClient.ContentStore())
+	eventSvc := transport.New()
+	if err := eventSvc.CreateTopic(ctx, defaults.TopicMicroVMEvents); err != nil {
+		return fmt.Errorf("creating %s topic: %w", defaults.TopicMicroVMEvents, err)
+	}
+	idSvc := ulid.New()
+	mvmprovider := firecracker.New(&cfg.Firecracker)
+
+	app := application.New(repo, eventSvc, idSvc, mvmprovider)
+	server := microvmgrpc.NewServer(app, app)
+	// END todo -----------------------------------------
 
 	grpcServer := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 	)
-	mvmv1.RegisterMicroVMServer(grpcServer, server.NewServer())
+	mvmv1.RegisterMicroVMServer(grpcServer, server)
 	grpc_prometheus.Register(grpcServer)
 	http.Handle("/metrics", promhttp.Handler())
 

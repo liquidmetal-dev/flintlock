@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	grpcEndpointFlag = "grpc-endpoint"
-	httpEndpointFlag = "http-endpoint"
+	grpcEndpointFlag        = "grpc-endpoint"
+	httpEndpointFlag        = "http-endpoint"
+	containerdSocketFlag    = "containerd-socket"
+	containerdNamespaceFlag = "containerd-namespace"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -31,4 +33,15 @@ func AddGWServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		httpEndpointFlag,
 		defaults.HTTPAPIEndpoint,
 		"The endpoint for the HTTP proxy to the gRPC service to listen on.")
+}
+
+func AddContainerdFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().StringVar(&cfg.ContainerdSocketPath,
+		containerdSocketFlag,
+		defaults.ContainerdSocket,
+		"The path to the containerd socket.")
+	cmd.Flags().StringVar(&cfg.ContainerdNamespace,
+		containerdNamespaceFlag,
+		defaults.ContainerdNamespace,
+		"The name of the default containerd namespace.")
 }

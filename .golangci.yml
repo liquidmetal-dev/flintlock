@@ -3,8 +3,8 @@ run:
     tests: false
     allow-parallel-runners: true
     skip-dirs:
-      - pkg/microvm/mock
-      - pkg/events/mock
+      - "./*/mock"
+
 
 issues:
   max-same-issues: 0
@@ -32,3 +32,5 @@ linters:
     - exhaustivestruct
     - godox # remove in the future
     - gci
+    - maligned
+    - lll

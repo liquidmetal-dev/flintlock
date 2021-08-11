@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	"github.com/weaveworks/reignite/infrastructure/services/id/ulid"
 	"github.com/weaveworks/reignite/pkg/planner"
 )
 
@@ -18,8 +19,12 @@ func TestActuator_SingleProc(t *testing.T) {
 	testProcs := []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{})}
 	testPlan := newTestPlan(testProcs)
 
+	idSrv := ulid.New()
+	execID, err := idSrv.GenerateRandom()
+	Expect(err).NotTo(HaveOccurred())
+
 	act := planner.NewActuator()
-	err := act.Execute(ctx, testPlan)
+	err = act.Execute(ctx, testPlan, execID)
 
 	Expect(err).NotTo(HaveOccurred())
 	testProc, ok := testProcs[0].(*testProc)
@@ -35,10 +40,14 @@ func TestActuator_MultipleProcs(t *testing.T) {
 	testProcs := []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{}), newTestProc(10*time.Millisecond, []planner.Procedure{})}
 	testPlan := newTestPlan(testProcs)
 
-	act := planner.NewActuator()
-	err := act.Execute(ctx, testPlan)
-
+	idSrv := ulid.New()
+	execID, err := idSrv.GenerateRandom()
 	Expect(err).NotTo(HaveOccurred())
+
+	act := planner.NewActuator()
+	err = act.Execute(ctx, testPlan, execID)
+	Expect(err).NotTo(HaveOccurred())
+
 	for _, proc := range testProcs {
 		testProc, ok := proc.(*testProc)
 		Expect(ok).To(BeTrue())
@@ -54,9 +63,12 @@ func TestActuator_ChildProcs(t *testing.T) {
 	testProcs := []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{})})}
 	testPlan := newTestPlan(testProcs)
 
-	act := planner.NewActuator()
-	err := act.Execute(ctx, testPlan)
+	idSrv := ulid.New()
+	execID, err := idSrv.GenerateRandom()
+	Expect(err).NotTo(HaveOccurred())
 
+	act := planner.NewActuator()
+	err = act.Execute(ctx, testPlan, execID)
 	Expect(err).NotTo(HaveOccurred())
 
 	parentProc, ok := testProcs[0].(*testProc)
@@ -81,8 +93,12 @@ func TestActuator_Timeout(t *testing.T) {
 	}
 	testPlan := newTestPlan(testProcs)
 
+	idSrv := ulid.New()
+	execID, err := idSrv.GenerateRandom()
+	Expect(err).NotTo(HaveOccurred())
+
 	act := planner.NewActuator()
-	err := act.Execute(ctx, testPlan)
+	err = act.Execute(ctx, testPlan, execID)
 
 	Expect(err).To(HaveOccurred())
 	Expect(err).To(MatchError(context.DeadlineExceeded))

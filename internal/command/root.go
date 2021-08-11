@@ -35,7 +35,9 @@ func NewRootCommand() (*cobra.Command, error) {
 	}
 
 	log.AddFlagsToCommand(cmd, &cfg.Logging)
-	addRootSubCommands(cmd, cfg)
+	if err := addRootSubCommands(cmd, cfg); err != nil {
+		return nil, fmt.Errorf("adding subcommands: %w", err)
+	}
 
 	cobra.OnInitialize(initCobra)
 
@@ -57,10 +59,15 @@ func initCobra() {
 	viper.ReadInConfig() //nolint: errcheck
 }
 
-func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) {
-	runCmd := run.NewCommand(cfg)
+func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) error {
+	runCmd, err := run.NewCommand(cfg)
+	if err != nil {
+		return fmt.Errorf("creating run cobra command: %w", err)
+	}
 	cmd.AddCommand(runCmd)
 
 	gwCmd := gw.NewCommand(cfg)
 	cmd.AddCommand(gwCmd)
+
+	return nil
 }
