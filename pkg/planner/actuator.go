@@ -7,14 +7,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/reignite/pkg/id"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
 // Actuator will execute the given plan.
 type Actuator interface {
 	// Execute the plan.
-	Execute(ctx context.Context, p Plan) error
+	Execute(ctx context.Context, p Plan, executionID string) error
 }
 
 // NewActuator creates a new actuator.
@@ -25,13 +24,9 @@ func NewActuator() Actuator {
 type actuatorImpl struct{}
 
 // Execute will execute the plan.
-func (e *actuatorImpl) Execute(ctx context.Context, p Plan) error {
-	execID, err := id.New()
-	if err != nil {
-		return fmt.Errorf("getting plan execution id: %w", err)
-	}
+func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) error {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
-		"execution_id": execID,
+		"execution_id": executionID,
 		"plan_name":    p.Name(),
 	})
 
