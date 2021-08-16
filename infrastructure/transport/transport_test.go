@@ -9,7 +9,7 @@ import (
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/services/event/transport"
+	"github.com/weaveworks/reignite/infrastructure/transport"
 )
 
 func TestTransport_SimplePubSub(t *testing.T) {

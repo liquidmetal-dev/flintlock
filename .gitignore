@@ -4,8 +4,8 @@
 # Output of the go coverage tool
 coverage.out
 
-# GoReleaser dist folder
-dist/
+# Out folder
+out/
 
 # Bin
 bin/

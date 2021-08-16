@@ -11,6 +11,7 @@ BUF_VERSION := v0.43.2
 # Directories
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 BIN_DIR := bin
+OUT_DIR := out
 REIGNITED_CMD := cmd/reignited
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
@@ -26,6 +27,9 @@ $(TOOLS_SHARE_DIR):
 	mkdir -p $@
 
 $(BIN_DIR):
+	mkdir -p $@
+
+$(OUT_DIR):
 	mkdir -p $@
 
 # Binaries
@@ -73,7 +77,14 @@ lint: $(GOLANGCI_LINT) $(BUF) ## Lint
 
 .PHONY: test
 test: ## Run unit tests
-	go test ./...
+	go test -v ./...
+
+.PHONY: test-int
+test-int: $(OUT_DIR) ## Run tests (including intengration tests)
+	CTR_ROOT_DIR=$(OUT_DIR)/containerd
+	mkdir -p $(CTR_ROOT_DIR) 
+	sudo go test -v -count=1 ./...
+	sudo rm -rf $(CTR_ROOT_DIR) 
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests

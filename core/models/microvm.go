@@ -14,8 +14,6 @@ type MicroVM struct {
 
 // MicroVMSpec represents the specification of a microvm machine.
 type MicroVMSpec struct {
-	// Provider is the name of the microvm provider. Defaults to firecracker.
-	Provider string `json:"provider,omitempty"`
 	// Kernel specifies the kernel and its argments to use.
 	Kernel Kernel `json:"kernel"`
 	// InitrdImage is an optional initial ramdisk to use.

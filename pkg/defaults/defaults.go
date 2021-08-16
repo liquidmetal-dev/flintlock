@@ -10,6 +10,9 @@ const (
 	// ContainerdSocket is the defaults path for the containerd socket.
 	ContainerdSocket = "/run/containerd/containerd.sock"
 
+	// ContainerdSnapshotter is the name of the default snapshotter to use for containerd.
+	ContainerdSnapshotter = "devmapper"
+
 	// FirecrackerBin is the name of the firecracker binary.
 	FirecrackerBin = "firecracker"
 

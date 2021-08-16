@@ -17,11 +17,11 @@ import (
 
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/reignite/core/application"
-	"github.com/weaveworks/reignite/infrastructure/providers/microvm/firecracker"
-	containerd_repo "github.com/weaveworks/reignite/infrastructure/repositories/microvm/containerd"
-	"github.com/weaveworks/reignite/infrastructure/services/event/transport"
-	"github.com/weaveworks/reignite/infrastructure/services/id/ulid"
-	"github.com/weaveworks/reignite/infrastructure/services/microvmgrpc"
+	containerd_repo "github.com/weaveworks/reignite/infrastructure/containerd"
+	"github.com/weaveworks/reignite/infrastructure/firecracker"
+	microvmgrpc "github.com/weaveworks/reignite/infrastructure/grpc"
+	"github.com/weaveworks/reignite/infrastructure/transport"
+	"github.com/weaveworks/reignite/infrastructure/ulid"
 	cmdflags "github.com/weaveworks/reignite/internal/command/flags"
 	"github.com/weaveworks/reignite/internal/config"
 	"github.com/weaveworks/reignite/pkg/defaults"
@@ -87,12 +87,12 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 func serveAPI(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
-	// TODO: Use CI framework to inject these -------
+	// TODO: Use DI framework to inject these -------
 	containerdClient, err := containerd.New(cfg.ContainerdSocketPath)
 	if err != nil {
 		return fmt.Errorf("creating containerd client: %w", err)
 	}
-	repo := containerd_repo.New(containerdClient.ContentStore())
+	repo := containerd_repo.NewMicroVMRepoWithClient(containerdClient)
 	eventSvc := transport.New()
 	if err := eventSvc.CreateTopic(ctx, defaults.TopicMicroVMEvents); err != nil {
 		return fmt.Errorf("creating %s topic: %w", defaults.TopicMicroVMEvents, err)

@@ -12,7 +12,7 @@ import (
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
-// Config represents the configuration options for the Firecracker provider.
+// Config represents the configuration options for the Firecracker infrastructure.
 type Config struct {
 	// FirecrackerBin is the firecracker binary to use.
 	FirecrackerBin string

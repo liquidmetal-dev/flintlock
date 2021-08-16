@@ -1,23 +1,23 @@
 package events
 
-// MicroVMCreated is an event for when a microvm is created.
-type MicroVMCreated struct {
+// MicroVMSpecCreated is an event for when a microvm spec is created.
+type MicroVMSpecCreated struct {
 	// ID is the identifier of the created microvm.
 	ID string
 	// Namespace is the namespace of the created microvm.
 	Namespace string
 }
 
-// MicroVMUpdated is an event for when a microvm is updated.
-type MicroVMUpdated struct {
+// MicroVMSpecUpdated is an event for when a microvm spec is updated.
+type MicroVMSpecUpdated struct {
 	// ID is the identifier of the updated microvm.
 	ID string
 	// Namespace is the namespace of the updated microvm.
 	Namespace string
 }
 
-// MicroVMDeleted is an event for when a microvm is deleted.
-type MicroVMDeleted struct {
+// MicroVMSpecDeleted is an event for when a microvm spec is deleted.
+type MicroVMSpecDeleted struct {
 	// ID is the identifier of the deleted microvm.
 	ID string
 	// Namespace is the namespace of the deleted microvm.

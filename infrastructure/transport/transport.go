@@ -7,9 +7,9 @@ import (
 	"github.com/vmware/transport-go/bus"
 	"github.com/vmware/transport-go/model"
 
+	event "github.com/weaveworks/reignite/core"
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/services/event"
 )
 
 // New creates a new event service based on Transport (https://vmware.github.io/transport/).

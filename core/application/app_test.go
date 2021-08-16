@@ -10,10 +10,7 @@ import (
 	"github.com/weaveworks/reignite/core/application"
 	"github.com/weaveworks/reignite/core/events"
 	"github.com/weaveworks/reignite/core/models"
-	prvmock "github.com/weaveworks/reignite/infrastructure/providers/microvm/mock"
-	repomock "github.com/weaveworks/reignite/infrastructure/repositories/microvm/mock"
-	eventmock "github.com/weaveworks/reignite/infrastructure/services/event/mock"
-	idmock "github.com/weaveworks/reignite/infrastructure/services/id/mock"
+	"github.com/weaveworks/reignite/infrastructure/mock"
 	"github.com/weaveworks/reignite/pkg/defaults"
 )
 
@@ -22,19 +19,19 @@ func TestApp_CreateMicroVM(t *testing.T) {
 		name         string
 		specToCreate *models.MicroVM
 		expectError  bool
-		expect       func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder)
+		expect       func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder)
 	}{
 		{
 			name:        "nil spec, should fail",
 			expectError: true,
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 			},
 		},
 		{
 			name:         "spec with no id or namespace, create id/ns and create",
 			specToCreate: createTestSpec("", ""),
 			expectError:  false,
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 				im.GenerateRandom().Return("id1234", nil)
 
 				rm.Get(
@@ -57,7 +54,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				em.Publish(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(defaults.TopicMicroVMEvents),
-					gomock.Eq(&events.MicroVMCreated{
+					gomock.Eq(&events.MicroVMSpecCreated{
 						ID:        "id1234",
 						Namespace: defaults.ContainerdNamespace,
 					}),
@@ -68,7 +65,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			name:         "spec with id or namespace, create",
 			specToCreate: createTestSpec("id1234", "default"),
 			expectError:  false,
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq("id1234"),
@@ -89,7 +86,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				em.Publish(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(defaults.TopicMicroVMEvents),
-					gomock.Eq(&events.MicroVMCreated{
+					gomock.Eq(&events.MicroVMSpecCreated{
 						ID:        "id1234",
 						Namespace: "default",
 					}),
@@ -100,7 +97,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			name:         "spec already exists, should fail",
 			specToCreate: createTestSpec("id1234", "default"),
 			expectError:  true,
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq("id1234"),
@@ -120,10 +117,10 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			rm := repomock.NewMockMicroVMRepository(mockCtrl)
-			em := eventmock.NewMockEventService(mockCtrl)
-			im := idmock.NewMockIDService(mockCtrl)
-			pm := prvmock.NewMockMicroVMProvider(mockCtrl)
+			rm := mock.NewMockMicroVMRepository(mockCtrl)
+			em := mock.NewMockEventService(mockCtrl)
+			im := mock.NewMockIDService(mockCtrl)
+			pm := mock.NewMockMicroVMProvider(mockCtrl)
 
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
 
@@ -145,19 +142,19 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 		name         string
 		specToUpdate *models.MicroVM
 		expectError  bool
-		expect       func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder)
+		expect       func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder)
 	}{
 		{
 			name:        "nil spec, should fail",
 			expectError: true,
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 			},
 		},
 		{
 			name:         "spec with no id or namespace, should fail",
 			specToUpdate: createTestSpec("", ""),
 			expectError:  true,
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(""),
@@ -172,7 +169,7 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 			name:         "spec is valid and update is valid, update",
 			specToUpdate: createTestSpec("id1234", "default"),
 			expectError:  false,
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq("id1234"),
@@ -193,7 +190,7 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 				em.Publish(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(defaults.TopicMicroVMEvents),
-					gomock.Eq(&events.MicroVMUpdated{
+					gomock.Eq(&events.MicroVMSpecUpdated{
 						ID:        "id1234",
 						Namespace: "default",
 					}),
@@ -209,10 +206,10 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			rm := repomock.NewMockMicroVMRepository(mockCtrl)
-			em := eventmock.NewMockEventService(mockCtrl)
-			im := idmock.NewMockIDService(mockCtrl)
-			pm := prvmock.NewMockMicroVMProvider(mockCtrl)
+			rm := mock.NewMockMicroVMRepository(mockCtrl)
+			em := mock.NewMockEventService(mockCtrl)
+			im := mock.NewMockIDService(mockCtrl)
+			pm := mock.NewMockMicroVMProvider(mockCtrl)
 
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
 
@@ -235,14 +232,14 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 		toDeleteID  string
 		toDeleteNS  string
 		expectError bool
-		expect      func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder)
+		expect      func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder)
 	}{
 		{
 			name:        "empty id, should fail",
 			expectError: true,
 			toDeleteID:  "",
 			toDeleteNS:  "default",
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 			},
 		},
 		{
@@ -250,7 +247,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 			expectError: false,
 			toDeleteID:  "id1234",
 			toDeleteNS:  "default",
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq("id1234"),
@@ -268,7 +265,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 				em.Publish(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(defaults.TopicMicroVMEvents),
-					gomock.Eq(&events.MicroVMDeleted{
+					gomock.Eq(&events.MicroVMSpecDeleted{
 						ID:        "id1234",
 						Namespace: "default",
 					}),
@@ -280,7 +277,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 			expectError: false,
 			toDeleteID:  "id1234",
 			toDeleteNS:  "default",
-			expect: func(rm *repomock.MockMicroVMRepositoryMockRecorder, em *eventmock.MockEventServiceMockRecorder, im *idmock.MockIDServiceMockRecorder, pm *prvmock.MockMicroVMProviderMockRecorder) {
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq("id1234"),
@@ -300,10 +297,10 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			rm := repomock.NewMockMicroVMRepository(mockCtrl)
-			em := eventmock.NewMockEventService(mockCtrl)
-			im := idmock.NewMockIDService(mockCtrl)
-			pm := prvmock.NewMockMicroVMProvider(mockCtrl)
+			rm := mock.NewMockMicroVMRepository(mockCtrl)
+			em := mock.NewMockEventService(mockCtrl)
+			im := mock.NewMockIDService(mockCtrl)
+			pm := mock.NewMockMicroVMProvider(mockCtrl)
 
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
 

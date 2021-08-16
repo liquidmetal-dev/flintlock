@@ -1,4 +1,4 @@
-package microvmgrpc
+package grpc
 
 import (
 	"github.com/weaveworks/reignite/api/types"
