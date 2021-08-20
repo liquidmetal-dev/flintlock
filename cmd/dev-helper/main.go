@@ -3,20 +3,16 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/sirupsen/logrus"
 
 	_ "github.com/containerd/containerd/api/events"
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/leases"
-	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/typeurl"
 
 	ctr "github.com/containerd/containerd"
 
+	"github.com/weaveworks/reignite/api/events"
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
 	"github.com/weaveworks/reignite/infrastructure/containerd"
@@ -45,6 +41,8 @@ func main() {
 	logger := rlog.GetLogger(ctx)
 	logger.Infof("reignite dev-helper, using containerd socket: %s", socketPath)
 
+	//eventPublishTest(ctx, socketPath, logger)
+
 	logger.Info("starting containerd event listener")
 	go eventListener(ctx, socketPath, logger)
 
@@ -56,12 +54,43 @@ func main() {
 	fmt.Scanln()
 	imageServiceTest(ctx, socketPath, logger)
 
-	//repoUpdateTest(ctx, socketPath)
-	//imageLeaseTest(ctx, socketPath)
-	//contentStoreTest(ctx, socketPath)
-
 	logger.Info("Press [enter] to exit")
 	fmt.Scanln()
+
+	cancel()
+}
+
+func eventPublishTest(ctx context.Context, socketPath string, logger *logrus.Entry) {
+	cfg := &containerd.Config{
+		SocketPath: socketPath,
+	}
+	logger.Info("creating event service")
+
+	es, err := containerd.NewEventService(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	evt := &events.MicroVMSpecCreated{
+		ID:        "abcdf",
+		Namespace: "ns1",
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+
+	evts, errs := es.Subscribe(ctx)
+
+	err = es.Publish(ctx, "/test", evt)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	select {
+	case evt := <-evts:
+		fmt.Printf("in dev-helper, got evtenr: %#v\n", evt.Event)
+	case evtErr := <-errs:
+		fmt.Println(evtErr)
+	}
 
 	cancel()
 }
@@ -113,139 +142,28 @@ func imageServiceTest(ctx context.Context, socketPath string, logger *logrus.Ent
 }
 
 func eventListener(ctx context.Context, socketPath string, logger *logrus.Entry) {
-	client, err := ctr.New(socketPath)
+	cfg := &containerd.Config{
+		SocketPath: socketPath,
+	}
+	logger.Info("creating event service")
+
+	es, err := containerd.NewEventService(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	es := client.EventService()
 	ch, errsCh := es.Subscribe(ctx)
-
 	for {
 		select {
 		case <-ctx.Done():
 			logger.Info("Existing event listener")
+			return
 		case evt := <-ch:
-			v, err := typeurl.UnmarshalAny(evt.Event)
-			if err != nil {
-				logger.Errorf("error unmarshalling: %s", err)
-				continue
-			}
-			out, err := json.Marshal(v)
-			if err != nil {
-				logger.Errorf("cannot marshal Any into JSON: %s", err)
-				continue
-			}
-			logger.Infof("event received, ns %s, topic %s, body: %s", evt.Namespace, evt.Topic, string(out))
+			logger.Infof("event received, ns %s, topic %s, body: %#v", evt.Namespace, evt.Topic, evt.Event)
 		case errEvt := <-errsCh:
 			logger.Errorf("event error received: %s", errEvt)
 		}
 	}
-}
-
-func imageLeaseTest(ctx context.Context, socketPath string) {
-	client, err := ctr.New(socketPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	nsCtx := namespaces.WithNamespace(ctx, vmNamespace)
-
-	leaseManager := client.LeasesService()
-	l, err := leaseManager.Create(nsCtx, leases.WithID("mytestlease"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	leaseCtx := leases.WithLease(nsCtx, l.ID)
-
-	image, err := client.Pull(leaseCtx, imageName, ctr.WithPullUnpack)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%#v\n", image)
-	fmt.Println("done with pull")
-}
-
-func contentStoreTest(ctx context.Context, socketPath string) {
-	client, err := ctr.New(socketPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	nsCtx := namespaces.WithNamespace(ctx, vmNamespace)
-
-	leaseManager := client.LeasesService()
-	l, err := leaseManager.Create(nsCtx, leases.WithID("mytestlease"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	vmSpec := getTestSpec()
-
-	leaseCtx := leases.WithLease(nsCtx, l.ID)
-
-	store := client.ContentStore()
-
-	refName := "mytestrefname"
-	writer, err := store.Writer(leaseCtx, content.WithRef(refName))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data, err := json.Marshal(vmSpec)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = writer.Write(data)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	labels := map[string]string{
-		"vmid": vmName,
-		"ns":   vmNamespace,
-	}
-	err = writer.Commit(leaseCtx, 0, "", content.WithLabels(labels))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	writer.Close()
-}
-
-func repoUpdateTest(ctx context.Context, socketPath string) {
-	client, err := ctr.New(socketPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	repo := containerd.NewMicroVMRepoWithClient(client)
-
-	vmSpec := getTestSpec()
-
-	_, err = repo.Save(ctx, vmSpec)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	vmSpec.Spec.MemoryInMb = 8096
-
-	_, err = repo.Save(ctx, vmSpec)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	specs, err := repo.GetAll(ctx, vmNamespace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, spec := range specs {
-		log.Printf("spec: %#v\n", spec)
-	}
-
 }
 
 func getTestSpec() *models.MicroVM {

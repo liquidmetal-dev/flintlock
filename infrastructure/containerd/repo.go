@@ -15,6 +15,7 @@ import (
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
@@ -52,7 +53,7 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 	mu.Lock()
 	defer mu.Unlock()
 
-	namespaceCtx := namespaces.WithNamespace(ctx, microvm.Namespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 	store := r.client.ContentStore()
 
 	microvm.Version++
@@ -88,9 +89,9 @@ func (r *containerdRepo) Get(ctx context.Context, name, namespace string) (*mode
 	mu.RLock()
 	defer mu.RUnlock()
 
-	namespaceCtx := namespaces.WithNamespace(ctx, namespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 
-	digest, err := r.findLatestDigestForSpec(namespaceCtx, name)
+	digest, err := r.findLatestDigestForSpec(namespaceCtx, name, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("finding content in store: %w", err)
 	}
@@ -103,7 +104,7 @@ func (r *containerdRepo) Get(ctx context.Context, name, namespace string) (*mode
 
 // GetAll will get a list of microvm details from the containerd content store.
 func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
-	namespaceCtx := namespaces.WithNamespace(ctx, namespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 	store := r.client.ContentStore()
 
 	// NOTE: this seems redundant as we have the namespace based context
@@ -153,10 +154,10 @@ func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) er
 	mu.Lock()
 	defer mu.Unlock()
 
-	namespaceCtx := namespaces.WithNamespace(ctx, microvm.Namespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 	store := r.client.ContentStore()
 
-	digests, err := r.findAllDigestForSpec(namespaceCtx, microvm.ID)
+	digests, err := r.findAllDigestForSpec(namespaceCtx, microvm.ID, microvm.Namespace)
 	if err != nil {
 		return fmt.Errorf("finding digests for %s: %w", microvm.ID, err)
 	}
@@ -180,9 +181,9 @@ func (r *containerdRepo) Exists(ctx context.Context, name, namespace string) (bo
 	mu.RLock()
 	defer mu.RUnlock()
 
-	namespaceCtx := namespaces.WithNamespace(ctx, namespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 
-	digest, err := r.findLatestDigestForSpec(namespaceCtx, name)
+	digest, err := r.findLatestDigestForSpec(namespaceCtx, name, namespace)
 	if err != nil {
 		return false, fmt.Errorf("finding digest for %s/%s: %w", name, namespace, err)
 	}
@@ -210,8 +211,9 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 	return microvm, nil
 }
 
-func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name string) (*digest.Digest, error) {
+func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, namespace string) (*digest.Digest, error) {
 	idLabelFilter := labelFilter(IDLabel, name)
+	nsFilter := labelFilter(NamespaceLabel, namespace)
 	store := r.client.ContentStore()
 
 	var digest *digest.Digest
@@ -228,7 +230,7 @@ func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name strin
 		}
 
 		return nil
-	}, idLabelFilter)
+	}, idLabelFilter, nsFilter)
 	if err != nil {
 		return nil, fmt.Errorf("walking content store for %s: %w", name, err)
 	}
@@ -236,8 +238,9 @@ func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name strin
 	return digest, nil
 }
 
-func (r *containerdRepo) findAllDigestForSpec(ctx context.Context, name string) ([]*digest.Digest, error) {
+func (r *containerdRepo) findAllDigestForSpec(ctx context.Context, name, namespace string) ([]*digest.Digest, error) {
 	idLabelFilter := labelFilter(IDLabel, name)
+	nsLabelFilter := labelFilter(NamespaceLabel, namespace)
 	store := r.client.ContentStore()
 
 	digests := []*digest.Digest{}
@@ -245,7 +248,7 @@ func (r *containerdRepo) findAllDigestForSpec(ctx context.Context, name string) 
 		digests = append(digests, &i.Digest)
 
 		return nil
-	}, idLabelFilter)
+	}, idLabelFilter, nsLabelFilter)
 	if err != nil {
 		return nil, fmt.Errorf("walking content store for %s: %w", name, err)
 	}

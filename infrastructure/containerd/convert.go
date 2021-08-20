@@ -3,8 +3,12 @@ package containerd
 import (
 	"fmt"
 
+	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/mount"
+	"github.com/containerd/typeurl"
+
 	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/reignite/core/ports"
 )
 
 func convertMountToModel(m mount.Mount, snapshotter string) (models.Mount, error) {
@@ -44,4 +48,24 @@ func convertMountsToModel(mounts []mount.Mount, snapshotter string) ([]models.Mo
 	}
 
 	return convertedMounts, nil
+}
+
+func convertCtrEventEnvelope(evt *events.Envelope) (*ports.EventEnvelope, error) {
+	if evt == nil {
+		return nil, nil
+	}
+
+	converted := &ports.EventEnvelope{
+		Timestamp: evt.Timestamp,
+		Namespace: evt.Namespace,
+		Topic:     evt.Topic,
+	}
+
+	v, err := typeurl.UnmarshalAny(evt.Event)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling event: %w", err)
+	}
+	converted.Event = v
+
+	return converted, nil
 }
