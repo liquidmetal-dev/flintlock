@@ -47,7 +47,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, fmt.Errorf("saving microvm spec: %w", err)
 	}
 
-	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMCreated{
+	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecCreated{
 		ID:        mvm.ID,
 		Namespace: mvm.Namespace,
 	}); err != nil {
@@ -84,7 +84,7 @@ func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, fmt.Errorf("updating microvm spec: %w", err)
 	}
 
-	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMUpdated{
+	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecUpdated{
 		ID:        mvm.ID,
 		Namespace: mvm.Namespace,
 	}); err != nil {
@@ -117,7 +117,7 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 		return fmt.Errorf("deleting microvm from repository: %w", err)
 	}
 
-	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMDeleted{
+	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecDeleted{
 		ID:        id,
 		Namespace: namespace,
 	}); err != nil {

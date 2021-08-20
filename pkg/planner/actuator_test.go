@@ -7,7 +7,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/reignite/infrastructure/services/id/ulid"
+	"github.com/weaveworks/reignite/infrastructure/ulid"
 	"github.com/weaveworks/reignite/pkg/planner"
 )
 

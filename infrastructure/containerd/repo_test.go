@@ -1,0 +1,73 @@
+package containerd_test
+
+import (
+	"testing"
+
+	. "github.com/onsi/gomega"
+
+	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/reignite/infrastructure/containerd"
+)
+
+func TestMicroVMRepo_Integration(t *testing.T) {
+	if !runContainerDTests() {
+		t.Skip("skipping containerd microvm repo integration test")
+	}
+
+	RegisterTestingT(t)
+
+	client, ctx := testCreateClient(t)
+
+	repo := containerd.NewMicroVMRepoWithClient(client)
+	exists, err := repo.Exists(ctx, testOwnerName, testOwnerNamespace)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(exists).To(BeFalse())
+
+	testVm := makeSpec(testOwnerName, testOwnerNamespace)
+	savedVM, err := repo.Save(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(savedVM).NotTo(BeNil())
+	Expect(savedVM.Version).To(Equal(2))
+
+	testVm.Spec.VCPU = 2
+	savedVM, err = repo.Save(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(savedVM).NotTo(BeNil())
+	Expect(savedVM.Version).To(Equal(3))
+
+	exists, err = repo.Exists(ctx, testOwnerName, testOwnerNamespace)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(exists).To(BeTrue())
+
+	gotVM, err := repo.Get(ctx, testOwnerName, testOwnerNamespace)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(gotVM).NotTo(BeNil())
+	Expect(savedVM.Version).To(Equal(3))
+
+	all, err := repo.GetAll(ctx, testOwnerNamespace)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(len(all)).To(Equal(1))
+
+	err = repo.Delete(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
+
+	exists, err = repo.Exists(ctx, testOwnerName, testOwnerNamespace)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(exists).To(BeFalse())
+
+	exists, err = repo.Exists(ctx, testOwnerName, testOwnerNamespace)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(exists).To(BeFalse())
+
+	_, err = repo.Get(ctx, testOwnerName, testOwnerNamespace)
+	Expect(err).To(HaveOccurred())
+}
+
+func makeSpec(name, namespace string) *models.MicroVM {
+	return &models.MicroVM{
+		ID:        name,
+		Namespace: namespace,
+		Version:   1,
+		Spec:      models.MicroVMSpec{},
+	}
+}

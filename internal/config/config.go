@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/weaveworks/reignite/infrastructure/providers/microvm/firecracker"
+	"github.com/weaveworks/reignite/infrastructure/firecracker"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 

@@ -24,3 +24,12 @@ func IsSpecNotFound(err error) bool {
 
 	return errors.Is(err, e)
 }
+
+type errUnsupportedSnapshotter struct {
+	name string
+}
+
+// Error returns the error message.
+func (e errUnsupportedSnapshotter) Error() string {
+	return fmt.Sprintf("snapshotter %s is not supported: snapshotters %s are supported", e.name, supportedSnapshotters)
+}

@@ -41,3 +41,24 @@ type EventService interface {
 	// Subscribe will subscribe to events on a named topic and will call the relevant handlers.
 	Subscribe(ctx context.Context, topic string, handlers EventHandlers) error
 }
+
+// ImageService is a port for a service that interacts with OCI images.
+type ImageService interface {
+	// Get will get (i.e. pull) the image for a specific owner.
+	Get(ctx context.Context, input GetImageInput) error
+	// GetAndMount will get (i.e. pull) the image for a specific owner and then
+	// make it available via a mount point.
+	GetAndMount(ctx context.Context, input GetImageInput) ([]models.Mount, error)
+}
+
+// GetImageInput is the input to getting a image.
+type GetImageInput struct {
+	// ImageName is the name of the image to get.
+	ImageName string
+	// OwnerName is the name of the owner of the image.
+	OwnerName string
+	// OwnerNamespace is the namespace of the owner of the image.
+	OwnerNamespace string
+	// Use is an indoicator of what the image will be used for.
+	Use models.ImageUse
+}
