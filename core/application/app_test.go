@@ -7,8 +7,8 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 
+	"github.com/weaveworks/reignite/api/events"
 	"github.com/weaveworks/reignite/core/application"
-	"github.com/weaveworks/reignite/core/events"
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/infrastructure/mock"
 	"github.com/weaveworks/reignite/pkg/defaults"

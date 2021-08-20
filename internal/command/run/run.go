@@ -17,14 +17,12 @@ import (
 
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/reignite/core/application"
-	containerd_repo "github.com/weaveworks/reignite/infrastructure/containerd"
+	reignite_ctr "github.com/weaveworks/reignite/infrastructure/containerd"
 	"github.com/weaveworks/reignite/infrastructure/firecracker"
 	microvmgrpc "github.com/weaveworks/reignite/infrastructure/grpc"
-	"github.com/weaveworks/reignite/infrastructure/transport"
 	"github.com/weaveworks/reignite/infrastructure/ulid"
 	cmdflags "github.com/weaveworks/reignite/internal/command/flags"
 	"github.com/weaveworks/reignite/internal/config"
-	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/flags"
 	"github.com/weaveworks/reignite/pkg/log"
 )
@@ -92,11 +90,8 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("creating containerd client: %w", err)
 	}
-	repo := containerd_repo.NewMicroVMRepoWithClient(containerdClient)
-	eventSvc := transport.New()
-	if err := eventSvc.CreateTopic(ctx, defaults.TopicMicroVMEvents); err != nil {
-		return fmt.Errorf("creating %s topic: %w", defaults.TopicMicroVMEvents, err)
-	}
+	repo := reignite_ctr.NewMicroVMRepoWithClient(containerdClient)
+	eventSvc := reignite_ctr.NewEventServiceWithClient(containerdClient)
 	idSvc := ulid.New()
 	mvmprovider := firecracker.New(&cfg.Firecracker)
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/weaveworks/reignite/core/events"
+	"github.com/weaveworks/reignite/api/events"
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"

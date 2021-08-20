@@ -11,6 +11,7 @@ import (
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
@@ -43,7 +44,7 @@ func (im *imageService) Get(ctx context.Context, input ports.GetImageInput) erro
 	actionMessage := fmt.Sprintf("getting image %s for owner %s/%s", input.ImageName, input.OwnerNamespace, input.OwnerName)
 	logger.Debugf(actionMessage)
 
-	nsCtx := namespaces.WithNamespace(ctx, input.OwnerNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 
 	_, err := im.getImage(nsCtx, input.ImageName, input.OwnerName, input.OwnerNamespace)
 	if err != nil {
@@ -59,7 +60,7 @@ func (im *imageService) GetAndMount(ctx context.Context, input ports.GetImageInp
 	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
 	logger.Debugf("getting and mounting image %s for owner %s/%s", input.ImageName, input.OwnerNamespace, input.OwnerName)
 
-	nsCtx := namespaces.WithNamespace(ctx, input.OwnerNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 
 	image, err := im.getImage(nsCtx, input.ImageName, input.OwnerName, input.OwnerNamespace)
 	if err != nil {

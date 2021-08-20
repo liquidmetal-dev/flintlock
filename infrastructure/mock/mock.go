@@ -270,20 +270,6 @@ func (m *MockEventService) EXPECT() *MockEventServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateTopic mocks base method.
-func (m *MockEventService) CreateTopic(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTopic", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateTopic indicates an expected call of CreateTopic.
-func (mr *MockEventServiceMockRecorder) CreateTopic(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTopic", reflect.TypeOf((*MockEventService)(nil).CreateTopic), arg0, arg1)
-}
-
 // Publish mocks base method.
 func (m *MockEventService) Publish(arg0 context.Context, arg1 string, arg2 interface{}) error {
 	m.ctrl.T.Helper()
@@ -299,17 +285,33 @@ func (mr *MockEventServiceMockRecorder) Publish(arg0, arg1, arg2 interface{}) *g
 }
 
 // Subscribe mocks base method.
-func (m *MockEventService) Subscribe(arg0 context.Context, arg1 string, arg2 ports.EventHandlers) error {
+func (m *MockEventService) Subscribe(arg0 context.Context) (<-chan *ports.EventEnvelope, <-chan error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Subscribe", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "Subscribe", arg0)
+	ret0, _ := ret[0].(<-chan *ports.EventEnvelope)
+	ret1, _ := ret[1].(<-chan error)
+	return ret0, ret1
 }
 
 // Subscribe indicates an expected call of Subscribe.
-func (mr *MockEventServiceMockRecorder) Subscribe(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockEventServiceMockRecorder) Subscribe(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockEventService)(nil).Subscribe), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockEventService)(nil).Subscribe), arg0)
+}
+
+// SubscribeTopic mocks base method.
+func (m *MockEventService) SubscribeTopic(arg0 context.Context, arg1 string) (<-chan *ports.EventEnvelope, <-chan error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubscribeTopic", arg0, arg1)
+	ret0, _ := ret[0].(<-chan *ports.EventEnvelope)
+	ret1, _ := ret[1].(<-chan error)
+	return ret0, ret1
+}
+
+// SubscribeTopic indicates an expected call of SubscribeTopic.
+func (mr *MockEventServiceMockRecorder) SubscribeTopic(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeTopic", reflect.TypeOf((*MockEventService)(nil).SubscribeTopic), arg0, arg1)
 }
 
 // MockIDService is a mock of IDService interface.
@@ -374,30 +376,30 @@ func (m *MockImageService) EXPECT() *MockImageServiceMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockImageService) Get(arg0 context.Context, arg1, arg2, arg3 string) error {
+func (m *MockImageService) Get(arg0 context.Context, arg1 ports.GetImageInput) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "Get", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockImageServiceMockRecorder) Get(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockImageServiceMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockImageService)(nil).Get), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockImageService)(nil).Get), arg0, arg1)
 }
 
 // GetAndMount mocks base method.
-func (m *MockImageService) GetAndMount(arg0 context.Context, arg1, arg2, arg3 string) ([]models.Mount, error) {
+func (m *MockImageService) GetAndMount(arg0 context.Context, arg1 ports.GetImageInput) ([]models.Mount, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAndMount", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "GetAndMount", arg0, arg1)
 	ret0, _ := ret[0].([]models.Mount)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAndMount indicates an expected call of GetAndMount.
-func (mr *MockImageServiceMockRecorder) GetAndMount(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockImageServiceMockRecorder) GetAndMount(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAndMount", reflect.TypeOf((*MockImageService)(nil).GetAndMount), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAndMount", reflect.TypeOf((*MockImageService)(nil).GetAndMount), arg0, arg1)
 }
