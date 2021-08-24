@@ -31,7 +31,7 @@ func (p *fcProvider) getConfig(machine *models.MicroVM) (*firecracker.Config, er
 			MemSizeMib: firecracker.Int64(machine.Spec.MemoryInMb),
 		},
 		// JailerCfg: nil,
-		VMID: machine.ID,
+		VMID: machine.ID.String(),
 	}
 
 	return conf, nil

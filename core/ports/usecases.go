@@ -18,5 +18,5 @@ type MicroVMQueryUseCases interface {
 }
 
 type ReconcileMicroVMsUseCase interface {
-	ReconcileMicroVMs(ctx context.Context) error
+	ReconcileMicroVMs(ctx context.Context, id, namespace string) error
 }

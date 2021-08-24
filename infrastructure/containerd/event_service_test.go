@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
 	"github.com/weaveworks/reignite/api/events"
 	"github.com/weaveworks/reignite/core/ports"
 	"github.com/weaveworks/reignite/infrastructure/containerd"

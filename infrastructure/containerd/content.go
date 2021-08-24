@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	// IDLabel is the name of the containerd content store label used for the microvm identifier.
-	IDLabel = fmt.Sprintf("%s/vmid", defaults.Domain)
+	// NameLabel is the name of the containerd content store label used for the microvm name.
+	NameLabel = fmt.Sprintf("%s/name", defaults.Domain)
 	// NamespaceLabel is the name of the containerd content store label used for the microvm namespace.
 	NamespaceLabel = fmt.Sprintf("%s/ns", defaults.Domain)
 	// TypeLabel is the name of the containerd content store label used to denote the type of content.
@@ -19,7 +19,7 @@ var (
 )
 
 func contentRefName(microvm *models.MicroVM) string {
-	return fmt.Sprintf("%s/%s", microvm.Namespace, microvm.ID)
+	return fmt.Sprintf("%s/microvm/%s", defaults.Domain, microvm.ID)
 }
 
 func labelFilter(name, value string) string {

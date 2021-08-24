@@ -7,7 +7,7 @@ import "github.com/weaveworks/reignite/core/ports"
 type App interface {
 	ports.MicroVMCommandUseCases
 	ports.MicroVMQueryUseCases
-	// ports.ReconcileMicroVMsUseCase
+	ports.ReconcileMicroVMsUseCase
 }
 
 func New(repo ports.MicroVMRepository, eventSvc ports.EventService, idSvc ports.IDService, mvmProvider ports.MicroVMProvider) App {

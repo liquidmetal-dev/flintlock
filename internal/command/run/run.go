@@ -18,6 +18,7 @@ import (
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/reignite/core/application"
 	reignite_ctr "github.com/weaveworks/reignite/infrastructure/containerd"
+	"github.com/weaveworks/reignite/infrastructure/controllers"
 	"github.com/weaveworks/reignite/infrastructure/firecracker"
 	microvmgrpc "github.com/weaveworks/reignite/infrastructure/grpc"
 	"github.com/weaveworks/reignite/infrastructure/ulid"
@@ -69,7 +70,13 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 		}
 	}()
 
-	// TODO: start the reconciler
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := runControllers(ctx, cfg); err != nil {
+			logger.Errorf("failed running controllers: %v", err)
+		}
+	}()
 
 	<-sigChan
 	logger.Debug("shutdown signal received, waiting for work to finish")
@@ -122,6 +129,31 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 
 	if err := grpcServer.Serve(l); err != nil {
 		logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal
+	}
+
+	return nil
+}
+
+func runControllers(ctx context.Context, cfg *config.Config) error {
+	logger := log.GetLogger(ctx)
+
+	// TODO: Use DI framework to inject these -------
+	containerdClient, err := containerd.New(cfg.ContainerdSocketPath)
+	if err != nil {
+		return fmt.Errorf("creating containerd client: %w", err)
+	}
+	repo := reignite_ctr.NewMicroVMRepoWithClient(containerdClient)
+	eventSvc := reignite_ctr.NewEventServiceWithClient(containerdClient)
+	idSvc := ulid.New()
+	mvmprovider := firecracker.New(&cfg.Firecracker)
+
+	app := application.New(repo, eventSvc, idSvc, mvmprovider)
+	mvmControllers := controllers.New(eventSvc, app)
+	// END todo -----------------------------------------
+
+	logger.Info("starting microvm controller")
+	if err := mvmControllers.Run(ctx, 1); err != nil {
+		logger.Fatalf("starting microvm controller: %v", err)
 	}
 
 	return nil
