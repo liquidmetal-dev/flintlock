@@ -28,4 +28,7 @@ type MicroVMQueryUseCases interface {
 type ReconcileMicroVMsUseCase interface {
 	// ReconcileMicroVM is a use case for reconciling a specific microvm.
 	ReconcileMicroVM(ctx context.Context, id, namespace string) error
+	// ResyncMicroVMs is used to resync the microvms. If a namespace is supplied then it will
+	// resync only the microvms in that namespaces.
+	ResyncMicroVMs(ctx context.Context, namespace string) error
 }

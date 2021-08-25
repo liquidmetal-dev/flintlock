@@ -40,16 +40,21 @@ func TestImageService_Integration(t *testing.T) {
 		SnapshotterVolume: testSnapshotter,
 	}, client)
 
-	input := ports.GetImageInput{
-		ImageName:      getTestVolumeImage(),
-		OwnerName:      testOwnerName,
-		OwnerNamespace: testOwnerNamespace,
-		Use:            models.ImageUseVolume,
+	inputGetAndMount := &ports.ImageMountSpec{
+		ImageName:    getTestVolumeImage(),
+		Owner:        fmt.Sprintf("%s/%s", testOwnerNamespace, testOwnerName),
+		OwnerUsageID: "vol1",
+		Use:          models.ImageUseVolume,
 	}
-	err := imageSvc.Get(ctx, input)
+	inputGet := &ports.ImageSpec{
+		ImageName: inputGetAndMount.ImageName,
+		Owner:     inputGetAndMount.Owner,
+	}
+
+	err := imageSvc.Pull(ctx, inputGet)
 	Expect(err).NotTo(HaveOccurred())
 
-	mounts, err := imageSvc.GetAndMount(ctx, input)
+	mounts, err := imageSvc.PullAndMount(ctx, inputGetAndMount)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mounts).NotTo(BeNil())
 	Expect(len(mounts)).To(Equal(1))
@@ -77,10 +82,9 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(len(leases)).To(Equal(1))
 	Expect(leases[0].ID).To(Equal(expectedLeaseName), "expect lease with name %s to exists", expectedLeaseName)
 
-	input.Use = models.ImageUseKernel
-	input.ImageName = getTestKernelImage()
+	inputGet.ImageName = "docker.io/linuxkit/kernel:5.4.129"
 
-	err = imageSvc.Get(ctx, input)
+	err = imageSvc.Pull(ctx, inputGet)
 	Expect(err).NotTo(HaveOccurred())
 }
 

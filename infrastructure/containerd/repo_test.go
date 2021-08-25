@@ -63,6 +63,29 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	Expect(err).To(HaveOccurred())
 }
 
+func TestMicroVMRepo_Integration_MultipleSave(t *testing.T) {
+	if !runContainerDTests() {
+		t.Skip("skipping containerd microvm repo integration multipel save test")
+	}
+
+	RegisterTestingT(t)
+
+	client, ctx := testCreateClient(t)
+
+	testVm := makeSpec(testOwnerName, testOwnerNamespace)
+
+	repo := containerd.NewMicroVMRepoWithClient(client)
+	savedVM, err := repo.Save(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(savedVM).NotTo(BeNil())
+	Expect(savedVM.Version).To(Equal(2))
+
+	savedVM, err = repo.Save(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(savedVM).NotTo(BeNil())
+	Expect(savedVM.Version).To(Equal(2))
+}
+
 func makeSpec(name, ns string) *models.MicroVM {
 	vmid, _ := models.NewVMID(name, ns)
 	return &models.MicroVM{

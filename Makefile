@@ -41,6 +41,7 @@ PROTOC_GEN_GO := $(TOOLS_BIN_DIR)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
 PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
 PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
+WIRE := $(TOOLS_BIN_DIR)/wire
 
 .DEFAULT_GOAL := help
 
@@ -57,6 +58,7 @@ generate: $(BUF) $(MOCKGEN) ## Generate code
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-proto
+	$(MAKE) generate-di
 
 .PHONY: generate-go
 generate-go: $(MOCKGEN) ## Generate Go Code
@@ -65,7 +67,11 @@ generate-go: $(MOCKGEN) ## Generate Go Code
 .PHONY: generate-proto ## Generate protobuf/grpc code
 generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI)
 	$(BUF) generate
-	
+
+.PHONY: generate-di ## Generate the dependency injection code
+generate-di: $(WIRE)
+	$(WIRE) gen github.com/weaveworks/reignite/internal/inject
+
 ##@ Linting
 
 .PHONY: lint
@@ -113,6 +119,9 @@ $(PROTO_GEN_GRPC_GW): $(TOOLS_DIR)/go.mod
 
 $(PROTO_GEN_GRPC_OAPI): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+
+$(WIRE): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/google/wire/cmd/wire
 
 BUF_TARGET := buf-Linux-x86_64.tar.gz
 

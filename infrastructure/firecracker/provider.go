@@ -2,33 +2,49 @@ package firecracker
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
 
-	firecracker "github.com/firecracker-microvm/firecracker-go-sdk"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
+
+	"github.com/firecracker-microvm/firecracker-go-sdk"
+	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
 	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/reignite/pkg/process"
 )
+
+var errNotImplemeted = errors.New("not implemented")
 
 // Config represents the configuration options for the Firecracker infrastructure.
 type Config struct {
 	// FirecrackerBin is the firecracker binary to use.
 	FirecrackerBin string
-	// SocketPath is the directory to use for the sockets.
-	SocketPath string
+	// StateRoot is the folder to store any required firecracker state (i.e. socks, pid, log files).
+	StateRoot string
+	// RunDetached indicates that the firecracker processes should be run detached (a.k.a daemon) from the parent process.
+	RunDetached bool
+	// APIConfig idnicates that te firecracker microvm should be configured using the API instead of file.
+	APIConfig bool
 }
 
 // New creates a new instance of the firecracker microvm provider.
-func New(cfg *Config) ports.MicroVMProvider {
+func New(cfg *Config, networkSvc ports.NetworkService, fs afero.Fs) ports.MicroVMService {
 	return &fcProvider{
-		config: cfg,
+		config:     cfg,
+		networkSvc: networkSvc,
+		fs:         fs,
 	}
 }
 
 type fcProvider struct {
 	config *Config
+
+	networkSvc ports.NetworkService
+	fs         afero.Fs
 }
 
 // Capabilities returns a list of the capabilities the Firecracker provider supports.
@@ -36,65 +52,99 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 	return models.Capabilities{models.MetadataServiceCapability}
 }
 
-// CreateVM will create a new microvm.
-func (p *fcProvider) CreateVM(ctx context.Context, vm *models.MicroVM) (*models.MicroVM, error) {
-	cfg, err := p.getConfig(vm)
-	if err != nil {
-		return nil, fmt.Errorf("getting firecracker configuration for machine: %w", err)
-	}
-
-	logger := log.GetLogger(ctx)
-	opts := []firecracker.Opt{
-		firecracker.WithLogger(logger),
-	}
-
-	// Only if not using the jailer
-	builder := firecracker.VMCommandBuilder{}
-	fcCmd := builder.
-		WithBin(p.config.FirecrackerBin).
-		WithStdout(os.Stdout). // TODO: change to file output
-		WithStdin(os.Stdin).
-		WithStderr(os.Stderr). // TODO: change to file output
-		WithSocketPath("pathtosocket").
-		Build(ctx)
-
-	opts = append(opts, firecracker.WithProcessRunner(fcCmd))
-
-	m, err := firecracker.NewMachine(ctx, *cfg, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("creating new machine for %s: %w", vm.ID, err)
-	}
-	logger.Trace(m)
-
-	return nil, nil
-}
-
 // StartVM will start a created microvm.
-func (p *fcProvider) StartVM(ctx context.Context, id string) error {
+func (p *fcProvider) Start(ctx context.Context, id string) error {
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "firecracker_microvm",
+		"vmid":    id,
+	})
+	logger.Info("starting microvm")
+
+	if !p.config.APIConfig {
+		logger.Info("using firecracker configuration file, no explicit start required")
+
+		return nil
+	}
+
+	vmid, err := models.NewVMIDFromString(id)
+	if err != nil {
+		return fmt.Errorf("parsing vmid: %w", err)
+	}
+	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+
+	socketPath := vmState.SockPath()
+	logger.Tracef("using socket %s", socketPath)
+
+	client := firecracker.NewClient(socketPath, logger, true)
+	_, err = client.CreateSyncAction(ctx, &fcmodels.InstanceActionInfo{
+		ActionType: firecracker.String("InstanceStart"),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create start action: %w", err)
+	}
+
+	logger.Info("started microvm")
+
+	return nil
+}
+
+// Pause will pause a started microvm.
+func (p *fcProvider) Pause(ctx context.Context, id string) error {
 	return errNotImplemeted
 }
 
-// PauseVM will pause a started microvm.
-func (p *fcProvider) PauseVM(ctx context.Context, id string) error {
+// Resume will resume a paused microvm.
+func (p *fcProvider) Resume(ctx context.Context, id string) error {
 	return errNotImplemeted
 }
 
-// ResumeVM will resume a paused microvm.
-func (p *fcProvider) ResumeVM(ctx context.Context, id string) error {
+// Stop will stop a paused or running microvm.
+func (p *fcProvider) Stop(ctx context.Context, id string) error {
 	return errNotImplemeted
 }
 
-// StopVM will stop a paused or running microvm.
-func (p *fcProvider) StopVM(ctx context.Context, id string) error {
+// Delete will delete a VM and its runtime state.
+func (p *fcProvider) Delete(ctx context.Context, id string) error {
 	return errNotImplemeted
 }
 
-// DeleteVM will delete a VM and its runtime state.
-func (p *fcProvider) DeleteVM(ctx context.Context, id string) error {
-	return errNotImplemeted
-}
+// IsRunning returns true if the microvm is running.
+func (p *fcProvider) IsRunning(ctx context.Context, id string) (bool, error) {
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "firecracker_microvm",
+		"vmid":    id,
+	})
+	logger.Info("checking if microvm is running")
 
-// ListVMs will return a list of the microvms.
-func (p *fcProvider) ListVMs(ctx context.Context, count int) ([]*models.MicroVM, error) {
-	return nil, errNotImplemeted
+	vmid, err := models.NewVMIDFromString(id)
+	if err != nil {
+		return false, fmt.Errorf("parsing vmid: %w", err)
+	}
+	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+
+	pidPath := vmState.PIDPath()
+	exists, err := afero.Exists(p.fs, pidPath)
+	if err != nil {
+		return false, fmt.Errorf("checking pid file exists: %w", err)
+	}
+	if !exists {
+		return false, nil
+	}
+
+	pid, err := vmState.PID()
+	if err != nil {
+		return false, fmt.Errorf("getting pid from file: %w", err)
+	}
+
+	processExists, err := process.Exists(pid)
+	if err != nil {
+		return false, fmt.Errorf("checking if firecracker process is running: %w", err)
+	}
+	if !processExists {
+		return false, nil
+	}
+
+	// TODO: do we need to query via the sock interface?
+
+	return true, nil
 }

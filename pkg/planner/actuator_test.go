@@ -165,3 +165,7 @@ func (p *testProc) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 	return p.ChildProcs, nil
 }
+
+func (p *testProc) ShouldDo(ctx context.Context) (bool, error) {
+	return true, nil
+}

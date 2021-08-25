@@ -13,16 +13,16 @@ type Plan interface {
 	// Create will perform the plan and will return a list of operations/procedures
 	// that need to be run to accomplish the plan
 	Create(ctx context.Context) ([]Procedure, error)
-
-	// Result is the result of the plan
-	Result() interface{}
 }
 
 // Procedure represents a procedure/operation that will be carried out
-// as part of executing a plan.
+// as part of executing a plan. All procedures must be idempotent, so they
+// need to measure and then act.
 type Procedure interface {
 	// Name is the name of the procedure/operation.
 	Name() string
 	// Do will perform the operation/procedure.
 	Do(ctx context.Context) ([]Procedure, error)
+	// ShouldDo determines if this procedure should be executed
+	ShouldDo(ctx context.Context) (bool, error)
 }

@@ -129,7 +129,7 @@ func TestMicroVMController(t *testing.T) {
 			ctrlWG.Add(1)
 			go func() {
 				defer ctrlWG.Done()
-				err = controller.Run(ctx, 1)
+				err = controller.Run(ctx, 1, 10*time.Minute, false)
 			}()
 
 			for _, evt := range tc.eventsToSend {

@@ -7,8 +7,8 @@ import (
 	"github.com/containerd/containerd/snapshots"
 )
 
-func snapshotKey(ownerName string) string {
-	return fmt.Sprintf("reignite/%s", ownerName)
+func snapshotKey(owner, ownerUsageID string) string {
+	return fmt.Sprintf("reignite/%s/%s", owner, ownerUsageID)
 }
 
 func snapshotExists(ctx context.Context, key string, ss snapshots.Snapshotter) (bool, error) {

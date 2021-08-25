@@ -74,7 +74,6 @@ func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.E
 
 func (e *actuatorImpl) react(ctx context.Context, steps []Procedure, logger *logrus.Entry) (int, error) {
 	var childSteps []Procedure
-	var err error
 	numStepsExecuted := 0
 
 	for _, step := range steps {
@@ -84,10 +83,16 @@ func (e *actuatorImpl) react(ctx context.Context, steps []Procedure, logger *log
 
 			return numStepsExecuted, ctx.Err() //nolint:wrapcheck
 		default:
-			numStepsExecuted++
-			childSteps, err = step.Do(ctx)
+			shouldDo, err := step.ShouldDo(ctx)
 			if err != nil {
-				return numStepsExecuted, fmt.Errorf("executing step %s: %w", step.Name(), err)
+				return numStepsExecuted, fmt.Errorf("checking if step %s should be executed: %w", step.Name(), err)
+			}
+			if shouldDo {
+				numStepsExecuted++
+				childSteps, err = step.Do(ctx)
+				if err != nil {
+					return numStepsExecuted, fmt.Errorf("executing step %s: %w", step.Name(), err)
+				}
 			}
 		}
 		if len(childSteps) > 0 {
