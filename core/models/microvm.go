@@ -3,7 +3,7 @@ package models
 // MicroVM represents a microvm machine that is created via a provider.
 type MicroVM struct {
 	// ID is the identifier for the microvm.
-	ID *VMID `json:"id"`
+	ID VMID `json:"id"`
 	// Version is the version for the microvm definition.
 	Version int `json:"version"`
 	// Spec is the specification of the microvm.

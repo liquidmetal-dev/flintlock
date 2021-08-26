@@ -310,9 +310,16 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 }
 
 func createTestSpec(name, ns string) *models.MicroVM {
-	vmid, _ := models.NewVMID(name, ns)
+	var vmid *models.VMID
+
+	if name == "" && ns == "" {
+		vmid = &models.VMID{}
+	} else {
+		vmid, _ = models.NewVMID(name, ns)
+	}
+
 	return &models.MicroVM{
-		ID: vmid,
+		ID: *vmid,
 		Spec: models.MicroVMSpec{
 			VCPU:       2,
 			MemoryInMb: 2048,

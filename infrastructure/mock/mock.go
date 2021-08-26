@@ -442,16 +442,16 @@ func (m *MockReconcileMicroVMsUseCase) EXPECT() *MockReconcileMicroVMsUseCaseMoc
 	return m.recorder
 }
 
-// ReconcileMicroVMs mocks base method.
-func (m *MockReconcileMicroVMsUseCase) ReconcileMicroVMs(arg0 context.Context, arg1, arg2 string) error {
+// ReconcileMicroVM mocks base method.
+func (m *MockReconcileMicroVMsUseCase) ReconcileMicroVM(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReconcileMicroVMs", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ReconcileMicroVM", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ReconcileMicroVMs indicates an expected call of ReconcileMicroVMs.
-func (mr *MockReconcileMicroVMsUseCaseMockRecorder) ReconcileMicroVMs(arg0, arg1, arg2 interface{}) *gomock.Call {
+// ReconcileMicroVM indicates an expected call of ReconcileMicroVM.
+func (mr *MockReconcileMicroVMsUseCaseMockRecorder) ReconcileMicroVM(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileMicroVMs", reflect.TypeOf((*MockReconcileMicroVMsUseCase)(nil).ReconcileMicroVMs), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileMicroVM", reflect.TypeOf((*MockReconcileMicroVMsUseCase)(nil).ReconcileMicroVM), arg0, arg1, arg2)
 }

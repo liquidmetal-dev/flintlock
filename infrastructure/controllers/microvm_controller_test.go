@@ -43,7 +43,7 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				uc.ReconcileMicroVMs(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
 			},
 		},
 		{
@@ -55,7 +55,7 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				uc.ReconcileMicroVMs(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
 			},
 		},
 		{
@@ -67,7 +67,7 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				uc.ReconcileMicroVMs(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
 			},
 		},
 		{
@@ -80,9 +80,9 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				failed := uc.ReconcileMicroVMs(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(errors.New("something bad happened"))
+				failed := uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(errors.New("something bad happened"))
 
-				uc.ReconcileMicroVMs(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil).After(failed)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil).After(failed)
 			},
 		},
 		{
@@ -95,9 +95,9 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				failed := uc.ReconcileMicroVMs(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(errors.New("something bad happened"))
+				failed := uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(errors.New("something bad happened"))
 
-				uc.ReconcileMicroVMs(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil).After(failed)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil).After(failed)
 			},
 		},
 	}

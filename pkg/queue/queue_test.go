@@ -93,10 +93,8 @@ func TestSimpleSyncQueue_Duplicate(t *testing.T) {
 				if !strings.HasPrefix(item.(string), "ns1/vm") {
 					t.Fatal("received item from queue after shutdown")
 				}
-				t.Logf("Worker %v: starting processing %v", i, item)
 				atomic.AddInt32(&countConsumed, 1)
 				time.Sleep(3 * time.Millisecond)
-				t.Logf("Worker %v: done processing %v", i, item)
 			}
 		}(i)
 	}

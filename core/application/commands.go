@@ -19,7 +19,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, coreerrs.ErrSpecRequired
 	}
 
-	if mvm.ID == nil {
+	if mvm.ID.IsEmpty() {
 		name, err := a.idSvc.GenerateRandom()
 		if err != nil {
 			return nil, fmt.Errorf("generating random name for microvm: %w", err)
@@ -28,7 +28,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		if err != nil {
 			return nil, fmt.Errorf("creating vmid: %w", err)
 		}
-		mvm.ID = vmid
+		mvm.ID = *vmid
 	}
 
 	foundMvm, err := a.repo.Get(ctx, mvm.ID.Name(), mvm.ID.Namespace())
@@ -66,7 +66,7 @@ func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	if mvm == nil {
 		return nil, coreerrs.ErrSpecRequired
 	}
-	if mvm.ID == nil {
+	if mvm.ID.IsEmpty() {
 		return nil, coreerrs.ErrVMIDRequired
 	}
 

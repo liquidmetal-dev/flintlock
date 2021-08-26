@@ -111,7 +111,7 @@ func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 		return true
 	}
 
-	err = r.reconcileUC.ReconcileMicroVMs(ctx, vmid.Name(), vmid.Namespace())
+	err = r.reconcileUC.ReconcileMicroVM(ctx, vmid.Name(), vmid.Namespace())
 	if err != nil {
 		logger.Errorf("failed to reconcile vmid %s: %s", vmid, err)
 		r.queue.Enqueue(item)
@@ -138,7 +138,7 @@ func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *l
 		name = updated.ID
 		namespace = updated.Namespace
 	default:
-		logger.Debugf("unhandled event type (%s) received", v)
+		logger.Debugf("unhandled event type (%T) received", v)
 
 		return nil
 	}

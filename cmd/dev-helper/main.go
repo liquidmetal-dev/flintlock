@@ -229,7 +229,7 @@ func eventListener(ctx context.Context, socketPath string, logger *logrus.Entry)
 func getTestSpec() *models.MicroVM {
 	vmid, _ := models.NewVMID(vmName, vmNamespace)
 	return &models.MicroVM{
-		ID: vmid,
+		ID: *vmid,
 		Spec: models.MicroVMSpec{
 			MemoryInMb: 2048,
 			VCPU:       4,
@@ -272,8 +272,8 @@ type testApp struct {
 	logger *logrus.Entry
 }
 
-func (t *testApp) ReconcileMicroVMs(ctx context.Context, id, namespace string) error {
-	t.logger.Infof("received request to reconcole %s/%s", id, namespace)
+func (t *testApp) ReconcileMicroVM(ctx context.Context, id, namespace string) error {
+	t.logger.Infof("received request to reconcile %s/%s", id, namespace)
 
 	return nil
 }

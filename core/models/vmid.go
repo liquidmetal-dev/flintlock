@@ -84,6 +84,11 @@ func (v *VMID) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// IsEmpty indicates that the id contains blank values.
+func (v *VMID) IsEmpty() bool {
+	return v.name == "" && v.namespace == ""
+}
+
 func splitVMIDFromString(id string) (namespace string, name string, err error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != numPartsForID {

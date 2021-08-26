@@ -13,7 +13,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		return nil, fmt.Errorf("creating vmid from spec: %w", err)
 	}
 	convertedModel := &models.MicroVM{
-		ID: vmid,
+		ID: *vmid,
 		// Labels
 		Spec: models.MicroVMSpec{
 			Kernel: models.Kernel{

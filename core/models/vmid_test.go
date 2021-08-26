@@ -111,12 +111,9 @@ func TestVMID_Marshalling(t *testing.T) {
 	data, err := json.Marshal(id1)
 	Expect(err).NotTo(HaveOccurred())
 
-	t.Logf("marshalled id to %s", string(data))
-
 	id2 := &models.VMID{}
 
-	err = json.Unmarshal(data, id2)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(json.Unmarshal(data, id2)).NotTo(HaveOccurred())
 	Expect(id2).To(BeEquivalentTo(id1))
 }
 
@@ -134,8 +131,6 @@ func TestVMID_EmbeddedMarshalling(t *testing.T) {
 
 	data, err := json.Marshal(s1)
 	Expect(err).NotTo(HaveOccurred())
-
-	t.Logf("marshalled struct to %s", string(data))
 
 	s2 := struct {
 		ID *models.VMID `json:"id"`

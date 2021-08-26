@@ -66,7 +66,7 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 func makeSpec(name, ns string) *models.MicroVM {
 	vmid, _ := models.NewVMID(name, ns)
 	return &models.MicroVM{
-		ID:      vmid,
+		ID:      *vmid,
 		Version: 1,
 		Spec:    models.MicroVMSpec{},
 	}
