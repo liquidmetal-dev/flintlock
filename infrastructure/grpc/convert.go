@@ -1,14 +1,19 @@
 package grpc
 
 import (
+	"fmt"
+
 	"github.com/weaveworks/reignite/api/types"
 	"github.com/weaveworks/reignite/core/models"
 )
 
-func convertMicroVMToModel(spec *types.MicroVMSpec) *models.MicroVM {
+func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
+	vmid, err := models.NewVMID(spec.Id, spec.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("creating vmid from spec: %w", err)
+	}
 	convertedModel := &models.MicroVM{
-		ID:        spec.Id,
-		Namespace: spec.Namespace,
+		ID: *vmid,
 		// Labels
 		Spec: models.MicroVMSpec{
 			Kernel: models.Kernel{
@@ -32,7 +37,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) *models.MicroVM {
 		convertedModel.Spec.NetworkInterfaces = append(convertedModel.Spec.NetworkInterfaces, *convertedNetInt)
 	}
 
-	return convertedModel
+	return convertedModel, nil
 }
 
 func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.NetworkInterface {
@@ -73,8 +78,8 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 
 func convertModelToMicroVM(mvm *models.MicroVM) *types.MicroVMSpec {
 	converted := &types.MicroVMSpec{
-		Id:        mvm.ID,
-		Namespace: mvm.Namespace,
+		Id:        mvm.ID.Name(),
+		Namespace: mvm.ID.Namespace(),
 		// Labels: ,
 		Vcpu:       int32(mvm.Spec.VCPU),
 		MemoryInMb: int32(mvm.Spec.MemoryInMb),

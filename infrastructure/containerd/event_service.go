@@ -45,9 +45,20 @@ func (es *eventService) Publish(ctx context.Context, topic string, eventToPublis
 
 // SubscribeTopic will subscribe to events on a named topic.
 func (es *eventService) SubscribeTopic(ctx context.Context, topic string) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
-	topicFilter := fmt.Sprintf("topic==\"%s\"", topic)
+	topicFilter := topicFilter(topic)
 
 	return es.subscribe(ctx, topicFilter)
+}
+
+// SubscribeTopics will subscribe to events on a set of named topics.
+func (es *eventService) SubscribeTopics(ctx context.Context, topics []string) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
+	topicFilters := []string{}
+
+	for _, topic := range topics {
+		topicFilters = append(topicFilters, topicFilter(topic))
+	}
+
+	return es.subscribe(ctx, topicFilters...)
 }
 
 // Subscribe will subscribe to events on all topics.
@@ -97,4 +108,8 @@ func (es *eventService) subscribe(ctx context.Context, filters ...string) (ch <-
 	}()
 
 	return ch, errs
+}
+
+func topicFilter(topic string) string {
+	return fmt.Sprintf("topic==\"%s\"", topic)
 }

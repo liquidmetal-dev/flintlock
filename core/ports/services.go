@@ -25,6 +25,8 @@ type EventService interface {
 	Publish(ctx context.Context, topic string, eventToPublish interface{}) error
 	// SubscribeTopic will subscribe to events on a named topic..
 	SubscribeTopic(ctx context.Context, topic string) (ch <-chan *EventEnvelope, errs <-chan error)
+	// SubscribeTopics will subscribe to events on a set of named topics.
+	SubscribeTopics(ctx context.Context, topics []string) (ch <-chan *EventEnvelope, errs <-chan error)
 	// Subscribe will subscribe to events on all topics
 	Subscribe(ctx context.Context) (ch <-chan *EventEnvelope, errs <-chan error)
 }

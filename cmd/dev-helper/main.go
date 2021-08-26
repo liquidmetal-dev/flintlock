@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/containerd/containerd/namespaces"
 	"github.com/sirupsen/logrus"
 
 	_ "github.com/containerd/containerd/api/events"
@@ -16,6 +18,8 @@ import (
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
 	"github.com/weaveworks/reignite/infrastructure/containerd"
+	"github.com/weaveworks/reignite/infrastructure/controllers"
+	"github.com/weaveworks/reignite/pkg/defaults"
 	rlog "github.com/weaveworks/reignite/pkg/log"
 )
 
@@ -34,7 +38,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	rlog.Configure(&rlog.Config{
-		Verbosity: 0,
+		Verbosity: 10,
 		Format:    "text",
 		Output:    "stderr",
 	})
@@ -46,13 +50,18 @@ func main() {
 	logger.Info("starting containerd event listener")
 	go eventListener(ctx, socketPath, logger)
 
-	logger.Infof("Press [enter] to write vmspec to using containerd repo")
-	fmt.Scanln()
-	repoTest(ctx, socketPath, logger)
+	logger.Infof("Press [enter] to run controller test")
+	//fmt.Scanln()
+	go controllerTest(ctx, socketPath, logger)
+	go publishPeriodicEvents(ctx, socketPath, logger)
 
-	logger.Infof("Press [enter] to get image %s", imageName)
-	fmt.Scanln()
-	imageServiceTest(ctx, socketPath, logger)
+	//logger.Infof("Press [enter] to write vmspec to using containerd repo")
+	//fmt.Scanln()
+	//repoTest(ctx, socketPath, logger)
+
+	//logger.Infof("Press [enter] to get image %s", imageName)
+	//fmt.Scanln()
+	//imageServiceTest(ctx, socketPath, logger)
 
 	logger.Info("Press [enter] to exit")
 	fmt.Scanln()
@@ -104,7 +113,7 @@ func repoTest(ctx context.Context, socketPath string, logger *logrus.Entry) {
 	repo := containerd.NewMicroVMRepoWithClient(client)
 
 	vmSpec := getTestSpec()
-	logger.Infof("saving microvm spec %s/%s", vmSpec.Namespace, vmSpec.ID)
+	logger.Infof("saving microvm spec %s", vmSpec.ID)
 
 	_, err = repo.Save(ctx, vmSpec)
 	if err != nil {
@@ -141,6 +150,57 @@ func imageServiceTest(ctx context.Context, socketPath string, logger *logrus.Ent
 	logger.Infof("mounted image %s to %s (type %s)", imageName, mountPoint[0].Source, mountPoint[0].Type)
 }
 
+func publishPeriodicEvents(ctx context.Context, socketPath string, logger *logrus.Entry) {
+	client, err := ctr.New(socketPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+
+	tickCh := time.Tick(10 * time.Second)
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Cancelled, exiting publisher")
+			return
+		case <-tickCh:
+			logger.Info("publishing event")
+			createEvt := &events.MicroVMSpecCreated{
+				ID:        "vm1",
+				Namespace: "testns",
+			}
+
+			err = client.EventService().Publish(namespaceCtx, defaults.TopicMicroVMEvents, createEvt)
+			if err != nil {
+				logger.Error(err)
+			}
+
+		}
+	}
+}
+
+func controllerTest(ctx context.Context, socketPath string, logger *logrus.Entry) {
+	em, err := containerd.NewEventService(&containerd.Config{
+		SocketPath: socketPath,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	app := &testApp{
+		logger: logger,
+	}
+
+	controller := controllers.New(em, app)
+
+	logger.Info("running controller")
+	controller.Run(ctx, 1)
+	logger.Info("controller not running")
+
+}
+
 func eventListener(ctx context.Context, socketPath string, logger *logrus.Entry) {
 	cfg := &containerd.Config{
 		SocketPath: socketPath,
@@ -167,9 +227,9 @@ func eventListener(ctx context.Context, socketPath string, logger *logrus.Entry)
 }
 
 func getTestSpec() *models.MicroVM {
+	vmid, _ := models.NewVMID(vmName, vmNamespace)
 	return &models.MicroVM{
-		ID:        vmName,
-		Namespace: vmNamespace,
+		ID: *vmid,
 		Spec: models.MicroVMSpec{
 			MemoryInMb: 2048,
 			VCPU:       4,
@@ -206,4 +266,14 @@ func getTestSpec() *models.MicroVM {
 			},
 		},
 	}
+}
+
+type testApp struct {
+	logger *logrus.Entry
+}
+
+func (t *testApp) ReconcileMicroVM(ctx context.Context, id, namespace string) error {
+	t.logger.Infof("received request to reconcile %s/%s", id, namespace)
+
+	return nil
 }

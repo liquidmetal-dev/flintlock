@@ -47,9 +47,9 @@ type containerdRepo struct {
 // Save will save the supplied microvm spec to the containred content store.
 func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*models.MicroVM, error) {
 	logger := log.GetLogger(ctx).WithField("repo", "containerd_microvm")
-	logger.Debugf("saving microvm spec %s/%s", microvm.Namespace, microvm.ID)
+	logger.Debugf("saving microvm spec %s", microvm.ID)
 
-	mu := r.getMutex(microvm.ID)
+	mu := r.getMutex(microvm.ID.String())
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -113,7 +113,7 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 	versions := map[string]int{}
 	digests := map[string]*digest.Digest{}
 	err := store.Walk(namespaceCtx, func(i content.Info) error {
-		name := i.Labels[IDLabel]
+		name := i.Labels[NameLabel]
 		version, err := strconv.Atoi(i.Labels[VersionLabel])
 		if err != nil {
 			return fmt.Errorf("parsing version number: %w", err)
@@ -150,14 +150,14 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 
 // Delete will delete the supplied microvm details from the containerd content store.
 func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) error {
-	mu := r.getMutex(microvm.ID)
+	mu := r.getMutex(microvm.ID.String())
 	mu.Lock()
 	defer mu.Unlock()
 
 	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
 	store := r.client.ContentStore()
 
-	digests, err := r.findAllDigestForSpec(namespaceCtx, microvm.ID, microvm.Namespace)
+	digests, err := r.findAllDigestForSpec(namespaceCtx, microvm.ID.Name(), microvm.ID.Namespace())
 	if err != nil {
 		return fmt.Errorf("finding digests for %s: %w", microvm.ID, err)
 	}
@@ -212,7 +212,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 }
 
 func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, namespace string) (*digest.Digest, error) {
-	idLabelFilter := labelFilter(IDLabel, name)
+	idLabelFilter := labelFilter(NameLabel, name)
 	nsFilter := labelFilter(NamespaceLabel, namespace)
 	store := r.client.ContentStore()
 
@@ -239,7 +239,7 @@ func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, name
 }
 
 func (r *containerdRepo) findAllDigestForSpec(ctx context.Context, name, namespace string) ([]*digest.Digest, error) {
-	idLabelFilter := labelFilter(IDLabel, name)
+	idLabelFilter := labelFilter(NameLabel, name)
 	nsLabelFilter := labelFilter(NamespaceLabel, namespace)
 	store := r.client.ContentStore()
 
@@ -273,8 +273,8 @@ func (r *containerdRepo) getMutex(name string) *sync.RWMutex {
 
 func getVMLabels(microvm *models.MicroVM) map[string]string {
 	labels := map[string]string{
-		IDLabel:        microvm.ID,
-		NamespaceLabel: microvm.Namespace,
+		NameLabel:      microvm.ID.Name(),
+		NamespaceLabel: microvm.ID.Namespace(),
 		TypeLabel:      "microvm",
 		VersionLabel:   strconv.Itoa(microvm.Version),
 	}

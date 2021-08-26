@@ -7,9 +7,9 @@ import (
 )
 
 func (a *app) GetMicroVM(ctx context.Context, id, namespace string) (*models.MicroVM, error) {
-	return nil, nil
+	return nil, errNotImplemeted
 }
 
 func (a *app) GetAllMicroVM(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
-	return nil, nil
+	return nil, errNotImplemeted
 }

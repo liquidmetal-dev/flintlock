@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/weaveworks/reignite/api/events"
+	coreerrs "github.com/weaveworks/reignite/core/errors"
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
@@ -15,28 +16,29 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	logger.Trace("creating microvm")
 
 	if mvm == nil {
-		return nil, errSpecRequired
+		return nil, coreerrs.ErrSpecRequired
 	}
 
-	if mvm.ID == "" {
-		newID, err := a.idSvc.GenerateRandom()
+	if mvm.ID.IsEmpty() {
+		name, err := a.idSvc.GenerateRandom()
 		if err != nil {
-			return nil, fmt.Errorf("generating random id for microvm: %w", err)
+			return nil, fmt.Errorf("generating random name for microvm: %w", err)
 		}
-		mvm.ID = newID
-	}
-	if mvm.Namespace == "" {
-		mvm.Namespace = defaults.ContainerdNamespace // TODO: not sure this is correct
+		vmid, err := models.NewVMID(name, defaults.MicroVMNamespace)
+		if err != nil {
+			return nil, fmt.Errorf("creating vmid: %w", err)
+		}
+		mvm.ID = *vmid
 	}
 
-	foundMvm, err := a.repo.Get(ctx, mvm.ID, mvm.Namespace)
+	foundMvm, err := a.repo.Get(ctx, mvm.ID.Name(), mvm.ID.Namespace())
 	if err != nil {
 		return nil, fmt.Errorf("checking to see if spec exists: %w", err)
 	}
 	if foundMvm != nil {
 		return nil, errSpecAlreadyExists{
-			name:      mvm.ID,
-			namespace: mvm.Namespace,
+			name:      mvm.ID.Name(),
+			namespace: mvm.ID.Namespace(),
 		}
 	}
 
@@ -48,8 +50,8 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	}
 
 	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecCreated{
-		ID:        mvm.ID,
-		Namespace: mvm.Namespace,
+		ID:        mvm.ID.Name(),
+		Namespace: mvm.ID.Namespace(),
 	}); err != nil {
 		return nil, fmt.Errorf("publishing microvm created event: %w", err)
 	}
@@ -62,22 +64,25 @@ func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	logger.Trace("updating microvm")
 
 	if mvm == nil {
-		return nil, errSpecRequired
+		return nil, coreerrs.ErrSpecRequired
+	}
+	if mvm.ID.IsEmpty() {
+		return nil, coreerrs.ErrVMIDRequired
 	}
 
-	foundMvm, err := a.repo.Get(ctx, mvm.ID, mvm.Namespace)
+	foundMvm, err := a.repo.Get(ctx, mvm.ID.Name(), mvm.ID.Namespace())
 	if err != nil {
 		return nil, fmt.Errorf("checking to see if spec exists: %w", err)
 	}
 	if foundMvm == nil {
 		return nil, errSpecNotFound{
-			name:      mvm.ID,
-			namespace: mvm.Namespace,
+			name:      mvm.ID.Name(),
+			namespace: mvm.ID.Namespace(),
 		}
 	}
 
 	// TODO: validate incoming spec
-	// TODO: check if update is valide (i.e. compare existing to requested update)
+	// TODO: check if update is valid (i.e. compare existing to requested update)
 
 	updatedMVM, err := a.repo.Save(ctx, mvm)
 	if err != nil {
@@ -85,8 +90,8 @@ func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	}
 
 	if err := a.eventSvc.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecUpdated{
-		ID:        mvm.ID,
-		Namespace: mvm.Namespace,
+		ID:        mvm.ID.Name(),
+		Namespace: mvm.ID.Namespace(),
 	}); err != nil {
 		return nil, fmt.Errorf("publishing microvm updated event: %w", err)
 	}

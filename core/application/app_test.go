@@ -37,7 +37,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq("id1234"),
-					gomock.Eq(defaults.ContainerdNamespace),
+					gomock.Eq(defaults.MicroVMNamespace),
 				).Return(
 					nil,
 					nil,
@@ -45,9 +45,9 @@ func TestApp_CreateMicroVM(t *testing.T) {
 
 				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq(createTestSpec("id1234", defaults.ContainerdNamespace)),
+					gomock.Eq(createTestSpec("id1234", defaults.MicroVMNamespace)),
 				).Return(
-					createTestSpec("id1234", defaults.ContainerdNamespace),
+					createTestSpec("id1234", defaults.MicroVMNamespace),
 					nil,
 				)
 
@@ -56,7 +56,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					gomock.Eq(defaults.TopicMicroVMEvents),
 					gomock.Eq(&events.MicroVMSpecCreated{
 						ID:        "id1234",
-						Namespace: defaults.ContainerdNamespace,
+						Namespace: defaults.MicroVMNamespace,
 					}),
 				)
 			},
@@ -155,14 +155,6 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 			specToUpdate: createTestSpec("", ""),
 			expectError:  true,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMProviderMockRecorder) {
-				rm.Get(
-					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq(""),
-					gomock.Eq(""),
-				).Return(
-					nil,
-					nil,
-				)
 			},
 		},
 		{
@@ -317,10 +309,17 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 	}
 }
 
-func createTestSpec(id, namespace string) *models.MicroVM {
+func createTestSpec(name, ns string) *models.MicroVM {
+	var vmid *models.VMID
+
+	if name == "" && ns == "" {
+		vmid = &models.VMID{}
+	} else {
+		vmid, _ = models.NewVMID(name, ns)
+	}
+
 	return &models.MicroVM{
-		ID:        id,
-		Namespace: namespace,
+		ID: *vmid,
 		Spec: models.MicroVMSpec{
 			VCPU:       2,
 			MemoryInMb: 2048,

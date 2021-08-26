@@ -77,13 +77,13 @@ lint: $(GOLANGCI_LINT) $(BUF) ## Lint
 
 .PHONY: test
 test: ## Run unit tests
-	go test -v ./...
+	go test -v -race ./...
 
 .PHONY: test-int
 test-int: $(OUT_DIR) ## Run tests (including intengration tests)
 	CTR_ROOT_DIR=$(OUT_DIR)/containerd
 	mkdir -p $(CTR_ROOT_DIR) 
-	sudo go test -v -count=1 ./...
+	sudo go test -v -race -count=1 ./...
 	sudo rm -rf $(CTR_ROOT_DIR) 
 
 .PHONY: test-e2e

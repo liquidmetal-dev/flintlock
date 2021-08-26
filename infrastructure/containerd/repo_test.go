@@ -63,11 +63,11 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	Expect(err).To(HaveOccurred())
 }
 
-func makeSpec(name, namespace string) *models.MicroVM {
+func makeSpec(name, ns string) *models.MicroVM {
+	vmid, _ := models.NewVMID(name, ns)
 	return &models.MicroVM{
-		ID:        name,
-		Namespace: namespace,
-		Version:   1,
-		Spec:      models.MicroVMSpec{},
+		ID:      *vmid,
+		Version: 1,
+		Spec:    models.MicroVMSpec{},
 	}
 }

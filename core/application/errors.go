@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	errSpecRequired = errors.New("microvm spec is required")
-	errIDRequired   = errors.New("microvm id is required")
+	errIDRequired    = errors.New("microvm id is required")
+	errNotImplemeted = errors.New("not implemented")
 )
 
 type errSpecAlreadyExists struct {

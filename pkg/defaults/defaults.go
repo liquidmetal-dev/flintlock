@@ -26,5 +26,8 @@ const (
 	HTTPAPIEndpoint = "localhost:8090"
 
 	// TopicMicroVMEvents is the topic name to use for microvm events.
-	TopicMicroVMEvents = "microvm"
+	TopicMicroVMEvents = "/microvm"
+
+	// MicroVMNamespace is the default namespace to use for microvms.
+	MicroVMNamespace = "default"
 )

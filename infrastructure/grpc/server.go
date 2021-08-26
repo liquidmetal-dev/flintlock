@@ -30,9 +30,12 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	logger := log.GetLogger(ctx)
 
 	logger.Trace("converting request to model")
-	modelSpec := convertMicroVMToModel(req.Microvm)
+	modelSpec, err := convertMicroVMToModel(req.Microvm)
+	if err != nil {
+		return nil, fmt.Errorf("converting request: %w", err)
+	}
 
-	logger.Infof("creating microvm %s/%s", modelSpec.ID, modelSpec.Namespace)
+	logger.Infof("creating microvm %s", modelSpec.ID)
 	createdModel, err := s.commandUC.CreateMicroVM(ctx, modelSpec)
 	if err != nil {
 		logger.Errorf("failed to create microvm: %s", err)
@@ -52,9 +55,12 @@ func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequ
 	logger := log.GetLogger(ctx)
 
 	logger.Trace("converting request to model")
-	modelSpec := convertMicroVMToModel(req.Microvm)
+	modelSpec, err := convertMicroVMToModel(req.Microvm)
+	if err != nil {
+		return nil, fmt.Errorf("converting request: %w", err)
+	}
 
-	logger.Infof("updating microvm %s/%s", modelSpec.ID, modelSpec.Namespace)
+	logger.Infof("updating microvm %s", modelSpec.ID)
 	updatedModel, err := s.commandUC.UpdateMicroVM(ctx, modelSpec)
 	if err != nil {
 		logger.Errorf("failed to update microvm: %s", err)
