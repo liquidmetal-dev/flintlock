@@ -1,16 +1,23 @@
 name: test
 
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
   test:
     name: test
     runs-on: ubuntu-latest
     steps:
+      - name: Set up containerd
+        uses: crazy-max/ghaction-setup-containerd@v1
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.16'
-      - run: go version
-      - name: Test
-        run: make test
+          go-version: '1.16' 
+      - name: Test with coverage
+        run: sudo --preserve-env=CTR_SOCK_PATH make test-with-cov
+        env:
+          CTR_SOCK_PATH: /run/containerd/containerd.sock
+      - name: Upload coverage to Codecov
+        run: bash <(curl -s https://codecov.io/bash)
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

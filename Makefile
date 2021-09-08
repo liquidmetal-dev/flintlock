@@ -79,12 +79,9 @@ lint: $(GOLANGCI_LINT) $(BUF) ## Lint
 test: ## Run unit tests
 	go test -v -race ./...
 
-.PHONY: test-int
-test-int: $(OUT_DIR) ## Run tests (including intengration tests)
-	CTR_ROOT_DIR=$(OUT_DIR)/containerd
-	mkdir -p $(CTR_ROOT_DIR) 
-	sudo go test -v -race -count=1 ./...
-	sudo rm -rf $(CTR_ROOT_DIR) 
+.PHONY: test-with-cov
+test-with-cov: ## Run unit tests with coverage
+	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt ./... 
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests

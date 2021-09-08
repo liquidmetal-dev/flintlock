@@ -20,4 +20,6 @@ bin/
 .vscode/
 .idea/
 
+coverage.txt
+
 .DS_Store
