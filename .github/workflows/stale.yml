@@ -1,0 +1,30 @@
+name: Mark stale issues and pull requests
+
+on:
+  schedule:
+  - cron: '15 7 * * *'
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/stale@v3
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        days-before-issue-stale: 60
+        days-before-pr-stale: 30
+        days-before-issue-close: 365
+        days-before-pr-close: -1
+        stale-issue-message: 'This issue is stale because it has been open 60 days with no activity.'
+        stale-issue-label: 'lifecycle/stale'
+        stale-pr-message: 'This PR is stale because it has been open 30 days with no activity.'
+        stale-pr-label: 'lifecycle/stale'
+        close-issue-message: 'This issue was closed because it has been stalled for 365 days with no activity.'
+        close-issue-label: 'lifecycle/rotten'
+        exempt-issue-labels: 'lifecycle/frozen'
+        exempt-pr-labels: 'lifecycle/frozen'
