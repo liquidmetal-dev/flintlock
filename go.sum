@@ -629,8 +629,8 @@ github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0 h1:rgxjzoDmDXw5q8HONgyHhBas4to0
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0/go.mod h1:qrJPVzv9YlhsrxJc3P/Q85nr0w1lIRikTl4JlhdDH5w=
 github.com/gruntwork-io/go-commons v0.8.0 h1:k/yypwrPqSeYHevLlEDmvmgQzcyTwrlZGRaxEM6G0ro=
 github.com/gruntwork-io/go-commons v0.8.0/go.mod h1:gtp0yTtIBExIZp7vyIV9I0XQkVwiQZze678hvDXof78=
-github.com/gruntwork-io/terratest v0.37.8 h1:XCkznySLTQfQiASqgHeqc47aT9xb3zdx4Gv6kN47bWc=
-github.com/gruntwork-io/terratest v0.37.8/go.mod h1:CSHpZNJdqYQ+TUrigM100jcahRUV5X6w7K2kZJ8iylY=
+github.com/gruntwork-io/terratest v0.37.11 h1:IXRDF4PtvYLgH2K5B97nLZCaWsLd+IGgoetOwMs429s=
+github.com/gruntwork-io/terratest v0.37.11/go.mod h1:CSHpZNJdqYQ+TUrigM100jcahRUV5X6w7K2kZJ8iylY=
 github.com/hashicorp/consul/api v1.1.0/go.mod h1:VmuI/Lkw1nC05EYQWNKwWGbkg+FbDBtguAZLlVdkD9Q=
 github.com/hashicorp/consul/api v1.10.1/go.mod h1:XjsvQN+RJGWI2TWy1/kqaE16HrR2J/FWgkYjdZQsX9M=
 github.com/hashicorp/consul/sdk v0.1.1/go.mod h1:VKf9jXwCTEY1QZP2MOLRhb5i/I/ssyNV1vwHyQBF0x8=
