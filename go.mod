@@ -3,7 +3,7 @@ module github.com/weaveworks/reignite
 go 1.16
 
 require (
-	github.com/containerd/containerd v1.5.5
+	github.com/containerd/containerd v1.5.6
 	github.com/containerd/typeurl v1.0.2
 	github.com/firecracker-microvm/firecracker-go-sdk v0.22.0
 	github.com/golang/mock v1.6.0
