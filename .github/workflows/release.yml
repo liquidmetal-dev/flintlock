@@ -1,0 +1,31 @@
+name: release
+
+on:
+    push:
+        tags:
+            - "v*.*.*"
+
+jobs:
+    release:
+        if: github.event.base_ref == 'refs/heads/master'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  fetch-depth: 0
+                  submodules: true
+            - name: Set up Go
+              uses: actions/setup-go@v2
+              with:
+                  go-version: 1.17
+            - name: Generate changelog
+              run: make release-changelog ##TODO: set the previous and next versions
+            - name: Run GoReleaser
+              uses: goreleaser/goreleaser-action@v2
+              with:
+                  distribution: goreleaser
+                  version: lateset
+                  args: release --rm-dist --release-notes out/CHANGELOG.md
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

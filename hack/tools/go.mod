@@ -10,4 +10,5 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.27.1
+	k8s.io/release v0.11.0 // indirect
 )

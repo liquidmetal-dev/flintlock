@@ -4,6 +4,8 @@ git_commit := $(shell git rev-parse --short HEAD)
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
+GH_ORG_NAME ?= weaveworks
+GH_REPO_NAME ?= reignite
 
 # Versions
 BUF_VERSION := v0.43.2
@@ -11,7 +13,7 @@ BUF_VERSION := v0.43.2
 # Directories
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 BIN_DIR := bin
-OUT_DIR := out
+RELEASE_DIR := out
 REIGNITED_CMD := cmd/reignited
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
@@ -29,7 +31,7 @@ $(TOOLS_SHARE_DIR):
 $(BIN_DIR):
 	mkdir -p $@
 
-$(OUT_DIR):
+$(RELEASE_DIR):
 	mkdir -p $@
 
 # Binaries
@@ -41,6 +43,7 @@ PROTOC_GEN_GO := $(TOOLS_BIN_DIR)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
 PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
 PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
+RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
 
 .DEFAULT_GOAL := help
 
@@ -91,6 +94,21 @@ test-e2e: ## Run e2e tests
 compile-e2e: # Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e
 
+##@ Release
+
+.PHONY: release
+release-local: $(release-changelog) # Builds a release
+	goreleaser release --release-notes $(RELEASE_DIR)/CHANGELOG.md
+
+.PHONY: release-local
+release-local: # Builds a release locally
+	goreleaser --snapshot --rm-dist
+
+.PHONY: release-changelog
+release-changelog: $(RELEASE_NOTES) $(RELEASE_DIR)
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME)  --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=main 
+
+
 ##@ Tools binaries
 
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Get and build golangci-lint
@@ -113,6 +131,11 @@ $(PROTO_GEN_GRPC_GW): $(TOOLS_DIR)/go.mod
 
 $(PROTO_GEN_GRPC_OAPI): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+
+$(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/release/cmd/release-notes
+
+
 
 BUF_TARGET := buf-Linux-x86_64.tar.gz
 

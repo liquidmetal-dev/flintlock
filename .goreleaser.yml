@@ -1,0 +1,50 @@
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - main: ./cmd/reignited
+    binary: reignited
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+        - -s -w
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+release:
+  draft: true
+  prerelease: auto
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Arch }}"
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+nfpms:
+  -
+    package_name: reignite
+    file_name_template: "{{ .ProjectName }}_{{ .Arch }}"
+    vendor: reignite authors
+    maintainer: Richard Case <richard@weave.works>
+    homepage: https://github.com/weaveworks/reignite
+    description: "Create and manage Firecracker microvm via API"
+    license: Mozilla Public License Version 2.0
+    formats:
+      - apk
+      - deb
+      - rpm
