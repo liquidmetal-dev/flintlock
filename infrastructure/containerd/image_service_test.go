@@ -6,15 +6,14 @@ import (
 	"os"
 	"testing"
 
-	. "github.com/onsi/gomega"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/containerd"
-	"github.com/weaveworks/reignite/pkg/defaults"
-
 	ctr "github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/snapshots"
+	. "github.com/onsi/gomega"
+
+	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/reignite/infrastructure/containerd"
 )
 
 const (
@@ -22,7 +21,9 @@ const (
 	testImageKernel    = "docker.io/linuxkit/kernel:5.4.129"
 	testSnapshotter    = "native"
 	testOwnerNamespace = "int_ns"
+	testOwnerUsageID   = "vol1"
 	testOwnerName      = "imageservice-get-test"
+	testContainerdNs   = "reignite_test_ctr"
 )
 
 func TestImageService_Integration(t *testing.T) {
@@ -33,17 +34,18 @@ func TestImageService_Integration(t *testing.T) {
 	RegisterTestingT(t)
 
 	client, ctx := testCreateClient(t)
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, testContainerdNs)
 
 	imageSvc := containerd.NewImageServiceWithClient(&containerd.Config{
 		SnapshotterKernel: testSnapshotter,
 		SnapshotterVolume: testSnapshotter,
+		Namespace:         testContainerdNs,
 	}, client)
 
 	inputGetAndMount := &ports.ImageMountSpec{
 		ImageName:    getTestVolumeImage(),
 		Owner:        fmt.Sprintf("%s/%s", testOwnerNamespace, testOwnerName),
-		OwnerUsageID: "vol1",
+		OwnerUsageID: testOwnerUsageID,
 		Use:          models.ImageUseVolume,
 	}
 	inputGet := &ports.ImageSpec{
@@ -64,7 +66,7 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(len(img)).To(Equal(1))
 	Expect(img[0].Name).To(Equal(getTestVolumeImage()))
 
-	expectedSnapshotName := fmt.Sprintf("reignite/%s", testOwnerName)
+	expectedSnapshotName := fmt.Sprintf("reignite/%s/%s/%s", testOwnerNamespace, testOwnerName, testOwnerUsageID)
 	snapshotExists := false
 	err = client.SnapshotService(testSnapshotter).Walk(namespaceCtx, func(walkCtx context.Context, info snapshots.Info) error {
 		if info.Name == expectedSnapshotName {

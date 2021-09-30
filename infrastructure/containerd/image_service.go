@@ -14,7 +14,6 @@ import (
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
@@ -47,7 +46,7 @@ func (im *imageService) Pull(ctx context.Context, input *ports.ImageSpec) error 
 	actionMessage := fmt.Sprintf("getting image %s for owner %s", input.ImageName, input.Owner)
 	logger.Debugf(actionMessage)
 
-	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 
 	_, err := im.pullImage(nsCtx, input.ImageName, input.Owner)
 	if err != nil {
@@ -62,7 +61,7 @@ func (im *imageService) PullAndMount(ctx context.Context, input *ports.ImageMoun
 	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
 	logger.Debugf("getting and mounting image %s for owner %s", input.ImageName, input.Owner)
 
-	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 	leaseCtx, err := withOwnerLease(nsCtx, input.Owner, im.client)
 	if err != nil {
 		return nil, fmt.Errorf("getting lease for image pulling and mounting: %w", err)
@@ -90,7 +89,7 @@ func (im *imageService) Exists(ctx context.Context, input *ports.ImageSpec) (boo
 	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
 	logger.Debugf("checking if image %s exists for owner %s", input.ImageName, input.Owner)
 
-	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 
 	exists, _, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
 	if err != nil {
@@ -105,7 +104,7 @@ func (im *imageService) IsMounted(ctx context.Context, input *ports.ImageMountSp
 	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
 	logger.Debugf("checking if image %s exists and is mounted for owner %s", input.ImageName, input.Owner)
 
-	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 
 	exists, _, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
 	if err != nil {

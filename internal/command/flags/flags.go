@@ -12,15 +12,16 @@ import (
 const (
 	grpcEndpointFlag      = "grpc-endpoint"
 	httpEndpointFlag      = "http-endpoint"
-	containerdSocketFlag  = "containerd-socket"
 	parentIfaceFlag       = "parent-iface"
 	disableReconcileFlag  = "disable-reconcile"
 	disableAPIFlag        = "disable-api"
 	firecrackerBinFlag    = "firecracker-bin"
 	firecrackerDetachFlag = "firecracker-detach"
 	firecrackerAPIFlag    = "firecracker-api"
+	containerdSocketFlag  = "containerd-socket"
 	volSnapshotterFlag    = "containerd-volume-ss"
 	kernelSnapshotterFlag = "containerd-kernel-ss"
+	containerdNamespace   = "containerd-ns"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -112,6 +113,11 @@ func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 		volSnapshotterFlag,
 		defaults.ContainerdVolumeSnapshotter,
 		"The name of the snapshotter to use with containerd for volume images.")
+
+	cmd.Flags().StringVar(&cfg.CtrNamespace,
+		containerdNamespace,
+		defaults.ContainerdNamespace,
+		"The name of the containerd namespace to use.")
 
 	return nil
 }

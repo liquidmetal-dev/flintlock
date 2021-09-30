@@ -8,6 +8,7 @@ package inject
 
 import (
 	"fmt"
+
 	"github.com/spf13/afero"
 	"github.com/weaveworks/reignite/core/application"
 	"github.com/weaveworks/reignite/core/ports"

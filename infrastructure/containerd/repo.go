@@ -17,7 +17,6 @@ import (
 	"github.com/weaveworks/reignite/core/errors"
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
@@ -28,19 +27,21 @@ func NewMicroVMRepo(cfg *Config) (ports.MicroVMRepository, error) {
 		return nil, fmt.Errorf("creating containerd client: %w", err)
 	}
 
-	return NewMicroVMRepoWithClient(client), nil
+	return NewMicroVMRepoWithClient(cfg, client), nil
 }
 
 // NewMicroVMRepoWithClient will create a new containerd backed microvm repository with the supplied containerd client.
-func NewMicroVMRepoWithClient(client *containerd.Client) ports.MicroVMRepository {
+func NewMicroVMRepoWithClient(cfg *Config, client *containerd.Client) ports.MicroVMRepository {
 	return &containerdRepo{
 		client: client,
+		config: cfg,
 		locks:  map[string]*sync.RWMutex{},
 	}
 }
 
 type containerdRepo struct {
 	client *containerd.Client
+	config *Config
 
 	locks   map[string]*sync.RWMutex
 	locksMu sync.Mutex
@@ -69,7 +70,7 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 		}
 	}
 
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 	leaseCtx, err := withOwnerLease(namespaceCtx, microvm.ID.String(), r.client)
 	if err != nil {
 		return nil, fmt.Errorf("getting lease for owner: %w", err)
@@ -123,7 +124,7 @@ func (r *containerdRepo) Get(ctx context.Context, name, namespace string) (*mode
 // GetAll will get a list of microvm details from the containerd content store. If namespace is an empty string all
 // details of microvms will be returned.
 func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 	store := r.client.ContentStore()
 
 	filters := []string{labelFilter(TypeLabel, MicroVMSpecType)}
@@ -175,7 +176,7 @@ func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) er
 	mu.Lock()
 	defer mu.Unlock()
 
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 	store := r.client.ContentStore()
 
 	digests, err := r.findAllDigestForSpec(namespaceCtx, microvm.ID.Name(), microvm.ID.Namespace())
@@ -202,7 +203,7 @@ func (r *containerdRepo) Exists(ctx context.Context, name, namespace string) (bo
 	mu.RLock()
 	defer mu.RUnlock()
 
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 
 	digest, err := r.findLatestDigestForSpec(namespaceCtx, name, namespace)
 	if err != nil {
@@ -216,7 +217,7 @@ func (r *containerdRepo) Exists(ctx context.Context, name, namespace string) (bo
 }
 
 func (r *containerdRepo) get(ctx context.Context, name, namespace string) (*models.MicroVM, error) {
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 
 	digest, err := r.findLatestDigestForSpec(namespaceCtx, name, namespace)
 	if err != nil {
