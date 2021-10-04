@@ -194,6 +194,21 @@ NET_DEVICE=$(ip route show | awk '/default/ {print $5}')
   --parent-iface="${NET_DEVICE}"
 ```
 
+## BloomRPC
+
+[BloomRPC][bloomrpc] is a good tool to test gRPC endpoint.
+
+### Import
+
+Use the "Import Paths" button and add `$repo/api` to the list. All available
+endpoints will be visible in a nice tree view.
+
+### Example
+
+TODO: Example CreateVM Payload
+
+[bloomrpc]: https://github.com/uw-labs/bloomrpc
+
 ## Troubleshooting
 
 ### Reignited fails to start with `failed to reconcile vmid`
