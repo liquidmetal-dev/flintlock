@@ -3,20 +3,22 @@
 ## Set up networking
 
 ```
-# Default network device
+# Default network device.
 NET_DEVICE=$(ip route show | awk '/default/ {print $5}')
 
-# Create a tap device
-sudo ip tuntap add tap0 mode tap
-sudo ip addr add 172.100.0.1/24 dev tap0
-sudo ip link set tap0 up
+# Create a macvtap device.
+sudo ip link add link "${NET_DEVICE}" name macvtap0 type macvtap
 
-# Forward tap to default device
-sudo iptables -A FORWARD -i tap0 -o $NET_DEVICE -j ACCEPT
+# Static MAC address can be set,
+# otherwise it gets a random auto-generated address.
+sudo ip link set macvtap0 address 1a:46:0b:ca:bc:7b up
 
-# MAC address for tap0
-# Can be useful later
-export TAP0_MAC="$(cat /sys/class/net/tap0/address)"
+# Check the MAC address of the device.
+ip link show macvtap0
+
+# You can read the MAC address always under /sys without parsing
+# the output of `ip link show`.
+cat /sys/class/net/macvtap0/address
 ```
 
 ### Create thinpool
@@ -53,7 +55,7 @@ fi
 # Create "metadata" file/volume if it's not there and set it's size to 2G.
 if [[ ! -f "${DIR}/metadata" ]]; then
 touch "${DIR}/metadata"
-truncate -s 2G "${DIR}/metadata"
+truncate -s 10G "${DIR}/metadata"
 fi
 
 # Find/associate a loop device with our data volume.
@@ -87,6 +89,18 @@ echo "${THINP_TABLE}"
 if ! $(dmsetup reload "${POOL}" --table "${THINP_TABLE}"); then
     sudo dmsetup create "${POOL}" --table "${THINP_TABLE}"
 fi
+
+cat << EOF
+#
+# Add this to your config.toml configuration file and restart containerd daemon
+#
+[plugins]
+  [plugins.devmapper]
+    pool_name = "${POOL}"
+    root_path = "${DIR}"
+    base_image_size = "10GB"
+    discard_blocks = true
+EOF
 ```
 
 I hope all my comments are enough to understand what this script does.
@@ -107,16 +121,16 @@ state = "/run/containerd-dev"
   address = "127.0.0.1:1338"
 
 [plugins]
-  [plugins."io.containerd.grpc.v1.cri".containerd]
-    snapshotter = "devmapper"
   [plugins."io.containerd.snapshotter.v1.devmapper"]
     pool_name = "dev-thinpool"
-    base_image_size = "10GB"
     root_path = "/var/lib/containerd-dev/snapshotter/devmapper"
+    base_image_size = "10GB"
+    discard_blocks = true
 
 [debug]
-  level = "debug"
+  level = "trace"
 ```
+
 ### Start containerd
 
 ```
@@ -143,12 +157,29 @@ To make it easier, here is an alias:
 alias ctr-dev="sudo ctr --address=/run/containerd-dev/containerd.sock"
 ```
 
-## Start Firecracker
+## Set up Firecracker
+
+We have to use a custom built firecracker from the macvtap branch
+([see][discussion-107]).
 
 ```
-rm /tmp/firecracker.socket && \
-  firecracker --api-sock /tmp/firecracker.socket
+git clone https://github.com/firecracker-microvm/firecracker.git
+git fetch origin feature/macvtap
+git checkout -b feature/macvtap origin/feature/macvtap
+# This will build it in a docker container, no rust installation required.
+tools/devtool build
+
+# Any directories on $PATH.
+TARGET=~/local/bin
+toolbox=$(uname -m)-unknown-linux-musl
+
+cp build/cargo_target/${toolbox}/debug/{firecracker,jailer} ${TARGET}
 ```
+
+If you don't have to compile it yourself, you can download a pre-built version
+from the [Pre-requisities discussion][discussion-107].
+
+[discussion-107]: https://github.com/weaveworks/reignite/discussions/107
 
 ## Set up and start reignite
 
@@ -156,10 +187,11 @@ rm /tmp/firecracker.socket && \
 go mod download
 make build
 
+NET_DEVICE=$(ip route show | awk '/default/ {print $5}')
+
 ./bin/reignited run \
   --containerd-socket=/run/containerd-dev/containerd.sock \
-  --firecracker-api=/tmp/firecracker.socket \
-  --parent-iface=tap0
+  --parent-iface="${NET_DEVICE}"
 ```
 
 ## Troubleshooting
