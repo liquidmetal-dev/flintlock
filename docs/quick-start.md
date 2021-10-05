@@ -23,19 +23,6 @@ cat /sys/class/net/macvtap0/address
 
 ## Containerd
 
-### Configure access
-
-This is just a convenience step. By default when we start containerd it starts
-as root and that forces us to use sudo to connect to our containerd instance.
-
-```
-sudo groupadd containerd
-sudo gpasswd -a $USER containerd
-
-# Remember group ID.
-grep "containerd" /etc/group
-```
-
 ### Create thinpool
 
 Easy quick-start option is to run this script as root. I know,
@@ -122,10 +109,6 @@ I hope all my comments are enough to understand what this script does.
 
 ### Configuration
 
-You can remove the `uid` and `gid` from the configuration file, set both
-of them to be `0` (root), use your UID (`id -u`) and GID (`id -g`), or
-set the GID to the group we created earlier (`containerd` group).
-
 ```toml
 # /etc/containerd/config-dev.toml
 version = 2
@@ -135,8 +118,6 @@ state = "/run/containerd-dev"
 
 [grpc]
   address = "/run/containerd-dev/containerd.sock"
-  uid = 0
-  gid = 1002
 
 [metrics]
   address = "127.0.0.1:1338"
