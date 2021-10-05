@@ -1,111 +1,16 @@
 # Getting started with reignite
 
-## Set up networking
-
-```
-# Default network device.
-NET_DEVICE=$(ip route show | awk '/default/ {print $5}')
-
-# Create a macvtap device.
-sudo ip link add link "${NET_DEVICE}" name macvtap0 type macvtap
-
-# Static MAC address can be set,
-# otherwise it gets a random auto-generated address.
-sudo ip link set macvtap0 address 1a:46:0b:ca:bc:7b up
-
-# Check the MAC address of the device.
-ip link show macvtap0
-
-# You can read the MAC address always under /sys without parsing
-# the output of `ip link show`.
-cat /sys/class/net/macvtap0/address
-```
-
 ## Containerd
 
 ### Create thinpool
 
-Easy quick-start option is to run this script as root. I know,
-it's not recommended in general, and I'm happy you think it's not a good
-way to do things, so there are comments for commands.
+Easy quick-start option is to run the `hack/scripts/devpool.sh` script as root.
+I know, it's not recommended in general, and I'm happy you think it's not a good
+way to do things, read the comments in the script for details.
 
 ```bash
-#!/bin/bash
-
-set -ex
-
-if [[ $(id -u) != 0 ]]; then
-  echo "Run this script as root..." >&2
-  exit 1
-fi
-
-# That's where our stuff will live.
-CROOT=/var/lib/containerd-dev
-# This is the name of the thinpool.
-POOL=dev-thinpool
-
-mkdir -p "${CROOT}/snapshotter/devmapper"
-
-DIR="${CROOT}/snapshotter/devmapper"
-
-# Create "data" file/volume if it's not there and set it's size to 100G.
-if [[ ! -f "${DIR}/data" ]]; then
-touch "${DIR}/data"
-truncate -s 100G "${DIR}/data"
-fi
-
-# Create "metadata" file/volume if it's not there and set it's size to 2G.
-if [[ ! -f "${DIR}/metadata" ]]; then
-touch "${DIR}/metadata"
-truncate -s 10G "${DIR}/metadata"
-fi
-
-# Find/associate a loop device with our data volume.
-DATADEV="$(sudo losetup --output NAME --noheadings --associated ${DIR}/data)"
-if [[ -z "${DATADEV}" ]]; then
-    DATADEV="$(sudo losetup --find --show ${DIR}/data)"
-fi
-
-# Find/associate a loop device with our metadata volume.
-METADEV="$(sudo losetup --output NAME --noheadings --associated ${DIR}/metadata)"
-if [[ -z "${METADEV}" ]]; then
-    METADEV="$(sudo losetup --find --show ${DIR}/metadata)"
-fi
-
-# Magic calculations, for more information go and read
-# https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
-SECTORSIZE=512
-DATASIZE="$(blockdev --getsize64 -q ${DATADEV})"
-LENGTH_SECTORS=$(bc <<< "${DATASIZE}/${SECTORSIZE}")
-DATA_BLOCK_SIZE=128
-# picked arbitrarily
-# If free space on the data device drops below this level then a dm event will
-# be triggered which a userspace daemon should catch allowing it to extend the
-# pool device.
-LOW_WATER_MARK=32768
-
-THINP_TABLE="0 ${LENGTH_SECTORS} thin-pool ${METADEV} ${DATADEV} ${DATA_BLOCK_SIZE} ${LOW_WATER_MARK} 1 skip_block_zeroing"
-echo "${THINP_TABLE}"
-
-# If thinpool does not exist yet, create one.
-if ! $(dmsetup reload "${POOL}" --table "${THINP_TABLE}"); then
-    sudo dmsetup create "${POOL}" --table "${THINP_TABLE}"
-fi
-
-cat << EOF
-#
-# Add this to your config.toml configuration file and restart containerd daemon
-#
-[plugins]
-  [plugins.devmapper]
-    pool_name = "${POOL}"
-    root_path = "${DIR}"
-    base_image_size = "10GB"
-    discard_blocks = true
-EOF
+sudo ./hack/scripts/devpool.sh
 ```
-
-I hope all my comments are enough to understand what this script does.
 
 ### Configuration
 
