@@ -12,7 +12,7 @@ require (
 	github.com/google/wire v0.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0
-	github.com/gruntwork-io/terratest v0.37.8
+	github.com/gruntwork-io/terratest v0.38.0
 	github.com/oklog/ulid v1.3.1
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -23,10 +23,9 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
+	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	google.golang.org/genproto v0.0.0-20210903162649-d08c68adba83
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
-	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
