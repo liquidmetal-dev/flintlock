@@ -20,7 +20,11 @@ func TestEventService_Integration(t *testing.T) {
 
 	client, ctx := testCreateClient(t)
 
-	es := containerd.NewEventServiceWithClient(client)
+	es := containerd.NewEventServiceWithClient(&containerd.Config{
+		SnapshotterKernel: testSnapshotter,
+		SnapshotterVolume: testSnapshotter,
+		Namespace:         testContainerdNs,
+	}, client)
 
 	t.Log("creating subscribers")
 

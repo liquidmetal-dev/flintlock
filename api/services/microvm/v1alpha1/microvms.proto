@@ -13,12 +13,12 @@ option go_package = "github.com/weaveworks/reignite/api/services/microvm/v1alpha
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     info: {
-      title: "Reignite MicroVM API",
-      version: "0.1";
-      description: "The Reignite MicroVM API handles operations for provisioning and managing microvms";
-    };
-    consumes: "application/json";
-    produces: "application/json";
+      title: "Reignite MicroVM API"
+      version: "0.1"
+      description: "The Reignite MicroVM API handles operations for provisioning and managing microvms"
+    }
+    consumes: "application/json"
+    produces: "application/json"
 };
 
 // MicroVM providers a service to create and manage the lifecycle of microvms.

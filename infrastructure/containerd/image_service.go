@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containerd/containerd/snapshots"
+
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
 )
 
@@ -38,15 +40,15 @@ type imageService struct {
 	config *Config
 }
 
-// Get will get (i.e. pull) the image for a specific owner.
-func (im *imageService) Get(ctx context.Context, input ports.GetImageInput) error {
+// Pull will get (i.e. pull) the image for a specific owner.
+func (im *imageService) Pull(ctx context.Context, input *ports.ImageSpec) error {
 	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
-	actionMessage := fmt.Sprintf("getting image %s for owner %s/%s", input.ImageName, input.OwnerNamespace, input.OwnerName)
+	actionMessage := fmt.Sprintf("getting image %s for owner %s", input.ImageName, input.Owner)
 	logger.Debugf(actionMessage)
 
-	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 
-	_, err := im.getImage(nsCtx, input.ImageName, input.OwnerName, input.OwnerNamespace)
+	_, err := im.pullImage(nsCtx, input.ImageName, input.Owner)
 	if err != nil {
 		return fmt.Errorf("%s: %w", actionMessage, err)
 	}
@@ -54,34 +56,101 @@ func (im *imageService) Get(ctx context.Context, input ports.GetImageInput) erro
 	return nil
 }
 
-// Get will get (i.e. pull) the image for a specific owner and then
-// make it available via a mount point.
-func (im *imageService) GetAndMount(ctx context.Context, input ports.GetImageInput) ([]models.Mount, error) {
+// PullAndMount will get (i.e. pull) the image for a specific owner and then make it available via a mount point.
+func (im *imageService) PullAndMount(ctx context.Context, input *ports.ImageMountSpec) ([]models.Mount, error) {
 	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
-	logger.Debugf("getting and mounting image %s for owner %s/%s", input.ImageName, input.OwnerNamespace, input.OwnerName)
+	logger.Debugf("getting and mounting image %s for owner %s", input.ImageName, input.Owner)
 
-	nsCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
-
-	image, err := im.getImage(nsCtx, input.ImageName, input.OwnerName, input.OwnerNamespace)
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
+	leaseCtx, err := withOwnerLease(nsCtx, input.Owner, im.client)
 	if err != nil {
-		return nil, fmt.Errorf("getting image %s for owner %s/%s: %w", input.ImageName, input.OwnerNamespace, input.OwnerName, err)
+		return nil, fmt.Errorf("getting lease for image pulling and mounting: %w", err)
 	}
 
-	ss := im.config.SnapshotterVolume
-	if input.Use == models.ImageUseKernel {
-		ss = im.config.SnapshotterKernel
+	var image containerd.Image
+	exists, image, err := im.imageExists(leaseCtx, input.ImageName, input.Owner)
+	if err != nil {
+		return nil, fmt.Errorf("checking if image %s exists for owner %s: %w", input.ImageName, input.Owner, err)
 	}
 
-	return im.snapshotAndMount(nsCtx, image, input.OwnerName, ss, logger)
+	if !exists {
+		image, err = im.pullImage(leaseCtx, input.ImageName, input.Owner)
+		if err != nil {
+			return nil, fmt.Errorf("getting image %s for owner %s: %w", input.ImageName, input.Owner, err)
+		}
+	}
+	ss := im.getSnapshotter(input.Use)
+
+	return im.snapshotAndMount(leaseCtx, image, input.Owner, input.OwnerUsageID, ss, logger)
 }
 
-func (im *imageService) getImage(ctx context.Context, imageName string, ownerName, ownerNamespace string) (containerd.Image, error) {
-	leaseCtx, err := withOwnerLease(ctx, ownerName, ownerNamespace, im.client)
+// Exists checks if the image already exists on the machine.
+func (im *imageService) Exists(ctx context.Context, input *ports.ImageSpec) (bool, error) {
+	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
+	logger.Debugf("checking if image %s exists for owner %s", input.ImageName, input.Owner)
+
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
+
+	exists, _, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
+	if err != nil {
+		return false, fmt.Errorf("checking image exists: %w", err)
+	}
+
+	return exists, nil
+}
+
+// IsMounted checks if the image is pulled and mounted.
+func (im *imageService) IsMounted(ctx context.Context, input *ports.ImageMountSpec) (bool, error) {
+	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
+	logger.Debugf("checking if image %s exists and is mounted for owner %s", input.ImageName, input.Owner)
+
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
+
+	exists, _, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
+	if err != nil {
+		return false, fmt.Errorf("checking image exists: %w", err)
+	}
+	if !exists {
+		return false, nil
+	}
+
+	snapshotter := im.getSnapshotter(input.Use)
+	snapshotKey := snapshotKey(input.Owner, input.OwnerUsageID)
+	ss := im.client.SnapshotService(snapshotter)
+
+	snapshotExists, err := snapshotExists(nsCtx, snapshotKey, ss)
+	if err != nil {
+		return false, fmt.Errorf("checking for existence of snapshot %s: %w", snapshotKey, err)
+	}
+
+	return snapshotExists, nil
+}
+
+func (im *imageService) imageExists(ctx context.Context, imageName string, owner string) (bool, containerd.Image, error) {
+	leaseCtx, err := withOwnerLease(ctx, owner, im.client)
+	if err != nil {
+		return false, nil, fmt.Errorf("getting lease for owner: %w", err)
+	}
+
+	image, err := im.client.GetImage(leaseCtx, imageName)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return false, nil, nil
+		}
+
+		return false, nil, fmt.Errorf("getting image from containerd %s: %w", imageName, err)
+	}
+
+	return true, image, nil
+}
+
+func (im *imageService) pullImage(ctx context.Context, imageName string, owner string) (containerd.Image, error) {
+	leaseCtx, err := withOwnerLease(ctx, owner, im.client)
 	if err != nil {
 		return nil, fmt.Errorf("getting lease for owner: %w", err)
 	}
 
-	image, err := im.client.Pull(leaseCtx, imageName, containerd.WithPullUnpack)
+	image, err := im.client.Pull(leaseCtx, imageName)
 	if err != nil {
 		return nil, fmt.Errorf("pulling image using containerd: %w", err)
 	}
@@ -89,7 +158,7 @@ func (im *imageService) getImage(ctx context.Context, imageName string, ownerNam
 	return image, nil
 }
 
-func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.Image, ownerName, snapshotter string, logger *logrus.Entry) ([]models.Mount, error) {
+func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.Image, owner, ownerUsageID, snapshotter string, logger *logrus.Entry) ([]models.Mount, error) {
 	unpacked, err := image.IsUnpacked(ctx, snapshotter)
 	if err != nil {
 		return nil, fmt.Errorf("checking if image %s has been unpacked with snapshotter %s: %w", image.Name(), snapshotter, err)
@@ -107,7 +176,7 @@ func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.I
 	}
 	parent := imageContent[0].String()
 
-	snapshotKey := snapshotKey(ownerName)
+	snapshotKey := snapshotKey(owner, ownerUsageID)
 	logger.Debugf("creating snapshot %s for image %s with snapshotter %s", snapshotKey, image.Name(), snapshotter)
 	ss := im.client.SnapshotService(snapshotter)
 
@@ -118,7 +187,11 @@ func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.I
 
 	var mounts []mount.Mount
 	if !snapshotExists {
-		mounts, err = ss.Prepare(ctx, snapshotKey, parent)
+		labels := map[string]string{
+			"reignite/owner":       owner,
+			"reignite/owner-usage": ownerUsageID,
+		}
+		mounts, err = ss.Prepare(ctx, snapshotKey, parent, snapshots.WithLabels(labels))
 		if err != nil {
 			return nil, fmt.Errorf("preparing snapshot of %s: %w", image.Name(), err)
 		}
@@ -135,4 +208,12 @@ func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.I
 	}
 
 	return convertedMounts, nil
+}
+
+func (im *imageService) getSnapshotter(use models.ImageUse) string {
+	if use == models.ImageUseVolume {
+		return im.config.SnapshotterVolume
+	}
+
+	return im.config.SnapshotterKernel
 }

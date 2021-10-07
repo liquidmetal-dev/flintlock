@@ -1,8 +1,10 @@
 package application
 
-import "github.com/weaveworks/reignite/core/ports"
+import (
+	"github.com/weaveworks/reignite/core/ports"
+)
 
-// AppS is the interface for the core application. In the future this could be split
+// App is the interface for the core application. In the future this could be split
 // into separate command, query and reconcile services.
 type App interface {
 	ports.MicroVMCommandUseCases
@@ -10,18 +12,18 @@ type App interface {
 	ports.ReconcileMicroVMsUseCase
 }
 
-func New(repo ports.MicroVMRepository, eventSvc ports.EventService, idSvc ports.IDService, mvmProvider ports.MicroVMProvider) App {
+func New(cfg *Config, ports *ports.Collection) App {
 	return &app{
-		repo:     repo,
-		eventSvc: eventSvc,
-		idSvc:    idSvc,
-		provider: mvmProvider,
+		cfg:   cfg,
+		ports: ports,
 	}
 }
 
 type app struct {
-	repo     ports.MicroVMRepository
-	eventSvc ports.EventService
-	idSvc    ports.IDService
-	provider ports.MicroVMProvider
+	cfg   *Config
+	ports *ports.Collection
+}
+
+type Config struct {
+	RootStateDir string
 }

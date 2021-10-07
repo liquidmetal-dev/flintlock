@@ -16,6 +16,8 @@ var (
 	TypeLabel = fmt.Sprintf("%s/type", defaults.Domain)
 	// VersionLabel is the name of the containerd content store label to hold version of the content.
 	VersionLabel = fmt.Sprintf("%s/version", defaults.Domain)
+	// MicroVMSpecType is the type name for a microvm spec.
+	MicroVMSpecType = "microvm"
 )
 
 func contentRefName(microvm *models.MicroVM) string {

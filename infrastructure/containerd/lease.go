@@ -9,8 +9,8 @@ import (
 	"github.com/containerd/containerd/leases"
 )
 
-func withOwnerLease(ctx context.Context, ownerName, ownerNamespace string, client *containerd.Client) (context.Context, error) {
-	leaseName := getLeaseNameForOwner(ownerName, ownerNamespace)
+func withOwnerLease(ctx context.Context, owner string, client *containerd.Client) (context.Context, error) {
+	leaseName := getLeaseNameForOwner(owner)
 
 	l, err := getExistingOrCreateLease(ctx, leaseName, client.LeasesService())
 	if err != nil {
@@ -41,6 +41,6 @@ func getExistingOrCreateLease(ctx context.Context, name string, manager leases.M
 	return &lease, nil
 }
 
-func getLeaseNameForOwner(ownerName, ownerNamespace string) string {
-	return fmt.Sprintf("reignite/%s/%s", ownerNamespace, ownerName)
+func getLeaseNameForOwner(owner string) string {
+	return fmt.Sprintf("reignite/%s", owner)
 }

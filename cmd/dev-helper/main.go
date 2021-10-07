@@ -3,38 +3,45 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
 
-	"github.com/containerd/containerd/namespaces"
+	"github.com/weaveworks/reignite/pkg/cloudinit"
+	"github.com/weaveworks/reignite/pkg/ptr"
+	"gopkg.in/yaml.v3"
+
+	"github.com/weaveworks/reignite/internal/config"
+	"github.com/weaveworks/reignite/internal/inject"
+
+	"github.com/weaveworks/reignite/core/plans"
+	"github.com/weaveworks/reignite/pkg/planner"
+
 	"github.com/sirupsen/logrus"
 
 	_ "github.com/containerd/containerd/api/events"
 
-	ctr "github.com/containerd/containerd"
-
-	"github.com/weaveworks/reignite/api/events"
 	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/containerd"
-	"github.com/weaveworks/reignite/infrastructure/controllers"
+	portsctx "github.com/weaveworks/reignite/core/ports/context"
 	"github.com/weaveworks/reignite/pkg/defaults"
 	rlog "github.com/weaveworks/reignite/pkg/log"
 )
 
-//NOTE: this is a temporary app to help with development
+// NOTE: this is a temporary app to help with development
 
 const (
-	vmName      = "vm1"
-	vmNamespace = "teamabc"
-	imageName   = "docker.io/library/ubuntu:groovy"
+	namespace   = "ns1"
+	numNodes    = 2
+	socketPath  = "/home/richard/code/scratch/containerdlocal/run/containerd.sock"
+	sshKeyPath  = "/home/richard/.ssh/id_ed25519.pub"
+	rootfsImage = "docker.io/richardcase/ubuntu-bionic-test:cloudimage_v0.0.1"
+	kernelImage = "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11"
+	fqdnFormat  = "%s.fruitcase"
 )
 
 func main() {
-	//socketPath := defaults.ContainerdSocket
-	socketPath := "/home/richard/code/scratch/containerdlocal/run/containerd.sock"
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	rlog.Configure(&rlog.Config{
@@ -45,212 +52,75 @@ func main() {
 	logger := rlog.GetLogger(ctx)
 	logger.Infof("reignite dev-helper, using containerd socket: %s", socketPath)
 
-	//eventPublishTest(ctx, socketPath, logger)
+	keyData, err := ioutil.ReadFile(sshKeyPath)
+	if err != nil {
+		panic(err)
+	}
 
-	logger.Info("starting containerd event listener")
-	go eventListener(ctx, socketPath, logger)
+	logger.Infof("Running createvm plan to create %d microvms", numNodes)
+	for i := 0; i < numNodes; i++ {
+		runCreateVMPlanTest(ctx, i, string(keyData), logger)
+	}
 
-	logger.Infof("Press [enter] to run controller test")
-	//fmt.Scanln()
-	go controllerTest(ctx, socketPath, logger)
-	go publishPeriodicEvents(ctx, socketPath, logger)
-
-	//logger.Infof("Press [enter] to write vmspec to using containerd repo")
-	//fmt.Scanln()
-	//repoTest(ctx, socketPath, logger)
-
-	//logger.Infof("Press [enter] to get image %s", imageName)
-	//fmt.Scanln()
-	//imageServiceTest(ctx, socketPath, logger)
-
-	logger.Info("Press [enter] to exit")
-	fmt.Scanln()
+	logger.Info("finished creating microvms")
 
 	cancel()
 }
 
-func eventPublishTest(ctx context.Context, socketPath string, logger *logrus.Entry) {
-	cfg := &containerd.Config{
-		SocketPath: socketPath,
-	}
-	logger.Info("creating event service")
+func runCreateVMPlanTest(ctx context.Context, nodeNum int, sshKey string, logger *logrus.Entry) {
+	macMeta := "AA:FF:00:00:00:01"
+	hostname := fmt.Sprintf("mvm%d", nodeNum)
 
-	es, err := containerd.NewEventService(cfg)
+	cfg := &config.Config{
+		ConfigFilePath: "",
+		Logging: rlog.Config{
+			Verbosity: 9,
+			Format:    "text",
+		},
+		GRPCAPIEndpoint:      "",
+		HTTPAPIEndpoint:      "",
+		CtrSnapshotterKernel: defaults.ContainerdKernelSnapshotter,
+		CtrSnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
+		CtrSocketPath:        socketPath,
+		CtrNamespace:         defaults.ContainerdNamespace,
+		FirecrackerBin:       "/home/richard/bin/firecracker",
+		FirecrackerDetatch:   false,
+		FirecrackerUseAPI:    true,
+		StateRootDir:         defaults.StateRootDir,
+		ParentIface:          "enp1s0",
+		DisableReconcile:     false,
+		DisableAPI:           false,
+		ResyncPeriod:         0,
+	}
+
+	vmid, _ := models.NewVMID(hostname, namespace)
+
+	userdata, err := getUserMetadata(hostname, sshKey)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-
-	evt := &events.MicroVMSpecCreated{
-		ID:        "abcdf",
-		Namespace: "ns1",
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-
-	evts, errs := es.Subscribe(ctx)
-
-	err = es.Publish(ctx, "/test", evt)
+	hostmetadata, err := getHostMetadata(vmid, hostname)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	select {
-	case evt := <-evts:
-		fmt.Printf("in dev-helper, got evtenr: %#v\n", evt.Event)
-	case evtErr := <-errs:
-		fmt.Println(evtErr)
-	}
-
-	cancel()
-}
-
-func repoTest(ctx context.Context, socketPath string, logger *logrus.Entry) {
-	client, err := ctr.New(socketPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	repo := containerd.NewMicroVMRepoWithClient(client)
-
-	vmSpec := getTestSpec()
-	logger.Infof("saving microvm spec %s", vmSpec.ID)
-
-	_, err = repo.Save(ctx, vmSpec)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func imageServiceTest(ctx context.Context, socketPath string, logger *logrus.Entry) {
-	cfg := &containerd.Config{
-		//Snapshotter: defaults.ContainerdSnapshotter,
-		//Snapshotter: "overlayfs",
-		SnapshotterKernel: "native",
-		SnapshotterVolume: "native",
-		SocketPath:        socketPath,
-	}
-	logger.Infof("using snapshotters %s & %s", cfg.SnapshotterKernel, cfg.SnapshotterVolume)
-
-	imageService, err := containerd.NewImageService(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	input := ports.GetImageInput{
-		ImageName:      imageName,
-		OwnerName:      vmName,
-		OwnerNamespace: vmNamespace,
-		Use:            models.ImageUseVolume,
-	}
-	mountPoint, err := imageService.GetAndMount(ctx, input)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	logger.Infof("mounted image %s to %s (type %s)", imageName, mountPoint[0].Source, mountPoint[0].Type)
-}
-
-func publishPeriodicEvents(ctx context.Context, socketPath string, logger *logrus.Entry) {
-	client, err := ctr.New(socketPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
-
-	tickCh := time.Tick(10 * time.Second)
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("Cancelled, exiting publisher")
-			return
-		case <-tickCh:
-			logger.Info("publishing event")
-			createEvt := &events.MicroVMSpecCreated{
-				ID:        "vm1",
-				Namespace: "testns",
-			}
-
-			err = client.EventService().Publish(namespaceCtx, defaults.TopicMicroVMEvents, createEvt)
-			if err != nil {
-				logger.Error(err)
-			}
-
-		}
-	}
-}
-
-func controllerTest(ctx context.Context, socketPath string, logger *logrus.Entry) {
-	em, err := containerd.NewEventService(&containerd.Config{
-		SocketPath: socketPath,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	app := &testApp{
-		logger: logger,
-	}
-
-	controller := controllers.New(em, app)
-
-	logger.Info("running controller")
-	controller.Run(ctx, 1)
-	logger.Info("controller not running")
-
-}
-
-func eventListener(ctx context.Context, socketPath string, logger *logrus.Entry) {
-	cfg := &containerd.Config{
-		SocketPath: socketPath,
-	}
-	logger.Info("creating event service")
-
-	es, err := containerd.NewEventService(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ch, errsCh := es.Subscribe(ctx)
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("Existing event listener")
-			return
-		case evt := <-ch:
-			logger.Infof("event received, ns %s, topic %s, body: %#v", evt.Namespace, evt.Topic, evt.Event)
-		case errEvt := <-errsCh:
-			logger.Errorf("event error received: %s", errEvt)
-		}
-	}
-}
-
-func getTestSpec() *models.MicroVM {
-	vmid, _ := models.NewVMID(vmName, vmNamespace)
-	return &models.MicroVM{
-		ID: *vmid,
+	spec := &models.MicroVM{
+		ID:      *vmid,
+		Version: 0,
 		Spec: models.MicroVMSpec{
+			VCPU:       2,
 			MemoryInMb: 2048,
-			VCPU:       4,
 			Kernel: models.Kernel{
-				Image:   "docker.io/linuxkit/kernel:5.4.129",
-				CmdLine: "console=ttyS0 reboot=k panic=1 pci=off i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd ds=nocloud-net;s=http://169.254.169.254/latest/ network-config=ASDFGFDFG",
+				Image:            models.ContainerImage(kernelImage),
+				CmdLine:          "console=ttyS0 reboot=k panic=1 pci=off i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd ds=nocloud-net;s=http://169.254.169.254/latest/",
+				Filename:         "vmlinux",
+				AddNetworkConfig: true,
 			},
-			NetworkInterfaces: []models.NetworkInterface{
-				{
-					AllowMetadataRequests: false,
-					GuestMAC:              "AA:FF:00:00:00:01",
-					HostDeviceName:        "tap1",
-					GuestDeviceName:       "eth0",
-				},
-				{
-					AllowMetadataRequests: false,
-					HostDeviceName:        "/dev/tap55",
-					GuestDeviceName:       "eth1",
-				},
+			Initrd: &models.Initrd{
+				Image:    models.ContainerImage(kernelImage),
+				Filename: "initrd-generic",
 			},
-			Volumes: []models.Volume{
+			Volumes: models.Volumes{
 				{
 					ID:         "root",
 					IsRoot:     true,
@@ -258,22 +128,103 @@ func getTestSpec() *models.MicroVM {
 					MountPoint: "/",
 					Source: models.VolumeSource{
 						Container: &models.ContainerVolumeSource{
-							Image: imageName,
+							Image: models.ContainerImage(rootfsImage),
 						},
 					},
-					Size: 20000,
 				},
+			},
+			NetworkInterfaces: []models.NetworkInterface{
+				{
+					GuestDeviceName:       "eth0",
+					GuestMAC:              macMeta,
+					Type:                  models.IfaceTypeTap,
+					AllowMetadataRequests: true,
+					Address:               "169.254.0.1/16",
+				},
+				{
+					GuestDeviceName:       "eth1",
+					Type:                  models.IfaceTypeMacvtap,
+					AllowMetadataRequests: false,
+				},
+			},
+			Metadata: map[string]string{
+				"meta-data": hostmetadata,
+				"user-data": userdata,
 			},
 		},
 	}
+
+	ports, err := inject.InitializePorts(cfg)
+	if err != nil {
+		panic(err)
+	}
+	execCtx := portsctx.WithPorts(ctx, ports)
+
+	input := &plans.CreatePlanInput{
+		StateDirectory: cfg.StateRootDir,
+		VM:             spec,
+	}
+
+	start := time.Now()
+
+	plan := plans.MicroVMCreatePlan(input)
+
+	actuator := planner.NewActuator()
+	if err := actuator.Execute(execCtx, plan, "1234567890"); err != nil {
+		panic(err)
+	}
+
+	if err := ports.Provider.Start(ctx, spec.ID.String()); err != nil {
+		panic(err)
+	}
+
+	elapsed := time.Since(start)
+	log.Printf("create & start microvm took %s", elapsed)
 }
 
-type testApp struct {
-	logger *logrus.Entry
+func getUserMetadata(hostname, sshkey string) (string, error) {
+	runCommands := []string{
+		"dhclient -r",
+		"dhclient",
+	}
+
+	userData := &cloudinit.UserData{
+		Users: &[]cloudinit.User{
+			{
+				Name:              "root",
+				SSHAuthorizedKeys: &[]string{sshkey},
+			},
+		},
+		HostName:      ptr.String(hostname),
+		Fqdn:          ptr.String(fmt.Sprintf(fqdnFormat, hostname)),
+		DisableRoot:   ptr.Bool(false),
+		PackageUpdate: ptr.Bool(false),
+		FinalMessage:  ptr.String("The reignited booted system is good to go after $UPTIME seconds"),
+		// WriteFiles:      nil,
+		RunCommands: &runCommands,
+	}
+
+	md, err := yaml.Marshal(userData)
+	if err != nil {
+		return "", fmt.Errorf("marshalling cloud-init userdata: %w", err)
+	}
+
+	userDataStr := fmt.Sprintf("#cloud-config\n%s", string(md))
+
+	return base64.StdEncoding.EncodeToString([]byte(userDataStr)), nil
 }
 
-func (t *testApp) ReconcileMicroVM(ctx context.Context, id, namespace string) error {
-	t.logger.Infof("received request to reconcile %s/%s", id, namespace)
+func getHostMetadata(vmid *models.VMID, hostname string) (string, error) {
+	meta := &cloudinit.Metadata{
+		InstanceID:    vmid.String(),
+		LocalHostname: hostname,
+		Platform:      "liquid_metal",
+	}
 
-	return nil
+	md, err := yaml.Marshal(meta)
+	if err != nil {
+		return "", fmt.Errorf("marshalling cloud-init metadata: %w", err)
+	}
+
+	return base64.StdEncoding.EncodeToString(md), nil
 }

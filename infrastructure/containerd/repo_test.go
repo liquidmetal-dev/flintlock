@@ -18,7 +18,11 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 
 	client, ctx := testCreateClient(t)
 
-	repo := containerd.NewMicroVMRepoWithClient(client)
+	repo := containerd.NewMicroVMRepoWithClient(&containerd.Config{
+		SnapshotterKernel: testSnapshotter,
+		SnapshotterVolume: testSnapshotter,
+		Namespace:         testContainerdNs,
+	}, client)
 	exists, err := repo.Exists(ctx, testOwnerName, testOwnerNamespace)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(exists).To(BeFalse())
@@ -61,6 +65,33 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 
 	_, err = repo.Get(ctx, testOwnerName, testOwnerNamespace)
 	Expect(err).To(HaveOccurred())
+}
+
+func TestMicroVMRepo_Integration_MultipleSave(t *testing.T) {
+	if !runContainerDTests() {
+		t.Skip("skipping containerd microvm repo integration multipel save test")
+	}
+
+	RegisterTestingT(t)
+
+	client, ctx := testCreateClient(t)
+
+	testVm := makeSpec(testOwnerName, testOwnerNamespace)
+
+	repo := containerd.NewMicroVMRepoWithClient(&containerd.Config{
+		SnapshotterKernel: testSnapshotter,
+		SnapshotterVolume: testSnapshotter,
+		Namespace:         testContainerdNs,
+	}, client)
+	savedVM, err := repo.Save(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(savedVM).NotTo(BeNil())
+	Expect(savedVM.Version).To(Equal(2))
+
+	savedVM, err = repo.Save(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(savedVM).NotTo(BeNil())
+	Expect(savedVM.Version).To(Equal(2))
 }
 
 func makeSpec(name, ns string) *models.MicroVM {

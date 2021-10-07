@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -31,7 +32,7 @@ type MicroVMController struct {
 	queue queue.Queue
 }
 
-func (r *MicroVMController) Run(ctx context.Context, numWorkers int) error {
+func (r *MicroVMController) Run(ctx context.Context, numWorkers int, resyncPeriod time.Duration, resyncOnStart bool) error {
 	logger := log.GetLogger(ctx).WithField("controller", "microvm")
 	ctx = log.WithLogger(ctx, logger)
 	logger.Infof("starting microvm controller with %d workers", numWorkers)
@@ -41,12 +42,19 @@ func (r *MicroVMController) Run(ctx context.Context, numWorkers int) error {
 		r.queue.Shutdown()
 	}()
 
+	if resyncOnStart {
+		if err := r.resyncSpecs(ctx, logger); err != nil {
+			// TODO: should we just log here?
+			return fmt.Errorf("resyncing specs on start: %w", err)
+		}
+	}
+
 	wg := &sync.WaitGroup{}
 	logger.Info("starting event listener")
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		r.runEventListener(ctx)
+		r.runEventListener(ctx, resyncPeriod)
 	}()
 
 	logger.Info("Starting workers", "num_workers", numWorkers)
@@ -67,8 +75,9 @@ func (r *MicroVMController) Run(ctx context.Context, numWorkers int) error {
 	return nil
 }
 
-func (r *MicroVMController) runEventListener(ctx context.Context) {
+func (r *MicroVMController) runEventListener(ctx context.Context, resyncPeriod time.Duration) {
 	logger := log.GetLogger(ctx)
+	ticker := time.NewTicker(resyncPeriod)
 	evtCh, errCh := r.eventSvc.SubscribeTopic(ctx, defaults.TopicMicroVMEvents)
 
 	for {
@@ -82,6 +91,11 @@ func (r *MicroVMController) runEventListener(ctx context.Context) {
 		case evt := <-evtCh:
 			if err := r.handleEvent(evt, logger); err != nil {
 				logger.Errorf("handling events: %s", err)
+				// TODO: should we exit here
+			}
+		case <-ticker.C:
+			if err := r.resyncSpecs(ctx, logger); err != nil {
+				logger.Errorf("resyncing specs: %s", err)
 				// TODO: should we exit here
 			}
 		case evtErr := <-errCh:
@@ -150,6 +164,19 @@ func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *l
 
 	logger.Debugf("enqueing vmid %s", vmid)
 	r.queue.Enqueue(vmid.String())
+
+	return nil
+}
+
+func (r *MicroVMController) resyncSpecs(ctx context.Context, logger *logrus.Entry) error {
+	logger.Info("resyncing microvm specs")
+
+	err := r.reconcileUC.ResyncMicroVMs(ctx, "")
+	if err != nil {
+		logger.Errorf("failed to resync microvms: %s", err)
+
+		return fmt.Errorf("resyncing microvms: %w", err)
+	}
 
 	return nil
 }

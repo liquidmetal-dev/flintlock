@@ -10,7 +10,6 @@ import (
 	"github.com/containerd/containerd/namespaces"
 
 	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/defaults"
 )
 
 func NewEventService(cfg *Config) (ports.EventService, error) {
@@ -19,22 +18,24 @@ func NewEventService(cfg *Config) (ports.EventService, error) {
 		return nil, fmt.Errorf("creating containerd client: %w", err)
 	}
 
-	return NewEventServiceWithClient(client), nil
+	return NewEventServiceWithClient(cfg, client), nil
 }
 
-func NewEventServiceWithClient(client *containerd.Client) ports.EventService {
+func NewEventServiceWithClient(cfg *Config, client *containerd.Client) ports.EventService {
 	return &eventService{
 		client: client,
+		cfg:    cfg,
 	}
 }
 
 type eventService struct {
 	client *containerd.Client
+	cfg    *Config
 }
 
 // Publish will publish an event to a specific topic.
 func (es *eventService) Publish(ctx context.Context, topic string, eventToPublish interface{}) error {
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, es.cfg.Namespace)
 	ctrEventSrv := es.client.EventService()
 	if err := ctrEventSrv.Publish(namespaceCtx, topic, eventToPublish); err != nil {
 		return fmt.Errorf("publishing event: %w", err)
@@ -74,7 +75,7 @@ func (es *eventService) subscribe(ctx context.Context, filters ...string) (ch <-
 	errs = evtErrCh
 	ch = evtCh
 
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, es.cfg.Namespace)
 
 	var ctrEvents <-chan *events.Envelope
 	var ctrErrs <-chan error

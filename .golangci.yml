@@ -21,6 +21,9 @@ linters-settings:
     go: "1.16"
   stylecheck:
     go: "1.16"
+  cyclop:
+    max-complexity: 12
+    skip-tests: true
 
 linters:
     enable-all: true

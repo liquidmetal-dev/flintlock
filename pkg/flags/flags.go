@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// BindCommandFlagsToViper will bind the flags on a command to viper.
+// BindCommandToViper will bind the flags on a command to viper.
 func BindCommandToViper(cmd *cobra.Command) {
 	bindFlagsToViper(cmd.PersistentFlags())
 	bindFlagsToViper(cmd.Flags())

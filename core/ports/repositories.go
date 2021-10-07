@@ -14,7 +14,8 @@ type MicroVMRepository interface {
 	Delete(ctx context.Context, microvm *models.MicroVM) error
 	// Get will get the microvm spec with the given name/namespace.
 	Get(ctx context.Context, name, namespace string) (*models.MicroVM, error)
-	// GetAll will get a list of microvm details.
+	// GetAll will get a list of microvm details. If namespace is an empty string all
+	// details of microvms will be returned.
 	GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error)
 	// Exists checks to see if the microvm spec exists in the repo.
 	Exists(ctx context.Context, name, namespace string) (bool, error)

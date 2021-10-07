@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	vmID = "vm1"
-	vmNS = "testns"
+	vmID  = "vm1"
+	vmNS  = "testns"
+	ctrNS = "reignite_test_controller"
 )
 
 func TestMicroVMController(t *testing.T) {
@@ -129,7 +130,7 @@ func TestMicroVMController(t *testing.T) {
 			ctrlWG.Add(1)
 			go func() {
 				defer ctrlWG.Done()
-				err = controller.Run(ctx, 1)
+				err = controller.Run(ctx, 1, 10*time.Minute, false)
 			}()
 
 			for _, evt := range tc.eventsToSend {
@@ -168,7 +169,7 @@ func hasLogError(hook *lgrtest.Hook) bool {
 func createdEvent(name, namespace string) *ports.EventEnvelope {
 	return &ports.EventEnvelope{
 		Timestamp: time.Now(),
-		Namespace: defaults.ContainerdNamespace,
+		Namespace: ctrNS,
 		Topic:     defaults.TopicMicroVMEvents,
 		Event: &events.MicroVMSpecCreated{
 			ID:        name,
@@ -180,7 +181,7 @@ func createdEvent(name, namespace string) *ports.EventEnvelope {
 func updatedEvent(name, namespace string) *ports.EventEnvelope {
 	return &ports.EventEnvelope{
 		Timestamp: time.Now(),
-		Namespace: defaults.ContainerdNamespace,
+		Namespace: ctrNS,
 		Topic:     defaults.TopicMicroVMEvents,
 		Event: &events.MicroVMSpecUpdated{
 			ID:        name,
@@ -192,7 +193,7 @@ func updatedEvent(name, namespace string) *ports.EventEnvelope {
 func deletedEvent(name, namespace string) *ports.EventEnvelope {
 	return &ports.EventEnvelope{
 		Timestamp: time.Now(),
-		Namespace: defaults.ContainerdNamespace,
+		Namespace: ctrNS,
 		Topic:     defaults.TopicMicroVMEvents,
 		Event: &events.MicroVMSpecDeleted{
 			ID:        name,

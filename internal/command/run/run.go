@@ -9,21 +9,16 @@ import (
 	"os/signal"
 	"sync"
 
-	"github.com/containerd/containerd"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
-	"github.com/weaveworks/reignite/core/application"
-	reignite_ctr "github.com/weaveworks/reignite/infrastructure/containerd"
-	"github.com/weaveworks/reignite/infrastructure/controllers"
-	"github.com/weaveworks/reignite/infrastructure/firecracker"
-	microvmgrpc "github.com/weaveworks/reignite/infrastructure/grpc"
-	"github.com/weaveworks/reignite/infrastructure/ulid"
 	cmdflags "github.com/weaveworks/reignite/internal/command/flags"
 	"github.com/weaveworks/reignite/internal/config"
+	"github.com/weaveworks/reignite/internal/inject"
+	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/flags"
 	"github.com/weaveworks/reignite/pkg/log"
 )
@@ -44,10 +39,20 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	}
 
 	cmdflags.AddGRPCServerFlagsToCommand(cmd, cfg)
-	cmdflags.AddContainerdFlagsToCommand(cmd, cfg)
-	if err := firecracker.AddFlagsToCommand(cmd, &cfg.Firecracker); err != nil {
+	if err := cmdflags.AddContainerDFlagsToCommand(cmd, cfg); err != nil {
+		return nil, fmt.Errorf("adding containerd flags to run command: %w", err)
+	}
+	if err := cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding firecracker flags to run command: %w", err)
 	}
+	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
+		return nil, fmt.Errorf("adding network flags to run command: %w", err)
+	}
+	if err := cmdflags.AddHiddenFlagsToCommand(cmd, cfg); err != nil {
+		return nil, fmt.Errorf("adding hidden flags to run command: %w", err)
+	}
+	cmd.Flags().StringVar(&cfg.StateRootDir, "state-dir", defaults.StateRootDir, "The directory to use for the as the root for runtime state.")
+	cmd.Flags().DurationVar(&cfg.ResyncPeriod, "resync-period", defaults.ResyncPeriod, "Reconcile the specs to resynchronise them based on this period.")
 
 	return cmd, nil
 }
@@ -62,21 +67,25 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 	wg := &sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(log.WithLogger(ctx, logger))
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := serveAPI(ctx, cfg); err != nil {
-			logger.Errorf("failed serving api: %v", err)
-		}
-	}()
+	if !cfg.DisableAPI {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := serveAPI(ctx, cfg); err != nil {
+				logger.Errorf("failed serving api: %v", err)
+			}
+		}()
+	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := runControllers(ctx, cfg); err != nil {
-			logger.Errorf("failed running controllers: %v", err)
-		}
-	}()
+	if !cfg.DisableReconcile {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := runControllers(ctx, cfg); err != nil {
+				logger.Errorf("failed running controllers: %v", err)
+			}
+		}()
+	}
 
 	<-sigChan
 	logger.Debug("shutdown signal received, waiting for work to finish")
@@ -92,19 +101,12 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 func serveAPI(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
-	// TODO: Use DI framework to inject these -------
-	containerdClient, err := containerd.New(cfg.ContainerdSocketPath)
+	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
-		return fmt.Errorf("creating containerd client: %w", err)
+		return fmt.Errorf("initializing ports for application: %w", err)
 	}
-	repo := reignite_ctr.NewMicroVMRepoWithClient(containerdClient)
-	eventSvc := reignite_ctr.NewEventServiceWithClient(containerdClient)
-	idSvc := ulid.New()
-	mvmprovider := firecracker.New(&cfg.Firecracker)
-
-	app := application.New(repo, eventSvc, idSvc, mvmprovider)
-	server := microvmgrpc.NewServer(app, app)
-	// END todo -----------------------------------------
+	app := inject.InitializeApp(cfg, ports)
+	server := inject.InitializeGRPCServer(app)
 
 	grpcServer := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
@@ -137,22 +139,15 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 func runControllers(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
-	// TODO: Use DI framework to inject these -------
-	containerdClient, err := containerd.New(cfg.ContainerdSocketPath)
+	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
-		return fmt.Errorf("creating containerd client: %w", err)
+		return fmt.Errorf("initializing ports for controller: %w", err)
 	}
-	repo := reignite_ctr.NewMicroVMRepoWithClient(containerdClient)
-	eventSvc := reignite_ctr.NewEventServiceWithClient(containerdClient)
-	idSvc := ulid.New()
-	mvmprovider := firecracker.New(&cfg.Firecracker)
-
-	app := application.New(repo, eventSvc, idSvc, mvmprovider)
-	mvmControllers := controllers.New(eventSvc, app)
-	// END todo -----------------------------------------
+	app := inject.InitializeApp(cfg, ports)
+	mvmControllers := inject.InializeController(app, ports)
 
 	logger.Info("starting microvm controller")
-	if err := mvmControllers.Run(ctx, 1); err != nil {
+	if err := mvmControllers.Run(ctx, 1, cfg.ResyncPeriod, true); err != nil {
 		logger.Fatalf("starting microvm controller: %v", err)
 	}
 

@@ -6,15 +6,14 @@ import (
 	"os"
 	"testing"
 
-	. "github.com/onsi/gomega"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/containerd"
-	"github.com/weaveworks/reignite/pkg/defaults"
-
 	ctr "github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/snapshots"
+	. "github.com/onsi/gomega"
+
+	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/reignite/infrastructure/containerd"
 )
 
 const (
@@ -22,7 +21,9 @@ const (
 	testImageKernel    = "docker.io/linuxkit/kernel:5.4.129"
 	testSnapshotter    = "native"
 	testOwnerNamespace = "int_ns"
+	testOwnerUsageID   = "vol1"
 	testOwnerName      = "imageservice-get-test"
+	testContainerdNs   = "reignite_test_ctr"
 )
 
 func TestImageService_Integration(t *testing.T) {
@@ -33,23 +34,29 @@ func TestImageService_Integration(t *testing.T) {
 	RegisterTestingT(t)
 
 	client, ctx := testCreateClient(t)
-	namespaceCtx := namespaces.WithNamespace(ctx, defaults.ContainerdNamespace)
+	namespaceCtx := namespaces.WithNamespace(ctx, testContainerdNs)
 
 	imageSvc := containerd.NewImageServiceWithClient(&containerd.Config{
 		SnapshotterKernel: testSnapshotter,
 		SnapshotterVolume: testSnapshotter,
+		Namespace:         testContainerdNs,
 	}, client)
 
-	input := ports.GetImageInput{
-		ImageName:      getTestVolumeImage(),
-		OwnerName:      testOwnerName,
-		OwnerNamespace: testOwnerNamespace,
-		Use:            models.ImageUseVolume,
+	inputGetAndMount := &ports.ImageMountSpec{
+		ImageName:    getTestVolumeImage(),
+		Owner:        fmt.Sprintf("%s/%s", testOwnerNamespace, testOwnerName),
+		OwnerUsageID: testOwnerUsageID,
+		Use:          models.ImageUseVolume,
 	}
-	err := imageSvc.Get(ctx, input)
+	inputGet := &ports.ImageSpec{
+		ImageName: inputGetAndMount.ImageName,
+		Owner:     inputGetAndMount.Owner,
+	}
+
+	err := imageSvc.Pull(ctx, inputGet)
 	Expect(err).NotTo(HaveOccurred())
 
-	mounts, err := imageSvc.GetAndMount(ctx, input)
+	mounts, err := imageSvc.PullAndMount(ctx, inputGetAndMount)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mounts).NotTo(BeNil())
 	Expect(len(mounts)).To(Equal(1))
@@ -59,7 +66,7 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(len(img)).To(Equal(1))
 	Expect(img[0].Name).To(Equal(getTestVolumeImage()))
 
-	expectedSnapshotName := fmt.Sprintf("reignite/%s", testOwnerName)
+	expectedSnapshotName := fmt.Sprintf("reignite/%s/%s/%s", testOwnerNamespace, testOwnerName, testOwnerUsageID)
 	snapshotExists := false
 	err = client.SnapshotService(testSnapshotter).Walk(namespaceCtx, func(walkCtx context.Context, info snapshots.Info) error {
 		if info.Name == expectedSnapshotName {
@@ -77,10 +84,9 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(len(leases)).To(Equal(1))
 	Expect(leases[0].ID).To(Equal(expectedLeaseName), "expect lease with name %s to exists", expectedLeaseName)
 
-	input.Use = models.ImageUseKernel
-	input.ImageName = getTestKernelImage()
+	inputGet.ImageName = "docker.io/linuxkit/kernel:5.4.129"
 
-	err = imageSvc.Get(ctx, input)
+	err = imageSvc.Pull(ctx, inputGet)
 	Expect(err).NotTo(HaveOccurred())
 }
 
