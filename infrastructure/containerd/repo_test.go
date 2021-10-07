@@ -92,6 +92,9 @@ func TestMicroVMRepo_Integration_MultipleSave(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(savedVM).NotTo(BeNil())
 	Expect(savedVM.Version).To(Equal(2))
+
+	err = repo.Delete(ctx, testVm)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func makeSpec(name, ns string) *models.MicroVM {

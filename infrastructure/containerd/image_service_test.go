@@ -84,9 +84,15 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(len(leases)).To(Equal(1))
 	Expect(leases[0].ID).To(Equal(expectedLeaseName), "expect lease with name %s to exists", expectedLeaseName)
 
-	inputGet.ImageName = "docker.io/linuxkit/kernel:5.4.129"
+	inputGet.ImageName = testImageKernel
 
 	err = imageSvc.Pull(ctx, inputGet)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = client.ImageService().Delete(namespaceCtx, testImageKernel)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = client.ImageService().Delete(namespaceCtx, testImageVolume)
 	Expect(err).NotTo(HaveOccurred())
 }
 
