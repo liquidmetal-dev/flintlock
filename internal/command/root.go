@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/reignite/internal/command/gw"
 	"github.com/weaveworks/reignite/internal/command/run"
 	"github.com/weaveworks/reignite/internal/config"
+	"github.com/weaveworks/reignite/internal/version"
 	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/flags"
 	"github.com/weaveworks/reignite/pkg/log"
@@ -26,6 +27,8 @@ func NewRootCommand() (*cobra.Command, error) {
 			if err := log.Configure(&cfg.Logging); err != nil {
 				return fmt.Errorf("configuring logging: %w", err)
 			}
+			logger := log.GetLogger(cmd.Context())
+			logger.Infof("reignited, version=%s, built_on=%s, commit=%s", version.Version, version.BuildDate, version.CommitHash)
 
 			return nil
 		},

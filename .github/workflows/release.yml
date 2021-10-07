@@ -1,0 +1,60 @@
+name: release
+
+on:
+    push:
+        tags:
+            - "v*.*.*"
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  fetch-depth: 0
+            - name: Set up Go
+              uses: actions/setup-go@v2
+              with:
+                  go-version: 1.16
+            - name: Build binaries
+              run: make build-release
+            - name: Store reignite binaries
+              uses: actions/upload-artifact@v2
+              with:
+                name: reignite-binaries
+                path: bin/*
+                retention-days: 1
+    release:
+        runs-on: ubuntu-latest
+        needs: [build]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  fetch-depth: 0
+            - name: Download reignite binaries
+              uses: actions/download-artifact@v2
+              with:
+                name: mccp-binaries
+                path: bin
+            - name: Generate release notes
+              run: |
+                release_notes=$(gh api repos/{owner}/{repo}/releases/generate-notes -F tag_name=${{ github.ref }} --jq .body)
+                echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
+                echo "${release_notes}" >> $GITHUB_ENV
+                echo 'EOF' >> $GITHUB_ENV
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                OWNER: ${{ github.repository_owner }}
+                REPO: ${{ github.event.repository.name }}
+            - name: Release
+              uses: softprops/action-gh-release@v1
+              with:
+                prerelease: false
+                draft: true
+                fail_on_unmatched_files: true
+                body: ${{ env.RELEASE_NOTES }}
+                files: |
+                  bin/reignited_amd64
+                  bin/reignited_arm64

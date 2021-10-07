@@ -19,17 +19,7 @@ Fixes #
 **Checklist**:
 <!-- Put an "X" character inside the brackets of each completed task. Some may be optional depending on the PR in which case these can be deleted -->
 
-- [ ] squashed commits
+- [ ] squashed commits into logical changes
 - [ ] includes documentation
 - [ ] adds unit tests
 - [ ] adds or updates e2e tests
-
-**Release note**:
-<!--  Write your release note:
-1. Enter your extended release note in the below block. 
-2. If the PR requires additional action from users switching to the new release, include the string "action required".
-2. If no release note is required, just write "NONE"....however we encourage contributors to never use this as release notes are incredible useful.
--->
-```release-note
-
-```
