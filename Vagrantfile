@@ -19,7 +19,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "generic/ubuntu2004"
 
   config.ssh.forward_agent = true
-  config.vm.synced_folder ".", "/home/vagrant/reignite"
+  config.vm.synced_folder "./", "/home/vagrant/reignite"
 
   cpus = 2
   memory = 4096
@@ -30,9 +30,12 @@ Vagrant.configure("2") do |config|
     v.cpus = cpus
     v.memory = memory
   end
-  config.vm.provider :libvirt do |v|
+  config.vm.provider :libvirt do |v, override|
+    # If you want to use a different storage pool.
+    # v.storage_pool_name = "vagrant"
     v.cpus = cpus
     v.memory = memory
+    override.vm.synced_folder "./", "/home/vagrant/reignite", type: "nfs"
   end
 
   config.vm.provision "upgrade-packages", type: "shell", run: "once" do |sh|
@@ -100,7 +103,7 @@ EOF
   config.vm.provision "install-firecracker", type: "shell", run: "once" do |sh|
     sh.inline = <<~SHELL
       curl -fsSL "https://github.com/weaveworks/reignite/files/7278467/firecracker_macvtap.zip" -o /tmp/firecracker-macvtap.zip
-      unzip /tmp/firecracker-macvtap.zip -d /usr/local/bin
+      unzip -u /tmp/firecracker-macvtap.zip -d /usr/local/bin
     SHELL
   end
 
