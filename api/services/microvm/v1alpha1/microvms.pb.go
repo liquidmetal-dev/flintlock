@@ -7,9 +7,6 @@
 package v1alpha1
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	types "github.com/weaveworks/reignite/api/types"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
@@ -18,6 +15,8 @@ import (
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -696,27 +695,24 @@ func file_services_microvm_v1alpha1_microvms_proto_rawDescGZIP() []byte {
 	return file_services_microvm_v1alpha1_microvms_proto_rawDescData
 }
 
-var (
-	file_services_microvm_v1alpha1_microvms_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
-	file_services_microvm_v1alpha1_microvms_proto_goTypes  = []interface{}{
-		(*CreateMicroVMRequest)(nil),  // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest
-		(*CreateMicroVMResponse)(nil), // 1: microvm.services.api.v1alpha1.CreateMicroVMResponse
-		(*DeleteMicroVMRequest)(nil),  // 2: microvm.services.api.v1alpha1.DeleteMicroVMRequest
-		(*UpdateMicroVMRequest)(nil),  // 3: microvm.services.api.v1alpha1.UpdateMicroVMRequest
-		(*UpdateMicroVMResponse)(nil), // 4: microvm.services.api.v1alpha1.UpdateMicroVMResponse
-		(*GetMicroVMRequest)(nil),     // 5: microvm.services.api.v1alpha1.GetMicroVMRequest
-		(*GetMicroVMResponse)(nil),    // 6: microvm.services.api.v1alpha1.GetMicroVMResponse
-		(*ListMicroVMsRequest)(nil),   // 7: microvm.services.api.v1alpha1.ListMicroVMsRequest
-		(*ListMicroVMsResponse)(nil),  // 8: microvm.services.api.v1alpha1.ListMicroVMsResponse
-		(*ListMessage)(nil),           // 9: microvm.services.api.v1alpha1.ListMessage
-		nil,                           // 10: microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry
-		(*types.MicroVMSpec)(nil),     // 11: reignite.types.MicroVMSpec
-		(*fieldmaskpb.FieldMask)(nil), // 12: google.protobuf.FieldMask
-		(*anypb.Any)(nil),             // 13: google.protobuf.Any
-		(*emptypb.Empty)(nil),         // 14: google.protobuf.Empty
-	}
-)
-
+var file_services_microvm_v1alpha1_microvms_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_services_microvm_v1alpha1_microvms_proto_goTypes = []interface{}{
+	(*CreateMicroVMRequest)(nil),  // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest
+	(*CreateMicroVMResponse)(nil), // 1: microvm.services.api.v1alpha1.CreateMicroVMResponse
+	(*DeleteMicroVMRequest)(nil),  // 2: microvm.services.api.v1alpha1.DeleteMicroVMRequest
+	(*UpdateMicroVMRequest)(nil),  // 3: microvm.services.api.v1alpha1.UpdateMicroVMRequest
+	(*UpdateMicroVMResponse)(nil), // 4: microvm.services.api.v1alpha1.UpdateMicroVMResponse
+	(*GetMicroVMRequest)(nil),     // 5: microvm.services.api.v1alpha1.GetMicroVMRequest
+	(*GetMicroVMResponse)(nil),    // 6: microvm.services.api.v1alpha1.GetMicroVMResponse
+	(*ListMicroVMsRequest)(nil),   // 7: microvm.services.api.v1alpha1.ListMicroVMsRequest
+	(*ListMicroVMsResponse)(nil),  // 8: microvm.services.api.v1alpha1.ListMicroVMsResponse
+	(*ListMessage)(nil),           // 9: microvm.services.api.v1alpha1.ListMessage
+	nil,                           // 10: microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry
+	(*types.MicroVMSpec)(nil),     // 11: reignite.types.MicroVMSpec
+	(*fieldmaskpb.FieldMask)(nil), // 12: google.protobuf.FieldMask
+	(*anypb.Any)(nil),             // 13: google.protobuf.Any
+	(*emptypb.Empty)(nil),         // 14: google.protobuf.Empty
+}
 var file_services_microvm_v1alpha1_microvms_proto_depIdxs = []int32{
 	11, // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest.microvm:type_name -> reignite.types.MicroVMSpec
 	10, // 1: microvm.services.api.v1alpha1.CreateMicroVMRequest.metadata:type_name -> microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry

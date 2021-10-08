@@ -29,6 +29,12 @@ type MicroVMSpec struct {
 	// Metadata allows you to specify data to be added to the metadata service. The key is the name
 	// of the metadata item and the value is the base64 encoded contents of the metadata.
 	Metadata map[string]string `json:"metadata"`
+	// CreatedAt indicates the time the microvm was created at.
+	CreatedAt int64 `json:"created_at"`
+	// UpdatedAt indicates the time the microvm was last updated.
+	UpdatedAt int64 `json:"updated_at"`
+	// DeletedAt indicates the time the microvm was marked as deleted.
+	DeletedAt int64 `json:"deleted_at"`
 }
 
 // MicroVMStatus contains the runtime status of the microvm.

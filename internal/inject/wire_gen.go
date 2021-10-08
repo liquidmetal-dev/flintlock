@@ -8,7 +8,6 @@ package inject
 
 import (
 	"fmt"
-
 	"github.com/spf13/afero"
 	"github.com/weaveworks/reignite/core/application"
 	"github.com/weaveworks/reignite/core/ports"
@@ -19,6 +18,7 @@ import (
 	"github.com/weaveworks/reignite/infrastructure/network"
 	"github.com/weaveworks/reignite/infrastructure/ulid"
 	"github.com/weaveworks/reignite/internal/config"
+	"time"
 )
 
 // Injectors from wire.go:
@@ -108,6 +108,7 @@ func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.
 		NetworkService:    ns,
 		ImageService:      ims,
 		FileSystem:        fs,
+		Clock:             time.Now,
 	}
 }
 

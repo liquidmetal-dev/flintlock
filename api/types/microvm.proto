@@ -46,6 +46,9 @@ message MicroVMSpec {
 
   // UpdatedAt indicates the time the microvm was last updated.
   google.protobuf.Timestamp updated_at = 12;
+
+  // DeletedAt indicates the time the microvm was marked as deleted.
+  google.protobuf.Timestamp deleted_at = 13;
 }
 
 // Kernel represents the configuration for a kernel.
