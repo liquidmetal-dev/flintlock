@@ -21,8 +21,6 @@ metal infrastructure.
 
 Please see [CONTRIBUTING.md][contrib] and our [Code Of Conduct][coc].
 
-Please see CONTRIBUTING.md and our Code Of Conduct.
-
 Other interesting resources include:
 
 * [The issue tracker][issues]
