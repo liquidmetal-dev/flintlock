@@ -1,6 +1,8 @@
 # Build Information
-build_date := $(shell date +%Y-%m-%dT%H:%M:%SZ)
-git_commit := $(shell git rev-parse --short HEAD)
+BUILD_DATE := $(shell date +%Y-%m-%dT%H:%M:%SZ)
+GIT_COMMIT := $(shell git rev-parse --short HEAD)
+VERSION := $(shell git describe --always --match "v*")
+VERSION_PKG := github.com/weaveworks/reignite/internal/version
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
@@ -50,6 +52,12 @@ WIRE := $(TOOLS_BIN_DIR)/wire
 .PHONY: build
 build: $(BIN_DIR) ## Build the binaries
 	go build -o $(BIN_DIR)/reignited ./cmd/reignited
+
+.PHONY: build-release
+build-release: $(BIN_DIR) ## Build the release binaries
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/reignited_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/reignited
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/reignited_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/reignited
+
 
 ##@ Generate
 
