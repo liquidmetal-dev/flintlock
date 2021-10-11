@@ -2,7 +2,7 @@
 
 We highly value and encourage contributions from the community!
 
-Reignite is [Apache 2.0 licensed](LICENCE) and accepts contributions via GitHub
+Reignite is [MPL-2.0 licensed](LICENSE) and accepts contributions via GitHub
 Pull Requests.This document outlines some of the conventions on development
 workflow, commit message formatting, contact points and other resources to make
 it easier to get your contribution accepted.
@@ -14,11 +14,11 @@ We gratefully welcome improvements to documentation as well as to code.
 If you have a feature suggestion or found a bug, head over to
 [GitHub issues][issues] and see if there's an open issue matching your
 description. If not feel free to open a new issue and add short description:
- - In case of a bug, be sure to include the steps you performed and what Reignite responded so it's easy for others to reproduce
- - If you have a feature suggestion, describe it in moderate detail and include some potential uses you see for the feature.
-   We prioritize the features to be implemented based on their
-   usefulness/popularity. Of course if you want to start contributing yourself,
-   go ahead! We'll be more than happy to review your pull requests.
+
+ - In case of a bug, be sure to include the steps you performed and what Reignite responded so it's easy for others to reproduce 
+- If you have a feature suggestion, describe it in moderate detail and include some potential uses you see for the feature.
+
+We prioritize the features to be implemented based on their usefulness/popularity. Of course if you want to start contributing yourself, go ahead! We'll be more than happy to review your pull requests.
 
 The maintainers will add the correct labels/milestones to the issue for you.
 
@@ -33,7 +33,7 @@ The process to contribute code to Reignite is very straightforward.
    personal account.
 2. Using standard `git` workflow, `clone` your fork, make your changes and then
    `commit` and `push` them to your repository.
-3. Run `make generate`, then `commit` and `push` the changes.
+3. Run `make generate && make test && make lint`, then `commit` and `push` the changes.
 4. Go back to [GitHub][repo], select `Pull requests` from the top bar and click
    `New pull request` to the right. Select the `compare across forks` link.
    This will show repositories in addition to branches.
