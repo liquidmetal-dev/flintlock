@@ -46,6 +46,9 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 
 	// TODO: validate the spec
 
+	// Set the timestamp when the VMspec was created.
+	mvm.Spec.CreatedAt = a.ports.Clock().Unix()
+
 	createdMVM, err := a.ports.Repo.Save(ctx, mvm)
 	if err != nil {
 		return nil, fmt.Errorf("saving microvm spec: %w", err)
@@ -86,6 +89,9 @@ func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	// TODO: validate incoming spec
 	// TODO: check if update is valid (i.e. compare existing to requested update)
 
+	// Set the timestamp when the VMspec was updated.
+	mvm.Spec.UpdatedAt = a.ports.Clock().Unix()
+
 	updatedMVM, err := a.ports.Repo.Save(ctx, mvm)
 	if err != nil {
 		return nil, fmt.Errorf("updating microvm spec: %w", err)
@@ -114,21 +120,25 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 		return fmt.Errorf("checking to see if spec exists: %w", err)
 	}
 	if foundMvm == nil {
-		logger.Infof("microvm %s/%s doesn't exist, skipping delete", id, namespace)
-
-		return nil
+		return errSpecNotFound{
+			name:      id,
+			namespace: namespace,
+		}
 	}
 
-	err = a.ports.Repo.Delete(ctx, foundMvm)
+	// Set the timestamp when the VMspec was deleted.
+	foundMvm.Spec.DeletedAt = a.ports.Clock().Unix()
+
+	_, err = a.ports.Repo.Save(ctx, foundMvm)
 	if err != nil {
-		return fmt.Errorf("deleting microvm from repository: %w", err)
+		return fmt.Errorf("marking microvm spec for deletion: %w", err)
 	}
 
-	if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecDeleted{
-		ID:        id,
-		Namespace: namespace,
+	if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecUpdated{
+		ID:        foundMvm.ID.Name(),
+		Namespace: foundMvm.ID.Namespace(),
 	}); err != nil {
-		return fmt.Errorf("publishing microvm deleted event: %w", err)
+		return fmt.Errorf("publishing microvm updated event: %w", err)
 	}
 
 	return nil

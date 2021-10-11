@@ -3,6 +3,7 @@ package application_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -17,6 +18,8 @@ import (
 )
 
 func TestApp_CreateMicroVM(t *testing.T) {
+	frozenTime := time.Now
+
 	testCases := []struct {
 		name         string
 		specToCreate *models.MicroVM
@@ -45,9 +48,12 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					nil,
 				)
 
+				expectedCreatedSpec := createTestSpec("id1234", defaults.MicroVMNamespace)
+				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
+
 				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq(createTestSpec("id1234", defaults.MicroVMNamespace)),
+					gomock.Eq(expectedCreatedSpec),
 				).Return(
 					createTestSpec("id1234", defaults.MicroVMNamespace),
 					nil,
@@ -77,9 +83,12 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					nil,
 				)
 
+				expectedCreatedSpec := createTestSpec("id1234", "default")
+				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
+
 				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq(createTestSpec("id1234", "default")),
+					gomock.Eq(expectedCreatedSpec),
 				).Return(
 					createTestSpec("id1234", "default"),
 					nil,
@@ -134,6 +143,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				NetworkService:    ns,
 				ImageService:      is,
 				FileSystem:        fs,
+				Clock:             frozenTime,
 			}
 
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
@@ -152,6 +162,8 @@ func TestApp_CreateMicroVM(t *testing.T) {
 }
 
 func TestApp_UpdateMicroVM(t *testing.T) {
+	frozenTime := time.Now
+
 	testCases := []struct {
 		name         string
 		specToUpdate *models.MicroVM
@@ -185,9 +197,12 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 					nil,
 				)
 
+				expectedUpdatedSpec := createTestSpec("id1234", "default")
+				expectedUpdatedSpec.Spec.UpdatedAt = frozenTime().Unix()
+
 				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq(createTestSpec("id1234", "default")),
+					gomock.Eq(expectedUpdatedSpec),
 				).Return(
 					createTestSpec("id1234", "default"),
 					nil,
@@ -227,6 +242,7 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 				NetworkService:    ns,
 				ImageService:      is,
 				FileSystem:        fs,
+				Clock:             frozenTime,
 			}
 
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
@@ -245,6 +261,8 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 }
 
 func TestApp_DeleteMicroVM(t *testing.T) {
+	frozenTime := time.Now
+
 	testCases := []struct {
 		name        string
 		toDeleteID  string
@@ -275,15 +293,21 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 					nil,
 				)
 
-				rm.Delete(
+				expectedUpdatedSpec := createTestSpec("id1234", "default")
+				expectedUpdatedSpec.Spec.DeletedAt = frozenTime().Unix()
+
+				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(expectedUpdatedSpec),
+				).Return(
 					createTestSpec("id1234", "default"),
-				).Return(nil)
+					nil,
+				)
 
 				em.Publish(
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(defaults.TopicMicroVMEvents),
-					gomock.Eq(&events.MicroVMSpecDeleted{
+					gomock.Eq(&events.MicroVMSpecUpdated{
 						ID:        "id1234",
 						Namespace: "default",
 					}),
@@ -292,7 +316,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 		},
 		{
 			name:        "spec doesn't exist, should not delete",
-			expectError: false,
+			expectError: true,
 			toDeleteID:  "id1234",
 			toDeleteNS:  "default",
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
@@ -330,6 +354,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 				NetworkService:    ns,
 				ImageService:      is,
 				FileSystem:        fs,
+				Clock:             frozenTime,
 			}
 
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
@@ -391,6 +416,9 @@ func createTestSpec(name, ns string) *models.MicroVM {
 					Size: 20000,
 				},
 			},
+			CreatedAt: 0,
+			UpdatedAt: 0,
+			DeletedAt: 0,
 		},
 	}
 }

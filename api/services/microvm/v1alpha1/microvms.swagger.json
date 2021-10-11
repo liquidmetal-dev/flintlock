@@ -323,6 +323,11 @@
           "type": "string",
           "format": "date-time",
           "description": "UpdatedAt indicates the time the microvm was last updated."
+        },
+        "deletedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "DeletedAt indicates the time the microvm was marked as deleted."
         }
       },
       "description": "MicroVMSpec represents the specification for a microvm."
