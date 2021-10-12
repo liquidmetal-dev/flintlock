@@ -2,7 +2,7 @@
 
 We highly value and encourage contributions from the community!
 
-Reignite is [Apache 2.0 licensed](LICENSE) and accepts contributions via GitHub
+Reignite is [Apache 2.0 licensed](LICENCE) and accepts contributions via GitHub
 Pull Requests.This document outlines some of the conventions on development
 workflow, commit message formatting, contact points and other resources to make
 it easier to get your contribution accepted.
