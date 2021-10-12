@@ -14,10 +14,8 @@ We gratefully welcome improvements to documentation as well as to code.
 If you have a feature suggestion or found a bug, head over to
 [GitHub issues][issues] and see if there's an open issue matching your
 description. If not feel free to open a new issue and add short description:
- - In case of a bug, be sure to include the steps you performed and what
- - Reignite responded so it's easy for others to reproduce If you have a
- - feature suggestion, describe it in moderate detail and include some
- - potential uses you see for the feature.
+ - In case of a bug, be sure to include the steps you performed and what Reignite responded so it's easy for others to reproduce
+ - If you have a feature suggestion, describe it in moderate detail and include some potential uses you see for the feature.
    We prioritize the features to be implemented based on their
    usefulness/popularity. Of course if you want to start contributing yourself,
    go ahead! We'll be more than happy to review your pull requests.
@@ -28,7 +26,7 @@ The maintainers will add the correct labels/milestones to the issue for you.
 
 ### Contributing your code
 
-The process to contribute code to Reignite is very straight forward.
+The process to contribute code to Reignite is very straightforward.
 
 1. Go to the project on [GitHub][repo] and click the `Fork` button in the
    top-right corner. This will create your own copy of the repository in your
