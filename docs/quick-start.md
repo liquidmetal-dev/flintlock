@@ -1,5 +1,15 @@
 # Getting started with reignite
 
+## On MacOS
+
+You can use Vagrant:
+
+```
+vagrant up
+```
+
+It will create a new pre-configured machine ready to use.
+
 ## Containerd
 
 ### Create thinpool
