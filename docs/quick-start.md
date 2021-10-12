@@ -6,10 +6,10 @@ If you are using wired connection, you can skip this and jump straight to the
 "Containerd" section. With wireless adapter, macvtap has some issues. The easy
 workaround is to use a bridge and tap devices instead.
 
-You can use the default kvm network, in this case, skip to
-"Create and connect tap device" and use `default`. With using a separate
-network, it's guaranteed no other kvm machines has any kind of effect on the
-reignited network (for example IP or MAC address conflict).
+You can use the default kvm network, in this case, skip to "Create and connect
+tap device" and use `default`. We recommend using a dedicated network to avoid
+interference from other kvm machines or processes like IP or MAC address
+conflict.
 
 ### Create kvm network
 
