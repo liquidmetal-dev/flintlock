@@ -43,6 +43,7 @@ PROTOC_GEN_GO := $(TOOLS_BIN_DIR)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
 PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
 PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
+PROTO_GEN_GRPC_VALIDATE := $(TOOLS_BIN_DIR)/protoc-gen-validate
 WIRE := $(TOOLS_BIN_DIR)/wire
 
 .DEFAULT_GOAL := help
@@ -73,7 +74,7 @@ generate-go: $(MOCKGEN) ## Generate Go Code
 	go generate ./...
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
-generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI)
+generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI) $(PROTO_GEN_GRPC_VALIDATE)
 	$(BUF) generate
 
 .PHONY: generate-di ## Generate the dependency injection code
@@ -95,7 +96,7 @@ test: ## Run unit tests
 
 .PHONY: test-with-cov
 test-with-cov: ## Run unit tests with coverage
-	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt ./... 
+	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt ./...
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
@@ -127,6 +128,9 @@ $(PROTO_GEN_GRPC_GW): $(TOOLS_DIR)/go.mod
 
 $(PROTO_GEN_GRPC_OAPI): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+
+$(PROTO_GEN_GRPC_VALIDATE):
+	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/envoyproxy/protoc-gen-validate
 
 $(WIRE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/google/wire/cmd/wire

@@ -11,5 +11,10 @@ plugins:
     opt:
       - paths=source_relative
       - generate_unbound_methods=true
+  - name: validate
+    out: api
+    opt:
+      - paths=source_relative
+      - lang=go
   - name: openapiv2
     out: api
