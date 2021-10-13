@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/containerd/containerd v1.5.5
 	github.com/containerd/typeurl v1.0.2
+	github.com/envoyproxy/protoc-gen-validate v0.6.1
 	github.com/firecracker-microvm/firecracker-go-sdk v0.22.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6

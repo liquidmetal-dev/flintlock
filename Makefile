@@ -130,7 +130,7 @@ $(PROTO_GEN_GRPC_OAPI): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
 
 $(PROTO_GEN_GRPC_VALIDATE):
-	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/envoyproxy/protoc-gen-validate
+	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/envoyproxy/protoc-gen-validate@0.6.1
 
 $(WIRE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/google/wire/cmd/wire
