@@ -6,8 +6,8 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
     name: e2e tests
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-go@v2
@@ -20,3 +20,8 @@ jobs:
       run: make test-e2e
       env:
         METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
+    - name: Cleanup
+      uses: weaveworks/metal-janitor-action@v0.1.0
+      with:
+        metal-auth-token: ${{ secrets.METAL_AUTH_TOKEN }}
+        project-names: 'DELETEALL'
