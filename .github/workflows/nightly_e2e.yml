@@ -1,13 +1,13 @@
 name: nightly_e2e
 
-on:
-  schedule:
-    - cron: 0 0 * * *
+on: [pull_request]
 
 jobs:
   e2e:
     name: e2e tests
     runs-on: ubuntu-latest
+    env:
+      METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-go@v2
@@ -17,11 +17,10 @@ jobs:
       with:
         terraform_version: 1.0.1
     - name: Run tests
+      if: ${{ env.METAL_AUTH_TOKEN != '' }}
       run: make test-e2e
-      env:
-        METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
-    - name: Cleanup
-      uses: weaveworks/metal-janitor-action@v0.1.0
-      with:
-        metal-auth-token: ${{ secrets.METAL_AUTH_TOKEN }}
-        project-names: 'DELETEALL'
+    # - name: Cleanup
+    #   uses: weaveworks/metal-janitor-action@b0373b3a6a8bb1e6573616040121c22ba230cdc8
+    #   with:
+    #     metal-auth-token: ${{ secrets.METAL_AUTH_TOKEN }}
+    #     project-names: 'team-quicksilver-liquidmetal'
