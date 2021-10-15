@@ -24,12 +24,13 @@ func TestActuator_SingleProc(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 
 	act := planner.NewActuator()
-	err = act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan, execID)
 
 	Expect(err).NotTo(HaveOccurred())
 	testProc, ok := testProcs[0].(*testProc)
 	Expect(ok).To(BeTrue())
 	Expect(testProc.Executed).To(BeTrue())
+	Expect(stepCount).To(Equal(1))
 }
 
 func TestActuator_MultipleProcs(t *testing.T) {
@@ -45,8 +46,9 @@ func TestActuator_MultipleProcs(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 
 	act := planner.NewActuator()
-	err = act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan, execID)
 	Expect(err).NotTo(HaveOccurred())
+	Expect(stepCount).To(Equal(2))
 
 	for _, proc := range testProcs {
 		testProc, ok := proc.(*testProc)
@@ -68,8 +70,9 @@ func TestActuator_ChildProcs(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 
 	act := planner.NewActuator()
-	err = act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan, execID)
 	Expect(err).NotTo(HaveOccurred())
+	Expect(stepCount).To(Equal(2))
 
 	parentProc, ok := testProcs[0].(*testProc)
 	Expect(ok).To(BeTrue())
@@ -98,7 +101,8 @@ func TestActuator_Timeout(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 
 	act := planner.NewActuator()
-	err = act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan, execID)
+	Expect(stepCount).To(Equal(1))
 
 	Expect(err).To(HaveOccurred())
 	Expect(err).To(MatchError(context.DeadlineExceeded))

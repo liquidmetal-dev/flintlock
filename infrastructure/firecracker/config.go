@@ -241,20 +241,14 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 		Ethernet: map[string]*cloudinit.Ethernet{},
 	}
 
-	for i := range vm.Spec.NetworkInterfaces {
-		iface := vm.Spec.NetworkInterfaces[i]
-		status, ok := vm.Status.NetworkInterfaces[iface.GuestDeviceName]
-		if !ok {
-			return "", errors.NewNetworkInterfaceStatusMissing(iface.GuestDeviceName)
-		}
-		macAdress := getMacAddress(&iface, status)
-
+	for _, iface := range vm.Spec.NetworkInterfaces {
 		eth := &cloudinit.Ethernet{
 			Match: cloudinit.Match{},
 		}
 
-		if macAdress != "" {
-			eth.Match.MACAddress = &macAdress
+		if iface.GuestMAC != "" {
+			address := iface.GuestMAC
+			eth.Match.MACAddress = &address
 		} else {
 			eth.Match.Name = &iface.GuestDeviceName
 		}
@@ -275,12 +269,4 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(nd), nil
-}
-
-func getMacAddress(iface *models.NetworkInterface, status *models.NetworkInterfaceStatus) string {
-	if iface.Type == models.IfaceTypeMacvtap {
-		return status.MACAddress
-	}
-
-	return iface.GuestMAC
 }

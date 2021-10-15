@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/sirupsen/logrus"
@@ -118,7 +119,58 @@ func (p *fcProvider) Stop(ctx context.Context, id string) error {
 
 // Delete will delete a VM and its runtime state.
 func (p *fcProvider) Delete(ctx context.Context, id string) error {
-	return errNotImplemeted
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "firecracker_microvm",
+		"vmid":    id,
+	})
+	logger.Info("deleting microvm")
+
+	if !p.config.APIConfig {
+		logger.Info("using firecracker configuration file, no explicit start required")
+
+		return nil
+	}
+
+	vmid, err := models.NewVMIDFromString(id)
+	if err != nil {
+		return fmt.Errorf("parsing vmid: %w", err)
+	}
+	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+
+	socketPath := vmState.SockPath()
+	logger.Tracef("using socket %s", socketPath)
+
+	client := firecracker.NewClient(socketPath, logger, true)
+
+	// This action will send the CTRL+ALT+DEL key sequence to the microVM. By
+	// convention, this sequence has been used to trigger a soft reboot and, as
+	// such, most Linux distributions perform an orderly shutdown and reset upon
+	// receiving this keyboard input. Since Firecracker exits on CPU reset,
+	// SendCtrlAltDel can be used to trigger a clean shutdown of the microVM.
+	//
+	// Source: https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/actions.md#intel-and-amd-only-sendctrlaltdel
+	_, err = client.CreateSyncAction(ctx, &fcmodels.InstanceActionInfo{
+		ActionType: firecracker.String("SendCtrlAltDel"),
+	})
+	if err != nil {
+		// What errors do we want to ignore?
+		// Example:
+		// * net/url.Error happens if the VM is not running or the socket file
+		//   is not there, so we can delete the VM.
+		if errors.Is(err, &url.Error{}) {
+			logger.Info("microvm is not running")
+		} else {
+			return fmt.Errorf("failed to create halt action: %w", err)
+		}
+	}
+
+	// It's strange to call it delete, it terminates the vm, but by the nature of
+	// firecracker, if it's terminated, it's not there anymore, only the
+	// resources we created before, but we have steps for them.
+
+	logger.Info("deleted microvm")
+
+	return nil
 }
 
 // IsRunning returns true if the microvm is running.

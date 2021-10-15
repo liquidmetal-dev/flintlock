@@ -38,7 +38,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		}
 	}
 	if foundMvm != nil {
-		return nil, errSpecAlreadyExists{
+		return nil, specAlreadyExistsError{
 			name:      mvm.ID.Name(),
 			namespace: mvm.ID.Namespace(),
 		}
@@ -48,6 +48,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 
 	// Set the timestamp when the VMspec was created.
 	mvm.Spec.CreatedAt = a.ports.Clock().Unix()
+	mvm.Status.State = models.PendingState
 
 	createdMVM, err := a.ports.Repo.Save(ctx, mvm)
 	if err != nil {
@@ -80,7 +81,7 @@ func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, fmt.Errorf("checking to see if spec exists: %w", err)
 	}
 	if foundMvm == nil {
-		return nil, errSpecNotFound{
+		return nil, specNotFoundError{
 			name:      mvm.ID.Name(),
 			namespace: mvm.ID.Namespace(),
 		}
@@ -120,7 +121,7 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 		return fmt.Errorf("checking to see if spec exists: %w", err)
 	}
 	if foundMvm == nil {
-		return errSpecNotFound{
+		return specNotFoundError{
 			name:      id,
 			namespace: namespace,
 		}

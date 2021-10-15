@@ -36,7 +36,7 @@ type microvmCreatePlan struct {
 }
 
 func (p *microvmCreatePlan) Name() string {
-	return "microvm_create"
+	return MicroVMCreatePlanName
 }
 
 // Create will create the plan to reconcile a microvm.
@@ -49,7 +49,9 @@ func (p *microvmCreatePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, portsctx.ErrPortsMissing
 	}
 
-	// TODO: test for deletion and if deleted don't proceed
+	if p.vm.Spec.DeletedAt != 0 {
+		return []planner.Procedure{}, nil
+	}
 
 	p.ensureStatus()
 	p.steps = []planner.Procedure{}
@@ -141,7 +143,14 @@ func (p *microvmCreatePlan) ensureStatus() {
 	if p.vm.Status.Volumes == nil {
 		p.vm.Status.Volumes = models.VolumeStatuses{}
 	}
+
 	if p.vm.Status.NetworkInterfaces == nil {
 		p.vm.Status.NetworkInterfaces = models.NetworkInterfaceStatuses{}
+	}
+
+	// I'll leave this condition here for safety. If (for some reason) it's
+	// called on a vm that's not pending, leave the status as it is.
+	if p.vm.Status.State == models.PendingState {
+		p.vm.Status.State = models.CreatedState
 	}
 }

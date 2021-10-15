@@ -235,7 +235,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 		Digest: *metadigest,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("reading content %s: %w", metadigest, ErrFailedReadingContent)
+		return nil, fmt.Errorf("reading content %s: %w", metadigest, ErrReadingContent)
 	}
 
 	microvm := &models.MicroVM{}

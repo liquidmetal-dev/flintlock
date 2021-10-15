@@ -1,5 +1,13 @@
 package models
 
+type MicroVMState string
+
+const (
+	PendingState = "pending"
+	CreatedState = "created"
+	FailedState  = "failed"
+)
+
 // MicroVM represents a microvm machine that is created via a provider.
 type MicroVM struct {
 	// ID is the identifier for the microvm.
@@ -39,6 +47,8 @@ type MicroVMSpec struct {
 
 // MicroVMStatus contains the runtime status of the microvm.
 type MicroVMStatus struct {
+	// State stores information about the last known state of the vm and the spec.
+	State MicroVMState
 	// Volumes holds the status of the volumes.
 	Volumes VolumeStatuses
 	// KernelMount holds the status of the kernel mount point.
@@ -47,6 +57,8 @@ type MicroVMStatus struct {
 	InitrdMount *Mount
 	// NetworkInterfaces holds the status of the network interfaces.
 	NetworkInterfaces NetworkInterfaceStatuses
+	// Retry is a counter about how many times we retried to reconcile.
+	Retry int
 }
 
 // Kernel is the specification of the kernel and its arguments.
