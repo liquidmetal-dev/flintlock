@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
+	"github.com/firecracker-microvm/firecracker-go-sdk/client"
 	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
+	"github.com/firecracker-microvm/firecracker-go-sdk/client/operations"
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
@@ -61,7 +64,17 @@ func (p *fcProvider) Start(ctx context.Context, id string) error {
 	logger.Info("starting microvm")
 
 	if !p.config.APIConfig {
-		logger.Info("using firecracker configuration file, no explicit start required")
+		logger.Debug("using firecracker configuration file, no explicit start required")
+
+		return nil
+	}
+
+	running, err := p.IsRunning(ctx, id)
+	if err != nil {
+		return fmt.Errorf("checking if instance is running: %w", err)
+	}
+	if running {
+		logger.Debug("instance is already running, not starting")
 
 		return nil
 	}
@@ -144,7 +157,31 @@ func (p *fcProvider) IsRunning(ctx context.Context, id string) (bool, error) {
 		return false, nil
 	}
 
-	// TODO: do we need to query via the sock interface?
+	socketPath := vmState.SockPath()
+	logger.Tracef("using socket %s", socketPath)
 
-	return true, nil
+	info, err := p.getInstanceInfo(socketPath, logger)
+	if err != nil {
+		return false, fmt.Errorf("getting instance info: %w", err)
+	}
+
+	if *info.State == string(InstanceStateStarted) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (p *fcProvider) getInstanceInfo(socketPath string, logger *logrus.Entry) (*fcmodels.InstanceInfo, error) {
+	httpClient := client.NewHTTPClient(strfmt.NewFormats())
+
+	transport := firecracker.NewUnixSocketTransport(socketPath, logger, true)
+	httpClient.SetTransport(transport)
+
+	resp, err := httpClient.Operations.DescribeInstance(operations.NewDescribeInstanceParams())
+	if err != nil {
+		return nil, fmt.Errorf("describing firecracker instance: %w", err)
+	}
+
+	return resp.Payload, nil
 }
