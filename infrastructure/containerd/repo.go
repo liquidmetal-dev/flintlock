@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/containerd/containerd"
@@ -250,6 +251,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, namespace string) (*digest.Digest, error) {
 	idLabelFilter := labelFilter(NameLabel, name)
 	nsFilter := labelFilter(NamespaceLabel, namespace)
+	allFilter := strings.Join([]string{idLabelFilter, nsFilter}, ",")
 	store := r.client.ContentStore()
 
 	var digest *digest.Digest
@@ -266,7 +268,7 @@ func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, name
 		}
 
 		return nil
-	}, idLabelFilter, nsFilter)
+	}, allFilter)
 	if err != nil {
 		return nil, fmt.Errorf("walking content store for %s: %w", name, err)
 	}
