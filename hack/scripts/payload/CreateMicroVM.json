@@ -1,0 +1,50 @@
+{
+  "microvm": {
+    "id": "mvm1",
+    "namespace": "ns1",
+    "labels": {
+      "env": "lab"
+    },
+    "vcpu": 2,
+    "memory_in_mb": 2048,
+    "kernel": {
+      "image": "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
+      "cmdline": "console=ttyS0 reboot=k panic=1 pci=off i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd ds=nocloud-net;s=http://169.254.169.254/latest/",
+      "filename": "vmlinux",
+      "add_network_config": true
+    },
+    "initrd": {
+      "image": "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
+      "filename": "initrd-generic"
+    },
+    "volumes": [
+      {
+        "id": "root",
+        "is_root": true,
+        "is_read_only": false,
+        "mount_point": "/",
+        "source": {
+          "container_source": "docker.io/richardcase/ubuntu-bionic-test:cloudimage_v0.0.1"
+        }
+      }
+    ],
+    "interfaces": [
+      {
+        "guest_device_name": "eth0",
+        "type": 1,
+        "allow_metadata_req": true,
+        "guest_mac": "AA:FF:00:00:00:01",
+        "address": "169.254.0.1/16"
+      },
+      {
+        "guest_device_name": "eth1",
+        "type": 0,
+        "allow_metadata_req": false
+      }
+    ],
+    "metadata": {
+      "meta-data": "aW5zdGFuY2VfaWQ6IG5zMS9tdm0wCmxvY2FsX2hvc3RuYW1lOiBtdm0wCnBsYXRmb3JtOiBsaXF1aWRfbWV0YWwK",
+      "user-data": "I2Nsb3VkLWNvbmZpZwpob3N0bmFtZTogbXZtMApmcWRuOiBtdm0wLmZydWl0Y2FzZQp1c2VyczoKICAgIC0gbmFtZTogcm9vdAogICAgICBzc2hfYXV0aG9yaXplZF9rZXlzOgogICAgICAgIC0gfAogICAgICAgICAgc3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUdzbStWSSsyVk5WWFBDRmVmbFhrQTVKY21zMzByajFGUFFjcFNTdDFrdVYgcmljaGFyZEB3ZWF2ZS53b3JrcwpkaXNhYmxlX3Jvb3Q6IGZhbHNlCnBhY2thZ2VfdXBkYXRlOiBmYWxzZQpmaW5hbF9tZXNzYWdlOiBUaGUgcmVpZ25pdGVkIGJvb3RlZCBzeXN0ZW0gaXMgZ29vZCB0byBnbyBhZnRlciAkVVBUSU1FIHNlY29uZHMKcnVuY21kOgogICAgLSBkaGNsaWVudCAtcgogICAgLSBkaGNsaWVudAo="
+    }
+  }
+}
