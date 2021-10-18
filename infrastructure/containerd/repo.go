@@ -171,6 +171,17 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 	return items, nil
 }
 
+func (r *containerdRepo) ReleaseLease(ctx context.Context, microvm *models.MicroVM) error {
+	mu := r.getMutex(microvm.ID.String())
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
+
+	return deleteLease(namespaceCtx, microvm.ID.String(), r.client)
+}
+
 // Delete will delete the supplied microvm details from the containerd content store.
 func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) error {
 	mu := r.getMutex(microvm.ID.String())

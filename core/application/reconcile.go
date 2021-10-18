@@ -117,10 +117,20 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 		return fmt.Errorf("executing plan: %w", err)
 	}
 
+	// Move this into a step at the same time as startvm is moved.
 	if plan.Name() == plans.MicroVMDeletePlanName {
+		// ReleaseLease should be enough, but until we see the big picture with the
+		// full reconcililiation loop (create, update!, delete), I thought it's
+		// safer that way.
 		if err := a.ports.Repo.Delete(ctx, spec); err != nil {
 			return fmt.Errorf("deleting spec after plan execution: %w", err)
 		}
+
+		if err := a.ports.Repo.ReleaseLease(ctx, spec); err != nil {
+			return fmt.Errorf("releasing lease after plan execution: %w", err)
+		}
+
+		return nil
 	}
 
 	if stepCount == 0 {
@@ -132,6 +142,9 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	}
 
 	// A little bit of hack until Update is implemented.
+	//
+	// Later move this into a step, so update and create can start if it's
+	// not running.
 	if plan.Name() == plans.MicroVMCreatePlanName {
 		// if spec.Status.State == models.CreatedState {
 		if err := a.ports.Provider.Start(ctx, spec.ID.String()); err != nil {

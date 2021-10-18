@@ -19,4 +19,6 @@ type MicroVMRepository interface {
 	GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error)
 	// Exists checks to see if the microvm spec exists in the repo.
 	Exists(ctx context.Context, name, namespace string) (bool, error)
+	// ReleaseLEase will release the supplied lease.
+	ReleaseLease(ctx context.Context, microvm *models.MicroVM) error
 }
