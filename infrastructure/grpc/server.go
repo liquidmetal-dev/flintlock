@@ -6,6 +6,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/go-playground/validator/v10"
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/reignite/api/types"
 	"github.com/weaveworks/reignite/core/ports"
@@ -18,12 +19,14 @@ func NewServer(commandUC ports.MicroVMCommandUseCases, queryUC ports.MicroVMQuer
 	return &server{
 		commandUC: commandUC,
 		queryUC:   queryUC,
+		validator: validator.New(),
 	}
 }
 
 type server struct {
 	commandUC ports.MicroVMCommandUseCases
 	queryUC   ports.MicroVMQueryUseCases
+	validator *validator.Validate
 }
 
 func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequest) (*mvmv1.CreateMicroVMResponse, error) {
@@ -33,6 +36,12 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)
+	}
+
+	logger.Trace("validating model")
+	err = s.validator.Struct(modelSpec)
+	if err != nil {
+		return nil, fmt.Errorf("validating model spec: %w", err)
 	}
 
 	logger.Infof("creating microvm %s", modelSpec.ID)
@@ -58,6 +67,12 @@ func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequ
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)
+	}
+
+	logger.Trace("validating model")
+	err = s.validator.Struct(modelSpec)
+	if err != nil {
+		return nil, fmt.Errorf("validating model spec: %w", err)
 	}
 
 	logger.Infof("updating microvm %s", modelSpec.ID)
