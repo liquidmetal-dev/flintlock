@@ -39,7 +39,7 @@ provider "metal" {
 }
 
 resource "metal_project" "quicksilver_e2e" {
-   name = "quicksilver_e2e"
+   name = "quicksilver_e2e_1"
 }
 
 resource "metal_project_ssh_key" "test" {
@@ -68,7 +68,6 @@ resource "null_resource" "example_provisioner" {
         user = var.ssh_user
         port = var.ssh_port
         private_key = file(var.private_key_path)
-        agent = true
     }
 
     provisioner "file" {
