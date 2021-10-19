@@ -29,6 +29,8 @@ type Config struct {
 	FirecrackerBin string
 	// StateRoot is the folder to store any required firecracker state (i.e. socks, pid, log files).
 	StateRoot string
+	// RunDetached indicates that the firecracker processes should be run detached (a.k.a daemon) from the parent process.
+	RunDetached bool
 	// APIConfig idnicates that te firecracker microvm should be configured using the API instead of file.
 	APIConfig bool
 }

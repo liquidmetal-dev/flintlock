@@ -40,4 +40,6 @@ type Config struct {
 	DisableAPI bool
 	// ResyncPeriod defines the period when we should do a reconcile of the microvms (even if there are no events).
 	ResyncPeriod time.Duration
+	// MaximumRetry defined how many times we retry if reconciliation failed.
+	MaximumRetry int
 }

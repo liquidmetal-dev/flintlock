@@ -81,6 +81,7 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 	return &firecracker.Config{
 		FirecrackerBin: cfg.FirecrackerBin,
+		RunDetached:    cfg.FirecrackerDetatch,
 		APIConfig:      cfg.FirecrackerUseAPI,
 		StateRoot:      fmt.Sprintf("%s/vm", cfg.StateRootDir),
 	}
@@ -95,6 +96,7 @@ func networkConfig(cfg *config.Config) *network.Config {
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
 		RootStateDir: cfg.StateRootDir,
+		MaximumRetry: cfg.MaximumRetry,
 	}
 }
 

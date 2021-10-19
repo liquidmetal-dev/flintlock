@@ -3,18 +3,17 @@ package application
 import (
 	"context"
 	"fmt"
-	"path"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/reignite/api/events"
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/plans"
 	portsctx "github.com/weaveworks/reignite/core/ports/context"
+	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
 	"github.com/weaveworks/reignite/pkg/planner"
 )
-
-const maximumRetry = 10
 
 func (a *app) ReconcileMicroVM(ctx context.Context, id, namespace string) error {
 	logger := log.GetLogger(ctx).WithField("action", "reconcile")
@@ -54,14 +53,14 @@ func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) (planner.Plan, er
 	l := logger.WithField("stage", "plan")
 	l.Info("Generate plan")
 
-	if spec.Status.Retry > maximumRetry {
+	if spec.Status.Retry > a.cfg.MaximumRetry {
 		return nil, reachedMaximumRetryError{vmid: spec.ID, retries: spec.Status.Retry}
 	}
 
 	// Delete only if the spec was marked as deleted.
 	if spec.Spec.DeletedAt != 0 {
 		input := &plans.DeletePlanInput{
-			StateDirectory: path.Join(a.cfg.RootStateDir, "vm", spec.ID.String()),
+			StateDirectory: a.cfg.RootStateDir,
 			VM:             spec,
 		}
 
@@ -119,11 +118,11 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 
 	// Move this into a step at the same time as startvm is moved.
 	if plan.Name() == plans.MicroVMDeletePlanName {
-		// ReleaseLease should be enough, but until we see the big picture with the
-		// full reconcililiation loop (create, update!, delete), I thought it's
-		// safer that way.
-		if err := a.ports.Repo.Delete(ctx, spec); err != nil {
-			return fmt.Errorf("deleting spec after plan execution: %w", err)
+		if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecDeleted{
+			ID:        spec.ID.Name(),
+			Namespace: spec.ID.Namespace(),
+		}); err != nil {
+			return fmt.Errorf("publishing microvm updated event: %w", err)
 		}
 
 		if err := a.ports.Repo.ReleaseLease(ctx, spec); err != nil {

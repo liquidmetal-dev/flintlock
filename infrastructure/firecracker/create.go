@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
@@ -17,6 +16,7 @@ import (
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/pkg/defaults"
 	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/reignite/pkg/process"
 	"github.com/weaveworks/reignite/pkg/wait"
 )
 
@@ -58,7 +58,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		WithArgs(args).
 		Build(context.TODO())
 
-	proc, err := p.startFirecracker(cmd, vmState)
+	proc, err := p.startFirecracker(cmd, vmState, p.config.RunDetached)
 	if err != nil {
 		return fmt.Errorf("starting firecracker process: %w", err)
 	}
@@ -85,7 +85,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	return nil
 }
 
-func (p *fcProvider) startFirecracker(cmd *exec.Cmd, vmState State) (*os.Process, error) {
+func (p *fcProvider) startFirecracker(cmd *exec.Cmd, vmState State, detached bool) (*os.Process, error) {
 	stdOutFile, err := p.fs.OpenFile(vmState.StdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening stdout file %s: %w", vmState.StdoutPath(), err)
@@ -99,23 +99,17 @@ func (p *fcProvider) startFirecracker(cmd *exec.Cmd, vmState State) (*os.Process
 	cmd.Stdout = stdOutFile
 	cmd.Stdin = &bytes.Buffer{}
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Credential: &syscall.Credential{
-			Uid:    uint32(os.Getuid()),
-			Gid:    uint32(os.Getgid()),
-			Groups: []uint32{},
-		},
-		Setsid: true,
+	var startErr error
+
+	if detached {
+		startErr = process.DetachedStart(cmd)
+	} else {
+		startErr = cmd.Start()
 	}
 
-	if err := cmd.Start(); err != nil {
+	if startErr != nil {
 		return nil, fmt.Errorf("starting firecracker process: %w", err)
 	}
-
-	go func() {
-		_, _ = cmd.Process.Wait()
-		_ = cmd.Process.Release()
-	}()
 
 	return cmd.Process, nil
 }

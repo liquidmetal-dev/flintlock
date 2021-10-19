@@ -25,7 +25,7 @@ const (
 
 	// FirecrackerDetach is the default for the flag to indicates with the child firecracker
 	// processes should be run detached.
-	FirecrackerDetach = false
+	FirecrackerDetach = true
 
 	// FirecrackerUseAPI is the default that indicates the Firecracker microvm should be configured
 	// using the API instead of using a config file.
@@ -57,4 +57,7 @@ const (
 
 	// DataFilePerm is the permissions to use for data files.
 	DataFilePerm = 0o644
+
+	// MaximumRetry is the default value how many times we retry failed reconciliation.
+	MaximumRetry = 10
 )

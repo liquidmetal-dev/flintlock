@@ -42,10 +42,14 @@ func getExistingOrCreateLease(ctx context.Context, name string, manager leases.M
 }
 
 func deleteLease(ctx context.Context, owner string, client *containerd.Client) error {
-	lease := leases.Lease{ID: getLeaseNameForOwner(owner)}
+	leaseName := getLeaseNameForOwner(owner)
+	lease := leases.Lease{ID: leaseName}
 	err := client.LeasesService().Delete(ctx, lease, leases.SynchronousDelete)
+	if err != nil {
+		return fmt.Errorf("delete lease %s: %w", leaseName, err)
+	}
 
-	return fmt.Errorf("delete lease: %w", err)
+	return nil
 }
 
 func getLeaseNameForOwner(owner string) string {

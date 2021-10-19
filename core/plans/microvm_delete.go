@@ -3,6 +3,7 @@ package plans
 import (
 	"context"
 	"fmt"
+	"path"
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
@@ -22,7 +23,7 @@ type DeletePlanInput struct {
 func MicroVMDeletePlan(input *DeletePlanInput) planner.Plan {
 	return &microvmDeletePlan{
 		vm:       input.VM,
-		stateDir: input.StateDirectory,
+		stateDir: path.Join(input.StateDirectory, "vm", input.VM.ID.String()),
 		steps:    []planner.Procedure{},
 	}
 }
