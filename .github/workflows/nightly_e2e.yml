@@ -13,10 +13,16 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: '^1.16.2'
-    - uses: hashicorp-terraform@v1
+    - uses: hashicorp/setup-terraform@v1
       with:
-        terraform_version: 1.0.1
+        terraform_version: 1.0.9
+        terraform_wrapper: false
     - name: Run tests
       run: make test-e2e
       env:
         METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
+    - name: Cleanup projects
+      uses: weaveworks/metal-janitor-action@b0373b3a6a8bb1e6573616040121c22ba230cdc8
+      with:
+        metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
+        project_names: 'quicksilver_e2e_1'

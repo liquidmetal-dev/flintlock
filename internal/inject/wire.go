@@ -5,6 +5,7 @@ package inject
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/wire"
 	"github.com/spf13/afero"
@@ -93,6 +94,7 @@ func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.
 		NetworkService:    ns,
 		ImageService:      ims,
 		FileSystem:        fs,
+		Clock:             time.Now,
 	}
 }
 

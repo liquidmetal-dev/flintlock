@@ -158,3 +158,15 @@ type VsockDeviceConfig struct {
 type Metadata struct {
 	Latest map[string]string `json:"latest"`
 }
+
+// InstanceState is a type that represents the running state of a Firecracker instance.
+type InstanceState string
+
+var (
+	// InstanceStateNotStarted the instance hasn't started running yet.
+	InstanceStateNotStarted InstanceState = "Not Started"
+	// InstanceStateStarted the instance is running.
+	InstanceStateStarted InstanceState = "Started"
+	// InstanceStatePaused the instance is currently paused.
+	InstanceStatePaused InstanceState = "Paused"
+)

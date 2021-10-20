@@ -77,6 +77,16 @@ You can check the DHCP leases with `virsh`:
 virsh net-dhcp-leases default
 ```
 
+## On MacOS
+
+You can use Vagrant:
+
+```
+vagrant up
+```
+
+It will create a new pre-configured machine ready to use.
+
 ## Containerd
 
 ### Create thinpool

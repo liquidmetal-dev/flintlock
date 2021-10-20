@@ -62,7 +62,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "install-golang", type: "shell", run: "once" do |sh|
     sh.env = {
-      'GO_VERSION': ENV['GO_VERSION'] || "1.17.1",
+      'GO_VERSION': ENV['GO_VERSION'] || "1.17.2",
     }
     sh.inline = <<~SHELL
       #!/usr/bin/env bash
@@ -97,6 +97,17 @@ EOF
       cp /home/vagrant/reignite/hack/scripts/example-config.toml /etc/containerd/config.toml
 
       systemctl restart containerd
+    SHELL
+  end
+
+  config.vm.provision "install-kvm", type: "shell", run: "once" do |sh|
+    sh.inline = <<~SHELL
+      #!/usr/bin/env bash
+      set -eux -o pipefail
+      apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+      adduser 'vagrant' libvirt
+      adduser 'vagrant' kvm
+      setfacl -m u:${USER}:rw /dev/kvm
     SHELL
   end
 

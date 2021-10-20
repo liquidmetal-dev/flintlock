@@ -1,6 +1,10 @@
 package ports
 
-import "github.com/spf13/afero"
+import (
+	"time"
+
+	"github.com/spf13/afero"
+)
 
 type Collection struct {
 	Repo              MicroVMRepository
@@ -10,4 +14,5 @@ type Collection struct {
 	NetworkService    NetworkService
 	ImageService      ImageService
 	FileSystem        afero.Fs
+	Clock             func() time.Time
 }
