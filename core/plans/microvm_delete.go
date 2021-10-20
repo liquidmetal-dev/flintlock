@@ -53,8 +53,6 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return []planner.Procedure{}, nil
 	}
 
-	p.ensureStatus()
-
 	p.steps = []planner.Procedure{}
 
 	// MicroVM provider delete
@@ -102,7 +100,4 @@ func (p *microvmDeletePlan) addNetworkSteps(ctx context.Context, vm *models.Micr
 	}
 
 	return nil
-}
-
-func (p *microvmDeletePlan) ensureStatus() {
 }
