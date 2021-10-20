@@ -171,7 +171,7 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 	return items, nil
 }
 
-// ReleaseLEase will release the supplied lease.
+// ReleaseLease will release the supplied lease.
 func (r *containerdRepo) ReleaseLease(ctx context.Context, microvm *models.MicroVM) error {
 	mu := r.getMutex(microvm.ID.String())
 
