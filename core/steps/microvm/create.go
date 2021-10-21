@@ -30,12 +30,12 @@ func (s *createStep) Name() string {
 }
 
 func (s *createStep) ShouldDo(ctx context.Context) (bool, error) {
-	isRunning, err := s.vmSvc.IsRunning(ctx, s.vm.ID.String())
+	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
 	if err != nil {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
 
-	return !isRunning, nil
+	return state == ports.MicroVMStatePending, nil
 }
 
 // Do will perform the operation/procedure.

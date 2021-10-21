@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/weaveworks/flintlock/api/events"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
 	portsctx "github.com/weaveworks/flintlock/core/ports/context"
+	"github.com/weaveworks/flintlock/core/steps/event"
 	"github.com/weaveworks/flintlock/core/steps/microvm"
 	"github.com/weaveworks/flintlock/core/steps/network"
 	"github.com/weaveworks/flintlock/core/steps/runtime"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
@@ -60,6 +63,10 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, fmt.Errorf("adding microvm delete step: %w", err)
 	}
 
+	if err := p.addStep(ctx, runtime.NewRepoRelease(p.vm, ports.Repo)); err != nil {
+		return nil, fmt.Errorf("adding release lease step: %w", err)
+	}
+
 	// Network interfaces
 	if err := p.addNetworkSteps(ctx, p.vm, ports.NetworkService); err != nil {
 		return nil, fmt.Errorf("adding network steps: %w", err)
@@ -67,6 +74,15 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 
 	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.stateDir, ports.FileSystem)); err != nil {
 		return nil, fmt.Errorf("adding root dir step: %w", err)
+	}
+
+	if len(p.steps) != 0 {
+		if err := p.addStep(ctx, event.NewPublish(defaults.TopicMicroVMEvents, &events.MicroVMSpecDeleted{
+			ID:        p.vm.ID.Name(),
+			Namespace: p.vm.ID.Namespace(),
+		}, ports.EventService)); err != nil {
+			return nil, fmt.Errorf("adding publish event: %w", err)
+		}
 	}
 
 	return p.steps, nil

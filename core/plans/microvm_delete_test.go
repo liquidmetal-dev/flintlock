@@ -6,13 +6,16 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/gomega"
+
 	"github.com/weaveworks/flintlock/core/plans"
 	"github.com/weaveworks/flintlock/core/ports"
 	portsctx "github.com/weaveworks/flintlock/core/ports/context"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 )
 
 func TestMicroVMDeletePlan(t *testing.T) {
+	RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -32,9 +35,16 @@ func TestMicroVMDeletePlan(t *testing.T) {
 
 	mList.MicroVMService.
 		EXPECT().
-		IsRunning(gomock.Any(), gomock.Eq("namespace/vmid")).
+		State(gomock.Any(), gomock.Eq("namespace/vmid")).
+		DoAndReturn(func(_ context.Context, _ string) (ports.MicroVMState, error) {
+			return ports.MicroVMStateRunning, nil
+		}).AnyTimes()
+
+	mList.MicroVMRepository.
+		EXPECT().
+		Exists(gomock.Any(), gomock.Eq("vmid"), gomock.Eq("namespace")).
 		Return(true, nil).
-		Times(2)
+		AnyTimes()
 
 	mList.MicroVMService.
 		EXPECT().
@@ -56,22 +66,34 @@ func TestMicroVMDeletePlan(t *testing.T) {
 		).
 		Times(2)
 
+	mList.MicroVMRepository.
+		EXPECT().
+		ReleaseLease(gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mList.EventService.
+		EXPECT().
+		Publish(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
 	steps, createErr := plan.Create(ctx)
 
-	assert.NoError(t, createErr)
-	assert.Equal(t, 3, len(steps))
+	Expect(createErr).NotTo(HaveOccurred())
+	Expect(steps).To(HaveLen(5))
 
 	for _, step := range steps {
 		should, err := step.ShouldDo(ctx)
 
-		assert.NoError(t, err)
-		assert.True(t, should)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(should).To(BeTrue())
 
 		if should {
 			extraSteps, err := step.Do(ctx)
 
-			assert.NoError(t, err)
-			assert.Nil(t, extraSteps)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(extraSteps).To(BeNil())
 		}
 	}
 }

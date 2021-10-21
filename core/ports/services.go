@@ -25,9 +25,19 @@ type MicroVMService interface {
 	Resume(ctx context.Context, id string) error
 	// StopVM will stop a paused or running microvm.
 	Stop(ctx context.Context, id string) error
-	// IsRunning returns true if the microvm is running.
-	IsRunning(ctx context.Context, id string) (bool, error)
+	// State returns the state of a microvm.
+	State(ctx context.Context, id string) (MicroVMState, error)
 }
+
+type MicroVMState string
+
+const (
+	MicroVMStateUnknown    = "unknown"
+	MicroVMStatePending    = "pending"
+	MicroVMStateConfigured = "configured"
+	MicroVMStateRunning    = "running"
+	MicroVMStatePaused     = "paused"
+)
 
 // MicroVMGRPCService is a port for a microvm grpc service.
 type MicroVMGRPCService interface {

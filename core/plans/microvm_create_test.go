@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/gomega"
+
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/plans"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestMicroVMCreatePlan(t *testing.T) {
+	RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -28,15 +30,22 @@ func TestMicroVMCreatePlan(t *testing.T) {
 
 	mList.MicroVMService.
 		EXPECT().
-		IsRunning(gomock.Any(), gomock.Eq("namespace/vmid")).
-		DoAndReturn(func(_ context.Context, _ string) (bool, error) {
-			return false, nil
+		State(gomock.Any(), gomock.Eq("namespace/vmid")).
+		DoAndReturn(func(_ context.Context, _ string) (ports.MicroVMState, error) {
+			return ports.MicroVMStatePending, nil
 		}).
-		Times(2)
+		Times(4)
 
 	mList.MicroVMService.
 		EXPECT().
 		Create(gomock.Any(), gomock.Any())
+
+	mList.MicroVMService.
+		EXPECT().
+		Start(gomock.Any(), gomock.Eq("namespace/vmid")).
+		Return(nil)
+
+	// Start(ctx context.Context, id string) error
 
 	mList.NetworkService.
 		EXPECT().
@@ -97,20 +106,20 @@ func TestMicroVMCreatePlan(t *testing.T) {
 
 	steps, createErr := plan.Create(ctx)
 
-	assert.NoError(t, createErr)
-	assert.Equal(t, 6, len(steps))
+	Expect(createErr).NotTo(HaveOccurred())
+	Expect(steps).To(HaveLen(7))
 
 	for _, step := range steps {
 		should, err := step.ShouldDo(ctx)
 
-		assert.NoError(t, err)
-		assert.True(t, should)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(should).To(BeTrue())
 
 		if should {
 			extraSteps, err := step.Do(ctx)
 
-			assert.NoError(t, err)
-			assert.Nil(t, extraSteps)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(extraSteps).To(BeNil())
 		}
 	}
 }

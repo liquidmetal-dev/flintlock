@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -12,49 +13,46 @@ import (
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
-func NewDeleteStep(vm *models.MicroVM, vmSvc ports.MicroVMService) planner.Procedure {
-	return &deleteStep{
+func NewStartStep(vm *models.MicroVM, vmSvc ports.MicroVMService) planner.Procedure {
+	return &startStep{
 		vm:    vm,
 		vmSvc: vmSvc,
 	}
 }
 
-type deleteStep struct {
+type startStep struct {
 	vm    *models.MicroVM
 	vmSvc ports.MicroVMService
 }
 
 // Name is the name of the procedure/operation.
-func (s *deleteStep) Name() string {
-	return "microvm_delete"
+func (s *startStep) Name() string {
+	return "microvm_start"
 }
 
-func (s *deleteStep) ShouldDo(ctx context.Context) (bool, error) {
+func (s *startStep) ShouldDo(ctx context.Context) (bool, error) {
 	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
 	if err != nil {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
 
-	stopped := (state == ports.MicroVMStatePending || state == ports.MicroVMStateUnknown)
-
-	return !stopped, nil
+	return state != ports.MicroVMStateRunning, nil
 }
 
 // Do will perform the operation/procedure.
-func (s *deleteStep) Do(ctx context.Context) ([]planner.Procedure, error) {
+func (s *startStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step": s.Name(),
 		"vmid": s.vm.ID,
 	})
-	logger.Debug("deleting microvm")
+	logger.Debug("starting microvm")
 
 	if s.vm == nil {
 		return nil, errors.ErrSpecRequired
 	}
 
-	id := s.vm.ID.String()
-	if err := s.vmSvc.Delete(ctx, id); err != nil {
-		return nil, fmt.Errorf("deleting microvm: %w", err)
+	if err := s.vmSvc.Start(ctx, s.vm.ID.String()); err != nil {
+		return nil, fmt.Errorf("starting microvm: %w", err)
 	}
 
 	return nil, nil
