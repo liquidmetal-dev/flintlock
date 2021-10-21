@@ -6,11 +6,11 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/go-playground/validator/v10"
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/reignite/api/types"
 	"github.com/weaveworks/reignite/core/ports"
 	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/reignite/pkg/validation"
 )
 
 // NewServer creates a new server instance.
@@ -19,14 +19,14 @@ func NewServer(commandUC ports.MicroVMCommandUseCases, queryUC ports.MicroVMQuer
 	return &server{
 		commandUC: commandUC,
 		queryUC:   queryUC,
-		validator: validator.New(),
+		validator: validation.NewValidator(),
 	}
 }
 
 type server struct {
 	commandUC ports.MicroVMCommandUseCases
 	queryUC   ports.MicroVMQueryUseCases
-	validator *validator.Validate
+	validator validation.Validator
 }
 
 func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequest) (*mvmv1.CreateMicroVMResponse, error) {
@@ -39,7 +39,7 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	}
 
 	logger.Trace("validating model")
-	err = s.validator.Struct(modelSpec)
+	err = s.validator.ValidateStruct(modelSpec)
 	if err != nil {
 		return nil, fmt.Errorf("validating model spec: %w", err)
 	}
@@ -70,7 +70,7 @@ func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequ
 	}
 
 	logger.Trace("validating model")
-	err = s.validator.Struct(modelSpec)
+	err = s.validator.ValidateStruct(modelSpec)
 	if err != nil {
 		return nil, fmt.Errorf("validating model spec: %w", err)
 	}
