@@ -7,7 +7,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/weaveworks/reignite/api/events"
 	"github.com/weaveworks/reignite/core/ports"
@@ -106,8 +105,8 @@ func newSubscriber(t *testing.T, rootContext context.Context, data subData) {
 	recvd, err := watch(t, &subscriber, data.MaxEvents)
 	t.Logf("subscriber (%d) is done", data.ID)
 
-	assert.NoError(t, err)
-	assert.Len(t, recvd, data.MaxEvents)
+	Expect(err).To(BeNil())
+	Expect(recvd).To(HaveLen(data.MaxEvents))
 
 	data.Done()
 }
