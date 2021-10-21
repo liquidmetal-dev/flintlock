@@ -144,9 +144,10 @@ func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *l
 		name = created.ID
 		namespace = created.Namespace
 	case *events.MicroVMSpecDeleted:
-		deleted, _ := envelope.Event.(*events.MicroVMSpecDeleted)
-		name = deleted.ID
-		namespace = deleted.Namespace
+		// Do not enqueue a deleted vmspec.
+		// We can be smarter than this, but for now it's working
+		// and we can reiterate on it.
+		return nil
 	case *events.MicroVMSpecUpdated:
 		updated, _ := envelope.Event.(*events.MicroVMSpecUpdated)
 		name = updated.ID

@@ -22,6 +22,7 @@ const (
 	volSnapshotterFlag    = "containerd-volume-ss"
 	kernelSnapshotterFlag = "containerd-kernel-ss"
 	containerdNamespace   = "containerd-ns"
+	maximumRetryFlag      = "maximum-retry"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -64,6 +65,11 @@ func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 		false,
 		"Set to true to stop the reconciler running")
 
+	cmd.Flags().IntVar(&cfg.MaximumRetry,
+		maximumRetryFlag,
+		defaults.MaximumRetry,
+		"Number of times to retry failed reconciliation")
+
 	cmd.Flags().BoolVar(&cfg.DisableAPI,
 		disableAPIFlag,
 		false,
@@ -71,6 +77,9 @@ func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 
 	if err := cmd.Flags().MarkHidden(disableReconcileFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", disableReconcileFlag, err)
+	}
+	if err := cmd.Flags().MarkHidden(maximumRetryFlag); err != nil {
+		return fmt.Errorf("setting %s as hidden: %w", maximumRetryFlag, err)
 	}
 	if err := cmd.Flags().MarkHidden(disableAPIFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", disableAPIFlag, err)

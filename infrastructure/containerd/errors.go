@@ -5,14 +5,14 @@ import (
 	"fmt"
 )
 
-// ErrFailedReadingContent is used when there is an error reading from the content store.
-var ErrFailedReadingContent = errors.New("failed reading from content store")
+// ErrReadingContent is used when there is an error reading from the content store.
+var ErrReadingContent = errors.New("failed reading from content store")
 
-type errUnsupportedSnapshotter struct {
+type unsupportedSnapshotterError struct {
 	name string
 }
 
 // Error returns the error message.
-func (e errUnsupportedSnapshotter) Error() string {
+func (e unsupportedSnapshotterError) Error() string {
 	return fmt.Sprintf("snapshotter %s is not supported: snapshotters %s are supported", e.name, supportedSnapshotters)
 }

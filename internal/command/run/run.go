@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
 	cmdflags "github.com/weaveworks/reignite/internal/command/flags"
@@ -128,6 +129,8 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("setting up gRPC api listener: %w", err)
 	}
 	defer l.Close()
+
+	reflection.Register(grpcServer)
 
 	if err := grpcServer.Serve(l); err != nil {
 		logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal

@@ -61,7 +61,7 @@ func configureFormatter(logConfig *Config) error {
 	case LogFormatText:
 		logrus.SetFormatter(&logrus.TextFormatter{})
 	default:
-		return errInvalidLogFormat{format: logConfig.Format}
+		return invalidLogFormatError{format: logConfig.Format}
 	}
 
 	return nil

@@ -92,7 +92,7 @@ func (v *VMID) IsEmpty() bool {
 func splitVMIDFromString(id string) (namespace string, name string, err error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != numPartsForID {
-		return "", "", coreerrs.ErrIncorrectVMIDFormat{ActualID: id}
+		return "", "", coreerrs.IncorrectVMIDFormatError{ActualID: id}
 	}
 
 	if parts[0] == "" {

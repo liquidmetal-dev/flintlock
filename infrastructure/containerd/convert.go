@@ -29,7 +29,7 @@ func convertMountToModel(m mount.Mount, snapshotter string) (models.Mount, error
 			Source: m.Source,
 		}, nil
 	default:
-		return models.Mount{}, errUnsupportedSnapshotter{name: snapshotter}
+		return models.Mount{}, unsupportedSnapshotterError{name: snapshotter}
 	}
 }
 

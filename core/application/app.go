@@ -26,4 +26,5 @@ type app struct {
 
 type Config struct {
 	RootStateDir string
+	MaximumRetry int
 }
