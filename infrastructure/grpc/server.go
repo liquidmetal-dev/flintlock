@@ -9,12 +9,12 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-  "github.com/go-playground/validator/v10"
+	"github.com/go-playground/validator/v10"
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/flintlock/api/types"
 	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/pkg/log"
-  "github.com/weaveworks/flintlock/pkg/validation"
+	"github.com/weaveworks/flintlock/pkg/validation"
 )
 
 // NewServer creates a new server instance.
