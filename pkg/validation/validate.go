@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/containerd/containerd/reference"
@@ -29,7 +30,7 @@ func NewValidator() Validator {
 
 func (v *validate) ValidateStruct(obj interface{}) error {
 	if err := v.validator.Struct(obj); err != nil {
-		return err
+		return fmt.Errorf("validation failures found: %w", err)
 	}
 
 	return nil
@@ -38,11 +39,9 @@ func (v *validate) ValidateStruct(obj interface{}) error {
 func customImageURIValidator(fl validator.FieldLevel) bool {
 	uri := fl.Field().String()
 
-	if _, err := reference.Parse(uri); err != nil {
-		return false
-	}
+	_, err := reference.Parse(uri)
 
-	return true
+	return err == nil
 }
 
 // Ensure that the timestamp is in the past and greater than 0.

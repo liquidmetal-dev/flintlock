@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"google.golang.org/grpc/codes"
@@ -32,6 +33,7 @@ type server struct {
 	validator validation.Validator
 }
 
+//nolint:dupl
 func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequest) (*mvmv1.CreateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 
@@ -43,8 +45,9 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 
 	logger.Trace("validating model")
 	err = s.validator.ValidateStruct(modelSpec)
+	var valErrors validator.ValidationErrors
 	if err != nil {
-		if _, ok := err.(validator.ValidationErrors); ok {
+		if errors.As(err, &valErrors) {
 			return nil, status.Errorf(codes.InvalidArgument, "an error occurred when attempting to validate the request: %v", err)
 		}
 
@@ -67,6 +70,7 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	return resp, nil
 }
 
+//nolint:dupl
 func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequest) (*mvmv1.UpdateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 
@@ -78,8 +82,9 @@ func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequ
 
 	logger.Trace("validating model")
 	err = s.validator.ValidateStruct(modelSpec)
+	var valErrors validator.ValidationErrors
 	if err != nil {
-		if _, ok := err.(validator.ValidationErrors); ok {
+		if errors.As(err, &valErrors) {
 			return nil, status.Errorf(codes.InvalidArgument, "an error occurred when attempting to validate the request: %v", err)
 		}
 

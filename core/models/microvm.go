@@ -63,7 +63,7 @@ type Kernel struct {
 
 type Initrd struct {
 	// Image is the container image to use for the initrd.
-	Image ContainerImage `json:"image"`
+	Image ContainerImage `json:"image" validate:"imageURI"`
 	// Filename is the name of the initrd filename in the container.
 	Filename string `validate:"file"`
 }

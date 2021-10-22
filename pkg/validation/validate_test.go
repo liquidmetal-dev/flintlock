@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -58,7 +59,9 @@ func TestValidation_Invalid(t *testing.T) {
 			err := val.ValidateStruct(tc.vmspec)
 			Expect(err).To(HaveOccurred())
 
-			valErrors, ok := err.(validator.ValidationErrors)
+			var valErrors validator.ValidationErrors
+
+			ok := errors.As(err, &valErrors)
 			Expect(ok).Should(Equal(true))
 			// validator.ValidationErrors is an alias for an array of validator.FieldError.
 			Expect(len(valErrors)).Should(Equal(tc.numErrors))
