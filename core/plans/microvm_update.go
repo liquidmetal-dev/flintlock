@@ -3,9 +3,9 @@ package plans
 import (
 	"context"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/planner"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
 type UpdatePlanInput struct {

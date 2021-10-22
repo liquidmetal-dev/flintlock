@@ -6,10 +6,10 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
-	"github.com/weaveworks/reignite/api/types"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/log"
+	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
+	"github.com/weaveworks/flintlock/api/types"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 // NewServer creates a new server instance.

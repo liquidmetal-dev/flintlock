@@ -7,8 +7,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/planner"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
 func NewDeleteDirectory(dir string, fs afero.Fs) planner.Procedure {

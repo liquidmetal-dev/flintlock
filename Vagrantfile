@@ -1,7 +1,7 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Copyright The reignite Authors
+# Copyright The flintlock Authors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "generic/ubuntu2004"
 
   config.ssh.forward_agent = true
-  config.vm.synced_folder "./", "/home/vagrant/reignite"
+  config.vm.synced_folder "./", "/home/vagrant/flintlock"
 
   cpus = 2
   memory = 4096
@@ -35,7 +35,7 @@ Vagrant.configure("2") do |config|
     # v.storage_pool_name = "vagrant"
     v.cpus = cpus
     v.memory = memory
-    override.vm.synced_folder "./", "/home/vagrant/reignite", type: "nfs"
+    override.vm.synced_folder "./", "/home/vagrant/flintlock", type: "nfs"
   end
 
   config.vm.provision "upgrade-packages", type: "shell", run: "once" do |sh|
@@ -94,7 +94,7 @@ EOF
       mkdir -p /var/lib/containerd-dev/snapshotter/devmapper
       mkdir -p /run/containerd-dev/
 
-      cp /home/vagrant/reignite/hack/scripts/example-config.toml /etc/containerd/config.toml
+      cp /home/vagrant/flintlock/hack/scripts/example-config.toml /etc/containerd/config.toml
 
       systemctl restart containerd
     SHELL

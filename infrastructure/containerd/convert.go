@@ -7,8 +7,8 @@ import (
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/typeurl"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
 )
 
 func convertMountToModel(m mount.Mount, snapshotter string) (models.Mount, error) {

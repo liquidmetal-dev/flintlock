@@ -6,11 +6,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	cerrs "github.com/weaveworks/reignite/core/errors"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/planner"
+	cerrs "github.com/weaveworks/flintlock/core/errors"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
 func NewInitrdMount(vm *models.MicroVM, imageService ports.ImageService) planner.Procedure {

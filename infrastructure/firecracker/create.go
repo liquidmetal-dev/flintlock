@@ -13,11 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/process"
-	"github.com/weaveworks/reignite/pkg/wait"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/process"
+	"github.com/weaveworks/flintlock/pkg/wait"
 )
 
 const (

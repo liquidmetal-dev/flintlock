@@ -10,15 +10,15 @@ import (
 	"github.com/google/wire"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks/reignite/core/application"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/containerd"
-	"github.com/weaveworks/reignite/infrastructure/controllers"
-	"github.com/weaveworks/reignite/infrastructure/firecracker"
-	microvmgrpc "github.com/weaveworks/reignite/infrastructure/grpc"
-	"github.com/weaveworks/reignite/infrastructure/network"
-	"github.com/weaveworks/reignite/infrastructure/ulid"
-	"github.com/weaveworks/reignite/internal/config"
+	"github.com/weaveworks/flintlock/core/application"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/infrastructure/containerd"
+	"github.com/weaveworks/flintlock/infrastructure/controllers"
+	"github.com/weaveworks/flintlock/infrastructure/firecracker"
+	microvmgrpc "github.com/weaveworks/flintlock/infrastructure/grpc"
+	"github.com/weaveworks/flintlock/infrastructure/network"
+	"github.com/weaveworks/flintlock/infrastructure/ulid"
+	"github.com/weaveworks/flintlock/internal/config"
 )
 
 func InitializePorts(cfg *config.Config) (*ports.Collection, error) {

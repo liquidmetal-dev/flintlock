@@ -3,7 +3,7 @@ package application
 import (
 	"context"
 
-	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/flintlock/core/models"
 )
 
 func (a *app) GetMicroVM(ctx context.Context, id, namespace string) (*models.MicroVM, error) {

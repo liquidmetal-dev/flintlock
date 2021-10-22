@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/flintlock/core/ports"
 )
 
 type portsCtxKeyType string
 
-const portsKey portsCtxKeyType = "reignited.ports"
+const portsKey portsCtxKeyType = "flintlockd.ports"
 
 var ErrPortsMissing = errors.New("ports collection not in the context")
 

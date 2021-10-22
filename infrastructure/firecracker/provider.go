@@ -15,10 +15,10 @@ import (
 	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 	"github.com/firecracker-microvm/firecracker-go-sdk/client/operations"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/process"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/process"
 )
 
 var errNotImplemeted = errors.New("not implemented")

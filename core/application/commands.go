@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/weaveworks/reignite/api/events"
-	coreerrs "github.com/weaveworks/reignite/core/errors"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/flintlock/api/events"
+	coreerrs "github.com/weaveworks/flintlock/core/errors"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {

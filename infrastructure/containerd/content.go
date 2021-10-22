@@ -3,8 +3,8 @@ package containerd
 import (
 	"fmt"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/pkg/defaults"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 )
 
 var (

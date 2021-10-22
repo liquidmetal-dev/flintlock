@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/pkg/defaults"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 )
 
 type State interface {

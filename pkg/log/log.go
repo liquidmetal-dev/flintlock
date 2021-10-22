@@ -12,7 +12,7 @@ import (
 type loggerCtxKeyType string
 
 // LoggerKey is the key to use for the logger in the context.
-const LoggerKey loggerCtxKeyType = "reignited.logger"
+const LoggerKey loggerCtxKeyType = "flintlockd.logger"
 
 const (
 	// LogVerbosityInfo is the verbosity level for info logging.

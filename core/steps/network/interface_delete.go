@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/planner"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
 func DeleteNetworkInterface(vmid *models.VMID, iface *models.NetworkInterface, svc ports.NetworkService) planner.Procedure {

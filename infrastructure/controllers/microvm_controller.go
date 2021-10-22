@@ -9,12 +9,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/reignite/api/events"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/queue"
+	"github.com/weaveworks/flintlock/api/events"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/queue"
 )
 
 func New(eventSvc ports.EventService, reconcileUC ports.ReconcileMicroVMsUseCase) *MicroVMController {

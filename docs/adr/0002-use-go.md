@@ -7,7 +7,7 @@
 
 ## Context
 
-For the implemenetation of reignite we need to consider whether its implemented in Go or should we consider Rust. Go is the language used predominatly at Weaveworks and within the Kubernetes ecosystem. However, we need to consider Rust for reignite for the following reasons:
+For the implemenetation of flintlock we need to consider whether its implemented in Go or should we consider Rust. Go is the language used predominatly at Weaveworks and within the Kubernetes ecosystem. However, we need to consider Rust for flintlock for the following reasons:
 
 * [AWS](https://aws.amazon.com/blogs/opensource/innovating-with-rust/) / [Microsoft](https://msrc-blog.microsoft.com/2019/07/22/why-rust-for-safe-systems-programming/) are publicly advocating Rust for system programming
 * Firecracker & Open Hypervisor are borth written in Rust. There are benefits in terms of contributing to these projects
@@ -16,7 +16,7 @@ For the implemenetation of reignite we need to consider whether its implemented 
 
 ## Decision
 
-The decision is to use Go for the implementation of reignite due to the available skillsets of engineers. We can reconsider this in the future.
+The decision is to use Go for the implementation of flintlock due to the available skillsets of engineers. We can reconsider this in the future.
 
 ## Consequences
 N/A

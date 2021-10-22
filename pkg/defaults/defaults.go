@@ -6,10 +6,10 @@ import (
 
 const (
 	// Domain is the reverse order domain name to use.
-	Domain = "works.weave.reignited"
+	Domain = "works.weave.flintlockd"
 
 	// ContainerdNamespace is the name of the namespace to use with containerd.
-	ContainerdNamespace = "reignite"
+	ContainerdNamespace = "flintlock"
 
 	// ContainerdSocket is the defaults path for the containerd socket.
 	ContainerdSocket = "/run/containerd/containerd.sock"
@@ -32,10 +32,10 @@ const (
 	FirecrackerUseAPI = true
 
 	// ConfigurationDir is the default configuration directory.
-	ConfigurationDir = "/etc/opt/reignited"
+	ConfigurationDir = "/etc/opt/flintlockd"
 
 	// StateRootDir is the default directory to use for state information.
-	StateRootDir = "/var/lib/reignite"
+	StateRootDir = "/var/lib/flintlock"
 
 	// GRPCEndpoint is the endpoint for the gRPC server.
 	GRPCAPIEndpoint = "localhost:9090"

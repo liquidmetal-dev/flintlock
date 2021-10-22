@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	portsctx "github.com/weaveworks/reignite/core/ports/context"
-	"github.com/weaveworks/reignite/core/steps/microvm"
-	"github.com/weaveworks/reignite/core/steps/network"
-	"github.com/weaveworks/reignite/core/steps/runtime"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/planner"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	portsctx "github.com/weaveworks/flintlock/core/ports/context"
+	"github.com/weaveworks/flintlock/core/steps/microvm"
+	"github.com/weaveworks/flintlock/core/steps/network"
+	"github.com/weaveworks/flintlock/core/steps/runtime"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
 type CreatePlanInput struct {

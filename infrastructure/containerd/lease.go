@@ -53,5 +53,5 @@ func deleteLease(ctx context.Context, owner string, client *containerd.Client) e
 }
 
 func getLeaseNameForOwner(owner string) string {
-	return fmt.Sprintf("reignite/%s", owner)
+	return fmt.Sprintf("flintlock/%s", owner)
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/namespaces"
 
-	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/flintlock/core/ports"
 )
 
 func NewEventService(cfg *Config) (ports.EventService, error) {

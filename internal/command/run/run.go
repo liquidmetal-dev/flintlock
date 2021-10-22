@@ -15,20 +15,20 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
-	cmdflags "github.com/weaveworks/reignite/internal/command/flags"
-	"github.com/weaveworks/reignite/internal/config"
-	"github.com/weaveworks/reignite/internal/inject"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	"github.com/weaveworks/reignite/pkg/flags"
-	"github.com/weaveworks/reignite/pkg/log"
+	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
+	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
+	"github.com/weaveworks/flintlock/internal/config"
+	"github.com/weaveworks/flintlock/internal/inject"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/flags"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
-// NewCommand creates a new cobra command for running reignite.
+// NewCommand creates a new cobra command for running flintlock.
 func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "run",
-		Short: "Start running the reignite API",
+		Short: "Start running the flintlock API",
 		PreRunE: func(c *cobra.Command, _ []string) error {
 			flags.BindCommandToViper(c)
 
@@ -60,7 +60,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 
 func runServer(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
-	logger.Info("reignited grpc api server starting")
+	logger.Info("flintlockd grpc api server starting")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)

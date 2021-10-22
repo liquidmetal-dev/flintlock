@@ -9,12 +9,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks/reignite/api/events"
-	"github.com/weaveworks/reignite/core/application"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/mock"
-	"github.com/weaveworks/reignite/pkg/defaults"
+	"github.com/weaveworks/flintlock/api/events"
+	"github.com/weaveworks/flintlock/core/application"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/infrastructure/mock"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 )
 
 func TestApp_CreateMicroVM(t *testing.T) {

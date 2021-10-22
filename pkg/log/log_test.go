@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 func TestLogger_Configure(t *testing.T) {

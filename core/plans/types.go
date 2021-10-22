@@ -2,7 +2,7 @@ package plans
 
 import (
 	"github.com/spf13/afero"
-	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/flintlock/core/ports"
 )
 
 // Providers input is a type to be used as input to plans.

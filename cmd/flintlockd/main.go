@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/weaveworks/reignite/internal/command"
+	"github.com/weaveworks/flintlock/internal/command"
 )
 
 func main() {

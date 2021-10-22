@@ -9,24 +9,24 @@ import (
 	"log"
 	"time"
 
-	"github.com/weaveworks/reignite/pkg/cloudinit"
-	"github.com/weaveworks/reignite/pkg/ptr"
+	"github.com/weaveworks/flintlock/pkg/cloudinit"
+	"github.com/weaveworks/flintlock/pkg/ptr"
 	"gopkg.in/yaml.v3"
 
-	"github.com/weaveworks/reignite/internal/config"
-	"github.com/weaveworks/reignite/internal/inject"
+	"github.com/weaveworks/flintlock/internal/config"
+	"github.com/weaveworks/flintlock/internal/inject"
 
-	"github.com/weaveworks/reignite/core/plans"
-	"github.com/weaveworks/reignite/pkg/planner"
+	"github.com/weaveworks/flintlock/core/plans"
+	"github.com/weaveworks/flintlock/pkg/planner"
 
 	"github.com/sirupsen/logrus"
 
 	_ "github.com/containerd/containerd/api/events"
 
-	"github.com/weaveworks/reignite/core/models"
-	portsctx "github.com/weaveworks/reignite/core/ports/context"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	rlog "github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/flintlock/core/models"
+	portsctx "github.com/weaveworks/flintlock/core/ports/context"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	rlog "github.com/weaveworks/flintlock/pkg/log"
 )
 
 // NOTE: this is a temporary app to help with development
@@ -50,7 +50,7 @@ func main() {
 		Output:    "stderr",
 	})
 	logger := rlog.GetLogger(ctx)
-	logger.Infof("reignite dev-helper, using containerd socket: %s", socketPath)
+	logger.Infof("flintlock dev-helper, using containerd socket: %s", socketPath)
 
 	keyData, err := ioutil.ReadFile(sshKeyPath)
 	if err != nil {
@@ -199,7 +199,7 @@ func getUserMetadata(hostname, sshkey string) (string, error) {
 		Fqdn:          ptr.String(fmt.Sprintf(fqdnFormat, hostname)),
 		DisableRoot:   ptr.Bool(false),
 		PackageUpdate: ptr.Bool(false),
-		FinalMessage:  ptr.String("The reignited booted system is good to go after $UPTIME seconds"),
+		FinalMessage:  ptr.String("The flintlockd booted system is good to go after $UPTIME seconds"),
 		// WriteFiles:      nil,
 		RunCommands: &runCommands,
 	}

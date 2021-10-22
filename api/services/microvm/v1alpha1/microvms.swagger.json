@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Reignite MicroVM API",
-    "description": "The Reignite MicroVM API handles operations for provisioning and managing microvms",
+    "title": "Flintlock MicroVM API",
+    "description": "The Flintlock MicroVM API handles operations for provisioning and managing microvms",
     "version": "0.1"
   },
   "tags": [
