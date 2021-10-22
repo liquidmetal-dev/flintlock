@@ -28,6 +28,22 @@ func TestValidation_Invalid(t *testing.T) {
 	invalidUnixTimestamp.Spec.UpdatedAt = time.Now().Add(1 * time.Hour).Unix()
 	invalidUnixTimestamp.Spec.DeletedAt = time.Now().Add(1 * time.Hour).Unix()
 
+	invalidNetworkGuestDeviceName := basicMicroVM
+	invalidNetworkGuestDeviceName.Spec.NetworkInterfaces = []models.NetworkInterface{
+		{
+			GuestDeviceName: "!eth0",
+			GuestMAC:        "F5:C3:19:56:01:F4",
+			Address:         "192.168.1.1",
+		},
+	}
+
+	invalidVolumes := basicMicroVM
+	invalidVolumes.Spec.Volumes = models.Volumes{
+		{
+			IsRoot: false,
+		},
+	}
+
 	tt := []struct {
 		name      string
 		numErrors int
@@ -35,7 +51,7 @@ func TestValidation_Invalid(t *testing.T) {
 	}{
 		{
 			name:      "nil spec should fail validation with 5 errors",
-			numErrors: 5,
+			numErrors: 6,
 			vmspec:    models.MicroVM{},
 		},
 		{
@@ -47,6 +63,16 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "unix timestamps in future should fail validation",
 			numErrors: 3,
 			vmspec:    invalidUnixTimestamp,
+		},
+		{
+			name:      "invalid guest device name should fail validation",
+			numErrors: 1,
+			vmspec:    invalidNetworkGuestDeviceName,
+		},
+		{
+			name:      "should fail validation when no volumes are marked as root",
+			numErrors: 1,
+			vmspec:    invalidVolumes,
 		},
 	}
 
@@ -76,12 +102,20 @@ var basicMicroVM = models.MicroVM{
 		NetworkInterfaces: []models.NetworkInterface{
 			{
 				GuestDeviceName: "eth0",
+				GuestMAC:        "F5:C3:19:56:01:F4",
+				Address:         "192.168.1.1",
 			},
 		},
 		CreatedAt: time.Now().Add(-100 * time.Second).Unix(),
 		Kernel: models.Kernel{
 			Image:    "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
 			Filename: "vmlinux",
+		},
+		Volumes: models.Volumes{
+			{
+				IsRoot:     true,
+				MountPoint: "/",
+			},
 		},
 	},
 }

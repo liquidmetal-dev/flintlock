@@ -3,7 +3,7 @@ package models
 // NetworkInterface represents a network interface for the microvm.
 type NetworkInterface struct {
 	// GuestDeviceName is the name of the network interface to create in the microvm.
-	GuestDeviceName string `json:"guest_device_name" validate:"required,excludesall=/@"`
+	GuestDeviceName string `json:"guest_device_name" validate:"required,excludesall=/@,guestDeviceName"`
 	// AllowMetadataRequests indicates that this interface can be used for metadata requests.
 	// TODO: we may hide this within the firecracker plugin.
 	AllowMetadataRequests bool `json:"allow_mmds,omitempty"`
@@ -13,7 +13,7 @@ type NetworkInterface struct {
 	// Type is the type of host network interface type to create to use by the guest.
 	Type IfaceType `json:"type"`
 	// Address is an optional IP address to assign to this interface. If not supplied then DHCP will be used.
-	Address string `json:"address,omitempty" validate:"ipv4"`
+	Address string `json:"address,omitempty" validate:"omitempty,ipv4"`
 	// TODO: add rate limiting.
 	// TODO: add CNI.
 }

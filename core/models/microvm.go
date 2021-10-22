@@ -23,7 +23,7 @@ type MicroVM struct {
 // MicroVMSpec represents the specification of a microvm machine.
 type MicroVMSpec struct {
 	// Kernel specifies the kernel and its argments to use.
-	Kernel Kernel `json:"kernel"`
+	Kernel Kernel `json:"kernel" validate:"omitempty"`
 	// Initrd is an optional initial ramdisk to use.
 	Initrd *Initrd `json:"initrd,omitempty"`
 	// VCPU specifies how many vcpu the machine will be allocated.
@@ -33,7 +33,7 @@ type MicroVMSpec struct {
 	// NetworkInterfaces specifies the network interfaces attached to the machine.
 	NetworkInterfaces []NetworkInterface `json:"network_interfaces" validate:"required,dive,required"`
 	// Volumes specifies the volumes to be attached to the the machine.
-	Volumes Volumes `json:"volumes"`
+	Volumes Volumes `json:"volumes" validate:"required,oneVolumeIsRoot,dive,required"`
 	// Metadata allows you to specify data to be added to the metadata service. The key is the name
 	// of the metadata item and the value is the base64 encoded contents of the metadata.
 	Metadata map[string]string `json:"metadata"`

@@ -2,10 +2,12 @@ package validation
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/containerd/containerd/reference"
 	"github.com/go-playground/validator/v10"
+	"github.com/weaveworks/reignite/core/models"
 )
 
 type Validator interface {
@@ -22,6 +24,8 @@ func NewValidator() Validator {
 	// TODO(@jmickey): Do something with this error maybe?
 	_ = v.RegisterValidation("imageURI", customImageURIValidator, false)
 	_ = v.RegisterValidation("datetimeInPast", customTimestampValidator, false)
+	_ = v.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
+	_ = v.RegisterValidation("oneVolumeIsRoot", customOneVolumeIsRootValidator, false)
 
 	return &validate{
 		validator: v,
@@ -49,4 +53,31 @@ func customTimestampValidator(fl validator.FieldLevel) bool {
 	tm := fl.Field().Int()
 
 	return tm <= time.Now().Unix() && tm > 0
+}
+
+func customNetworkGuestDeviceNameValidator(fl validator.FieldLevel) bool {
+	name := fl.Field().String()
+	re := regexp.MustCompile("^[a-z][a-z0-9_]*$")
+
+	return re.MatchString(name)
+}
+
+func customOneVolumeIsRootValidator(fl validator.FieldLevel) bool {
+	volumes, ok := fl.Field().Interface().(models.Volumes)
+	if !ok {
+		return false
+	}
+
+	var found bool
+	for _, vol := range volumes {
+		if vol.IsRoot {
+			if found {
+				return false
+			}
+
+			found = true
+		}
+	}
+
+	return found
 }
