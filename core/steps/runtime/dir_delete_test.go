@@ -8,7 +8,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	"github.com/weaveworks/reignite/core/steps/runtime"
+	"github.com/weaveworks/flintlock/core/steps/runtime"
 )
 
 func TestDeleteDirectory_NotExists(t *testing.T) {

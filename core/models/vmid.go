@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	coreerrs "github.com/weaveworks/reignite/core/errors"
+	coreerrs "github.com/weaveworks/flintlock/core/errors"
 )
 
 const (

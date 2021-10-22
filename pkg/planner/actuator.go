@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 // Actuator will execute the given plan.

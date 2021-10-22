@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/flintlock/core/models"
 )
 
 var (

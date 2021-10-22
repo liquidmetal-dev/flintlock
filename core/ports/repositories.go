@@ -3,7 +3,7 @@ package ports
 import (
 	"context"
 
-	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/flintlock/core/models"
 )
 
 // MicroVMRepository is the port definition for a microvm repository.

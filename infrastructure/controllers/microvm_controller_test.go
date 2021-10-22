@@ -12,18 +12,18 @@ import (
 	"github.com/sirupsen/logrus"
 	lgrtest "github.com/sirupsen/logrus/hooks/test"
 
-	"github.com/weaveworks/reignite/api/events"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/controllers"
-	"github.com/weaveworks/reignite/infrastructure/mock"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/flintlock/api/events"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/infrastructure/controllers"
+	"github.com/weaveworks/flintlock/infrastructure/mock"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 var (
 	vmID  = "vm1"
 	vmNS  = "testns"
-	ctrNS = "reignite_test_controller"
+	ctrNS = "flintlock_test_controller"
 )
 
 func TestMicroVMController(t *testing.T) {

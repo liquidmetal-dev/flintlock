@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/weaveworks/reignite/pkg/queue"
+	"github.com/weaveworks/flintlock/pkg/queue"
 )
 
 func TestSimpleSyncQueue_Basic(t *testing.T) {

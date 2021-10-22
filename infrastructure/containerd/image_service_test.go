@@ -11,9 +11,9 @@ import (
 	"github.com/containerd/containerd/snapshots"
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/containerd"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/infrastructure/containerd"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 	testOwnerNamespace = "int_ns"
 	testOwnerUsageID   = "vol1"
 	testOwnerName      = "imageservice-get-test"
-	testContainerdNs   = "reignite_test_ctr"
+	testContainerdNs   = "flintlock_test_ctr"
 )
 
 func TestImageService_Integration(t *testing.T) {
@@ -66,7 +66,7 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(len(img)).To(Equal(1))
 	Expect(img[0].Name).To(Equal(getTestVolumeImage()))
 
-	expectedSnapshotName := fmt.Sprintf("reignite/%s/%s/%s", testOwnerNamespace, testOwnerName, testOwnerUsageID)
+	expectedSnapshotName := fmt.Sprintf("flintlock/%s/%s/%s", testOwnerNamespace, testOwnerName, testOwnerUsageID)
 	snapshotExists := false
 	err = client.SnapshotService(testSnapshotter).Walk(namespaceCtx, func(walkCtx context.Context, info snapshots.Info) error {
 		if info.Name == expectedSnapshotName {
@@ -78,7 +78,7 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(snapshotExists).To(BeTrue(), "expect snapshot with name %s to exist", expectedSnapshotName)
 
-	expectedLeaseName := fmt.Sprintf("reignite/%s/%s", testOwnerNamespace, testOwnerName)
+	expectedLeaseName := fmt.Sprintf("flintlock/%s/%s", testOwnerNamespace, testOwnerName)
 	leases, err := client.LeasesService().List(namespaceCtx)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(leases)).To(Equal(1))

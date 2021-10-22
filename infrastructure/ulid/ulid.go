@@ -7,7 +7,7 @@ import (
 
 	"github.com/oklog/ulid"
 
-	"github.com/weaveworks/reignite/core/ports"
+	"github.com/weaveworks/flintlock/core/ports"
 )
 
 // DefaultRand is a random source based on the unix time not.

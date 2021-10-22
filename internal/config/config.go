@@ -3,10 +3,10 @@ package config
 import (
 	"time"
 
-	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
-// Config represents the reignited configuration.
+// Config represents the flintlockd configuration.
 type Config struct {
 	// ConfigFilePath is the path to the shared configuration file.
 	ConfigFilePath string
@@ -22,7 +22,7 @@ type Config struct {
 	FirecrackerDetatch bool
 	// FirecrackerUseAPI indicates that we should configure the microvm using the api and not a config file.
 	FirecrackerUseAPI bool
-	// StateRootDir is the directory to act as the root for the runtime state of reignite.
+	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
 	// ParentIface is the name of the network interface to use for the parent in macvtap interfaces.
 	ParentIface string

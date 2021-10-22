@@ -22,7 +22,7 @@ This downloads the Ubuntu Server Cloud Image files and and processes them. The d
 | -v/--version    | Specifies the ubuntu version to download. Defaults to `bionic`.  |
 | -s/--image-size | Specifies the size of the root fs to create. Defaluts to `10G`.  |
 
-The processed files (i.e. root filesystem, uncompressed kernel, initrd) can be used directly with Firecracker without reignite.
+The processed files (i.e. root filesystem, uncompressed kernel, initrd) can be used directly with Firecracker without flintlock.
 
 > As an alternative using the download script you can use [debootstrap](https://wiki.debian.org/Debootstrap) by running `sudo debootstrap bionic ./out/images/mount > /dev/null`. The commands in the following sections may need to be adapted.
 

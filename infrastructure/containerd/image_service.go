@@ -12,9 +12,9 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/pkg/log"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 // NewImageService will create a new image service based on containerd with the supplied config.
@@ -188,8 +188,8 @@ func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.I
 	var mounts []mount.Mount
 	if !snapshotExists {
 		labels := map[string]string{
-			"reignite/owner":       owner,
-			"reignite/owner-usage": ownerUsageID,
+			"flintlock/owner":       owner,
+			"flintlock/owner-usage": ownerUsageID,
 		}
 		mounts, err = ss.Prepare(ctx, snapshotKey, parent, snapshots.WithLabels(labels))
 		if err != nil {

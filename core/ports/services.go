@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
-	"github.com/weaveworks/reignite/core/models"
+	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
+	"github.com/weaveworks/flintlock/core/models"
 )
 
 // MicroVMService is the port definition for a microvm service.

@@ -5,9 +5,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/spf13/afero"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/mock"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/infrastructure/mock"
 )
 
 type mockList struct {

@@ -3,7 +3,7 @@ package network
 import (
 	"fmt"
 
-	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/flintlock/core/models"
 )
 
 func getDeviceName(vmid *models.VMID, iface *models.NetworkInterface) string {
