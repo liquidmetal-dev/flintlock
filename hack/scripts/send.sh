@@ -8,7 +8,7 @@ method="ListMicroVMs"
 if ! which grpcurl >/dev/null 2>/dev/null; then
   echo "!!! grpcurl is not installed. Please install this awesome tool." >&2
   echo "" >&2
-  echo "  go install github.com/vadimi/grpc-client-cli/cmd/grpc-client-cli@v1.11.0" >&2
+  echo "  go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest" >&2
 
   exit 1
 fi
