@@ -12,18 +12,18 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 
-	mvmv1 "github.com/weaveworks/reignite/api/services/microvm/v1alpha1"
-	cmdflags "github.com/weaveworks/reignite/internal/command/flags"
-	"github.com/weaveworks/reignite/internal/config"
-	"github.com/weaveworks/reignite/pkg/flags"
-	"github.com/weaveworks/reignite/pkg/log"
+	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
+	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
+	"github.com/weaveworks/flintlock/internal/config"
+	"github.com/weaveworks/flintlock/pkg/flags"
+	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 // NewCommand creates a new cobra command for running the gRPC HTTP gateway.
 func NewCommand(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gw",
-		Short: "Start serving the HTTP gateway for the reignite gRPC API",
+		Short: "Start serving the HTTP gateway for the flintlock gRPC API",
 		PreRunE: func(c *cobra.Command, _ []string) error {
 			flags.BindCommandToViper(c)
 
@@ -41,7 +41,7 @@ func NewCommand(cfg *config.Config) *cobra.Command {
 
 func runGWServer(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
-	logger.Info("reignited grpc api gateway starting")
+	logger.Info("flintlockd grpc api gateway starting")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)

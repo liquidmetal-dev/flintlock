@@ -8,7 +8,7 @@ package v1alpha1
 
 import (
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
-	types "github.com/weaveworks/reignite/api/types"
+	types "github.com/weaveworks/flintlock/api/types"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -708,21 +708,21 @@ var file_services_microvm_v1alpha1_microvms_proto_goTypes = []interface{}{
 	(*ListMicroVMsResponse)(nil),  // 8: microvm.services.api.v1alpha1.ListMicroVMsResponse
 	(*ListMessage)(nil),           // 9: microvm.services.api.v1alpha1.ListMessage
 	nil,                           // 10: microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry
-	(*types.MicroVMSpec)(nil),     // 11: reignite.types.MicroVMSpec
+	(*types.MicroVMSpec)(nil),     // 11: flintlock.types.MicroVMSpec
 	(*fieldmaskpb.FieldMask)(nil), // 12: google.protobuf.FieldMask
 	(*anypb.Any)(nil),             // 13: google.protobuf.Any
 	(*emptypb.Empty)(nil),         // 14: google.protobuf.Empty
 }
 var file_services_microvm_v1alpha1_microvms_proto_depIdxs = []int32{
-	11, // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest.microvm:type_name -> reignite.types.MicroVMSpec
+	11, // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest.microvm:type_name -> flintlock.types.MicroVMSpec
 	10, // 1: microvm.services.api.v1alpha1.CreateMicroVMRequest.metadata:type_name -> microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry
-	11, // 2: microvm.services.api.v1alpha1.CreateMicroVMResponse.microvm:type_name -> reignite.types.MicroVMSpec
-	11, // 3: microvm.services.api.v1alpha1.UpdateMicroVMRequest.microvm:type_name -> reignite.types.MicroVMSpec
+	11, // 2: microvm.services.api.v1alpha1.CreateMicroVMResponse.microvm:type_name -> flintlock.types.MicroVMSpec
+	11, // 3: microvm.services.api.v1alpha1.UpdateMicroVMRequest.microvm:type_name -> flintlock.types.MicroVMSpec
 	12, // 4: microvm.services.api.v1alpha1.UpdateMicroVMRequest.update_mask:type_name -> google.protobuf.FieldMask
-	11, // 5: microvm.services.api.v1alpha1.UpdateMicroVMResponse.microvm:type_name -> reignite.types.MicroVMSpec
-	11, // 6: microvm.services.api.v1alpha1.GetMicroVMResponse.microvm:type_name -> reignite.types.MicroVMSpec
-	11, // 7: microvm.services.api.v1alpha1.ListMicroVMsResponse.microvm:type_name -> reignite.types.MicroVMSpec
-	11, // 8: microvm.services.api.v1alpha1.ListMessage.microvm:type_name -> reignite.types.MicroVMSpec
+	11, // 5: microvm.services.api.v1alpha1.UpdateMicroVMResponse.microvm:type_name -> flintlock.types.MicroVMSpec
+	11, // 6: microvm.services.api.v1alpha1.GetMicroVMResponse.microvm:type_name -> flintlock.types.MicroVMSpec
+	11, // 7: microvm.services.api.v1alpha1.ListMicroVMsResponse.microvm:type_name -> flintlock.types.MicroVMSpec
+	11, // 8: microvm.services.api.v1alpha1.ListMessage.microvm:type_name -> flintlock.types.MicroVMSpec
 	13, // 9: microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry.value:type_name -> google.protobuf.Any
 	0,  // 10: microvm.services.api.v1alpha1.MicroVM.CreateMicroVM:input_type -> microvm.services.api.v1alpha1.CreateMicroVMRequest
 	3,  // 11: microvm.services.api.v1alpha1.MicroVM.UpdateMicroVM:input_type -> microvm.services.api.v1alpha1.UpdateMicroVMRequest

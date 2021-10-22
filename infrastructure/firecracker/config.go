@@ -5,15 +5,15 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/weaveworks/reignite/pkg/ptr"
+	"github.com/weaveworks/flintlock/pkg/ptr"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 	"gopkg.in/yaml.v3"
 
-	"github.com/weaveworks/reignite/core/errors"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/pkg/cloudinit"
+	"github.com/weaveworks/flintlock/core/errors"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/pkg/cloudinit"
 )
 
 const (

@@ -22,5 +22,5 @@ assignees: ''
 
 **Environment:**
 
-- reignite version:
+- flintlock version:
 - OS (e.g. from `/etc/os-release`):

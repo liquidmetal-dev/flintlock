@@ -5,8 +5,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/infrastructure/containerd"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/infrastructure/containerd"
 )
 
 func TestMicroVMRepo_Integration(t *testing.T) {

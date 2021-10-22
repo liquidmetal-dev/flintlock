@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package reignite.types;
+package flintlock.types;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/weaveworks/reignite/api/types;types";
+option go_package = "github.com/weaveworks/flintlock/api/types;types";
 
 // MicroVMSpec represents the specification for a microvm.
 message MicroVMSpec {
@@ -24,14 +24,14 @@ message MicroVMSpec {
   // MemoryInMb is the amount of memory in megabytes that the machine will be allocated.
   int32 memory_in_mb = 5;
 
-  // Kernel is the details of the kernel to use . 
+  // Kernel is the details of the kernel to use .
   Kernel kernel = 6;
 
   // Initrd is the optional details of the initial ramdisk.
   optional Initrd initrd = 7;
 
   // Volumes specifies the volumes to be attached to the microvm. There must be
-  // at lease one volume that will act as the root volume. 
+  // at lease one volume that will act as the root volume.
   repeated Volume volumes = 8;
 
   // Interfaces specifies the network interfaces to be attached to the microvm.

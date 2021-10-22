@@ -7,8 +7,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/reignite/infrastructure/ulid"
-	"github.com/weaveworks/reignite/pkg/planner"
+	"github.com/weaveworks/flintlock/infrastructure/ulid"
+	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
 func TestActuator_SingleProc(t *testing.T) {

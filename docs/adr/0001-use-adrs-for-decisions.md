@@ -7,7 +7,7 @@
 
 ## Context
 
-Decisions that affect the development of reignite that are not captured via a proposal need to be captured in some way. We need a method that is lightweight and easy to discover the decision that have been made. The record of decisions will help future contributors to the project to understand why something has been implemented or is done a certain way.
+Decisions that affect the development of flintlock that are not captured via a proposal need to be captured in some way. We need a method that is lightweight and easy to discover the decision that have been made. The record of decisions will help future contributors to the project to understand why something has been implemented or is done a certain way.
 
 ## Decision
 

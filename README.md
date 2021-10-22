@@ -1,15 +1,15 @@
 
-# 🆁🅴🅸🅶🅽🅸🆃🅴 - the microvm service
+# Flintlock - Create and manage the lifecycle of MicroVMs, backed by containerd.
 
-[![GitHub](https://img.shields.io/github/license/weaveworks/reignite)](https://img.shields.io/github/license/weaveworks/reignite)
-[![codecov](https://codecov.io/gh/weaveworks/reignite/branch/main/graph/badge.svg?token=ZNPNRDI8Z0)](https://codecov.io/gh/weaveworks/reignite)
-[![Go Report Card](https://goreportcard.com/badge/github.com/weaveworks/reignite)](https://goreportcard.com/report/github.com/weaveworks/reignite)
+[![GitHub](https://img.shields.io/github/license/weaveworks/flintlock)](https://img.shields.io/github/license/weaveworks/flintlock)
+[![codecov](https://codecov.io/gh/weaveworks/flintlock/branch/main/graph/badge.svg?token=ZNPNRDI8Z0)](https://codecov.io/gh/weaveworks/flintlock)
+[![Go Report Card](https://goreportcard.com/badge/github.com/weaveworks/flintlock)](https://goreportcard.com/report/github.com/weaveworks/flintlock)
 
 ## What is regnite?
 
-Reignite is a service for creating and managing the lifecycle of microVMs on a host machine. Initially we will be supporting [Firecracker](https://firecracker-microvm.github.io/). 
+Flintlock is a service for creating and managing the lifecycle of microVMs on a host machine. Initially we will be supporting [Firecracker](https://firecracker-microvm.github.io/). 
 
-The primary use case for reignite is to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of [Liquid Metal](https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal) and will ultimately be driven by Cluster API Provider Microvm (coming soon).
+The primary use case for flintlock is to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of [Liquid Metal](https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal) and will ultimately be driven by Cluster API Provider Microvm (coming soon).
 
 ## Features
 
@@ -22,7 +22,7 @@ Using API requests (via gRPC or HTTP):
 
 ## Documentation
 
-See our [getting started with reignite][quickstart] guide.
+See our [getting started with flintlock][quickstart] guide.
 
 ## Contributing
 
@@ -33,11 +33,11 @@ Other interesting resources include:
 * [The issue tracker][issues]
 * [The list of milestones][milestones]
 * [Architectural Decision Records (ADR)][adr]
-* [Getting started with reignite][quickstart]
+* [Getting started with flintlock][quickstart]
 
 ## Getting Help
 
-If you have any questions about, feedback for or problems with reignite:
+If you have any questions about, feedback for or problems with flintlock:
 
 * [File an issue][issues].
 
@@ -51,7 +51,7 @@ Your feedback is always welcome!
 [quickstart]: ./docs/quick-start.md
 [contrib]: ./CONTRIBUTING.md
 [coc]: ./CODE_OF_CONDUCT.md
-[issues]: https://github.com/weaveworks/reignite/issues
-[milestones]: https://github.com/weaveworks/reignite/milestones
+[issues]: https://github.com/weaveworks/flintlock/issues
+[milestones]: https://github.com/weaveworks/flintlock/milestones
 [adr]: ./docs/adr
 [license]: ./LICENSE

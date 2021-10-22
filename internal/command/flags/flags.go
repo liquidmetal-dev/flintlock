@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/weaveworks/reignite/internal/config"
-	"github.com/weaveworks/reignite/pkg/defaults"
+	"github.com/weaveworks/flintlock/internal/config"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 )
 
 const (
@@ -97,7 +97,7 @@ func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error 
 	cmd.Flags().BoolVar(&cfg.FirecrackerDetatch,
 		firecrackerDetachFlag,
 		defaults.FirecrackerDetach,
-		"If true the child firecracker processes will be detached from the parent reignite process.")
+		"If true the child firecracker processes will be detached from the parent flintlock process.")
 	cmd.Flags().BoolVar(&cfg.FirecrackerUseAPI,
 		firecrackerAPIFlag,
 		defaults.FirecrackerUseAPI,

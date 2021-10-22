@@ -373,7 +373,7 @@ type NetworkInterface struct {
 	// GuestDeviceName is the name of the network interface to create in the microvm.
 	GuestDeviceName string `protobuf:"bytes,1,opt,name=guest_device_name,json=guestDeviceName,proto3" json:"guest_device_name,omitempty"`
 	// IfaceType specifies the type of network interface to create for use by the guest.
-	Type NetworkInterface_IfaceType `protobuf:"varint,2,opt,name=type,proto3,enum=reignite.types.NetworkInterface_IfaceType" json:"type,omitempty"`
+	Type NetworkInterface_IfaceType `protobuf:"varint,2,opt,name=type,proto3,enum=flintlock.types.NetworkInterface_IfaceType" json:"type,omitempty"`
 	// AllowMetadataReq indicates if the network interface allows metadata requests.
 	AllowMetadataReq bool `protobuf:"varint,3,opt,name=allow_metadata_req,json=allowMetadataReq,proto3" json:"allow_metadata_req,omitempty"`
 	// GuestMAC allows the specifying of a specifi MAC address to use for the interface. If
@@ -788,30 +788,30 @@ func file_types_microvm_proto_rawDescGZIP() []byte {
 var file_types_microvm_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_types_microvm_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_types_microvm_proto_goTypes = []interface{}{
-	(NetworkInterface_IfaceType)(0), // 0: reignite.types.NetworkInterface.IfaceType
-	(*MicroVMSpec)(nil),             // 1: reignite.types.MicroVMSpec
-	(*Kernel)(nil),                  // 2: reignite.types.Kernel
-	(*Initrd)(nil),                  // 3: reignite.types.Initrd
-	(*NetworkInterface)(nil),        // 4: reignite.types.NetworkInterface
-	(*Volume)(nil),                  // 5: reignite.types.Volume
-	(*VolumeSource)(nil),            // 6: reignite.types.VolumeSource
-	(*ContainerVolumeSource)(nil),   // 7: reignite.types.ContainerVolumeSource
-	nil,                             // 8: reignite.types.MicroVMSpec.LabelsEntry
-	nil,                             // 9: reignite.types.MicroVMSpec.MetadataEntry
+	(NetworkInterface_IfaceType)(0), // 0: flintlock.types.NetworkInterface.IfaceType
+	(*MicroVMSpec)(nil),             // 1: flintlock.types.MicroVMSpec
+	(*Kernel)(nil),                  // 2: flintlock.types.Kernel
+	(*Initrd)(nil),                  // 3: flintlock.types.Initrd
+	(*NetworkInterface)(nil),        // 4: flintlock.types.NetworkInterface
+	(*Volume)(nil),                  // 5: flintlock.types.Volume
+	(*VolumeSource)(nil),            // 6: flintlock.types.VolumeSource
+	(*ContainerVolumeSource)(nil),   // 7: flintlock.types.ContainerVolumeSource
+	nil,                             // 8: flintlock.types.MicroVMSpec.LabelsEntry
+	nil,                             // 9: flintlock.types.MicroVMSpec.MetadataEntry
 	(*timestamppb.Timestamp)(nil),   // 10: google.protobuf.Timestamp
 }
 var file_types_microvm_proto_depIdxs = []int32{
-	8,  // 0: reignite.types.MicroVMSpec.labels:type_name -> reignite.types.MicroVMSpec.LabelsEntry
-	2,  // 1: reignite.types.MicroVMSpec.kernel:type_name -> reignite.types.Kernel
-	3,  // 2: reignite.types.MicroVMSpec.initrd:type_name -> reignite.types.Initrd
-	5,  // 3: reignite.types.MicroVMSpec.volumes:type_name -> reignite.types.Volume
-	4,  // 4: reignite.types.MicroVMSpec.interfaces:type_name -> reignite.types.NetworkInterface
-	9,  // 5: reignite.types.MicroVMSpec.metadata:type_name -> reignite.types.MicroVMSpec.MetadataEntry
-	10, // 6: reignite.types.MicroVMSpec.created_at:type_name -> google.protobuf.Timestamp
-	10, // 7: reignite.types.MicroVMSpec.updated_at:type_name -> google.protobuf.Timestamp
-	10, // 8: reignite.types.MicroVMSpec.deleted_at:type_name -> google.protobuf.Timestamp
-	0,  // 9: reignite.types.NetworkInterface.type:type_name -> reignite.types.NetworkInterface.IfaceType
-	6,  // 10: reignite.types.Volume.source:type_name -> reignite.types.VolumeSource
+	8,  // 0: flintlock.types.MicroVMSpec.labels:type_name -> flintlock.types.MicroVMSpec.LabelsEntry
+	2,  // 1: flintlock.types.MicroVMSpec.kernel:type_name -> flintlock.types.Kernel
+	3,  // 2: flintlock.types.MicroVMSpec.initrd:type_name -> flintlock.types.Initrd
+	5,  // 3: flintlock.types.MicroVMSpec.volumes:type_name -> flintlock.types.Volume
+	4,  // 4: flintlock.types.MicroVMSpec.interfaces:type_name -> flintlock.types.NetworkInterface
+	9,  // 5: flintlock.types.MicroVMSpec.metadata:type_name -> flintlock.types.MicroVMSpec.MetadataEntry
+	10, // 6: flintlock.types.MicroVMSpec.created_at:type_name -> google.protobuf.Timestamp
+	10, // 7: flintlock.types.MicroVMSpec.updated_at:type_name -> google.protobuf.Timestamp
+	10, // 8: flintlock.types.MicroVMSpec.deleted_at:type_name -> google.protobuf.Timestamp
+	0,  // 9: flintlock.types.NetworkInterface.type:type_name -> flintlock.types.NetworkInterface.IfaceType
+	6,  // 10: flintlock.types.Volume.source:type_name -> flintlock.types.VolumeSource
 	11, // [11:11] is the sub-list for method output_type
 	11, // [11:11] is the sub-list for method input_type
 	11, // [11:11] is the sub-list for extension type_name

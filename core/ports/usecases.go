@@ -3,7 +3,7 @@ package ports
 import (
 	"context"
 
-	"github.com/weaveworks/reignite/core/models"
+	"github.com/weaveworks/flintlock/core/models"
 )
 
 // MicroVMCommandUseCases is the interface for uses cases that are actions (a.k.a commands) against a microvm.

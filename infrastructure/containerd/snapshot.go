@@ -8,7 +8,7 @@ import (
 )
 
 func snapshotKey(owner, ownerUsageID string) string {
-	return fmt.Sprintf("reignite/%s/%s", owner, ownerUsageID)
+	return fmt.Sprintf("flintlock/%s/%s", owner, ownerUsageID)
 }
 
 func snapshotExists(ctx context.Context, key string, ss snapshots.Snapshotter) (bool, error) {

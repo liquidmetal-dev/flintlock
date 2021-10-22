@@ -8,9 +8,9 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/reignite/api/events"
-	"github.com/weaveworks/reignite/core/ports"
-	"github.com/weaveworks/reignite/infrastructure/containerd"
+	"github.com/weaveworks/flintlock/api/events"
+	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/infrastructure/containerd"
 )
 
 const (
@@ -71,7 +71,7 @@ func TestEventService_Integration(t *testing.T) {
 
 	for _, event := range testEvents {
 		t.Logf("publishing event: %v", event)
-		if err := es.Publish(ctx, "/reignite/test", event); err != nil {
+		if err := es.Publish(ctx, "/flintlock/test", event); err != nil {
 			t.Fatal(err)
 			break
 		}

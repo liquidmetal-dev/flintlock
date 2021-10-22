@@ -1,4 +1,4 @@
-module github.com/weaveworks/reignite
+module github.com/weaveworks/flintlock
 
 go 1.16
 

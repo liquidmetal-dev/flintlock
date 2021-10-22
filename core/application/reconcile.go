@@ -6,13 +6,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/reignite/api/events"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/plans"
-	portsctx "github.com/weaveworks/reignite/core/ports/context"
-	"github.com/weaveworks/reignite/pkg/defaults"
-	"github.com/weaveworks/reignite/pkg/log"
-	"github.com/weaveworks/reignite/pkg/planner"
+	"github.com/weaveworks/flintlock/api/events"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/plans"
+	portsctx "github.com/weaveworks/flintlock/core/ports/context"
+	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
 func (a *app) ReconcileMicroVM(ctx context.Context, id, namespace string) error {

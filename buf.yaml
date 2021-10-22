@@ -1,5 +1,5 @@
 version: v1beta1
-name: buf.build/weaveworks/reignite
+name: buf.build/weaveworks/flintlock
 deps:
   - buf.build/beta/googleapis
   - buf.build/grpc-ecosystem/grpc-gateway

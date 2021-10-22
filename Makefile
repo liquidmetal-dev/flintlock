@@ -2,7 +2,7 @@
 BUILD_DATE := $(shell date +%Y-%m-%dT%H:%M:%SZ)
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 VERSION := $(shell git describe --always --match "v*")
-VERSION_PKG := github.com/weaveworks/reignite/internal/version
+VERSION_PKG := github.com/weaveworks/flintlock/internal/version
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
@@ -14,7 +14,7 @@ BUF_VERSION := v0.43.2
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 BIN_DIR := bin
 OUT_DIR := out
-REIGNITED_CMD := cmd/reignited
+FLINTLOCKD_CMD := cmd/flintlockd
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
@@ -51,12 +51,12 @@ WIRE := $(TOOLS_BIN_DIR)/wire
 
 .PHONY: build
 build: $(BIN_DIR) ## Build the binaries
-	go build -o $(BIN_DIR)/reignited ./cmd/reignited
+	go build -o $(BIN_DIR)/flintlockd ./cmd/flintlockd
 
 .PHONY: build-release
 build-release: $(BIN_DIR) ## Build the release binaries
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/reignited_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/reignited
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/reignited_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/reignited
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlockd_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/flintlockd
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlockd_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/flintlockd
 
 
 ##@ Generate
@@ -78,7 +78,7 @@ generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_G
 
 .PHONY: generate-di ## Generate the dependency injection code
 generate-di: $(WIRE)
-	$(WIRE) gen github.com/weaveworks/reignite/internal/inject
+	$(WIRE) gen github.com/weaveworks/flintlock/internal/inject
 
 ##@ Linting
 
@@ -95,7 +95,7 @@ test: ## Run unit tests
 
 .PHONY: test-with-cov
 test-with-cov: ## Run unit tests with coverage
-	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt ./... 
+	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt ./...
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests

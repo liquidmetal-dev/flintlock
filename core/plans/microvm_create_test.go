@@ -6,10 +6,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/weaveworks/reignite/core/models"
-	"github.com/weaveworks/reignite/core/plans"
-	"github.com/weaveworks/reignite/core/ports"
-	portsctx "github.com/weaveworks/reignite/core/ports/context"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/plans"
+	"github.com/weaveworks/flintlock/core/ports"
+	portsctx "github.com/weaveworks/flintlock/core/ports/context"
 )
 
 func TestMicroVMCreatePlan(t *testing.T) {

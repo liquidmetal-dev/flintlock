@@ -1,4 +1,4 @@
-# Getting started with reignite
+# Getting started with flintlock
 
 ## Configure network
 
@@ -13,11 +13,11 @@ conflict.
 
 ### Create kvm network
 
-Create the `reignite.xml` file (feel free to change the IP range):
+Create the `flintlock.xml` file (feel free to change the IP range):
 
 ```xml
 <network>
-  <name>reignite</name>
+  <name>flintlock</name>
   <forward mode='nat'>
     <nat>
       <port start='1024' end='65535'/>
@@ -32,12 +32,12 @@ Create the `reignite.xml` file (feel free to change the IP range):
 </network>
 ```
 
-Define, start and set autostart on the `reignite` network:
+Define, start and set autostart on the `flintlock` network:
 
 ```
-virsh net-define reignite.xml
-virsh net-start reignite
-virsh net-autostart reignite
+virsh net-define flintlock.xml
+virsh net-start flintlock
+virsh net-autostart flintlock
 ```
 
 Now you should see the network in the network list:
@@ -47,7 +47,7 @@ virsh net-list
  Name       State    Autostart   Persistent
 ---------------------------------------------
  default    active   yes         yes
- reignite   active   yes         yes
+ flintlock   active   yes         yes
 ```
 
 ### Create and connect tap device
@@ -141,7 +141,7 @@ for example:
 ```bash
 sudo ctr \
     --address=/run/containerd-dev/containerd.sock \
-    --namespace=reignite \
+    --namespace=flintlock \
     content ls
 ```
 
@@ -173,9 +173,9 @@ cp build/cargo_target/${toolbox}/debug/{firecracker,jailer} ${TARGET}
 If you don't have to compile it yourself, you can download a pre-built version
 from the [Pre-requisities discussion][discussion-107].
 
-[discussion-107]: https://github.com/weaveworks/reignite/discussions/107
+[discussion-107]: https://github.com/weaveworks/flintlock/discussions/107
 
-## Set up and start reignite
+## Set up and start flintlock
 
 ```bash
 go mod download
@@ -183,7 +183,7 @@ make build
 
 NET_DEVICE=$(ip route show | awk '/default/ {print $5}')
 
-./bin/reignited run \
+./bin/flintlockd run \
   --containerd-socket=/run/containerd-dev/containerd.sock \
   --parent-iface="${NET_DEVICE}"
 ```
@@ -205,7 +205,7 @@ TODO: Example CreateVM Payload
 
 ## Troubleshooting
 
-### Reignited fails to start with `failed to reconcile vmid`
+### flintlockd fails to start with `failed to reconcile vmid`
 
 Example error:
 
@@ -220,11 +220,11 @@ fix it to remove it from containerd:
 vmid='aa3b711d-4b60-4ba5-8069-0511c213308c'
 contentHash=$(\
   ctr-dev \
-    --namespace=reignite \
+    --namespace=flintlock \
     content ls \
     | awk "/${vmid}/ {print \$1}" \
 )
 ctr-dev \
-    --namespace=reignite \
+    --namespace=flintlock \
     content rm "${contentHash}"
 ```

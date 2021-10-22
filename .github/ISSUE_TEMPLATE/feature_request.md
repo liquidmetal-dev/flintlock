@@ -1,6 +1,6 @@
 ---
 name: Feature enhancement request
-about: Suggest an idea for reignite
+about: Suggest an idea for flintlock
 title: ''
 labels: kind/feature
 assigness: ''
