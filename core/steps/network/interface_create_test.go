@@ -20,13 +20,13 @@ func TestNewNetworkInterface_everythingIsEmpty(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	var status *models.NetworkInterfaceStatus
-	vmid, _ := models.NewVMID("testvm", "testns")
+	vmid, _ := models.NewVMID(vmName, nsName)
 	iface := &models.NetworkInterface{}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Times(0)
 
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
@@ -47,13 +47,13 @@ func TestNewNetworkInterface_doesNotExist(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	var status *models.NetworkInterfaceStatus
-	vmid, _ := models.NewVMID("testvm", "testns")
-	iface := &models.NetworkInterface{GuestDeviceName: "eth0"}
+	vmid, _ := models.NewVMID(vmName, nsName)
+	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Times(0)
 
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
@@ -63,18 +63,18 @@ func TestNewNetworkInterface_doesNotExist(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, nil).
 		Times(1)
 
 	svc.EXPECT().
 		IfaceCreate(gomock.Eq(ctx), gomock.Eq(ports.IfaceCreateInput{
-			DeviceName: "testns_testvm_tap",
+			DeviceName: expectedTapDeviceName,
 		})).
 		Return(&ports.IfaceDetails{
-			DeviceName: "testns_testvm_tap",
+			DeviceName: expectedTapDeviceName,
 			Type:       models.IfaceTypeTap,
-			MAC:        "AA:BB:CC:DD:EE:FF",
+			MAC:        defaultMACAddress,
 			Index:      0,
 		}, nil).
 		Times(1)
@@ -90,23 +90,23 @@ func TestNewNetworkInterface_existingInterface(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
+	vmid, _ := models.NewVMID(vmName, nsName)
 	iface := &models.NetworkInterface{
-		GuestDeviceName:       "eth0",
+		GuestDeviceName:       defaultEthDevice,
 		AllowMetadataRequests: false,
-		GuestMAC:              "AA:BB:CC:DD:EE:FF",
+		GuestMAC:              defaultMACAddress,
 		Type:                  models.IfaceTypeTap,
 	}
 	status := &models.NetworkInterfaceStatus{
-		HostDeviceName: "testns_testvm_tap",
+		HostDeviceName: expectedTapDeviceName,
 		Index:          0,
-		MACAddress:     "AA:BB:CC:DD:EE:FF",
+		MACAddress:     defaultMACAddress,
 	}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
@@ -117,16 +117,16 @@ func TestNewNetworkInterface_existingInterface(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeFalse())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
 	svc.EXPECT().
-		IfaceDetails(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceDetails(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(&ports.IfaceDetails{
-			DeviceName: "testns_testvm_tap",
+			DeviceName: expectedTapDeviceName,
 			Type:       models.IfaceTypeTap,
-			MAC:        "AA:BB:CC:DD:EE:FF",
+			MAC:        defaultMACAddress,
 			Index:      0,
 		}, nil).
 		Times(1)
@@ -142,22 +142,13 @@ func TestNewNetworkInterface_missingInterface(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
-	iface := &models.NetworkInterface{
-		GuestDeviceName:       "eth0",
-		AllowMetadataRequests: true,
-		GuestMAC:              "AA:BB:CC:DD:EE:FF",
-	}
-	status := &models.NetworkInterfaceStatus{
-		HostDeviceName: "testns_testvm_tap",
-		Index:          0,
-		MACAddress:     "AA:BB:CC:DD:EE:FF",
-	}
+	vmid, _ := models.NewVMID(vmName, nsName)
+	iface, status := fullNetworkInterface()
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, nil).
 		Times(1)
 
@@ -168,19 +159,19 @@ func TestNewNetworkInterface_missingInterface(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, nil).
 		Times(1)
 
 	svc.EXPECT().
 		IfaceCreate(gomock.Eq(ctx), gomock.Eq(ports.IfaceCreateInput{
-			DeviceName: "testns_testvm_tap",
-			MAC:        "AA:BB:CC:DD:EE:FF",
+			DeviceName: expectedTapDeviceName,
+			MAC:        defaultMACAddress,
 		})).
 		Return(&ports.IfaceDetails{
-			DeviceName: "testns_testvm_tap",
+			DeviceName: expectedTapDeviceName,
 			Type:       models.IfaceTypeTap,
-			MAC:        "FF:EE:DD:CC:BB:AA",
+			MAC:        reverseMACAddress,
 			Index:      0,
 		}, nil).
 		Times(1)
@@ -188,7 +179,7 @@ func TestNewNetworkInterface_missingInterface(t *testing.T) {
 	_, err = step.Do(ctx)
 
 	g.Expect(err).To(g.BeNil())
-	g.Expect(status.MACAddress).To(g.Equal("FF:EE:DD:CC:BB:AA"))
+	g.Expect(status.MACAddress).To(g.Equal(reverseMACAddress))
 }
 
 func TestNewNetworkInterface_svcError(t *testing.T) {
@@ -197,22 +188,13 @@ func TestNewNetworkInterface_svcError(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
-	iface := &models.NetworkInterface{
-		GuestDeviceName:       "eth0",
-		AllowMetadataRequests: true,
-		GuestMAC:              "AA:BB:CC:DD:EE:FF",
-	}
-	status := &models.NetworkInterfaceStatus{
-		HostDeviceName: "testns_testvm_tap",
-		Index:          0,
-		MACAddress:     "AA:BB:CC:DD:EE:FF",
-	}
+	vmid, _ := models.NewVMID(vmName, nsName)
+	iface, status := fullNetworkInterface()
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, errors.ErrParentIfaceRequired).
 		Times(2)
 
@@ -233,34 +215,25 @@ func TestNewNetworkInterface_fillChangedStatus(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
-	iface := &models.NetworkInterface{
-		GuestDeviceName:       "eth0",
-		AllowMetadataRequests: true,
-		GuestMAC:              "AA:BB:CC:DD:EE:FF",
-		Type:                  models.IfaceTypeMacvtap,
-	}
-	status := &models.NetworkInterfaceStatus{
-		HostDeviceName: "testns_testvm_tap",
-		Index:          0,
-		MACAddress:     "AA:BB:CC:DD:EE:FF",
-	}
+	vmid, _ := models.NewVMID(vmName, nsName)
+	iface, status := fullNetworkInterface()
+	iface.Type = models.IfaceTypeMacvtap
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_vtap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedMacvtapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
 	svc.EXPECT().
-		IfaceDetails(gomock.Eq(ctx), gomock.Eq("testns_testvm_vtap")).
+		IfaceDetails(gomock.Eq(ctx), gomock.Eq(expectedMacvtapDeviceName)).
 		Return(&ports.IfaceDetails{
-			DeviceName: "testns_testvm_vtap",
-			Type:       models.IfaceTypeTap,
-			MAC:        "FF:EE:DD:CC:BB:AA",
+			DeviceName: expectedMacvtapDeviceName,
+			Type:       models.IfaceTypeMacvtap,
+			MAC:        reverseMACAddress,
 			Index:      0,
 		}, nil).
 		Times(1)
@@ -268,7 +241,8 @@ func TestNewNetworkInterface_fillChangedStatus(t *testing.T) {
 	_, err := step.Do(ctx)
 
 	g.Expect(err).To(g.BeNil())
-	g.Expect(status.MACAddress).To(g.Equal("FF:EE:DD:CC:BB:AA"))
+	g.Expect(status.MACAddress).To(g.Equal(reverseMACAddress))
+	g.Expect(status.HostDeviceName).To(g.Equal(expectedMacvtapDeviceName))
 }
 
 func TestNewNetworkInterface_createError(t *testing.T) {
@@ -277,14 +251,14 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	var status *models.NetworkInterfaceStatus
-	vmid, _ := models.NewVMID("testvm", "testns")
-	iface := &models.NetworkInterface{GuestDeviceName: "eth0"}
+	vmid, _ := models.NewVMID(vmName, nsName)
+	status := &models.NetworkInterfaceStatus{}
+	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Times(0)
 
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
@@ -294,13 +268,13 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, nil).
 		Times(1)
 
 	svc.EXPECT().
 		IfaceCreate(gomock.Eq(ctx), gomock.Eq(ports.IfaceCreateInput{
-			DeviceName: "testns_testvm_tap",
+			DeviceName: expectedTapDeviceName,
 		})).
 		Return(nil, errors.ErrParentIfaceRequired).
 		Times(1)

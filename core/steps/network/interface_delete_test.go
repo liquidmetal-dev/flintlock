@@ -20,13 +20,13 @@ func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
+	vmid, _ := models.NewVMID(vmName, nsName)
 	iface := &models.NetworkInterface{}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, nil).
 		Times(1)
 
@@ -37,7 +37,7 @@ func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeFalse())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, nil).
 		Times(1)
 
@@ -52,13 +52,13 @@ func TestDeleteNetworkInterface_exists(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
+	vmid, _ := models.NewVMID(vmName, nsName)
 	iface := &models.NetworkInterface{}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
@@ -69,14 +69,14 @@ func TestDeleteNetworkInterface_exists(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
 	svc.EXPECT().
 		IfaceDelete(
 			gomock.Eq(ctx),
-			gomock.Eq(ports.DeleteIfaceInput{DeviceName: "testns_testvm_tap"}),
+			gomock.Eq(ports.DeleteIfaceInput{DeviceName: expectedTapDeviceName}),
 		).
 		Return(nil).
 		Times(1)
@@ -92,13 +92,13 @@ func TestDeleteNetworkInterface_exists_errorDeleting(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
+	vmid, _ := models.NewVMID(vmName, nsName)
 	iface := &models.NetworkInterface{}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
@@ -109,14 +109,14 @@ func TestDeleteNetworkInterface_exists_errorDeleting(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
 	svc.EXPECT().
 		IfaceDelete(
 			gomock.Eq(ctx),
-			gomock.Eq(ports.DeleteIfaceInput{DeviceName: "testns_testvm_tap"}),
+			gomock.Eq(ports.DeleteIfaceInput{DeviceName: expectedTapDeviceName}),
 		).
 		Return(netlink.LinkNotFoundError{}).
 		Times(1)
@@ -132,13 +132,13 @@ func TestDeleteNetworkInterface_IfaceExistsError(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID("testvm", "testns")
+	vmid, _ := models.NewVMID(vmName, nsName)
 	iface := &models.NetworkInterface{}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq("testns_testvm_tap")).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(false, errors.ErrParentIfaceRequired).
 		Times(2)
 
