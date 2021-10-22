@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/containerd/containerd"
@@ -170,6 +171,18 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 	return items, nil
 }
 
+// ReleaseLease will release the supplied lease.
+func (r *containerdRepo) ReleaseLease(ctx context.Context, microvm *models.MicroVM) error {
+	mu := r.getMutex(microvm.ID.String())
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
+
+	return deleteLease(namespaceCtx, microvm.ID.String(), r.client)
+}
+
 // Delete will delete the supplied microvm details from the containerd content store.
 func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) error {
 	mu := r.getMutex(microvm.ID.String())
@@ -235,7 +248,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 		Digest: *metadigest,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("reading content %s: %w", metadigest, ErrFailedReadingContent)
+		return nil, fmt.Errorf("reading content %s: %w", metadigest, ErrReadingContent)
 	}
 
 	microvm := &models.MicroVM{}
@@ -250,6 +263,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, namespace string) (*digest.Digest, error) {
 	idLabelFilter := labelFilter(NameLabel, name)
 	nsFilter := labelFilter(NamespaceLabel, namespace)
+	allFilter := strings.Join([]string{idLabelFilter, nsFilter}, ",")
 	store := r.client.ContentStore()
 
 	var digest *digest.Digest
@@ -266,7 +280,7 @@ func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, name
 		}
 
 		return nil
-	}, idLabelFilter, nsFilter)
+	}, allFilter)
 	if err != nil {
 		return nil, fmt.Errorf("walking content store for %s: %w", name, err)
 	}

@@ -231,6 +231,20 @@ func (mr *MockMicroVMRepositoryMockRecorder) GetAll(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockMicroVMRepository)(nil).GetAll), arg0, arg1)
 }
 
+// ReleaseLease mocks base method.
+func (m *MockMicroVMRepository) ReleaseLease(arg0 context.Context, arg1 *models.MicroVM) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseLease", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseLease indicates an expected call of ReleaseLease.
+func (mr *MockMicroVMRepositoryMockRecorder) ReleaseLease(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseLease", reflect.TypeOf((*MockMicroVMRepository)(nil).ReleaseLease), arg0, arg1)
+}
+
 // Save mocks base method.
 func (m *MockMicroVMRepository) Save(arg0 context.Context, arg1 *models.MicroVM) (*models.MicroVM, error) {
 	m.ctrl.T.Helper()

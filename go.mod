@@ -3,17 +3,18 @@ module github.com/weaveworks/reignite
 go 1.16
 
 require (
-	github.com/containerd/containerd v1.5.5
+	github.com/containerd/containerd v1.5.7
 	github.com/containerd/typeurl v1.0.2
 	github.com/firecracker-microvm/firecracker-go-sdk v0.22.0
 	github.com/go-playground/validator/v10 v10.9.0
+	github.com/go-openapi/strfmt v0.19.5 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0
-	github.com/gruntwork-io/terratest v0.37.8
+	github.com/gruntwork-io/terratest v0.38.2
 	github.com/oklog/ulid v1.3.1
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/go-digest v1.0.0

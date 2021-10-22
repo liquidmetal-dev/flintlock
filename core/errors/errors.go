@@ -21,93 +21,93 @@ var (
 	ErrIfaceNotFound           = errors.New("network interface not found")
 )
 
-// ErrTopicNotFound is an error created when a topic with a specific name isn't found.
-type ErrTopicNotFound struct {
+// TopicNotFoundError is an error created when a topic with a specific name isn't found.
+type TopicNotFoundError struct {
 	Name string
 }
 
 // Error returns the error message.
-func (e ErrTopicNotFound) Error() string {
+func (e TopicNotFoundError) Error() string {
 	return fmt.Sprintf("topic %s not found", e.Name)
 }
 
-type ErrIncorrectVMIDFormat struct {
+type IncorrectVMIDFormatError struct {
 	ActualID string
 }
 
 // Error returns the error message.
-func (e ErrIncorrectVMIDFormat) Error() string {
+func (e IncorrectVMIDFormatError) Error() string {
 	return fmt.Sprintf("unexpected vmid format: %s", e.ActualID)
 }
 
-func NewErrUnsupportedInterface(ifaceType string) ErrUnsupportedInterface {
-	return ErrUnsupportedInterface{
+func NewErrUnsupportedInterface(ifaceType string) UnsupportedInterfaceError {
+	return UnsupportedInterfaceError{
 		ifaceType: ifaceType,
 	}
 }
 
-type ErrUnsupportedInterface struct {
+type UnsupportedInterfaceError struct {
 	ifaceType string
 }
 
 // Error returns the error message.
-func (e ErrUnsupportedInterface) Error() string {
+func (e UnsupportedInterfaceError) Error() string {
 	return fmt.Sprintf("network interface type %s is unsupported", e.ifaceType)
 }
 
-func NewVolumeNotMounted(volumeID string) ErrVolumeNotMounted {
-	return ErrVolumeNotMounted{
+func NewVolumeNotMounted(volumeID string) VolumeNotMountedError {
+	return VolumeNotMountedError{
 		id: volumeID,
 	}
 }
 
-// ErrVolumeNotMounted is an error used when a volume hasn't been mounted.
-type ErrVolumeNotMounted struct {
+// VolumeNotMountedError is an error used when a volume hasn't been mounted.
+type VolumeNotMountedError struct {
 	id string
 }
 
 // Error returns the error message.
-func (e ErrVolumeNotMounted) Error() string {
+func (e VolumeNotMountedError) Error() string {
 	return fmt.Sprintf("volume %s is not mounted", e.id)
 }
 
-func NewNetworkInterfaceStatusMissing(guestIface string) ErrNetworkInterfaceStatusMissing {
-	return ErrNetworkInterfaceStatusMissing{
+func NewNetworkInterfaceStatusMissing(guestIface string) NetworkInterfaceStatusMissingError {
+	return NetworkInterfaceStatusMissingError{
 		guestIface: guestIface,
 	}
 }
 
 // NetworkInterfaceStatusMissing is an error used when a network interfaces
 // status cannot be found.
-type ErrNetworkInterfaceStatusMissing struct {
+type NetworkInterfaceStatusMissingError struct {
 	guestIface string
 }
 
 // Error returns the error message.
-func (e ErrNetworkInterfaceStatusMissing) Error() string {
+func (e NetworkInterfaceStatusMissingError) Error() string {
 	return fmt.Sprintf("status for network interface %s is not found", e.guestIface)
 }
 
 func NewSpecNotFound(name, namespace string) error {
-	return errSpecNotFound{
+	return specNotFoundError{
 		name:      name,
 		namespace: namespace,
 	}
 }
 
-type errSpecNotFound struct {
+type specNotFoundError struct {
 	name      string
 	namespace string
 }
 
 // Error returns the error message.
-func (e errSpecNotFound) Error() string {
+func (e specNotFoundError) Error() string {
 	return fmt.Sprintf("microvm spec %s/%s not found", e.namespace, e.name)
 }
 
 // IsSpecNotFound tests an error to see if its a spec not found error.
 func IsSpecNotFound(err error) bool {
-	e := &errSpecNotFound{}
+	e := &specNotFoundError{}
 
 	return errors.As(err, e)
 }

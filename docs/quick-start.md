@@ -1,5 +1,82 @@
 # Getting started with reignite
 
+## Configure network
+
+If you are using wired connection, you can skip this and jump straight to the
+"Containerd" section. With wireless adapter, macvtap has some issues. The easy
+workaround is to use a bridge and tap devices instead.
+
+You can use the default kvm network, in this case, skip to "Create and connect
+tap device" and use `default`. We recommend using a dedicated network to avoid
+interference from other kvm machines or processes like IP or MAC address
+conflict.
+
+### Create kvm network
+
+Create the `reignite.xml` file (feel free to change the IP range):
+
+```xml
+<network>
+  <name>reignite</name>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='rgntbr0' stp='on' delay='0'/>
+  <ip address='192.168.100.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.100.2' end='192.168.100.254'/>
+    </dhcp>
+  </ip>
+</network>
+```
+
+Define, start and set autostart on the `reignite` network:
+
+```
+virsh net-define reignite.xml
+virsh net-start reignite
+virsh net-autostart reignite
+```
+
+Now you should see the network in the network list:
+
+```
+virsh net-list
+ Name       State    Autostart   Persistent
+---------------------------------------------
+ default    active   yes         yes
+ reignite   active   yes         yes
+```
+
+### Create and connect tap device
+
+```bash
+tapName=tap0
+bridge=rgntbr0
+sudo ip tuntap add ${tapName} mode tap
+sudo ip link set ${tapName} master ${bridge} up
+```
+
+You can add a function into your bashrc/zshrc:
+
+```bash
+function vir-new-tap() {
+  tapName=${1:=tap0}
+  bridge=${2:=rgntbr0}
+
+  sudo ip tuntap add ${tapName} mode tap
+  sudo ip link set ${tapName} master ${bridge} up
+}
+```
+
+You can check the DHCP leases with `virsh`:
+
+```bash
+virsh net-dhcp-leases default
+```
+
 ## On MacOS
 
 You can use Vagrant:
@@ -50,7 +127,7 @@ state = "/run/containerd-dev"
 
 ### Start containerd
 
-```
+```bash
 # Just to make sure all the directories are there.
 sudo mkdir -p /var/lib/containerd-dev/snapshotter/devmapper
 sudo mkdir -p /run/containerd-dev/
@@ -61,7 +138,7 @@ sudo containerd --config /etc/containerd/config-dev.toml
 To reach our new dev containerd, we have to specify the `--address` flag,
 for example:
 
-```
+```bash
 sudo ctr \
     --address=/run/containerd-dev/containerd.sock \
     --namespace=reignite \
@@ -70,7 +147,7 @@ sudo ctr \
 
 To make it easier, here is an alias:
 
-```
+```bash
 alias ctr-dev="sudo ctr --address=/run/containerd-dev/containerd.sock"
 ```
 
@@ -79,7 +156,7 @@ alias ctr-dev="sudo ctr --address=/run/containerd-dev/containerd.sock"
 We have to use a custom built firecracker from the macvtap branch
 ([see][discussion-107]).
 
-```
+```bash
 git clone https://github.com/firecracker-microvm/firecracker.git
 git fetch origin feature/macvtap
 git checkout -b feature/macvtap origin/feature/macvtap
@@ -100,7 +177,7 @@ from the [Pre-requisities discussion][discussion-107].
 
 ## Set up and start reignite
 
-```
+```bash
 go mod download
 make build
 
@@ -139,7 +216,7 @@ ERRO[0007] failed to reconcile vmid Hello/aa3b711d-4b60-4ba5-8069-0511c213308c: 
 There is a plan to create a VM, but something went wrong. The easiest way to
 fix it to remove it from containerd:
 
-```
+```bash
 vmid='aa3b711d-4b60-4ba5-8069-0511c213308c'
 contentHash=$(\
   ctr-dev \

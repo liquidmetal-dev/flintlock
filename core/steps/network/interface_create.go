@@ -12,11 +12,6 @@ import (
 	"github.com/weaveworks/reignite/pkg/planner"
 )
 
-const (
-	tapFormat     = "%s_%s_tap"
-	macvtapFormat = "%s_%s_vtap"
-)
-
 func NewNetworkInterface(vmid *models.VMID, iface *models.NetworkInterface, status *models.NetworkInterfaceStatus, svc ports.NetworkService) planner.Procedure {
 	return &createInterface{
 		vmid:   vmid,
@@ -50,7 +45,7 @@ func (s *createInterface) ShouldDo(ctx context.Context) (bool, error) {
 		return true, nil
 	}
 
-	deviceName := s.deviceName()
+	deviceName := getDeviceName(s.vmid, s.iface)
 
 	exists, err := s.svc.IfaceExists(ctx, deviceName)
 	if err != nil {
@@ -76,7 +71,7 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 		s.status = &models.NetworkInterfaceStatus{}
 	}
 
-	deviceName := s.deviceName()
+	deviceName := getDeviceName(s.vmid, s.iface)
 
 	exists, err := s.svc.IfaceExists(ctx, deviceName)
 	if err != nil {
@@ -111,12 +106,4 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 	s.status.MACAddress = output.MAC
 
 	return nil, nil
-}
-
-func (s *createInterface) deviceName() string {
-	if s.iface.Type == models.IfaceTypeMacvtap {
-		return fmt.Sprintf(macvtapFormat, s.vmid.Namespace(), s.vmid.Name())
-	}
-
-	return fmt.Sprintf(tapFormat, s.vmid.Namespace(), s.vmid.Name())
 }

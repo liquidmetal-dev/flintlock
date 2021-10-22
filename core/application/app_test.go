@@ -50,6 +50,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 
 				expectedCreatedSpec := createTestSpec("id1234", defaults.MicroVMNamespace)
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
+				expectedCreatedSpec.Status.State = models.PendingState
 
 				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),
@@ -85,6 +86,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 
 				expectedCreatedSpec := createTestSpec("id1234", "default")
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
+				expectedCreatedSpec.Status.State = models.PendingState
 
 				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),

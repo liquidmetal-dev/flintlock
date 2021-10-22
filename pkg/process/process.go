@@ -7,38 +7,27 @@ import (
 	"syscall"
 )
 
-// StartCommandDetached will start the given cmd so its detached from its parent process.
-func StartCommandDetached(cmd *exec.Cmd, stdErrFile *os.File, stdOutFile *os.File) (*os.Process, error) {
-	groups, err := os.Getgroups()
-	if err != nil {
-		return nil, fmt.Errorf("get os groups: %w", err)
-	}
-	groupsConv := []uint32{}
-	for _, groupID := range groups {
-		groupsConv = append(groupsConv, uint32(groupID))
-	}
-
-	files := []*os.File{nil, stdOutFile, stdErrFile}
-
-	attr := &os.ProcAttr{
-		Dir:   "./",
-		Files: files,
-		Sys: &syscall.SysProcAttr{
-			Credential: &syscall.Credential{
-				Uid:    uint32(os.Getuid()),
-				Gid:    uint32(os.Getgid()),
-				Groups: groupsConv,
-			},
-			Setsid: true,
+// DetachedStart will start a subprocess in detached mode.
+func DetachedStart(cmd *exec.Cmd) error {
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Credential: &syscall.Credential{
+			Uid:    uint32(os.Getuid()),
+			Gid:    uint32(os.Getgid()),
+			Groups: []uint32{},
 		},
+		Setsid: true,
 	}
 
-	proc, err := os.StartProcess(cmd.Path, cmd.Args, attr)
-	if err != nil {
-		return nil, fmt.Errorf("starting process: %w", err)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start process detached: %w", err)
 	}
 
-	return proc, nil
+	go func() {
+		_, _ = cmd.Process.Wait()
+		_ = cmd.Process.Release()
+	}()
+
+	return nil
 }
 
 // Exists will check if a process exists with the given pid.

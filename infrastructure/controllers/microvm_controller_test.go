@@ -60,7 +60,7 @@ func TestMicroVMController(t *testing.T) {
 			},
 		},
 		{
-			name: "delete event causes reconcile",
+			name: "delete event does not cause reconcile",
 			eventsToSend: []*ports.EventEnvelope{
 				deletedEvent(vmID, vmNS),
 			},
@@ -68,7 +68,8 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
+				// uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Times(0)
 			},
 		},
 		{

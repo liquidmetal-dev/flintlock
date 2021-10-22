@@ -13,7 +13,7 @@ import (
 // Actuator will execute the given plan.
 type Actuator interface {
 	// Execute the plan.
-	Execute(ctx context.Context, p Plan, executionID string) error
+	Execute(ctx context.Context, p Plan, executionID string) (int, error)
 }
 
 // NewActuator creates a new actuator.
@@ -24,7 +24,7 @@ func NewActuator() Actuator {
 type actuatorImpl struct{}
 
 // Execute will execute the plan.
-func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) error {
+func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) (int, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"execution_id": executionID,
 		"plan_name":    p.Name(),
@@ -41,7 +41,7 @@ func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) 
 			"num_steps":      numStepsExecuted,
 		}).Error("failed executing plan")
 
-		return fmt.Errorf("executing plan steps: %w", err)
+		return numStepsExecuted, fmt.Errorf("executing plan steps: %w", err)
 	}
 
 	logger.WithFields(logrus.Fields{
@@ -49,7 +49,7 @@ func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) 
 		"num_steps":      numStepsExecuted,
 	}).Info("finished executing plan")
 
-	return nil
+	return numStepsExecuted, nil
 }
 
 func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.Entry) (int, error) {

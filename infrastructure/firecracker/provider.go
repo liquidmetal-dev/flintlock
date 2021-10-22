@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
+	"github.com/firecracker-microvm/firecracker-go-sdk/client"
 	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
+	"github.com/firecracker-microvm/firecracker-go-sdk/client/operations"
 
 	"github.com/weaveworks/reignite/core/models"
 	"github.com/weaveworks/reignite/core/ports"
@@ -61,7 +65,17 @@ func (p *fcProvider) Start(ctx context.Context, id string) error {
 	logger.Info("starting microvm")
 
 	if !p.config.APIConfig {
-		logger.Info("using firecracker configuration file, no explicit start required")
+		logger.Debug("using firecracker configuration file, no explicit start required")
+
+		return nil
+	}
+
+	running, err := p.IsRunning(ctx, id)
+	if err != nil {
+		return fmt.Errorf("checking if instance is running: %w", err)
+	}
+	if running {
+		logger.Debug("instance is already running, not starting")
 
 		return nil
 	}
@@ -105,7 +119,58 @@ func (p *fcProvider) Stop(ctx context.Context, id string) error {
 
 // Delete will delete a VM and its runtime state.
 func (p *fcProvider) Delete(ctx context.Context, id string) error {
-	return errNotImplemeted
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "firecracker_microvm",
+		"vmid":    id,
+	})
+	logger.Info("deleting microvm")
+
+	if !p.config.APIConfig {
+		logger.Info("using firecracker configuration file, no explicit start required")
+
+		return nil
+	}
+
+	vmid, err := models.NewVMIDFromString(id)
+	if err != nil {
+		return fmt.Errorf("parsing vmid: %w", err)
+	}
+	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+
+	socketPath := vmState.SockPath()
+	logger.Tracef("using socket %s", socketPath)
+
+	client := firecracker.NewClient(socketPath, logger, true)
+
+	// This action will send the CTRL+ALT+DEL key sequence to the microVM. By
+	// convention, this sequence has been used to trigger a soft reboot and, as
+	// such, most Linux distributions perform an orderly shutdown and reset upon
+	// receiving this keyboard input. Since Firecracker exits on CPU reset,
+	// SendCtrlAltDel can be used to trigger a clean shutdown of the microVM.
+	//
+	// Source: https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/actions.md#intel-and-amd-only-sendctrlaltdel
+	_, err = client.CreateSyncAction(ctx, &fcmodels.InstanceActionInfo{
+		ActionType: firecracker.String("SendCtrlAltDel"),
+	})
+	if err != nil {
+		// What errors do we want to ignore?
+		// Example:
+		// * net/url.Error happens if the VM is not running or the socket file
+		//   is not there, so we can delete the VM.
+		if errors.Is(err, &url.Error{}) {
+			logger.Info("microvm is not running")
+		} else {
+			return fmt.Errorf("failed to create halt action: %w", err)
+		}
+	}
+
+	// It's strange to call it delete, it terminates the vm, but by the nature of
+	// firecracker, if it's terminated, it's not there anymore, only the
+	// resources we created before, but we have steps for them.
+
+	logger.Info("deleted microvm")
+
+	return nil
 }
 
 // IsRunning returns true if the microvm is running.
@@ -144,7 +209,31 @@ func (p *fcProvider) IsRunning(ctx context.Context, id string) (bool, error) {
 		return false, nil
 	}
 
-	// TODO: do we need to query via the sock interface?
+	socketPath := vmState.SockPath()
+	logger.Tracef("using socket %s", socketPath)
 
-	return true, nil
+	info, err := p.getInstanceInfo(socketPath, logger)
+	if err != nil {
+		return false, fmt.Errorf("getting instance info: %w", err)
+	}
+
+	if *info.State == string(InstanceStateStarted) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (p *fcProvider) getInstanceInfo(socketPath string, logger *logrus.Entry) (*fcmodels.InstanceInfo, error) {
+	httpClient := client.NewHTTPClient(strfmt.NewFormats())
+
+	transport := firecracker.NewUnixSocketTransport(socketPath, logger, true)
+	httpClient.SetTransport(transport)
+
+	resp, err := httpClient.Operations.DescribeInstance(operations.NewDescribeInstanceParams())
+	if err != nil {
+		return nil, fmt.Errorf("describing firecracker instance: %w", err)
+	}
+
+	return resp.Payload, nil
 }
