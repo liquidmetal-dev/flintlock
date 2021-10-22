@@ -1,5 +1,45 @@
 # Getting started with flintlock
 
+<!--
+To update the TOC, install https://github.com/kubernetes-sigs/mdtoc
+and run: mdtoc -inplace docs/quick-start.md
+-->
+
+<!-- toc -->
+- [MacOS Users](#macos-users)
+- [Configure network](#configure-network)
+  - [Create kvm network](#create-kvm-network)
+  - [Create and connect tap device](#create-and-connect-tap-device)
+- [Containerd](#containerd)
+  - [Create thinpool](#create-thinpool)
+  - [Configuration](#configuration)
+  - [Start containerd](#start-containerd)
+- [Set up Firecracker](#set-up-firecracker)
+- [Set up and start flintlock](#set-up-and-start-flintlock)
+- [Interacting with the service](#interacting-with-the-service)
+  - [grpc-client-cli](#grpc-client-cli)
+    - [Example](#example)
+  - [BloomRPC](#bloomrpc)
+    - [Import](#import)
+    - [Example](#example-1)
+- [Troubleshooting](#troubleshooting)
+  - [flintlockd fails to start with <code>failed to reconcile vmid</code>](#flintlockd-fails-to-start-with-)
+<!-- /toc -->
+
+## MacOS Users
+
+Flintlock and flintlock tests are only compatible with Linux. We recommend that
+non-linux users provision a Linux VM in which to work.
+
+You can use Vagrant:
+
+```
+vagrant up
+```
+
+It will create a new pre-configured machine ready to use.
+Run the rest of the instructions on this page on that machine.
+
 ## Configure network
 
 If you are using wired connection, you can skip this and jump straight to the
@@ -10,6 +50,15 @@ You can use the default kvm network, in this case, skip to "Create and connect
 tap device" and use `default`. We recommend using a dedicated network to avoid
 interference from other kvm machines or processes like IP or MAC address
 conflict.
+
+### Install packages and start `libvirtd`
+
+```bash
+sudo apt install qemu qemu-kvm libvirt-clients libvirt-daemon-system virtinst bridge-utils
+
+sudo systemctl enable libvirtd
+sudo systemctl start libvirtd
+```
 
 ### Create kvm network
 
@@ -23,7 +72,7 @@ Create the `flintlock.xml` file (feel free to change the IP range):
       <port start='1024' end='65535'/>
     </nat>
   </forward>
-  <bridge name='rgntbr0' stp='on' delay='0'/>
+  <bridge name='flkbr0' stp='on' delay='0'/>
   <ip address='192.168.100.1' netmask='255.255.255.0'>
     <dhcp>
       <range start='192.168.100.2' end='192.168.100.254'/>
@@ -35,9 +84,9 @@ Create the `flintlock.xml` file (feel free to change the IP range):
 Define, start and set autostart on the `flintlock` network:
 
 ```
-virsh net-define flintlock.xml
-virsh net-start flintlock
-virsh net-autostart flintlock
+sudo virsh net-define flintlock.xml
+sudo virsh net-start flintlock
+sudo virsh net-autostart flintlock
 ```
 
 Now you should see the network in the network list:
@@ -54,17 +103,19 @@ virsh net-list
 
 ```bash
 tapName=tap0
-bridge=rgntbr0
+bridge=flkbr0
 sudo ip tuntap add ${tapName} mode tap
 sudo ip link set ${tapName} master ${bridge} up
 ```
+
+Check with `ip link ls`.
 
 You can add a function into your bashrc/zshrc:
 
 ```bash
 function vir-new-tap() {
   tapName=${1:=tap0}
-  bridge=${2:=rgntbr0}
+  bridge=${2:=flkbr0}
 
   sudo ip tuntap add ${tapName} mode tap
   sudo ip link set ${tapName} master ${bridge} up
@@ -74,35 +125,38 @@ function vir-new-tap() {
 You can check the DHCP leases with `virsh`:
 
 ```bash
-virsh net-dhcp-leases default
+sudo virsh net-dhcp-leases default
 ```
-
-## On MacOS
-
-You can use Vagrant:
-
-```
-vagrant up
-```
-
-It will create a new pre-configured machine ready to use.
 
 ## Containerd
 
+[Install ContainerD](https://github.com/containerd/containerd/releases).
+
+_RunC is not required; Flintlock only uses the snapshotter._
+
 ### Create thinpool
 
-Easy quick-start option is to run the `hack/scripts/devpool.sh` script as root.
+Flintlock relies on ContainerD's devicemapper snapshotter to provide filesystem
+devices for Firecracker microvms. Some configuration is required.
+
+The easy quick-start option is to run the `hack/scripts/devpool.sh` script as root.
 I know, it's not recommended in general, and I'm happy you think it's not a good
 way to do things, read the comments in the script for details.
 
 ```bash
+sudo apt update
+sudo apt install -y dmsetup bc
+
 sudo ./hack/scripts/devpool.sh
 ```
 
+Verify with `sudo dmsetup ls`.
+
 ### Configuration
 
+Save this config to `/etc/containerd/config-dev.toml`.
+
 ```toml
-# /etc/containerd/config-dev.toml
 version = 2
 
 root = "/var/lib/containerd-dev"
@@ -134,6 +188,11 @@ sudo mkdir -p /run/containerd-dev/
 
 sudo containerd --config /etc/containerd/config-dev.toml
 ```
+
+containerd will log about 100 lines at boot, most will be about loading plugins, and we recommended
+scrolling up to ensure that the devmapper plugin loaded successfully.
+
+Towards the end you should see `containerd successfully booted in 0.055357s`.
 
 To reach our new dev containerd, we have to specify the `--address` flag,
 for example:
@@ -183,24 +242,76 @@ make build
 
 NET_DEVICE=$(ip route show | awk '/default/ {print $5}')
 
-./bin/flintlockd run \
+sudo ./bin/flintlockd run \
   --containerd-socket=/run/containerd-dev/containerd.sock \
   --parent-iface="${NET_DEVICE}"
 ```
 
-## BloomRPC
+You should see it start successfully with similar output:
+```
+INFO[0000] reignited, version=undefined, built_on=undefined, commit=undefined
+INFO[0000] reignited grpc api server starting
+INFO[0000] starting microvm controller
+INFO[0000] starting microvm controller with 1 workers    controller=microvm
+INFO[0000] resyncing microvm specs                       controller=microvm
+INFO[0000] Resyncing specs                               action=resync controller=microvm namespace=ns
+INFO[0000] starting event listener                       controller=microvm
+INFO[0000] Starting workersnum_workers1                  controller=microvm
+```
 
-[BloomRPC][bloomrpc] is a good tool to test gRPC endpoint.
+## Interacting with the service
 
-### Import
+We recommend using one of the following tools to send requests to the Flintlock server.
+There are both GUI and a CLI option.
 
-Use the "Import Paths" button and add `$repo/api` to the list. All available
-endpoints will be visible in a nice tree view.
+### grpc-client-cli
 
-### Example
+Install the [grpc-client-cli](grpcurl).
 
-TODO: Example CreateVM Payload
+Use the `./hack/scripts/send.sh` script.
 
+#### Example
+
+To created a MicroVM:
+
+```
+./hack/scripts/send.sh \
+  --method CreateMicroVM
+```
+
+In the terminal where you started the Reignite server, you should see in the logs that the MircoVM
+has started.
+
+### BloomRPC
+
+[BloomRPC][bloomrpc] is a GUI tool to test gRPC endpoints.
+
+#### Import
+
+To import Flintlock protos into the Bloom GUI:
+
+1. Click `Import Paths` on the left-hand menu bar and add `<absolute-repo-path>/api` to the list
+1. Click the import `+` button and select `reignite/api/services/microvm/v1alpha1/microvms.proto`
+
+All available endpoints will be visible in a nice tree view.
+
+#### Example
+
+To create a MircoVM, select the `CreateMicroVM` endpoint in the left-hand menu.
+Replace the sample request JSON in the left editor panel with [this example](hack/scripts/payload/CreateMicroVM.json).
+Click the green `>` in the centre of the screen. The response should come immediately.
+
+In the terminal where you started the Reignite server, you should see in the logs that the MircoVM
+has started.
+
+To delete the MircoVM, select the `DeleteMicroVM` endpoint in the left-hand menu.
+Replace the sample request JSON in the left editor panel with [this example](hack/scripts/payload/DeleteMicroVM.json).
+Take care to ensure the values match those of the MicroVM you created earlier.
+Click the green `>` in the centre of the screen. The response should come immediately.
+
+**Note: there are example payloads for other endpoints, but not all are implemented at present.**
+
+[grpcurl]: https://github.com/vadimi/grpc-client-cli
 [bloomrpc]: https://github.com/uw-labs/bloomrpc
 
 ## Troubleshooting
