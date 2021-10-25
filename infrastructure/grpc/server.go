@@ -2,14 +2,19 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/go-playground/validator/v10"
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/flintlock/api/types"
 	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks/flintlock/pkg/validation"
 )
 
 // NewServer creates a new server instance.
@@ -18,14 +23,17 @@ func NewServer(commandUC ports.MicroVMCommandUseCases, queryUC ports.MicroVMQuer
 	return &server{
 		commandUC: commandUC,
 		queryUC:   queryUC,
+		validator: validation.NewValidator(),
 	}
 }
 
 type server struct {
 	commandUC ports.MicroVMCommandUseCases
 	queryUC   ports.MicroVMQueryUseCases
+	validator validation.Validator
 }
 
+//nolint:dupl
 func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequest) (*mvmv1.CreateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 
@@ -33,6 +41,17 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)
+	}
+
+	logger.Trace("validating model")
+	err = s.validator.ValidateStruct(modelSpec)
+	var valErrors validator.ValidationErrors
+	if err != nil {
+		if errors.As(err, &valErrors) {
+			return nil, status.Errorf(codes.InvalidArgument, "an error occurred when attempting to validate the request: %v", err)
+		}
+
+		return nil, status.Errorf(codes.Internal, "an error occurred: %v", err)
 	}
 
 	logger.Infof("creating microvm %s", modelSpec.ID)
@@ -51,6 +70,7 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	return resp, nil
 }
 
+//nolint:dupl
 func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequest) (*mvmv1.UpdateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 
@@ -58,6 +78,17 @@ func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequ
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)
+	}
+
+	logger.Trace("validating model")
+	err = s.validator.ValidateStruct(modelSpec)
+	var valErrors validator.ValidationErrors
+	if err != nil {
+		if errors.As(err, &valErrors) {
+			return nil, status.Errorf(codes.InvalidArgument, "an error occurred when attempting to validate the request: %v", err)
+		}
+
+		return nil, status.Errorf(codes.Internal, "an error occurred: %v", err)
 	}
 
 	logger.Infof("updating microvm %s", modelSpec.ID)

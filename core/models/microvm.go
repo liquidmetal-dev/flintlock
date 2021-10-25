@@ -23,26 +23,26 @@ type MicroVM struct {
 // MicroVMSpec represents the specification of a microvm machine.
 type MicroVMSpec struct {
 	// Kernel specifies the kernel and its argments to use.
-	Kernel Kernel `json:"kernel"`
+	Kernel Kernel `json:"kernel" validate:"omitempty"`
 	// Initrd is an optional initial ramdisk to use.
 	Initrd *Initrd `json:"initrd,omitempty"`
 	// VCPU specifies how many vcpu the machine will be allocated.
-	VCPU int64 `json:"vcpu"`
+	VCPU int64 `json:"vcpu" validate:"required,gte=1,lte=64"`
 	// MemoryInMb is the amount of memory in megabytes that the machine will be allocated.
-	MemoryInMb int64 `json:"memory_inmb"`
+	MemoryInMb int64 `json:"memory_inmb" validate:"required,gte=1024,lte=32768"`
 	// NetworkInterfaces specifies the network interfaces attached to the machine.
-	NetworkInterfaces []NetworkInterface `json:"network_interfaces"`
+	NetworkInterfaces []NetworkInterface `json:"network_interfaces" validate:"required,dive,required"`
 	// Volumes specifies the volumes to be attached to the the machine.
-	Volumes Volumes `json:"volumes"`
+	Volumes Volumes `json:"volumes" validate:"required,dive,required"`
 	// Metadata allows you to specify data to be added to the metadata service. The key is the name
 	// of the metadata item and the value is the base64 encoded contents of the metadata.
 	Metadata map[string]string `json:"metadata"`
 	// CreatedAt indicates the time the microvm was created at.
-	CreatedAt int64 `json:"created_at"`
+	CreatedAt int64 `json:"created_at" validate:"omitempty,datetimeInPast"`
 	// UpdatedAt indicates the time the microvm was last updated.
-	UpdatedAt int64 `json:"updated_at"`
+	UpdatedAt int64 `json:"updated_at" validate:"omitempty,datetimeInPast"`
 	// DeletedAt indicates the time the microvm was marked as deleted.
-	DeletedAt int64 `json:"deleted_at"`
+	DeletedAt int64 `json:"deleted_at" validate:"omitempty,datetimeInPast"`
 }
 
 // MicroVMStatus contains the runtime status of the microvm.
@@ -64,9 +64,9 @@ type MicroVMStatus struct {
 // Kernel is the specification of the kernel and its arguments.
 type Kernel struct {
 	// Image is the container image to use for the kernel.
-	Image ContainerImage `json:"image"`
+	Image ContainerImage `json:"image" validate:"required,imageURI"`
 	// Filename is the name of the kernel filename in the container.
-	Filename string
+	Filename string `validate:"required"`
 	// CmdLine are the args to use for the kernel cmdline.
 	CmdLine string `json:"cmdline,omitempty"`
 	// AddNetworkConfig if set to true indicates that the network-config kernel argument should be generated.
@@ -75,9 +75,9 @@ type Kernel struct {
 
 type Initrd struct {
 	// Image is the container image to use for the initrd.
-	Image ContainerImage `json:"image"`
+	Image ContainerImage `json:"image" validate:"imageURI"`
 	// Filename is the name of the initrd filename in the container.
-	Filename string
+	Filename string `validate:"file"`
 }
 
 // ContainerImage represents the address of a OCI image.

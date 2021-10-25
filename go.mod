@@ -6,10 +6,10 @@ require (
 	github.com/containerd/containerd v1.5.7
 	github.com/containerd/typeurl v1.0.2
 	github.com/firecracker-microvm/firecracker-go-sdk v0.22.0
-	github.com/go-openapi/strfmt v0.19.5 // indirect
+	github.com/go-openapi/strfmt v0.19.5
+	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0
@@ -24,6 +24,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
+	github.com/stretchr/testify v1.7.0
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	google.golang.org/genproto v0.0.0-20210903162649-d08c68adba83
 	google.golang.org/grpc v1.41.0
