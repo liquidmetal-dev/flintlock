@@ -6,7 +6,7 @@ require (
 	github.com/containerd/containerd v1.5.7
 	github.com/containerd/typeurl v1.0.2
 	github.com/firecracker-microvm/firecracker-go-sdk v0.22.0
-	github.com/go-openapi/strfmt v0.19.5
+	github.com/go-openapi/strfmt v0.20.3
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
