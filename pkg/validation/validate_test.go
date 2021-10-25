@@ -33,14 +33,16 @@ func TestValidation_Invalid(t *testing.T) {
 		{
 			GuestDeviceName: "!eth0",
 			GuestMAC:        "F5:C3:19:56:01:F4",
-			Address:         "192.168.1.1",
+			Address:         "192.168.1.1/32",
+			Type:            "macvtap",
 		},
 	}
 
 	invalidVolumes := basicMicroVM
 	invalidVolumes.Spec.Volumes = models.Volumes{
 		{
-			IsRoot: false,
+			IsRoot:     false,
+			MountPoint: "/",
 		},
 	}
 
@@ -51,7 +53,7 @@ func TestValidation_Invalid(t *testing.T) {
 	}{
 		{
 			name:      "nil spec should fail validation with 5 errors",
-			numErrors: 6,
+			numErrors: 7,
 			vmspec:    models.MicroVM{},
 		},
 		{
@@ -103,7 +105,8 @@ var basicMicroVM = models.MicroVM{
 			{
 				GuestDeviceName: "eth0",
 				GuestMAC:        "F5:C3:19:56:01:F4",
-				Address:         "192.168.1.1",
+				Address:         "192.168.1.1/32",
+				Type:            "macvtap",
 			},
 		},
 		CreatedAt: time.Now().Add(-100 * time.Second).Unix(),
