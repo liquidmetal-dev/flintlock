@@ -77,10 +77,15 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	}
 
 	if len(p.steps) != 0 {
-		if err := p.addStep(ctx, event.NewPublish(defaults.TopicMicroVMEvents, &events.MicroVMSpecDeleted{
-			ID:        p.vm.ID.Name(),
-			Namespace: p.vm.ID.Namespace(),
-		}, ports.EventService)); err != nil {
+		publishStep := event.NewPublish(
+			defaults.TopicMicroVMEvents,
+			&events.MicroVMSpecDeleted{
+				ID:        p.vm.ID.Name(),
+				Namespace: p.vm.ID.Namespace(),
+			},
+			ports.EventService,
+		)
+		if err := p.addStep(ctx, publishStep); err != nil {
 			return nil, fmt.Errorf("adding publish event: %w", err)
 		}
 	}

@@ -32,11 +32,11 @@ type MicroVMService interface {
 type MicroVMState string
 
 const (
-	MicroVMStateUnknown    = "unknown"
-	MicroVMStatePending    = "pending"
-	MicroVMStateConfigured = "configured"
-	MicroVMStateRunning    = "running"
-	MicroVMStatePaused     = "paused"
+	MicroVMStateUnknown    MicroVMState = "unknown"
+	MicroVMStatePending    MicroVMState = "pending"
+	MicroVMStateConfigured MicroVMState = "configured"
+	MicroVMStateRunning    MicroVMState = "running"
+	MicroVMStatePaused     MicroVMState = "paused"
 )
 
 // MicroVMGRPCService is a port for a microvm grpc service.

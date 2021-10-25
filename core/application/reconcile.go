@@ -114,6 +114,10 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 		return fmt.Errorf("executing plan: %w", err)
 	}
 
+	if plan.Name() == plans.MicroVMDeletePlanName {
+		return nil
+	}
+
 	if stepCount == 0 {
 		return nil
 	}

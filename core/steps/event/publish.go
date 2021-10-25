@@ -42,7 +42,7 @@ func (s *eventPublish) Do(ctx context.Context) ([]planner.Procedure, error) {
 	logger.Debug("running step to publish event")
 
 	if err := s.eventSvc.Publish(ctx, s.topic, s.event); err != nil {
-		return nil, fmt.Errorf("publishing event to lopic %s: %w", s.topic, err)
+		return nil, fmt.Errorf("publishing event to topic %s: %w", s.topic, err)
 	}
 
 	return nil, nil

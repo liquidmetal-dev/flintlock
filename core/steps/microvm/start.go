@@ -41,15 +41,15 @@ func (s *startStep) ShouldDo(ctx context.Context) (bool, error) {
 
 // Do will perform the operation/procedure.
 func (s *startStep) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.vm == nil {
+		return nil, errors.ErrSpecRequired
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step": s.Name(),
 		"vmid": s.vm.ID,
 	})
 	logger.Debug("starting microvm")
-
-	if s.vm == nil {
-		return nil, errors.ErrSpecRequired
-	}
 
 	if err := s.vmSvc.Start(ctx, s.vm.ID.String()); err != nil {
 		return nil, fmt.Errorf("starting microvm: %w", err)

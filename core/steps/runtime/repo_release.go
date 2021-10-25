@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/pkg/log"
@@ -35,6 +36,10 @@ func (s *repoRelease) ShouldDo(ctx context.Context) (bool, error) {
 	})
 	logger.Debug("checking if procedure should be run")
 
+	if s.vm == nil {
+		return false, errors.ErrSpecRequired
+	}
+
 	exists, err := s.repo.Exists(ctx, s.vm.ID.Name(), s.vm.ID.Namespace())
 	if err != nil {
 		return false, fmt.Errorf("checking if spec exists: %w", err)
@@ -49,6 +54,10 @@ func (s *repoRelease) Do(ctx context.Context) ([]planner.Procedure, error) {
 		"step": s.Name(),
 	})
 	logger.Debug("running step to release repo lease")
+
+	if s.vm == nil {
+		return nil, errors.ErrSpecRequired
+	}
 
 	if err := s.repo.ReleaseLease(ctx, s.vm); err != nil {
 		return nil, fmt.Errorf("releasing lease for %s: %w", s.vm.ID, err)

@@ -23,7 +23,7 @@ import (
 
 var (
 	errNotImplemeted       = errors.New("not implemented")
-	errUnknowInstanceState = errors.New("uknown instance state")
+	errUnknowInstanceState = errors.New("unknown instance state")
 )
 
 // Config represents the configuration options for the Firecracker infrastructure.

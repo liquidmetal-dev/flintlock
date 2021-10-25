@@ -42,15 +42,15 @@ func (s *deleteStep) ShouldDo(ctx context.Context) (bool, error) {
 
 // Do will perform the operation/procedure.
 func (s *deleteStep) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.vm == nil {
+		return nil, errors.ErrSpecRequired
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step": s.Name(),
 		"vmid": s.vm.ID,
 	})
 	logger.Debug("deleting microvm")
-
-	if s.vm == nil {
-		return nil, errors.ErrSpecRequired
-	}
 
 	id := s.vm.ID.String()
 	if err := s.vmSvc.Delete(ctx, id); err != nil {
