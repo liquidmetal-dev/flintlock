@@ -266,7 +266,7 @@ There are both GUI and a CLI option.
 
 ### grpc-client-cli
 
-Install the [grpc-client-cli](grpcurl).
+Install the [grpcurl](grpcurl).
 
 Use the `./hack/scripts/send.sh` script.
 
@@ -311,7 +311,7 @@ Click the green `>` in the centre of the screen. The response should come immedi
 
 **Note: there are example payloads for other endpoints, but not all are implemented at present.**
 
-[grpcurl]: https://github.com/vadimi/grpc-client-cli
+[grpcurl]: https://github.com/fullstorydev/grpcurl
 [bloomrpc]: https://github.com/uw-labs/bloomrpc
 
 ## Troubleshooting
