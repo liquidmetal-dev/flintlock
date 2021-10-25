@@ -24,9 +24,11 @@ func NewRootCommand() (*cobra.Command, error) {
 		Short: "The flintlock API",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			flags.BindCommandToViper(cmd)
+
 			if err := log.Configure(&cfg.Logging); err != nil {
 				return fmt.Errorf("configuring logging: %w", err)
 			}
+
 			logger := log.GetLogger(cmd.Context())
 			logger.Infof("flintlockd, version=%s, built_on=%s, commit=%s", version.Version, version.BuildDate, version.CommitHash)
 
@@ -53,12 +55,14 @@ func initCobra() {
 	viper.SetConfigType("yaml")
 	viper.SetConfigName("config")
 	viper.AddConfigPath(defaults.ConfigurationDir)
+
 	xdgCfg := os.Getenv("XDG_CONFIG_HOME")
 	if xdgCfg != "" {
 		viper.AddConfigPath("$XDG_CONFIG_HOME/flintlockd/")
 	} else {
 		viper.AddConfigPath("$HOME/.config/flintlockd/")
 	}
+
 	viper.ReadInConfig() //nolint: errcheck
 }
 
@@ -67,6 +71,7 @@ func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("creating run cobra command: %w", err)
 	}
+
 	cmd.AddCommand(runCmd)
 
 	gwCmd := gw.NewCommand(cfg)

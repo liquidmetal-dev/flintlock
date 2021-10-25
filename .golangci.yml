@@ -5,13 +5,46 @@ run:
     skip-dirs:
       - "./*/mock"
 
+linters-settings:
+  goimports:
+    local-prefixes: github.com/weaveworks/flintlock
+  govet:
+    check-shadowing: true
+  misspell:
+    locale: GB
+  nolintlint:
+    allow-leading-space: false
+    allow-unused: false
+    require-explanation: true
+    require-specific: false
 
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
   exclude-rules:
-    - linters: [golint]
-      text: "should not use dot imports|don't use an underscore in package name"
+  - text: "should not use dot imports|don't use an underscore in package name"
+    linters:
+    - golint
+  - text: "local replacement are not allowed: github.com/weaveworks/flintlock/"
+    linters:
+    - gomoddirectives
+  - path: _test\.go
+    linters:
+    - goerr113
+    - gocyclo
+    - errcheck
+    - gosec
+    - dupl
+    - funlen
+    - scopelint
+    - testpackage
+  - path: internal/version/
+    linters:
+    - gochecknoglobals
+  - path: internal/command/
+    linters:
+    - exhaustivestruct
+    - lll
 
 linters-settings:
   funlen:
@@ -26,14 +59,59 @@ linters-settings:
     skip-tests: true
 
 linters:
-    enable-all: true
-    disable:
-    - gochecknoglobals
-    - gochecknoinits
-    - wsl
-    - tagliatelle
-    - exhaustivestruct
-    - godox # remove in the future
-    - gci
-    - maligned
-    - lll
+  disable-all: true
+  enable:
+  - deadcode
+  - errcheck
+  - gosimple
+  - govet
+  - ineffassign
+  - staticcheck
+  - structcheck
+  - typecheck
+  - unused
+  - varcheck
+  - bodyclose
+  - depguard
+  - dogsled
+  - dupl
+  - exhaustive
+  - exportloopref
+  - funlen
+  - gochecknoinits
+  - gocognit
+  - goconst
+  - gocritic
+  - gocyclo
+  - godot
+  - goerr113
+  - gofmt
+  - gofumpt
+  - goheader
+  - goimports
+  - revive
+  - gomnd
+  - gomodguard
+  - goprintffuncname
+  - gosec
+  - misspell
+  - nakedret
+  - nestif
+  - nlreturn
+  - noctx
+  - nolintlint
+  - prealloc
+  - rowserrcheck
+  - exportloopref
+  - sqlclosecheck
+  - stylecheck
+  - testpackage
+  - unconvert
+  - unparam
+  - whitespace
+  disabled:
+  - gci
+  - godox
+  - gochecknoglobals
+  - lll
+  - wsl
