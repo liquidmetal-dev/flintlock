@@ -21,7 +21,10 @@ import (
 	"github.com/weaveworks/flintlock/pkg/process"
 )
 
-var errNotImplemeted = errors.New("not implemented")
+var (
+	errNotImplemeted       = errors.New("not implemented")
+	errUnknowInstanceState = errors.New("unknown instance state")
+)
 
 // Config represents the configuration options for the Firecracker infrastructure.
 type Config struct {
@@ -70,11 +73,11 @@ func (p *fcProvider) Start(ctx context.Context, id string) error {
 		return nil
 	}
 
-	running, err := p.IsRunning(ctx, id)
+	state, err := p.State(ctx, id)
 	if err != nil {
 		return fmt.Errorf("checking if instance is running: %w", err)
 	}
-	if running {
+	if state == ports.MicroVMStateRunning {
 		logger.Debug("instance is already running, not starting")
 
 		return nil
@@ -173,40 +176,40 @@ func (p *fcProvider) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// IsRunning returns true if the microvm is running.
-func (p *fcProvider) IsRunning(ctx context.Context, id string) (bool, error) {
+// State returns the state of a Firecracker microvm.
+func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "firecracker_microvm",
 		"vmid":    id,
 	})
-	logger.Info("checking if microvm is running")
+	logger.Info("checking state of microvm")
 
 	vmid, err := models.NewVMIDFromString(id)
 	if err != nil {
-		return false, fmt.Errorf("parsing vmid: %w", err)
+		return ports.MicroVMStateUnknown, fmt.Errorf("parsing vmid: %w", err)
 	}
 	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
 
 	pidPath := vmState.PIDPath()
 	exists, err := afero.Exists(p.fs, pidPath)
 	if err != nil {
-		return false, fmt.Errorf("checking pid file exists: %w", err)
+		return ports.MicroVMStateUnknown, fmt.Errorf("checking pid file exists: %w", err)
 	}
 	if !exists {
-		return false, nil
+		return ports.MicroVMStatePending, nil
 	}
 
 	pid, err := vmState.PID()
 	if err != nil {
-		return false, fmt.Errorf("getting pid from file: %w", err)
+		return ports.MicroVMStateUnknown, fmt.Errorf("getting pid from file: %w", err)
 	}
 
 	processExists, err := process.Exists(pid)
 	if err != nil {
-		return false, fmt.Errorf("checking if firecracker process is running: %w", err)
+		return ports.MicroVMStateUnknown, fmt.Errorf("checking if firecracker process is running: %w", err)
 	}
 	if !processExists {
-		return false, nil
+		return ports.MicroVMStatePending, nil
 	}
 
 	socketPath := vmState.SockPath()
@@ -214,14 +217,19 @@ func (p *fcProvider) IsRunning(ctx context.Context, id string) (bool, error) {
 
 	info, err := p.getInstanceInfo(socketPath, logger)
 	if err != nil {
-		return false, fmt.Errorf("getting instance info: %w", err)
+		return ports.MicroVMStateUnknown, fmt.Errorf("getting instance info: %w", err)
 	}
 
-	if *info.State == string(InstanceStateStarted) {
-		return true, nil
+	switch *info.State {
+	case string(InstanceStateRunning):
+		return ports.MicroVMStateRunning, nil
+	case string(InstanceStateNotStarted):
+		return ports.MicroVMStateConfigured, nil
+	case string(InstanceStatePaused):
+		return ports.MicroVMStatePaused, nil
+	default:
+		return ports.MicroVMStateUnknown, errUnknowInstanceState
 	}
-
-	return false, nil
 }
 
 func (p *fcProvider) getInstanceInfo(socketPath string, logger *logrus.Entry) (*fcmodels.InstanceInfo, error) {

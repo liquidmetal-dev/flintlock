@@ -78,21 +78,6 @@ func (mr *MockMicroVMServiceMockRecorder) Delete(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockMicroVMService)(nil).Delete), arg0, arg1)
 }
 
-// IsRunning mocks base method.
-func (m *MockMicroVMService) IsRunning(arg0 context.Context, arg1 string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsRunning", arg0, arg1)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// IsRunning indicates an expected call of IsRunning.
-func (mr *MockMicroVMServiceMockRecorder) IsRunning(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsRunning", reflect.TypeOf((*MockMicroVMService)(nil).IsRunning), arg0, arg1)
-}
-
 // Pause mocks base method.
 func (m *MockMicroVMService) Pause(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
@@ -133,6 +118,21 @@ func (m *MockMicroVMService) Start(arg0 context.Context, arg1 string) error {
 func (mr *MockMicroVMServiceMockRecorder) Start(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockMicroVMService)(nil).Start), arg0, arg1)
+}
+
+// State mocks base method.
+func (m *MockMicroVMService) State(arg0 context.Context, arg1 string) (ports.MicroVMState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "State", arg0, arg1)
+	ret0, _ := ret[0].(ports.MicroVMState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// State indicates an expected call of State.
+func (mr *MockMicroVMServiceMockRecorder) State(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "State", reflect.TypeOf((*MockMicroVMService)(nil).State), arg0, arg1)
 }
 
 // Stop mocks base method.

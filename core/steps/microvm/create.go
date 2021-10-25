@@ -30,25 +30,25 @@ func (s *createStep) Name() string {
 }
 
 func (s *createStep) ShouldDo(ctx context.Context) (bool, error) {
-	isRunning, err := s.vmSvc.IsRunning(ctx, s.vm.ID.String())
+	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
 	if err != nil {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
 
-	return !isRunning, nil
+	return state == ports.MicroVMStatePending, nil
 }
 
 // Do will perform the operation/procedure.
 func (s *createStep) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.vm == nil {
+		return nil, errors.ErrSpecRequired
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step": s.Name(),
 		"vmid": s.vm.ID,
 	})
 	logger.Debug("creating microvm")
-
-	if s.vm == nil {
-		return nil, errors.ErrSpecRequired
-	}
 
 	if err := s.vmSvc.Create(ctx, s.vm); err != nil {
 		return nil, fmt.Errorf("creating microvm: %w", err)

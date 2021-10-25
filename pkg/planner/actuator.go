@@ -64,6 +64,7 @@ func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.E
 
 			return numStepsExecuted, nil
 		}
+
 		executed, err := e.react(ctx, steps, logger)
 		numStepsExecuted += executed
 		if err != nil {
@@ -88,7 +89,10 @@ func (e *actuatorImpl) react(ctx context.Context, steps []Procedure, logger *log
 				return numStepsExecuted, fmt.Errorf("checking if step %s should be executed: %w", step.Name(), err)
 			}
 			if shouldDo {
+				logger.WithField("step", step.Name()).Debug("execute step")
+
 				numStepsExecuted++
+
 				childSteps, err = step.Do(ctx)
 				if err != nil {
 					return numStepsExecuted, fmt.Errorf("executing step %s: %w", step.Name(), err)

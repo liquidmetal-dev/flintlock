@@ -6,11 +6,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/flintlock/api/events"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/plans"
 	portsctx "github.com/weaveworks/flintlock/core/ports/context"
-	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
@@ -116,19 +114,7 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 		return fmt.Errorf("executing plan: %w", err)
 	}
 
-	// Move this into a step at the same time as startvm is moved.
 	if plan.Name() == plans.MicroVMDeletePlanName {
-		if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecDeleted{
-			ID:        spec.ID.Name(),
-			Namespace: spec.ID.Namespace(),
-		}); err != nil {
-			return fmt.Errorf("publishing microvm updated event: %w", err)
-		}
-
-		if err := a.ports.Repo.ReleaseLease(ctx, spec); err != nil {
-			return fmt.Errorf("releasing lease after plan execution: %w", err)
-		}
-
 		return nil
 	}
 
@@ -138,18 +124,6 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 
 	if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
 		return fmt.Errorf("saving spec after plan execution: %w", err)
-	}
-
-	// A little bit of hack until Update is implemented.
-	//
-	// Later move this into a step, so update and create can start if it's
-	// not running.
-	if plan.Name() == plans.MicroVMCreatePlanName {
-		// if spec.Status.State == models.CreatedState {
-		if err := a.ports.Provider.Start(ctx, spec.ID.String()); err != nil {
-			return fmt.Errorf("starting micro vm %s: %w", spec.ID, err)
-		}
-		// }
 	}
 
 	return nil

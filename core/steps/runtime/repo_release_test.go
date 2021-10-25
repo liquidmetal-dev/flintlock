@@ -1,0 +1,160 @@
+package runtime_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/golang/mock/gomock"
+	g "github.com/onsi/gomega"
+	internalerrors "github.com/weaveworks/flintlock/core/errors"
+	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/steps/runtime"
+	"github.com/weaveworks/flintlock/infrastructure/mock"
+)
+
+func testVM() *models.MicroVM {
+	vmid, _ := models.NewVMID("vm", "ns")
+	return &models.MicroVM{
+		ID:      *vmid,
+		Version: 1,
+		Spec: models.MicroVMSpec{
+			Kernel: models.Kernel{
+				Image:            "image:tag",
+				Filename:         "/vmlinuz",
+				AddNetworkConfig: true,
+			},
+			Initrd: &models.Initrd{
+				Image:    "image:tag",
+				Filename: "/initrd",
+			},
+			VCPU:       1,
+			MemoryInMb: 512,
+		},
+	}
+}
+
+func TestNewRepoRelease(t *testing.T) {
+	g.RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	microVMRepoService := mock.NewMockMicroVMRepository(mockCtrl)
+	ctx := context.Background()
+	vm := testVM()
+
+	step := runtime.NewRepoRelease(vm, microVMRepoService)
+
+	microVMRepoService.
+		EXPECT().
+		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Return(true, nil)
+
+	microVMRepoService.
+		EXPECT().
+		ReleaseLease(ctx, vm).
+		Return(nil)
+
+	shouldDo, shouldErr := step.ShouldDo(ctx)
+	subSteps, doErr := step.Do(ctx)
+
+	g.Expect(shouldDo).To(g.BeTrue())
+	g.Expect(shouldErr).To(g.BeNil())
+	g.Expect(subSteps).To(g.BeEmpty())
+	g.Expect(doErr).To(g.BeNil())
+}
+
+func TestNewRepoRelease_doesNotExist(t *testing.T) {
+	g.RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	microVMRepoService := mock.NewMockMicroVMRepository(mockCtrl)
+	ctx := context.Background()
+	vm := testVM()
+
+	step := runtime.NewRepoRelease(vm, microVMRepoService)
+
+	microVMRepoService.
+		EXPECT().
+		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Return(false, nil)
+
+	shouldDo, shouldErr := step.ShouldDo(ctx)
+
+	g.Expect(shouldDo).To(g.BeFalse())
+	g.Expect(shouldErr).To(g.BeNil())
+}
+
+func TestNewRepoRelease_VMIsNotDefined(t *testing.T) {
+	g.RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	microVMRepoService := mock.NewMockMicroVMRepository(mockCtrl)
+	ctx := context.Background()
+
+	var vm *models.MicroVM
+
+	step := runtime.NewRepoRelease(vm, microVMRepoService)
+
+	shouldDo, shouldErr := step.ShouldDo(ctx)
+	subSteps, doErr := step.Do(ctx)
+
+	g.Expect(shouldDo).To(g.BeFalse())
+	g.Expect(shouldErr).To(g.MatchError(internalerrors.ErrSpecRequired))
+	g.Expect(subSteps).To(g.BeEmpty())
+	g.Expect(doErr).To(g.MatchError(internalerrors.ErrSpecRequired))
+}
+
+func TestNewRepoRelease_existsCheckFails(t *testing.T) {
+	g.RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	microVMRepoService := mock.NewMockMicroVMRepository(mockCtrl)
+	ctx := context.Background()
+	vm := testVM()
+
+	step := runtime.NewRepoRelease(vm, microVMRepoService)
+
+	microVMRepoService.
+		EXPECT().
+		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Return(false, errors.New("exists check failed"))
+
+	shouldDo, shouldErr := step.ShouldDo(ctx)
+
+	g.Expect(shouldDo).To(g.BeFalse())
+	g.Expect(shouldErr).ToNot(g.BeNil())
+}
+
+func TestNewRepoRelease_repoServiceError(t *testing.T) {
+	g.RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	microVMRepoService := mock.NewMockMicroVMRepository(mockCtrl)
+	ctx := context.Background()
+	vm := testVM()
+
+	step := runtime.NewRepoRelease(vm, microVMRepoService)
+
+	microVMRepoService.
+		EXPECT().
+		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Return(true, nil)
+
+	microVMRepoService.
+		EXPECT().
+		ReleaseLease(ctx, vm).
+		Return(errors.New("something went wrong"))
+
+	shouldDo, shouldErr := step.ShouldDo(ctx)
+	subSteps, doErr := step.Do(ctx)
+
+	g.Expect(shouldDo).To(g.BeTrue())
+	g.Expect(shouldErr).To(g.BeNil())
+	g.Expect(subSteps).To(g.BeEmpty())
+	g.Expect(doErr).ToNot(g.BeNil())
+}

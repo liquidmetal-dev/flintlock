@@ -164,9 +164,9 @@ type InstanceState string
 
 var (
 	// InstanceStateNotStarted the instance hasn't started running yet.
-	InstanceStateNotStarted InstanceState = "Not Started"
-	// InstanceStateStarted the instance is running.
-	InstanceStateStarted InstanceState = "Started"
+	InstanceStateNotStarted InstanceState = "Not started"
+	// InstanceStateRunning the instance is running.
+	InstanceStateRunning InstanceState = "Running"
 	// InstanceStatePaused the instance is currently paused.
 	InstanceStatePaused InstanceState = "Paused"
 )
