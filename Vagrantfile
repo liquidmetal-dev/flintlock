@@ -21,6 +21,8 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
   config.vm.synced_folder "./", "/home/vagrant/flintlock"
 
+  config.vm.network "forwarded_port", guest: 9090, host: 9090
+
   cpus = 2
   memory = 4096
   config.vm.provider :virtualbox do |v|
