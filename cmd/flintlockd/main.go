@@ -11,6 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalln(err)
 	}
