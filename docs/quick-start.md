@@ -247,6 +247,8 @@ sudo ./bin/flintlockd run \
   --parent-iface="${NET_DEVICE}"
 ```
 
+If you're running `flintlockd` from within a Vagrant VM and wish to call the gRPC API from your host machine then you need to run `flintlockd` with the `--grpc-endpoint=0.0.0.0:9090` flag, otherwise the connection will be rejected.
+
 You should see it start successfully with similar output:
 ```
 INFO[0000] flintlockd, version=undefined, built_on=undefined, commit=undefined
