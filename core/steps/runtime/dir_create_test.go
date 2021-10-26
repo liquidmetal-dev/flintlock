@@ -44,8 +44,11 @@ func TestCreateDirectory_Exists(t *testing.T) {
 
 	ctx := context.Background()
 	step := runtime.NewCreateDirectory(testDir, testMode, fs)
+	shouldDo, shouldErr := step.ShouldDo(ctx)
 	childSteps, err := step.Do(ctx)
 
+	Expect(shouldErr).NotTo(HaveOccurred())
+	Expect(shouldDo).To(BeFalse())
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(childSteps)).To(Equal(0))
 
@@ -67,8 +70,11 @@ func TestCreateDirectory_ExistsButChangeMode(t *testing.T) {
 
 	ctx := context.Background()
 	step := runtime.NewCreateDirectory(testDir, changeMode, fs)
+	shouldDo, shouldErr := step.ShouldDo(ctx)
 	childSteps, err := step.Do(ctx)
 
+	Expect(shouldErr).NotTo(HaveOccurred())
+	Expect(shouldDo).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(childSteps)).To(Equal(0))
 
