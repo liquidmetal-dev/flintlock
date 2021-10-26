@@ -247,10 +247,12 @@ sudo ./bin/flintlockd run \
   --parent-iface="${NET_DEVICE}"
 ```
 
+If you're running `flintlockd` from within a Vagrant VM and wish to call the gRPC API from your host machine then you need to run `flintlockd` with the `--grpc-endpoint=0.0.0.0:9090` flag, otherwise the connection will be rejected.
+
 You should see it start successfully with similar output:
 ```
-INFO[0000] reignited, version=undefined, built_on=undefined, commit=undefined
-INFO[0000] reignited grpc api server starting
+INFO[0000] flintlockd, version=undefined, built_on=undefined, commit=undefined
+INFO[0000] flintlockd grpc api server starting
 INFO[0000] starting microvm controller
 INFO[0000] starting microvm controller with 1 workers    controller=microvm
 INFO[0000] resyncing microvm specs                       controller=microvm
@@ -279,7 +281,7 @@ To created a MicroVM:
   --method CreateMicroVM
 ```
 
-In the terminal where you started the Reignite server, you should see in the logs that the MircoVM
+In the terminal where you started the Flintlock server, you should see in the logs that the MircoVM
 has started.
 
 ### BloomRPC
@@ -291,7 +293,7 @@ has started.
 To import Flintlock protos into the Bloom GUI:
 
 1. Click `Import Paths` on the left-hand menu bar and add `<absolute-repo-path>/api` to the list
-1. Click the import `+` button and select `reignite/api/services/microvm/v1alpha1/microvms.proto`
+1. Click the import `+` button and select `flintlock/api/services/microvm/v1alpha1/microvms.proto`
 
 All available endpoints will be visible in a nice tree view.
 
@@ -301,7 +303,7 @@ To create a MircoVM, select the `CreateMicroVM` endpoint in the left-hand menu.
 Replace the sample request JSON in the left editor panel with [this example](hack/scripts/payload/CreateMicroVM.json).
 Click the green `>` in the centre of the screen. The response should come immediately.
 
-In the terminal where you started the Reignite server, you should see in the logs that the MircoVM
+In the terminal where you started the Flintlock server, you should see in the logs that the MircoVM
 has started.
 
 To delete the MircoVM, select the `DeleteMicroVM` endpoint in the left-hand menu.
