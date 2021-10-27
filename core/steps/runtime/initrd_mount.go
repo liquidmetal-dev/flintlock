@@ -31,6 +31,10 @@ func (s *initrdMount) Name() string {
 }
 
 func (s *initrdMount) ShouldDo(ctx context.Context) (bool, error) {
+	if s.vm == nil {
+		return false, cerrs.ErrSpecRequired
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step":  s.Name(),
 		"image": s.vm.Spec.Kernel.Image,
@@ -56,6 +60,10 @@ func (s *initrdMount) ShouldDo(ctx context.Context) (bool, error) {
 
 // Do will perform the operation/procedure.
 func (s *initrdMount) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.vm == nil {
+		return nil, cerrs.ErrSpecRequired
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step":  s.Name(),
 		"image": s.vm.Spec.Kernel.Image,

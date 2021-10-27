@@ -31,6 +31,10 @@ func (s *kernelMount) Name() string {
 }
 
 func (s *kernelMount) ShouldDo(ctx context.Context) (bool, error) {
+	if s.vm == nil {
+		return false, cerrs.ErrSpecRequired
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step":  s.Name(),
 		"image": s.vm.Spec.Kernel.Image,
@@ -52,6 +56,10 @@ func (s *kernelMount) ShouldDo(ctx context.Context) (bool, error) {
 
 // Do will perform the operation/procedure.
 func (s *kernelMount) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.vm == nil {
+		return nil, cerrs.ErrSpecRequired
+	}
+
 	if s.vm.Spec.Kernel.Image == "" {
 		return nil, cerrs.ErrKernelImageRequired
 	}

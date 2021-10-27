@@ -56,6 +56,10 @@ func (s *volumeMount) ShouldDo(ctx context.Context) (bool, error) {
 
 // Do will perform the operation/procedure.
 func (s *volumeMount) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.status == nil {
+		return nil, cerrs.ErrMissingStatusInfo
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step": s.Name(),
 		"id":   s.volume.ID,
@@ -72,9 +76,6 @@ func (s *volumeMount) Do(ctx context.Context) ([]planner.Procedure, error) {
 		return nil, cerrs.ErrNoVolumeMount
 	}
 
-	if s.status == nil {
-		s.status = &models.VolumeStatus{}
-	}
 	s.status.Mount = mounts[0]
 
 	return nil, nil
