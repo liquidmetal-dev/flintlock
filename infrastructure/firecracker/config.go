@@ -157,14 +157,26 @@ func ApplyConfig(ctx context.Context, cfg *VmmConfig, client *firecracker.Client
 			return fmt.Errorf("putting %s network configuration: %w", guestIfaceName, err)
 		}
 	}
-	_, err = client.PutGuestBootSource(ctx, &fcmodels.BootSource{
+
+	bootSource := fcmodels.BootSource{
+		BootArgs:        "",
+		InitrdPath:      "",
 		KernelImagePath: &cfg.BootSource.KernelImagePage,
-		BootArgs:        *cfg.BootSource.BootArgs,
-		InitrdPath:      *cfg.BootSource.InitrdPath,
-	})
+	}
+
+	if cfg.BootSource.BootArgs != nil {
+		bootSource.BootArgs = *cfg.BootSource.BootArgs
+	}
+
+	if cfg.BootSource.InitrdPath != nil {
+		bootSource.InitrdPath = *cfg.BootSource.InitrdPath
+	}
+
+	_, err = client.PutGuestBootSource(ctx, &bootSource)
 	if err != nil {
 		return fmt.Errorf("failed to put machine bootsource: %w", err)
 	}
+
 	if cfg.Logger != nil {
 		_, err = client.PutLogger(ctx, &fcmodels.Logger{
 			LogPath:       &cfg.Logger.LogPath,
