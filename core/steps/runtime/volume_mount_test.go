@@ -71,7 +71,7 @@ func testVolumeMountSpec(vmid *models.VMID, volume *models.Volume) *ports.ImageM
 	}
 }
 
-func TestMountMount(t *testing.T) {
+func TestVolumeMount(t *testing.T) {
 	g.RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -108,7 +108,7 @@ func TestMountMount(t *testing.T) {
 	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
 }
 
-func TestMountMount_statusAlreadySetBoth(t *testing.T) {
+func TestVolumeMount_statusAlreadySetBoth(t *testing.T) {
 	g.RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -153,7 +153,7 @@ func TestMountMount_statusAlreadySetBoth(t *testing.T) {
 	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
 }
 
-func TestMountMount_retry(t *testing.T) {
+func TestVolumeMount_retry(t *testing.T) {
 	g.RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -208,7 +208,7 @@ func TestMountMount_retry(t *testing.T) {
 	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
 }
 
-func TestMountMount_IsMountedError(t *testing.T) {
+func TestVolumeMount_IsMountedError(t *testing.T) {
 	g.RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -241,7 +241,7 @@ func TestMountMount_IsMountedError(t *testing.T) {
 	g.Expect(shouldErr).ToNot(g.BeNil())
 }
 
-func TestMountMount_doError(t *testing.T) {
+func TestVolumeMount_doError(t *testing.T) {
 	g.RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -285,7 +285,7 @@ func TestMountMount_doError(t *testing.T) {
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrNoVolumeMount))
 }
 
-func TestMountMount_nilStatus(t *testing.T) {
+func TestVolumeMount_nilStatus(t *testing.T) {
 	g.RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
