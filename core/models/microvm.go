@@ -48,17 +48,17 @@ type MicroVMSpec struct {
 // MicroVMStatus contains the runtime status of the microvm.
 type MicroVMStatus struct {
 	// State stores information about the last known state of the vm and the spec.
-	State MicroVMState
+	State MicroVMState `json:"state"`
 	// Volumes holds the status of the volumes.
-	Volumes VolumeStatuses
+	Volumes VolumeStatuses `json:"volumes"`
 	// KernelMount holds the status of the kernel mount point.
-	KernelMount *Mount
+	KernelMount *Mount `json:"kernel_mount"`
 	// InitrdMount holds the status of the initrd mount point.
-	InitrdMount *Mount
+	InitrdMount *Mount `json:"initrd_mount"`
 	// NetworkInterfaces holds the status of the network interfaces.
-	NetworkInterfaces NetworkInterfaceStatuses
+	NetworkInterfaces NetworkInterfaceStatuses `json:"network_interfaces"`
 	// Retry is a counter about how many times we retried to reconcile.
-	Retry int
+	Retry int `json:"retry"`
 }
 
 // Kernel is the specification of the kernel and its arguments.

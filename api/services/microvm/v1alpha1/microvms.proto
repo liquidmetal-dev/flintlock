@@ -80,7 +80,7 @@ message GetMicroVMRequest {
 }
 
 message GetMicroVMResponse {
-  flintlock.types.MicroVMSpec  microvm = 1;
+  flintlock.types.MicroVM microvm = 1;
 }
 
 message ListMicroVMsRequest {
@@ -88,7 +88,7 @@ message ListMicroVMsRequest {
 }
 
 message ListMicroVMsResponse {
-  repeated flintlock.types.MicroVMSpec  microvm = 1;
+  repeated flintlock.types.MicroVM  microvm = 1;
 }
 
 message ListMessage {

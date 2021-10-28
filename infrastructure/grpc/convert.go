@@ -182,3 +182,71 @@ func convertModelToNetworkInterface(modelNetInt *models.NetworkInterface) *types
 
 	return converted
 }
+
+func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
+	converted := &types.MicroVMStatus{
+		Retry: int32(mvm.Status.Retry),
+	}
+
+	switch mvm.Status.State {
+	case models.CreatedState:
+		converted.State = types.MicroVMStatus_CREATED
+	case models.PendingState:
+		converted.State = types.MicroVMStatus_PENDING
+	case models.FailedState:
+		converted.State = types.MicroVMStatus_FAILED
+	}
+
+	converted.Volumes = make(map[string]*types.VolumeStatus)
+	for volName, volStatus := range mvm.Status.Volumes {
+		converted.Volumes[volName] = convertModelToVolumeStatus(volStatus)
+	}
+
+	if mvm.Status.KernelMount != nil {
+		converted.KernelMount = convertModelToVolumeMount(mvm.Status.KernelMount)
+	}
+
+	if mvm.Status.InitrdMount != nil {
+		converted.InitrdMount = convertModelToVolumeMount(mvm.Status.InitrdMount)
+	}
+
+	converted.NetworkInterfaces = make(map[string]*types.NetworkInterfaceStatus)
+	for netIfaceName, netIfaceStatus := range mvm.Status.NetworkInterfaces {
+		converted.NetworkInterfaces[netIfaceName] = convertModelToNetworkInterfaceStatus(netIfaceStatus)
+	}
+
+	return converted
+}
+
+func convertModelToVolumeStatus(volStatus *models.VolumeStatus) *types.VolumeStatus {
+	converted := &types.VolumeStatus{
+		Mount: convertModelToVolumeMount(&volStatus.Mount),
+	}
+
+	return converted
+}
+
+func convertModelToVolumeMount(volMount *models.Mount) *types.Mount {
+	converted := &types.Mount{
+		Source: volMount.Source,
+	}
+
+	switch volMount.Type {
+	case models.MountTypeDev:
+		converted.Type = types.Mount_DEV
+	case models.MountTypeHostPath:
+		converted.Type = types.Mount_HOSTPATH
+	}
+
+	return converted
+}
+
+func convertModelToNetworkInterfaceStatus(netStatus *models.NetworkInterfaceStatus) *types.NetworkInterfaceStatus {
+	converted := &types.NetworkInterfaceStatus{
+		HostDeviceName: netStatus.HostDeviceName,
+		Index:          int32(netStatus.Index),
+		MacAddress:     netStatus.MACAddress,
+	}
+
+	return converted
+}

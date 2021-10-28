@@ -134,7 +134,11 @@ func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (
 
 	logger.Trace("converting model to response")
 	resp := &mvmv1.GetMicroVMResponse{
-		Microvm: convertModelToMicroVM(foundMicrovm),
+		Microvm: &types.MicroVM{
+			Version: int32(foundMicrovm.Version),
+			Spec:    convertModelToMicroVM(foundMicrovm),
+			Status:  convertModelToMicroVMStatus(foundMicrovm),
+		},
 	}
 
 	return resp, nil
@@ -153,11 +157,15 @@ func (s *server) ListMicroVMs(ctx context.Context, req *mvmv1.ListMicroVMsReques
 
 	logger.Trace("converting model to response")
 	resp := &mvmv1.ListMicroVMsResponse{
-		Microvm: []*types.MicroVMSpec{},
+		Microvm: []*types.MicroVM{},
 	}
 
 	for _, mvm := range foundMicrovms {
-		converted := convertModelToMicroVM(mvm)
+		converted := &types.MicroVM{
+			Version: int32(mvm.Version),
+			Spec:    convertModelToMicroVM(mvm),
+			Status:  convertModelToMicroVMStatus(mvm),
+		}
 		resp.Microvm = append(resp.Microvm, converted)
 	}
 

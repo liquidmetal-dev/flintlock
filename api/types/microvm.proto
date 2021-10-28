@@ -6,6 +6,15 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/weaveworks/flintlock/api/types;types";
 
+// MicroVM represents a microvm machine that is created via a provider.
+message MicroVM {
+  int32 version = 1;
+  // Spec is the specification of the microvm.
+  MicroVMSpec spec = 2;
+  // Status is the runtime status of the microvm.
+  MicroVMStatus status = 3;
+}
+
 // MicroVMSpec represents the specification for a microvm.
 message MicroVMSpec {
   // ID is the identifier of the microvm.
@@ -124,4 +133,53 @@ message VolumeSource {
 message ContainerVolumeSource {
     // Image specifies teh conatiner image to use for the volume.
     string image = 1;
+}
+
+// MicroVMStatus contains the runtime status of the microvm.
+message MicroVMStatus {
+  enum MicroVMState {
+    PENDING = 0;
+    CREATED = 1;
+    FAILED = 2;
+  }
+
+  // State stores information about the last known state of the vm and the spec.
+  MicroVMState state = 1;
+  // Volumes holds the status of the volumes.
+  map<string, VolumeStatus> volumes = 2;
+  // KernelMount holds the status of the kernel mount point.
+  Mount kernel_mount = 3;
+  // InitrdMount holds the status of the initrd mount point.
+  Mount initrd_mount = 4;
+  // NetworkInterfaces holds the status of the network interfaces.
+  map<string, NetworkInterfaceStatus> network_interfaces = 5;
+  // Retry is a counter about how many times we retried to reconcile.
+  int32 retry = 6;
+}
+
+message VolumeStatus {
+  // Mount represents a volume mount point.
+  Mount mount = 1;
+}
+
+// Mount represents a volume mount point.
+message Mount {
+  enum MountType {
+    DEV = 0;
+    HOSTPATH = 1;
+  }
+  // Type specifies the type of the mount (e.g. device or directory).
+  MountType type = 1;
+  // Source is the location of the mounted volume.
+  string source = 2;
+}
+
+message NetworkInterfaceStatus {
+  // HostDeviceName is the name of the network interface used from the host. This will be
+  // a tuntap or macvtap interface.
+  string host_device_name = 1;
+  // Index is the index of the network interface on the host.
+  int32 index = 2;
+  // MACAddress is the MAC address of the host interface.
+  string mac_address = 3;
 }

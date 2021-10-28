@@ -50,9 +50,9 @@ type ContainerVolumeSource struct {
 // Mount represents a volume mount point.
 type Mount struct {
 	// Type specifies the type of the mount (e.g. device or directory).
-	Type MountType
+	Type MountType `json:"type"`
 	// Source is the location of the mounted volume.
-	Source string
+	Source string `json:"source"`
 }
 
 // MountType is a type representing the type of mount.
