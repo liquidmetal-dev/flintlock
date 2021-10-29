@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	errIDRequired    = errors.New("microvm id is required")
-	errNotImplemeted = errors.New("not implemented")
+	errIDRequired        = errors.New("microvm id is required")
+	errNamespaceRequired = errors.New("namespace is required")
 )
 
 type specAlreadyExistsError struct {

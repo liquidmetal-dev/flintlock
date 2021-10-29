@@ -23,9 +23,9 @@ type NetworkInterfaceStatus struct {
 	// a tuntap or macvtap interface.
 	HostDeviceName string `json:"host_device_name"`
 	// Index is the index of the network interface on the host.
-	Index int
+	Index int `json:"index"`
 	// MACAddress is the MAC address of the host interface.
-	MACAddress string
+	MACAddress string `json:"mac_address"`
 }
 
 // NetworkInterfaceStatuses is a collection of network interfaces.

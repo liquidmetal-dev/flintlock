@@ -179,6 +179,23 @@
     }
   },
   "definitions": {
+    "MicroVMStatusMicroVMState": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "CREATED",
+        "FAILED"
+      ],
+      "default": "PENDING"
+    },
+    "MountMountType": {
+      "type": "string",
+      "enum": [
+        "DEV",
+        "HOSTPATH"
+      ],
+      "default": "DEV"
+    },
     "NetworkInterfaceIfaceType": {
       "type": "string",
       "enum": [
@@ -257,6 +274,24 @@
       },
       "description": "Kernel represents the configuration for a kernel."
     },
+    "typesMicroVM": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "spec": {
+          "$ref": "#/definitions/typesMicroVMSpec",
+          "description": "Spec is the specification of the microvm."
+        },
+        "status": {
+          "$ref": "#/definitions/typesMicroVMStatus",
+          "description": "Status is the runtime status of the microvm."
+        }
+      },
+      "description": "MicroVM represents a microvm machine that is created via a provider."
+    },
     "typesMicroVMSpec": {
       "type": "object",
       "properties": {
@@ -332,6 +367,57 @@
       },
       "description": "MicroVMSpec represents the specification for a microvm."
     },
+    "typesMicroVMStatus": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/MicroVMStatusMicroVMState",
+          "description": "State stores information about the last known state of the vm and the spec."
+        },
+        "volumes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/typesVolumeStatus"
+          },
+          "description": "Volumes holds the status of the volumes."
+        },
+        "kernelMount": {
+          "$ref": "#/definitions/typesMount",
+          "description": "KernelMount holds the status of the kernel mount point."
+        },
+        "initrdMount": {
+          "$ref": "#/definitions/typesMount",
+          "description": "InitrdMount holds the status of the initrd mount point."
+        },
+        "networkInterfaces": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/typesNetworkInterfaceStatus"
+          },
+          "description": "NetworkInterfaces holds the status of the network interfaces."
+        },
+        "retry": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Retry is a counter about how many times we retried to reconcile."
+        }
+      },
+      "description": "MicroVMStatus contains the runtime status of the microvm."
+    },
+    "typesMount": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/MountMountType",
+          "description": "Type specifies the type of the mount (e.g. device or directory)."
+        },
+        "source": {
+          "type": "string",
+          "description": "Source is the location of the mounted volume."
+        }
+      },
+      "description": "Mount represents a volume mount point."
+    },
     "typesNetworkInterface": {
       "type": "object",
       "properties": {
@@ -354,6 +440,24 @@
         "address": {
           "type": "string",
           "description": "Address is an optional IP address to assign to this interface. If not supplied then DHCP will be used."
+        }
+      }
+    },
+    "typesNetworkInterfaceStatus": {
+      "type": "object",
+      "properties": {
+        "hostDeviceName": {
+          "type": "string",
+          "description": "HostDeviceName is the name of the network interface used from the host. This will be\na tuntap or macvtap interface."
+        },
+        "index": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Index is the index of the network interface on the host."
+        },
+        "macAddress": {
+          "type": "string",
+          "description": "MACAddress is the MAC address of the host interface."
         }
       }
     },
@@ -402,6 +506,15 @@
       },
       "description": "VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs."
     },
+    "typesVolumeStatus": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "$ref": "#/definitions/typesMount",
+          "description": "Mount represents a volume mount point."
+        }
+      }
+    },
     "v1alpha1CreateMicroVMResponse": {
       "type": "object",
       "properties": {
@@ -414,7 +527,7 @@
       "type": "object",
       "properties": {
         "microvm": {
-          "$ref": "#/definitions/typesMicroVMSpec"
+          "$ref": "#/definitions/typesMicroVM"
         }
       }
     },
@@ -432,7 +545,7 @@
         "microvm": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/typesMicroVMSpec"
+            "$ref": "#/definitions/typesMicroVM"
           }
         }
       }
