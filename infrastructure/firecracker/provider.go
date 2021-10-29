@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/sirupsen/logrus"
@@ -155,21 +156,25 @@ func (p *fcProvider) Delete(ctx context.Context, id string) error {
 	_, err = client.CreateSyncAction(ctx, &fcmodels.InstanceActionInfo{
 		ActionType: firecracker.String("SendCtrlAltDel"),
 	})
-	if err != nil {
-		// What errors do we want to ignore?
-		// Example:
-		// * net/url.Error happens if the VM is not running or the socket file
-		//   is not there, so we can delete the VM.
-		if errors.Is(err, &url.Error{}) {
-			logger.Info("microvm is not running")
-		} else {
-			return fmt.Errorf("failed to create halt action: %w", err)
-		}
+	if err == nil {
+		return nil
 	}
 
-	// It's strange to call it delete, it terminates the vm, but by the nature of
-	// firecracker, if it's terminated, it's not there anymore, only the
-	// resources we created before, but we have steps for them.
+	// What errors do we want to ignore?
+	// Example:
+	// * net/url.Error happens if the VM is not running or the socket file
+	//   is not there, so we can delete the VM.
+	if errors.Is(err, &url.Error{}) {
+		logger.Info("microvm is not running")
+	} else if pid, pidErr := vmState.PID(); pidErr != nil {
+		logger.Infof("sending SIGINT to %d", pid)
+
+		if sigErr := process.SendSignal(pid, os.Interrupt); sigErr != nil {
+			return fmt.Errorf("failed to create halt action: %w", err)
+		}
+	} else {
+		return fmt.Errorf("failed to create halt action: %w", err)
+	}
 
 	logger.Info("deleted microvm")
 

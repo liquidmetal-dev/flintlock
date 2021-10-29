@@ -42,3 +42,21 @@ func Exists(pid int) (bool, error) {
 
 	return exists, nil
 }
+
+// SendSignal sends a 'sig' signal to 'pid' process.
+func SendSignal(pid int, sig os.Signal) error {
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return fmt.Errorf("unable to find process (%d): %w", pid, err)
+	}
+
+	if err := proc.Signal(os.Interrupt); err != nil {
+		return fmt.Errorf(
+			"unable to send signal to process (%s): %w",
+			sig.String(),
+			err,
+		)
+	}
+
+	return nil
+}
