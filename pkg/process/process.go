@@ -50,8 +50,7 @@ func SendSignal(pid int, sig os.Signal) error {
 		return fmt.Errorf("unable to find process (%d): %w", pid, err)
 	}
 
-	err = proc.Signal(os.Interrupt)
-	if err != nil {
+	if err := proc.Signal(os.Interrupt); err != nil {
 		return fmt.Errorf(
 			"unable to send signal to process (%s): %w",
 			sig.String(),
