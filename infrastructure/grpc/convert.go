@@ -197,7 +197,7 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 		converted.State = types.MicroVMStatus_FAILED
 	}
 
-	converted.Volumes = make(map[string]*types.VolumeStatus)
+	converted.Volumes = make(map[string]*types.VolumeStatus, len(mvm.Status.Volumes))
 	for volName, volStatus := range mvm.Status.Volumes {
 		converted.Volumes[volName] = convertModelToVolumeStatus(volStatus)
 	}
@@ -210,7 +210,7 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 		converted.InitrdMount = convertModelToVolumeMount(mvm.Status.InitrdMount)
 	}
 
-	converted.NetworkInterfaces = make(map[string]*types.NetworkInterfaceStatus)
+	converted.NetworkInterfaces = make(map[string]*types.NetworkInterfaceStatus, len(mvm.Status.NetworkInterfaces))
 	for netIfaceName, netIfaceStatus := range mvm.Status.NetworkInterfaces {
 		converted.NetworkInterfaces[netIfaceName] = convertModelToNetworkInterfaceStatus(netIfaceStatus)
 	}
