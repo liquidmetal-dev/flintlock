@@ -1,7 +1,7 @@
 # 0. Merge Create and Update Plan into a Single Plan
 <!-- A short and clear title which is prefixed with the ADR number -->
 
-* Status: proposed
+* Status: accepted
 * Date: 2021-10-29
 * Authors: @jmickey
 * Deciders: @jmickey @richardcase @Callisto13 @yitsushi
