@@ -1,6 +1,7 @@
 name: nightly_e2e
 
 on:
+  workflow_dispatch: {}
   schedule:
     - cron: 0 0 * * *
 
@@ -13,10 +14,9 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: '^1.17.2'
-    - uses: hashicorp/setup-terraform@v1
-      with:
-        terraform_version: 1.0.9
-        terraform_wrapper: false
+    # TODO
+    # have a custom action for the setup so that we can get outputs for the cleanup projects
+    # rather than hardcoding
     - name: Run tests
       run: make test-e2e
       env:
