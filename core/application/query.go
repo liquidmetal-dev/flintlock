@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/pkg/log"
 )
 
@@ -20,7 +21,7 @@ func (a *app) GetMicroVM(ctx context.Context, id, namespace string) (*models.Mic
 		return nil, errNamespaceRequired
 	}
 
-	foundMvm, err := a.ports.Repo.Get(ctx, id, namespace)
+	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{Name: id, Namespace: namespace})
 	if err != nil {
 		return nil, fmt.Errorf("error attempting to locate microvm with id: %s, in namespace: %s: %w", id, namespace, err)
 	}

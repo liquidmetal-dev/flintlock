@@ -202,18 +202,18 @@ func (mr *MockMicroVMRepositoryMockRecorder) Exists(arg0, arg1, arg2 interface{}
 }
 
 // Get mocks base method.
-func (m *MockMicroVMRepository) Get(arg0 context.Context, arg1, arg2 string) (*models.MicroVM, error) {
+func (m *MockMicroVMRepository) Get(arg0 context.Context, arg1 ports.RepositoryGetOptions) (*models.MicroVM, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Get", arg0, arg1)
 	ret0, _ := ret[0].(*models.MicroVM)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockMicroVMRepositoryMockRecorder) Get(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockMicroVMRepositoryMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockMicroVMRepository)(nil).Get), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockMicroVMRepository)(nil).Get), arg0, arg1)
 }
 
 // GetAll mocks base method.

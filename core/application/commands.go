@@ -7,6 +7,7 @@ import (
 	"github.com/weaveworks/flintlock/api/events"
 	coreerrs "github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/log"
 )
@@ -31,12 +32,16 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		mvm.ID = *vmid
 	}
 
-	foundMvm, err := a.ports.Repo.Get(ctx, mvm.ID.Name(), mvm.ID.Namespace())
+	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      mvm.ID.Name(),
+		Namespace: mvm.ID.Namespace(),
+	})
 	if err != nil {
 		if !coreerrs.IsSpecNotFound(err) {
 			return nil, fmt.Errorf("checking to see if spec exists: %w", err)
 		}
 	}
+
 	if foundMvm != nil {
 		return nil, specAlreadyExistsError{
 			name:      mvm.ID.Name(),
@@ -76,10 +81,14 @@ func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, coreerrs.ErrVMIDRequired
 	}
 
-	foundMvm, err := a.ports.Repo.Get(ctx, mvm.ID.Name(), mvm.ID.Namespace())
+	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      mvm.ID.Name(),
+		Namespace: mvm.ID.Namespace(),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("checking to see if spec exists: %w", err)
 	}
+
 	if foundMvm == nil {
 		return nil, specNotFoundError{
 			name:      mvm.ID.Name(),
@@ -116,10 +125,14 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 		return errIDRequired
 	}
 
-	foundMvm, err := a.ports.Repo.Get(ctx, id, namespace)
+	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      id,
+		Namespace: namespace,
+	})
 	if err != nil {
 		return fmt.Errorf("checking to see if spec exists: %w", err)
 	}
+
 	if foundMvm == nil {
 		return specNotFoundError{
 			name:      id,

@@ -42,12 +42,11 @@ func TestApp_CreateMicroVM(t *testing.T) {
 
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq(defaults.MicroVMNamespace),
-				).Return(
-					nil,
-					nil,
-				)
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: defaults.MicroVMNamespace,
+					}),
+				).Return(nil, nil)
 
 				expectedCreatedSpec := createTestSpec("id1234", defaults.MicroVMNamespace)
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
@@ -78,8 +77,10 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: "default",
+					}),
 				).Return(
 					nil,
 					nil,
@@ -114,8 +115,10 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: "default",
+					}),
 				).Return(
 					createTestSpec("id1234", "default"),
 					nil,
@@ -193,8 +196,10 @@ func TestApp_UpdateMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: "default",
+					}),
 				).Return(
 					createTestSpec("id1234", "default"),
 					nil,
@@ -289,8 +294,10 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: "default",
+					}),
 				).Return(
 					createTestSpec("id1234", "default"),
 					nil,
@@ -325,8 +332,10 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: "default",
+					}),
 				).Return(
 					nil,
 					nil,
@@ -409,8 +418,10 @@ func TestApp_GetMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: defaults.MicroVMNamespace,
+					}),
 				).Return(
 					nil,
 					nil,
@@ -425,8 +436,10 @@ func TestApp_GetMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: defaults.MicroVMNamespace,
+					}),
 				).Return(
 					nil,
 					errors.New("an random error occurred"),
@@ -441,8 +454,10 @@ func TestApp_GetMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("id1234"),
-					gomock.Eq("default"),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: defaults.MicroVMNamespace,
+					}),
 				).Return(
 					createTestSpec("id1234", "default"),
 					nil,
