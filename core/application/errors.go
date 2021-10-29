@@ -9,7 +9,6 @@ import (
 
 var (
 	errIDRequired        = errors.New("microvm id is required")
-	errNotImplemeted     = errors.New("not implemented")
 	errNamespaceRequired = errors.New("namespace is required")
 )
 

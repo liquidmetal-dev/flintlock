@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -369,6 +370,241 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestApp_GetMicroVM(t *testing.T) {
+	frozenTime := time.Now
+
+	tt := []struct {
+		name        string
+		toGetID     string
+		toGetNS     string
+		expectError bool
+		expect      func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder)
+	}{
+		{
+			name:        "empty id should return an error",
+			toGetID:     "",
+			toGetNS:     "default",
+			expectError: true,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
+		{
+			name:        "empty namespace should return an error",
+			toGetID:     "id1234",
+			toGetNS:     "",
+			expectError: true,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
+		{
+			name:        "spec not found should return an error",
+			toGetID:     "id1234",
+			toGetNS:     "default",
+			expectError: true,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.Get(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq("id1234"),
+					gomock.Eq("default"),
+				).Return(
+					nil,
+					nil,
+				)
+			},
+		},
+		{
+			name:        "should return an error when rm.Get returns an error",
+			toGetID:     "id1234",
+			toGetNS:     "default",
+			expectError: true,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.Get(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq("id1234"),
+					gomock.Eq("default"),
+				).Return(
+					nil,
+					errors.New("an random error occurred"),
+				)
+			},
+		},
+		{
+			name:        "microvm with id exists in namespace and is returned",
+			toGetID:     "id1234",
+			toGetNS:     "default",
+			expectError: false,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.Get(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq("id1234"),
+					gomock.Eq("default"),
+				).Return(
+					createTestSpec("id1234", "default"),
+					nil,
+				)
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			rm := mock.NewMockMicroVMRepository(mockCtrl)
+			em := mock.NewMockEventService(mockCtrl)
+			im := mock.NewMockIDService(mockCtrl)
+			pm := mock.NewMockMicroVMService(mockCtrl)
+			ns := mock.NewMockNetworkService(mockCtrl)
+			is := mock.NewMockImageService(mockCtrl)
+			fs := afero.NewMemMapFs()
+			ports := &ports.Collection{
+				Repo:              rm,
+				Provider:          pm,
+				EventService:      em,
+				IdentifierService: im,
+				NetworkService:    ns,
+				ImageService:      is,
+				FileSystem:        fs,
+				Clock:             frozenTime,
+			}
+
+			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
+
+			ctx := context.Background()
+			app := application.New(&application.Config{}, ports)
+			mvm, err := app.GetMicroVM(ctx, tc.toGetID, tc.toGetNS)
+
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(mvm.Spec).NotTo(BeNil())
+				Expect(mvm.ID.Name()).To(Equal(tc.toGetID))
+				Expect(mvm.ID.Namespace()).To(Equal(tc.toGetNS))
+			}
+		})
+	}
+}
+
+func TestApp_GetAllMicroVM(t *testing.T) {
+	frozenTime := time.Now
+
+	tt := []struct {
+		name        string
+		toGetNS     string
+		expectError bool
+		expectedLen int
+		expect      func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder)
+	}{
+		{
+			name:        "empty namespace should return an error",
+			toGetNS:     "",
+			expectError: true,
+			expectedLen: 0,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
+		{
+			name:        "should return an error when rm.GetAll returns an error",
+			toGetNS:     "default",
+			expectError: true,
+			expectedLen: 0,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.GetAll(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq("default"),
+				).Return(
+					nil,
+					errors.New("a random error occurred"),
+				)
+			},
+		},
+		{
+			name:        "no microvms in namespace should return empty slice",
+			toGetNS:     "default",
+			expectError: false,
+			expectedLen: 0,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.GetAll(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq("default"),
+				).Return(
+					nil,
+					nil,
+				)
+			},
+		},
+		{
+			name:        "microvms exist in namespace and are returned",
+			toGetNS:     "default",
+			expectError: false,
+			expectedLen: 2,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.GetAll(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq("default"),
+				).Return(
+					[]*models.MicroVM{
+						createTestSpec("id1234", "default"),
+						createTestSpec("id1235", "default"),
+					},
+					nil,
+				)
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			rm := mock.NewMockMicroVMRepository(mockCtrl)
+			em := mock.NewMockEventService(mockCtrl)
+			im := mock.NewMockIDService(mockCtrl)
+			pm := mock.NewMockMicroVMService(mockCtrl)
+			ns := mock.NewMockNetworkService(mockCtrl)
+			is := mock.NewMockImageService(mockCtrl)
+			fs := afero.NewMemMapFs()
+			ports := &ports.Collection{
+				Repo:              rm,
+				Provider:          pm,
+				EventService:      em,
+				IdentifierService: im,
+				NetworkService:    ns,
+				ImageService:      is,
+				FileSystem:        fs,
+				Clock:             frozenTime,
+			}
+
+			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
+
+			ctx := context.Background()
+			app := application.New(&application.Config{}, ports)
+			mvms, err := app.GetAllMicroVM(ctx, tc.toGetNS)
+
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(mvms)).To(Equal(tc.expectedLen))
+				if len(mvms) > 0 {
+					for _, mvm := range mvms {
+						Expect(mvm.Spec).NotTo(BeNil())
+						Expect(mvm.ID.Name()).NotTo(Equal(""))
+						Expect(mvm.ID.Namespace()).To(Equal(tc.toGetNS))
+					}
+				}
 			}
 		})
 	}
