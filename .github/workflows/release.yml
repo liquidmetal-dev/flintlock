@@ -36,7 +36,7 @@ jobs:
             - name: Download flintlock binaries
               uses: actions/download-artifact@v2
               with:
-                name: mccp-binaries
+                name: flintlock-binaries
                 path: bin
             - name: Generate release notes
               run: |
