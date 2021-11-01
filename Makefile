@@ -45,6 +45,9 @@ PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
 PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
 WIRE := $(TOOLS_BIN_DIR)/wire
 
+# Useful things
+test_image = weaveworks/flintlock-e2e
+
 .DEFAULT_GOAL := help
 
 ##@ Build
@@ -58,11 +61,10 @@ build-release: $(BIN_DIR) ## Build the release binaries
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlockd_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/flintlockd
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlockd_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/flintlockd
 
-
 ##@ Generate
 
 .PHONY: generate
-generate: $(BUF) $(MOCKGEN) ## Generate code
+generate: $(BUF) $(MOCKGEN)
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-proto
@@ -98,12 +100,34 @@ test-with-cov: ## Run unit tests with coverage
 	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt ./...
 
 .PHONY: test-e2e
-test-e2e: ## Run e2e tests
-	go test -timeout 30m -p 1 -v -tags=e2e ./test/e2e/...
+test-e2e: compile-e2e ## Run e2e tests locally in a container
+	docker run --rm -it \
+		--privileged \
+		--volume /dev:/dev \
+		--volume /run/udev/control:/run/udev/control \
+		--volume $(REPO_ROOT):/src/flintlock \
+		--ipc=host \
+		--workdir=/src/flintlock \
+		$(test_image):latest \
+		"go test -timeout 30m -p 1 -v -tags=e2e ./test/e2e/..."
+
+.PHONY: test-e2e-metal
+test-e2e-metal: ## Run e2e tests in Equinix
+	echo "coming soon to some hardware near you"
 
 .PHONY: compile-e2e
-compile-e2e: # Test e2e compilation
+compile-e2e: ## Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e
+
+##@ Docker
+
+.PHONY: docker-build
+docker-build: ## Build the e2e docker image
+	docker build -t $(test_image):latest -f test/docker/Dockerfile.e2e .
+
+.PHONY: docker-push
+docker-push: docker-build ## Push the e2e docker image to weaveworks/fl-e2e
+	docker push $(test_image):latest
 
 ##@ Tools binaries
 
@@ -137,7 +161,6 @@ ifeq ($(OS), darwin)
 BUF_TARGET := buf-Darwin-x86_64.tar.gz
 endif
 
-
 BUF_SHARE := $(TOOLS_SHARE_DIR)/buf.tar.gz
 $(BUF_SHARE): $(TOOLS_SHARE_DIR)
 	curl -sL -o $(BUF_SHARE) "https://github.com/bufbuild/buf/releases/download/$(BUF_VERSION)/$(BUF_TARGET)"
@@ -147,9 +170,10 @@ $(BUF): $(TOOLS_BIN_DIR) $(BUF_SHARE)
 	cp $(TOOLS_SHARE_DIR)/buf/bin/* $(TOOLS_BIN_DIR)
 	rm -rf $(TOOLS_SHARE_DIR)/buf
 
+##@ Utility
 
 .PHONY: help
-help:  ## Display this help. Thanks to https://suva.sh/posts/well-documented-makefiles/
+help:  ## Display this help. Thanks to https://www.thapaliya.com/en/writings/well-documented-makefiles/
 ifeq ($(OS),Windows_NT)
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target>\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  %-40s %s\n", $$1, $$2 } /^##@/ { printf "\n%s\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 else

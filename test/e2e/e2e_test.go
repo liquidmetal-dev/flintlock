@@ -5,105 +5,96 @@ package e2e_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"log"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
-
-	"github.com/gruntwork-io/terratest/modules/environment"
-	"github.com/gruntwork-io/terratest/modules/retry"
-	"github.com/gruntwork-io/terratest/modules/ssh"
-	"github.com/gruntwork-io/terratest/modules/terraform"
-	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+	"github.com/weaveworks/flintlock/api/types"
+	u "github.com/weaveworks/flintlock/test/e2e/utils"
 )
 
-func TestBasicScenario(t *testing.T) {
+func TestE2E(t *testing.T) {
 	RegisterTestingT(t)
 
-	terraDir := "./infra"
+	var (
+		mvmID       = "mvm0"
+		secondMvmID = "mvm1"
+		mvmNS       = "ns0"
+		fcPath      = "/var/lib/flintlock/vm/%s/%s"
 
-	defer test_structure.RunTestStage(t, "teardown", func() {
-		terraformOptions := test_structure.LoadTerraformOptions(t, terraDir)
-		terraform.Destroy(t, terraformOptions)
-		test_structure.CleanupTestDataFolder(t, terraDir)
-	})
+		mvmPid1 int
+		mvmPid2 int
+	)
 
-	test_structure.RunTestStage(t, "setup", func() {
-		terraformOptions := configureTerraformOptionsAndSave(t, terraDir)
+	r := u.Runner{}
+	defer func() {
+		log.Println("TEST STEP: cleaning up running processes")
+		r.Teardown()
+	}()
+	log.Println("TEST STEP: performing setup, starting flintlockd server")
+	flintlockClient := r.Setup()
 
-		// This will run `terraform init` and `terraform apply` and fail the test if there are any errors
-		terraform.InitAndApply(t, terraformOptions)
-	})
+	log.Println("TEST STEP: creating MicroVM")
+	created := u.CreateMVM(flintlockClient, mvmID, mvmNS)
+	Expect(created.Microvm.Id).To(Equal(mvmID))
 
-	test_structure.RunTestStage(t, "validate", func() {
-		terraformOptions := test_structure.LoadTerraformOptions(t, terraDir)
-		keyPair := test_structure.LoadSshKeyPair(t, terraDir)
+	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
+	Eventually(func(g Gomega) error {
+		// verify that the socket exists
+		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID) + "/firecracker.sock").To(BeAnExistingFile())
 
-		testSSHToHost(t, terraformOptions, keyPair)
-	})
-}
+		// verify that firecracker has started and that a pid has been saved
+		// and that there is actually a running process
+		mvmPid1 = u.ReadPID(fmt.Sprintf(fcPath, mvmNS, mvmID))
+		g.Expect(u.PidRunning(mvmPid1)).To(BeTrue())
 
-func testSSHToHost(t *testing.T, terraformOptions *terraform.Options, keyPair *ssh.KeyPair) {
-	publicIPAddress := terraform.Output(t, terraformOptions, "public_ip")
-	Expect(publicIPAddress).NotTo(BeEmpty())
+		// get the mVM and check the status
+		res := u.GetMVM(flintlockClient, mvmID, mvmNS)
+		g.Expect(res.Microvm.Spec.Id).To(Equal(mvmID))
+		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		return nil
+	}, "120s").Should(Succeed())
 
-	publicHost := ssh.Host{
-		Hostname:    publicIPAddress,
-		SshKeyPair:  keyPair,
-		SshUserName: "root",
-	}
+	log.Println("TEST STEP: creating a second MicroVM")
+	created = u.CreateMVM(flintlockClient, secondMvmID, mvmNS)
+	Expect(created.Microvm.Id).To(Equal(secondMvmID))
 
-	maxRetries := 30
-	timeBetweenRetries := 5 * time.Second
-	description := fmt.Sprintf("SSH to host %s", publicIPAddress)
-	command := "cat /tmp/metadata"
+	log.Println("TEST STEP: listing all MicroVMs")
+	Eventually(func(g Gomega) error {
+		// verify that the new socket exists
+		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID) + "/firecracker.sock").To(BeAnExistingFile())
 
-	retry.DoWithRetry(t, description, maxRetries, timeBetweenRetries, func() (string, error) {
-		actualText, err := ssh.CheckSshCommandE(t, publicHost, command)
-		if err != nil {
-			return "", err
-		}
+		// verify that firecracker has started and that a pid has been saved
+		// and that there is actually a running process for the new mVM
+		mvmPid2 = u.ReadPID(fmt.Sprintf(fcPath, mvmNS, secondMvmID))
+		g.Expect(u.PidRunning(mvmPid2)).To(BeTrue())
 
-		Expect(actualText).ToNot(BeEmpty())
-		return "", nil
-	})
-}
+		// get both the mVMs and check the statuses
+		res := u.ListMVMs(flintlockClient, mvmNS)
+		g.Expect(res.Microvm).To(HaveLen(2))
+		g.Expect(res.Microvm[0].Spec.Id).To(Equal(mvmID))
+		g.Expect(res.Microvm[0].Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		g.Expect(res.Microvm[1].Spec.Id).To(Equal(secondMvmID))
+		g.Expect(res.Microvm[1].Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		return nil
+	}, "120s").Should(Succeed())
 
-func configureTerraformOptionsAndSave(t *testing.T, dir string) *terraform.Options {
-	// NOTE: ioutil has been used in places to write the file so that the contents aren't output to the logs
-	// Generate and save the options the kaypair
-	keyPair := ssh.GenerateRSAKeyPair(t, 4096)
-	test_structure.SaveSshKeyPair(t, dir, keyPair)
-	publicKeyPath := test_structure.FormatTestDataPath(dir, "id_rsa.pub")
-	ioutil.WriteFile(publicKeyPath, []byte(keyPair.PublicKey), os.ModePerm)
-	privateKeyPath := test_structure.FormatTestDataPath(dir, "id_rsa")
-	ioutil.WriteFile(privateKeyPath, []byte(keyPair.PrivateKey), os.ModePerm)
+	log.Println("TEST STEP: deleting existing MicroVMs")
+	Expect(u.DeleteMVM(flintlockClient, mvmID, mvmNS)).To(Succeed())
+	Expect(u.DeleteMVM(flintlockClient, secondMvmID, mvmNS)).To(Succeed())
 
-	// Save the API key
-	apiToken := environment.GetFirstNonEmptyEnvVarOrFatal(t, []string{"METAL_AUTH_TOKEN"})
-	apiTokenPath := test_structure.FormatTestDataPath(dir, "api_token")
-	ioutil.WriteFile(apiTokenPath, []byte(apiToken), os.ModePerm)
+	Eventually(func(g Gomega) error {
+		// verify that the vm state dirs have been removed
+		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID)).ToNot(BeAnExistingFile())
+		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID)).ToNot(BeAnExistingFile())
 
-	// Get absolute paths
-	apiTokenPathAbs, _ := filepath.Abs(apiTokenPath)
-	privateKeyPathAbs, _ := filepath.Abs(privateKeyPath)
-	publicKeyPathAbs, _ := filepath.Abs(publicKeyPath)
+		// verify that the firecracker processes are no longer running
+		g.Expect(u.PidRunning(mvmPid1)).To(BeFalse())
+		g.Expect(u.PidRunning(mvmPid2)).To(BeFalse())
 
-	// Create and save the options
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: dir,
-		Vars: map[string]interface{}{
-			"ssh_user":         "root",
-			"auth_token_path":  apiTokenPathAbs,
-			"public_key_path":  publicKeyPathAbs,
-			"private_key_path": privateKeyPathAbs,
-		},
-		NoColor: true,
-	})
-	test_structure.SaveTerraformOptions(t, dir, terraformOptions)
-
-	return terraformOptions
+		// verify that the mVMs are no longer with us
+		res := u.ListMVMs(flintlockClient, mvmNS)
+		g.Expect(res.Microvm).To(HaveLen(0))
+		return nil
+	}, "120s").Should(Succeed())
 }
