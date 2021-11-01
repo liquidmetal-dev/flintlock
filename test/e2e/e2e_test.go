@@ -15,8 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/flintlock/api/types"
-	"github.com/weaveworks/flintlock/core/models"
-	ctr "github.com/weaveworks/flintlock/infrastructure/containerd"
 	"github.com/weaveworks/flintlock/test/e2e/utils"
 )
 
@@ -24,12 +22,15 @@ func TestE2E(t *testing.T) {
 	RegisterTestingT(t)
 
 	var (
-		mvmID  = "mvm0"
-		mvmNS  = "ns0"
-		fcPath = "/var/lib/flintlock/vm/%s/%s"
+		mvmID       = "mvm0"
+		secondMvmID = "mvm1"
+		mvmNS       = "ns0"
+		fcPath      = "/var/lib/flintlock/vm/%s/%s"
+
+		mvmPid1 int
+		mvmPid2 int
 	)
 
-	// TODO rename
 	r := utils.Runner{}
 	defer func() {
 		log.Println("TEST STEP: cleaning up running processes")
@@ -39,79 +40,131 @@ func TestE2E(t *testing.T) {
 	flintlockClient := r.Setup()
 
 	log.Println("TEST STEP: creating MicroVM")
-	createReq := v1alpha1.CreateMicroVMRequest{
-		Microvm: defaultTestMicroVM(mvmID, mvmNS),
-	}
-	created, err := flintlockClient.CreateMicroVM(context.Background(), &createReq)
-	Expect(err).NotTo(HaveOccurred())
+	created := createMVM(flintlockClient, mvmID, mvmNS)
 	Expect(created.Microvm.Id).To(Equal(mvmID))
 
-	// So all of this is a placeholder, just to verify that we are creating _something_.
-	// Once Get has been implemented, all/most of this can be replaced with 'Eventually' calls
-	// to check that the state of the mVM is running (which presumably will be somewhere
-	// in our recorded instance state returned by that call).
 	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
-	repo, err := ctr.NewMicroVMRepo(&ctr.Config{
-		SocketPath: utils.ContainerdSocket,
-		Namespace:  "flintlock",
-	})
-	Expect(err).NotTo(HaveOccurred())
-
-	var fcPid int
 	Eventually(func(g Gomega) error {
 		// verify that the socket exists
 		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID) + "/firecracker.sock").To(BeAnExistingFile())
 
 		// verify that firecracker has started and that a pid has been saved
-		contents, err := os.ReadFile(fmt.Sprintf(fcPath, mvmNS, mvmID) + "/firecracker.pid")
-		g.Expect(err).NotTo(HaveOccurred())
-		str := string(contents)
-		g.Expect(str).ToNot(BeEmpty())
+		// and that there is actually a running process
+		mvmPid1 = readPID(fmt.Sprintf(fcPath, mvmNS, mvmID))
+		g.Expect(pidRunning(mvmPid1)).To(BeTrue())
 
-		// verify that there is actually a running process
-		// the main check here is actually in delete to ensure we have killed the process
-		fcPid, err = strconv.Atoi(str)
-		g.Expect(err).NotTo(HaveOccurred())
-		p, err := os.FindProcess(fcPid)
-		g.Expect(err).NotTo(HaveOccurred())
-		Expect(p.Signal(syscall.SIGCONT)).To(Succeed())
-
-		// check state according to containerd
-		// I would have liked to call the socket to verify the state of the instance from itself, but
-		// unfortunately when I try to do that here it casues both things writing to that socket
-		// to fail with "broken pipe".
-		// I want to ensure the mVM is _actually_ running before we call delete because
-		// otherwise if the delete call runs too early (before Save) then it is lost
-		// as we don't have requeueing done yet.
-		// So it was either this or a Sleep :D
-		model, err := repo.Get(context.Background(), mvmID, mvmNS)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(string(model.Status.State)).To(Equal(models.CreatedState))
+		// get the mVM and check the status
+		res := getMVM(flintlockClient, mvmID, mvmNS)
+		g.Expect(res.Microvm.Spec.Id).To(Equal(mvmID))
+		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
 		return nil
 	}, "120s").Should(Succeed())
 
-	log.Println("TEST STEP: deleting existing MicroVM")
-	deleteReq := v1alpha1.DeleteMicroVMRequest{
-		Id:        mvmID,
-		Namespace: mvmNS,
-	}
-	_, err = flintlockClient.DeleteMicroVM(context.Background(), &deleteReq)
-	Expect(err).NotTo(HaveOccurred())
+	log.Println("TEST STEP: creating a second MicroVM")
+	created = createMVM(flintlockClient, secondMvmID, mvmNS)
+	Expect(created.Microvm.Id).To(Equal(secondMvmID))
+
+	log.Println("TEST STEP: listing all MicroVMs")
+	Eventually(func(g Gomega) error {
+		// verify that the new socket exists
+		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID) + "/firecracker.sock").To(BeAnExistingFile())
+
+		// verify that firecracker has started and that a pid has been saved
+		// and that there is actually a running process for the new mVM
+		mvmPid2 = readPID(fmt.Sprintf(fcPath, mvmNS, secondMvmID))
+		g.Expect(pidRunning(mvmPid2)).To(BeTrue())
+
+		// get both the mVMs and check the statuses
+		res := listMVMs(flintlockClient, mvmNS)
+		g.Expect(res.Microvm).To(HaveLen(2))
+		g.Expect(res.Microvm[0].Spec.Id).To(Equal(mvmID))
+		g.Expect(res.Microvm[0].Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		g.Expect(res.Microvm[1].Spec.Id).To(Equal(secondMvmID))
+		g.Expect(res.Microvm[1].Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		return nil
+	}, "120s").Should(Succeed())
+
+	log.Println("TEST STEP: deleting existing MicroVMs")
+	Expect(deleteMVM(flintlockClient, mvmID, mvmNS)).To(Succeed())
+	Expect(deleteMVM(flintlockClient, secondMvmID, mvmNS)).To(Succeed())
 
 	Eventually(func(g Gomega) error {
-		// verify that the vm state dir has been removed
+		// verify that the vm state dirs have been removed
 		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID)).ToNot(BeAnExistingFile())
+		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID)).ToNot(BeAnExistingFile())
 
-		// verify that the firecracker process is no longer running
-		p, err := os.FindProcess(fcPid)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(p.Signal(syscall.SIGCONT)).ToNot(Succeed())
+		// verify that the firecracker processes are no longer running
+		g.Expect(pidRunning(mvmPid1)).To(BeFalse())
+		g.Expect(pidRunning(mvmPid2)).To(BeFalse())
 
-		// verify that the lease has been removed from containerd content store
-		_, err = repo.Get(context.Background(), mvmID, mvmNS)
-		g.Expect(err).To(MatchError(fmt.Sprintf("microvm spec %s/%s not found", mvmNS, mvmID)))
+		// verify that the mVMs are no longer with us
+		res := listMVMs(flintlockClient, mvmNS)
+		g.Expect(res.Microvm).To(HaveLen(0))
 		return nil
 	}, "120s").Should(Succeed())
+}
+
+func createMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateMicroVMResponse {
+	createReq := v1alpha1.CreateMicroVMRequest{
+		Microvm: defaultTestMicroVM(name, ns),
+	}
+	created, err := client.CreateMicroVM(context.Background(), &createReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	return created
+}
+
+func deleteMVM(client v1alpha1.MicroVMClient, name, ns string) error {
+	deleteReq := v1alpha1.DeleteMicroVMRequest{
+		Id:        name,
+		Namespace: ns,
+	}
+	_, err := client.DeleteMicroVM(context.Background(), &deleteReq)
+
+	return err
+}
+
+func getMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.GetMicroVMResponse {
+	getReq := v1alpha1.GetMicroVMRequest{
+		Id:        name,
+		Namespace: ns,
+	}
+	res, err := client.GetMicroVM(context.Background(), &getReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	return res
+}
+
+func listMVMs(client v1alpha1.MicroVMClient, ns string) *v1alpha1.ListMicroVMsResponse {
+	listReq := v1alpha1.ListMicroVMsRequest{
+		Namespace: ns,
+	}
+	resp, err := client.ListMicroVMs(context.Background(), &listReq)
+	Expect(err).NotTo(HaveOccurred())
+
+	return resp
+}
+
+func readPID(path string) int {
+	contents, err := os.ReadFile(path + "/firecracker.pid")
+	Expect(err).NotTo(HaveOccurred())
+	str := string(contents)
+	Expect(str).ToNot(BeEmpty())
+
+	pid, err := strconv.Atoi(str)
+	Expect(err).NotTo(HaveOccurred())
+
+	return pid
+}
+
+func pidRunning(pid int) bool {
+	p, err := os.FindProcess(pid)
+	Expect(err).NotTo(HaveOccurred())
+	if err := p.Signal(syscall.SIGCONT); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {

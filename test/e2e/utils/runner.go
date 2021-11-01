@@ -19,7 +19,7 @@ import (
 const (
 	containerdBin    = "containerd"
 	flintlockCmdDir  = "github.com/weaveworks/flintlock/cmd/flintlockd"
-	ContainerdSocket = "/run/containerd-dev/containerd.sock"
+	containerdSocket = "/run/containerd-dev/containerd.sock"
 	containerdCfg    = "/etc/containerd/config-dev.toml"
 	grpcDialTarget   = "127.0.0.1:9090"
 )
@@ -92,7 +92,7 @@ func (r *Runner) startContainerd() {
 func (r *Runner) startFlintlockd() {
 	parentIface, err := getParentInterface()
 	gm.Expect(err).NotTo(gm.HaveOccurred())
-	flCmd := exec.Command(r.flintlockdBin, "run", "--containerd-socket", ContainerdSocket, "--parent-iface", parentIface) //nolint:gosec
+	flCmd := exec.Command(r.flintlockdBin, "run", "--containerd-socket", containerdSocket, "--parent-iface", parentIface) //nolint:gosec
 	flSess, err := gexec.Start(flCmd, gk.GinkgoWriter, gk.GinkgoWriter)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 	r.flintlockdSession = flSess
