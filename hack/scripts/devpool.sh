@@ -10,34 +10,41 @@ fi
 # That's where our stuff will live.
 CROOT=/var/lib/containerd-dev
 # This is the name of the thinpool.
-POOL=dev-thinpool
-
-mkdir -p "${CROOT}/snapshotter/devmapper"
-
+POOL="${1:-dev-thinpool}"
+# This is the tag which will be appended to the loop device volumes
+VOL_TAG=""
+if [[ -n "$2" ]]; then
+  VOL_TAG="-$2"
+fi
+# These are some useful vars for useful things
 DIR="${CROOT}/snapshotter/devmapper"
+META="${CROOT}/snapshotter/devmapper/metadata$VOL_TAG"
+DATA="${CROOT}/snapshotter/devmapper/data$VOL_TAG"
+
+mkdir -p "${DIR}"
 
 # Create "data" file/volume if it's not there and set it's size to 100G.
-if [[ ! -f "${DIR}/data" ]]; then
-touch "${DIR}/data"
-truncate -s 100G "${DIR}/data"
+if [[ ! -f "${DATA}" ]]; then
+touch "${DATA}"
+truncate -s 100G "${DATA}"
 fi
 
 # Create "metadata" file/volume if it's not there and set it's size to 2G.
-if [[ ! -f "${DIR}/metadata" ]]; then
-touch "${DIR}/metadata"
-truncate -s 10G "${DIR}/metadata"
+if [[ ! -f "${META}" ]]; then
+touch "${META}"
+truncate -s 10G "${META}"
 fi
 
 # Find/associate a loop device with our data volume.
-DATADEV="$(sudo losetup --output NAME --noheadings --associated ${DIR}/data)"
+DATADEV="$(losetup --output NAME --noheadings --associated ${DATA})"
 if [[ -z "${DATADEV}" ]]; then
-    DATADEV="$(sudo losetup --find --show ${DIR}/data)"
+    DATADEV="$(losetup --find --show ${DATA})"
 fi
 
 # Find/associate a loop device with our metadata volume.
-METADEV="$(sudo losetup --output NAME --noheadings --associated ${DIR}/metadata)"
+METADEV="$(losetup --output NAME --noheadings --associated ${META})"
 if [[ -z "${METADEV}" ]]; then
-    METADEV="$(sudo losetup --find --show ${DIR}/metadata)"
+    METADEV="$(losetup --find --show ${META})"
 fi
 
 # Magic calculations, for more information go and read
@@ -57,7 +64,7 @@ echo "${THINP_TABLE}"
 
 # If thinpool does not exist yet, create one.
 if ! $(dmsetup reload "${POOL}" --table "${THINP_TABLE}"); then
-    sudo dmsetup create "${POOL}" --table "${THINP_TABLE}"
+     dmsetup create "${POOL}" --table "${THINP_TABLE}"
 fi
 
 cat << EOF

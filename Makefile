@@ -105,6 +105,13 @@ test-e2e: ## Run e2e tests
 compile-e2e: # Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e
 
+##@ Docker
+
+.PHONY: docker-build
+docker-build: ## Build the e2e docker image
+	docker build -t fl-e2e:latest -f test/docker/Dockerfile.e2e .
+
+
 ##@ Tools binaries
 
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Get and build golangci-lint
