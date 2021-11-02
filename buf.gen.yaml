@@ -13,3 +13,9 @@ plugins:
       - generate_unbound_methods=true
   - name: openapiv2
     out: api
+  - name: doc
+    out: userdocs/docs/grpc/
+    opt:
+      - markdown
+      - proto.md
+      - source_relative

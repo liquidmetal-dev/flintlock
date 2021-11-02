@@ -1,4 +1,4 @@
-# 0. Merge Create and Update Plan into a Single Plan
+# 4. Merge Create and Update Plan into a Single Plan
 <!-- A short and clear title which is prefixed with the ADR number -->
 
 * Status: accepted

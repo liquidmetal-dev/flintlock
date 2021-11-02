@@ -39,6 +39,7 @@ GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 BUF := $(TOOLS_BIN_DIR)/buf
 MOCKGEN:= $(TOOLS_BIN_DIR)/mockgen
+PROTOC_GEN_DOC := $(TOOLS_BIN_DIR)/protoc-gen-doc
 PROTOC_GEN_GO := $(TOOLS_BIN_DIR)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
 PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
@@ -75,7 +76,7 @@ generate-go: $(MOCKGEN) ## Generate Go Code
 	go generate ./...
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
-generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI)
+generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI) $(PROTOC_GEN_DOC)
 	$(BUF) generate
 
 .PHONY: generate-di ## Generate the dependency injection code
@@ -147,6 +148,9 @@ $(MOCKGEN): $(TOOLS_DIR)/go.mod  # Get and build mockgen
 $(PROTOC_GEN_GO): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) google.golang.org/protobuf/cmd/protoc-gen-go
 
+$(PROTOC_GEN_DOC): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
+
 $(PROTOC_GEN_GO_GRPC): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
@@ -173,6 +177,12 @@ $(BUF): $(TOOLS_BIN_DIR) $(BUF_SHARE)
 	tar xfvz $(TOOLS_SHARE_DIR)/buf.tar.gz  -C $(TOOLS_SHARE_DIR) buf/bin
 	cp $(TOOLS_SHARE_DIR)/buf/bin/* $(TOOLS_BIN_DIR)
 	rm -rf $(TOOLS_SHARE_DIR)/buf
+
+##@ Docs
+.PHONY: docs-build
+docs-build: ## Build userdocs site
+docs-build: generate-proto
+	cd ./userdocs && yarn build
 
 ##@ Utility
 

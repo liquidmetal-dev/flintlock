@@ -268,7 +268,7 @@ There are both GUI and a CLI option.
 
 ### grpc-client-cli
 
-Install the [grpcurl](grpcurl).
+Install the [grpcurl][grpcurl].
 
 Use the `./hack/scripts/send.sh` script.
 
