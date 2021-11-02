@@ -65,30 +65,12 @@ func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) (planner.Plan, er
 		return plans.MicroVMDeletePlan(input), nil
 	}
 
-	// Create only if the state is Pending. Potentially we can retry later, but
-	// that's maybe an Update as we may already have some resources and we only
-	// have to run a few steps as an update. The other way is to add different
-	// Failed states to handle Create retry, otherwise we can't tell if we have
-	// to retry Update or Create. Delete is obvious because the DeletedAt field
-	// is not zero.
-	if spec.Status.State == models.PendingState {
-		input := &plans.CreatePlanInput{
-			StateDirectory: a.cfg.RootStateDir,
-			VM:             spec,
-		}
-
-		return plans.MicroVMCreatePlan(input), nil
-	}
-
-	// Update plan.
-	// If it's not a CreatePlan or a DeletePlan, we just check the state
-	// and update.
-	input := &plans.UpdatePlanInput{
+	input := &plans.CreateOrUpdatePlanInput{
 		StateDirectory: a.cfg.RootStateDir,
 		VM:             spec,
 	}
 
-	return plans.MicroVMUpdatePlan(input), nil
+	return plans.MicroVMCreateOrUpdatePlan(input), nil
 }
 
 func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logrus.Entry) error {
