@@ -13,7 +13,7 @@ import (
 	portsctx "github.com/weaveworks/flintlock/core/ports/context"
 )
 
-func TestMicroVMCreatePlan(t *testing.T) {
+func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 	RegisterTestingT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -23,7 +23,7 @@ func TestMicroVMCreatePlan(t *testing.T) {
 		context.Background(),
 		mockedPorts,
 	)
-	plan := plans.MicroVMCreatePlan(&plans.CreatePlanInput{
+	plan := plans.MicroVMCreateOrUpdatePlan(&plans.CreateOrUpdatePlanInput{
 		VM:             createTestSpec("vmid", "namespace"),
 		StateDirectory: "/tmp/path/to/vm",
 	})

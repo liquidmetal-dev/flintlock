@@ -160,14 +160,14 @@ func runCreateVMPlanTest(ctx context.Context, nodeNum int, sshKey string, logger
 	}
 	execCtx := portsctx.WithPorts(ctx, ports)
 
-	input := &plans.CreatePlanInput{
+	input := &plans.CreateOrUpdatePlanInput{
 		StateDirectory: cfg.StateRootDir,
 		VM:             spec,
 	}
 
 	start := time.Now()
 
-	plan := plans.MicroVMCreatePlan(input)
+	plan := plans.MicroVMCreateOrUpdatePlan(input)
 
 	actuator := planner.NewActuator()
 	if _, err := actuator.Execute(execCtx, plan, "1234567890"); err != nil {

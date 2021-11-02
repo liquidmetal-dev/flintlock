@@ -15,34 +15,33 @@ import (
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
-type CreatePlanInput struct {
+type CreateOrUpdatePlanInput struct {
 	StateDirectory string
 	VM             *models.MicroVM
 }
 
-func MicroVMCreatePlan(input *CreatePlanInput) planner.Plan {
-	return &microvmCreatePlan{
+func MicroVMCreateOrUpdatePlan(input *CreateOrUpdatePlanInput) planner.Plan {
+	return &microvmCreateOrUpdatePlan{
 		vm:       input.VM,
 		stateDir: input.StateDirectory,
 		steps:    []planner.Procedure{},
 	}
 }
 
-type microvmCreatePlan struct {
+type microvmCreateOrUpdatePlan struct {
 	vm       *models.MicroVM
 	stateDir string
 
 	steps []planner.Procedure
 }
 
-func (p *microvmCreatePlan) Name() string {
-	return MicroVMCreatePlanName
+func (p *microvmCreateOrUpdatePlan) Name() string {
+	return MicroVMCreateOrUpdatePlanName
 }
 
-// Create will create the plan to reconcile a microvm.
-func (p *microvmCreatePlan) Create(ctx context.Context) ([]planner.Procedure, error) {
-	logger := log.GetLogger(ctx)
-	logger.Debugf("creating plan for microvm %s", p.vm.ID)
+func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Procedure, error) {
+	logger := log.GetLogger(ctx).WithField("component", "plans").WithField("planType", "microvmCreateOrUpdatePlan")
+	logger.Tracef("creating CreateOrUpdate plan for microvm: %s", p.vm.ID)
 
 	ports, ok := portsctx.GetPorts(ctx)
 	if !ok {
@@ -54,40 +53,58 @@ func (p *microvmCreatePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	}
 
 	p.ensureStatus()
-	p.steps = []planner.Procedure{}
-	if err := p.addStep(ctx, runtime.NewCreateDirectory(p.stateDir, defaults.DataDirPerm, ports.FileSystem)); err != nil {
-		return nil, fmt.Errorf("adding root dir step: %w", err)
-	}
 
-	// Images
-	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
-		return nil, fmt.Errorf("adding image steps: %w", err)
+	var err error
+	switch {
+	case p.vm.Spec.UpdatedAt != 0:
+		err = p.update(ctx, ports)
+	default:
+		err = p.create(ctx, ports)
 	}
-
-	// Network interfaces
-	if err := p.addNetworkSteps(ctx, p.vm, ports.NetworkService); err != nil {
-		return nil, fmt.Errorf("adding network steps: %w", err)
-	}
-
-	// MicroVM provider create
-	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, ports.Provider)); err != nil {
-		return nil, fmt.Errorf("adding microvm create step: %w", err)
-	}
-
-	// MicroVM provider start
-	if err := p.addStep(ctx, microvm.NewStartStep(p.vm, ports.Provider)); err != nil {
-		return nil, fmt.Errorf("adding microvm start step: %w", err)
+	if err != nil {
+		return nil, fmt.Errorf("error occurred generating plan: %w", err)
 	}
 
 	return p.steps, nil
 }
 
-// Result is the result of the plan.
-func (p *microvmCreatePlan) Result() interface{} {
+func (p *microvmCreateOrUpdatePlan) Result() interface{} {
 	return nil
 }
 
-func (p *microvmCreatePlan) addStep(ctx context.Context, step planner.Procedure) error {
+func (p *microvmCreateOrUpdatePlan) create(ctx context.Context, ports *ports.Collection) error {
+	if err := p.addStep(ctx, runtime.NewCreateDirectory(p.stateDir, defaults.DataDirPerm, ports.FileSystem)); err != nil {
+		return fmt.Errorf("adding root dir step: %w", err)
+	}
+
+	// Images
+	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
+		return fmt.Errorf("adding image steps: %w", err)
+	}
+
+	// Network interfaces
+	if err := p.addNetworkSteps(ctx, p.vm, ports.NetworkService); err != nil {
+		return fmt.Errorf("adding network steps: %w", err)
+	}
+
+	// MicroVM provider create
+	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, ports.Provider)); err != nil {
+		return fmt.Errorf("adding microvm create step: %w", err)
+	}
+
+	// MicroVM provider start
+	if err := p.addStep(ctx, microvm.NewStartStep(p.vm, ports.Provider)); err != nil {
+		return fmt.Errorf("adding microvm start step: %w", err)
+	}
+
+	return nil
+}
+
+func (p *microvmCreateOrUpdatePlan) update(ctx context.Context, ports *ports.Collection) error {
+	return nil
+}
+
+func (p *microvmCreateOrUpdatePlan) addStep(ctx context.Context, step planner.Procedure) error {
 	shouldDo, err := step.ShouldDo(ctx)
 	if err != nil {
 		return fmt.Errorf("checking if step %s should be included in plan: %w", step.Name(), err)
@@ -100,7 +117,7 @@ func (p *microvmCreatePlan) addStep(ctx context.Context, step planner.Procedure)
 	return nil
 }
 
-func (p *microvmCreatePlan) addImageSteps(ctx context.Context, vm *models.MicroVM, imageSvc ports.ImageService) error {
+func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context, vm *models.MicroVM, imageSvc ports.ImageService) error {
 	for i := range vm.Spec.Volumes {
 		vol := vm.Spec.Volumes[i]
 		status, ok := vm.Status.Volumes[vol.ID]
@@ -128,7 +145,7 @@ func (p *microvmCreatePlan) addImageSteps(ctx context.Context, vm *models.MicroV
 	return nil
 }
 
-func (p *microvmCreatePlan) addNetworkSteps(ctx context.Context, vm *models.MicroVM, networkSvc ports.NetworkService) error {
+func (p *microvmCreateOrUpdatePlan) addNetworkSteps(ctx context.Context, vm *models.MicroVM, networkSvc ports.NetworkService) error {
 	for i := range vm.Spec.NetworkInterfaces {
 		iface := vm.Spec.NetworkInterfaces[i]
 		status, ok := vm.Status.NetworkInterfaces[iface.GuestDeviceName]
@@ -144,7 +161,7 @@ func (p *microvmCreatePlan) addNetworkSteps(ctx context.Context, vm *models.Micr
 	return nil
 }
 
-func (p *microvmCreatePlan) ensureStatus() {
+func (p *microvmCreateOrUpdatePlan) ensureStatus() {
 	if p.vm.Status.Volumes == nil {
 		p.vm.Status.Volumes = models.VolumeStatuses{}
 	}
