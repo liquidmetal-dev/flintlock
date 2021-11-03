@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/infrastructure/containerd"
 )
 
@@ -43,10 +44,22 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(exists).To(BeTrue())
 
-	gotVM, err := repo.Get(ctx, testOwnerName, testOwnerNamespace)
+	gotVM, err := repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      testOwnerName,
+		Namespace: testOwnerNamespace,
+	})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(gotVM).NotTo(BeNil())
-	Expect(savedVM.Version).To(Equal(3))
+	Expect(gotVM.Version).To(Equal(3))
+
+	olderVM, err := repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      testOwnerName,
+		Namespace: testOwnerNamespace,
+		Version:   "2",
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(olderVM).NotTo(BeNil())
+	Expect(olderVM.Version).To(Equal(2))
 
 	all, err := repo.GetAll(ctx, testOwnerNamespace)
 	Expect(err).NotTo(HaveOccurred())
@@ -59,11 +72,10 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(exists).To(BeFalse())
 
-	exists, err = repo.Exists(ctx, testOwnerName, testOwnerNamespace)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(exists).To(BeFalse())
-
-	_, err = repo.Get(ctx, testOwnerName, testOwnerNamespace)
+	_, err = repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      testOwnerName,
+		Namespace: testOwnerNamespace,
+	})
 	Expect(err).To(HaveOccurred())
 }
 

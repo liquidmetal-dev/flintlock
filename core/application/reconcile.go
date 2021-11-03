@@ -8,6 +8,7 @@ import (
 
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/plans"
+	"github.com/weaveworks/flintlock/core/ports"
 	portsctx "github.com/weaveworks/flintlock/core/ports/context"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/planner"
@@ -17,7 +18,10 @@ func (a *app) ReconcileMicroVM(ctx context.Context, id, namespace string) error 
 	logger := log.GetLogger(ctx).WithField("action", "reconcile")
 
 	logger.Debugf("Getting spec for %s/%s", namespace, id)
-	spec, err := a.ports.Repo.Get(ctx, id, namespace)
+	spec, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      id,
+		Namespace: namespace,
+	})
 	if err != nil {
 		return fmt.Errorf("getting microvm spec for reconcile: %w", err)
 	}

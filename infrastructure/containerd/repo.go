@@ -57,7 +57,10 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 	mu.Lock()
 	defer mu.Unlock()
 
-	existingSpec, err := r.get(ctx, microvm.ID.Name(), microvm.ID.Namespace())
+	existingSpec, err := r.get(ctx, ports.RepositoryGetOptions{
+		Name:      microvm.ID.Name(),
+		Namespace: microvm.ID.Namespace(),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("getting vm spec from store: %w", err)
 	}
@@ -106,24 +109,25 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 }
 
 // Get will get the microvm spec with the given name/namespace from the containerd content store.
-func (r *containerdRepo) Get(ctx context.Context, name, namespace string) (*models.MicroVM, error) {
-	mu := r.getMutex(name)
+// If version is not empty, returns with the specified version of the spec.
+func (r *containerdRepo) Get(ctx context.Context, options ports.RepositoryGetOptions) (*models.MicroVM, error) {
+	mu := r.getMutex(options.Name)
 	mu.RLock()
 	defer mu.RUnlock()
 
-	spec, err := r.get(ctx, name, namespace)
+	spec, err := r.get(ctx, options)
 	if err != nil {
 		return nil, fmt.Errorf("getting vm spec from store: %w", err)
 	}
 	if spec == nil {
-		return nil, errors.NewSpecNotFound(name, namespace) //nolint: wrapcheck
+		return nil, errors.NewSpecNotFound(options.Name, options.Namespace, options.Version)
 	}
 
 	return spec, nil
 }
 
-// GetAll will get a list of microvm details from the containerd content store. If namespace is an empty string all
-// details of microvms will be returned.
+// GetAll will get a list of microvm details from the containerd content store.
+// If namespace is an empty string all microvms will be returned from all namespaces.
 func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
 	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 	store := r.client.ContentStore()
@@ -218,10 +222,14 @@ func (r *containerdRepo) Exists(ctx context.Context, name, namespace string) (bo
 
 	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 
-	digest, err := r.findLatestDigestForSpec(namespaceCtx, name, namespace)
+	digest, err := r.findDigestForSpec(
+		namespaceCtx,
+		ports.RepositoryGetOptions{Name: name, Namespace: namespace},
+	)
 	if err != nil {
 		return false, fmt.Errorf("finding digest for %s/%s: %w", name, namespace, err)
 	}
+
 	if digest == nil {
 		return false, nil
 	}
@@ -229,10 +237,10 @@ func (r *containerdRepo) Exists(ctx context.Context, name, namespace string) (bo
 	return true, nil
 }
 
-func (r *containerdRepo) get(ctx context.Context, name, namespace string) (*models.MicroVM, error) {
+func (r *containerdRepo) get(ctx context.Context, options ports.RepositoryGetOptions) (*models.MicroVM, error) {
 	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 
-	digest, err := r.findLatestDigestForSpec(namespaceCtx, name, namespace)
+	digest, err := r.findDigestForSpec(namespaceCtx, options)
 	if err != nil {
 		return nil, fmt.Errorf("finding content in store: %w", err)
 	}
@@ -260,45 +268,64 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 	return microvm, nil
 }
 
-func (r *containerdRepo) findLatestDigestForSpec(ctx context.Context, name, namespace string) (*digest.Digest, error) {
-	idLabelFilter := labelFilter(NameLabel, name)
-	nsFilter := labelFilter(NamespaceLabel, namespace)
-	allFilter := strings.Join([]string{idLabelFilter, nsFilter}, ",")
+func (r *containerdRepo) findDigestForSpec(ctx context.Context, options ports.RepositoryGetOptions) (*digest.Digest, error) {
+	idLabelFilter := labelFilter(NameLabel, options.Name)
+	nsFilter := labelFilter(NamespaceLabel, options.Namespace)
+	versionFilter := labelFilter(VersionLabel, options.Version)
+
+	combinedFilters := []string{idLabelFilter, nsFilter}
+
+	if options.Version != "" {
+		combinedFilters = append(combinedFilters, versionFilter)
+	}
+
+	allFilters := strings.Join(combinedFilters, ",")
 	store := r.client.ContentStore()
 
 	var digest *digest.Digest
 	highestVersion := 0
 
-	err := store.Walk(ctx, func(i content.Info) error {
-		version, err := strconv.Atoi(i.Labels[VersionLabel])
-		if err != nil {
-			return fmt.Errorf("parsing version number: %w", err)
-		}
-		if version > highestVersion {
-			digest = &i.Digest
-			highestVersion = version
-		}
+	err := store.Walk(
+		ctx,
+		func(i content.Info) error {
+			version, err := strconv.Atoi(i.Labels[VersionLabel])
+			if err != nil {
+				return fmt.Errorf("parsing version number: %w", err)
+			}
 
-		return nil
-	}, allFilter)
+			if version > highestVersion {
+				digest = &i.Digest
+				highestVersion = version
+			}
+
+			return nil
+		},
+		allFilters,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("walking content store for %s: %w", name, err)
+		return nil, fmt.Errorf("walking content store for %s: %w", options.Name, err)
 	}
 
 	return digest, nil
 }
 
 func (r *containerdRepo) findAllDigestForSpec(ctx context.Context, name, namespace string) ([]*digest.Digest, error) {
+	store := r.client.ContentStore()
 	idLabelFilter := labelFilter(NameLabel, name)
 	nsLabelFilter := labelFilter(NamespaceLabel, namespace)
-	store := r.client.ContentStore()
+	combinedFilters := []string{idLabelFilter, nsLabelFilter}
+	allFilters := strings.Join(combinedFilters, ",")
 
 	digests := []*digest.Digest{}
-	err := store.Walk(ctx, func(i content.Info) error {
-		digests = append(digests, &i.Digest)
+	err := store.Walk(
+		ctx,
+		func(i content.Info) error {
+			digests = append(digests, &i.Digest)
 
-		return nil
-	}, idLabelFilter, nsLabelFilter)
+			return nil
+		},
+		allFilters,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("walking content store for %s: %w", name, err)
 	}

@@ -89,21 +89,27 @@ func (e NetworkInterfaceStatusMissingError) Error() string {
 	return fmt.Sprintf("status for network interface %s is not found", e.guestIface)
 }
 
-func NewSpecNotFound(name, namespace string) error {
+func NewSpecNotFound(name, namespace, version string) error {
 	return specNotFoundError{
 		name:      name,
 		namespace: namespace,
+		version:   version,
 	}
 }
 
 type specNotFoundError struct {
 	name      string
 	namespace string
+	version   string
 }
 
 // Error returns the error message.
 func (e specNotFoundError) Error() string {
-	return fmt.Sprintf("microvm spec %s/%s not found", e.namespace, e.name)
+	if e.version == "" {
+		return fmt.Sprintf("microvm spec %s/%s not found", e.namespace, e.name)
+	}
+
+	return fmt.Sprintf("microvm spec %s/%s not found with version %s", e.namespace, e.name, e.version)
 }
 
 // IsSpecNotFound tests an error to see if its a spec not found error.
