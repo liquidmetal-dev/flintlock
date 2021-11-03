@@ -14,13 +14,13 @@ Run the following command to download the Ubuntu Server cloud images:
 hack/scripts/download_cloudimages.sh
 ```
 
-This downloads the Ubuntu Server Cloud Image files and and processes them. The downloaded files and processed files will be available in `out/images` by default. There are a number of flags that can be used for custimization:
+This downloads the Ubuntu Server Cloud Image files and and processes them. The downloaded files and processed files will be available in `out/images` by default. There are a number of flags that can be used for customization:
 
 | Flag            |  Description                                                     |
 | --------------- | ---------------------------------------------------------------- |
 | -o/--output     | Specifies the output folder to use. Defaults to `./out`.         |
 | -v/--version    | Specifies the ubuntu version to download. Defaults to `bionic`.  |
-| -s/--image-size | Specifies the size of the root fs to create. Defaluts to `10G`.  |
+| -s/--image-size | Specifies the size of the root fs to create. Defaults to `10G`.  |
 
 The processed files (i.e. root filesystem, uncompressed kernel, initrd) can be used directly with Firecracker without flintlock.
 
