@@ -29,9 +29,6 @@ func NewRootCommand() (*cobra.Command, error) {
 				return fmt.Errorf("configuring logging: %w", err)
 			}
 
-			logger := log.GetLogger(cmd.Context())
-			logger.Infof("flintlockd, version=%s, built_on=%s, commit=%s", version.Version, version.BuildDate, version.CommitHash)
-
 			return nil
 		},
 		RunE: func(c *cobra.Command, _ []string) error {
@@ -63,7 +60,7 @@ func initCobra() {
 		viper.AddConfigPath("$HOME/.config/flintlockd/")
 	}
 
-	viper.ReadInConfig() //nolint: errcheck
+	_ = viper.ReadInConfig()
 }
 
 func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) error {
@@ -73,9 +70,59 @@ func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) error {
 	}
 
 	cmd.AddCommand(runCmd)
+	cmd.AddCommand(versionCommand())
 
 	gwCmd := gw.NewCommand(cfg)
 	cmd.AddCommand(gwCmd)
 
 	return nil
+}
+
+func versionCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of flintlock",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var (
+				long, short bool
+				err         error
+			)
+
+			if long, err = cmd.Flags().GetBool("long"); err != nil {
+				return nil
+			}
+
+			if short, err = cmd.Flags().GetBool("short"); err != nil {
+				return nil
+			}
+
+			if short {
+				fmt.Fprintln(cmd.OutOrStdout(), version.Version)
+
+				return nil
+			}
+
+			if long {
+				fmt.Fprintf(
+					cmd.OutOrStdout(),
+					"%s\n  Version:    %s\n  CommitHash: %s\n  BuildDate:  %s\n",
+					version.PackageName,
+					version.Version,
+					version.CommitHash,
+					version.BuildDate,
+				)
+
+				return nil
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "%s %s\n", version.PackageName, version.Version)
+
+			return nil
+		},
+	}
+
+	_ = cmd.Flags().Bool("long", false, "Print long version information")
+	_ = cmd.Flags().Bool("short", false, "Print short version information")
+
+	return cmd
 }

@@ -19,6 +19,7 @@ import (
 	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
 	"github.com/weaveworks/flintlock/internal/config"
 	"github.com/weaveworks/flintlock/internal/inject"
+	"github.com/weaveworks/flintlock/internal/version"
 	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/flags"
 	"github.com/weaveworks/flintlock/pkg/log"
@@ -31,6 +32,14 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 		Short: "Start running the flintlock API",
 		PreRunE: func(c *cobra.Command, _ []string) error {
 			flags.BindCommandToViper(c)
+
+			logger := log.GetLogger(c.Context())
+			logger.Infof(
+				"flintlockd, version=%s, built_on=%s, commit=%s",
+				version.Version,
+				version.BuildDate,
+				version.CommitHash,
+			)
 
 			return nil
 		},
