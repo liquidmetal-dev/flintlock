@@ -9,7 +9,7 @@ There are both GUI and a CLI option.
 
 ## grpc-client-cli
 
-Install the [grpcurl][grpcurl].
+Install [grpcurl][grpcurl].
 
 Use the [`./hack/scripts/send.sh`][payload-example-send] script.
 
@@ -17,12 +17,12 @@ Use the [`./hack/scripts/send.sh`][payload-example-send] script.
 
 To created a MicroVM:
 
-```
+```bash
 ./hack/scripts/send.sh \
   --method CreateMicroVM
 ```
 
-In the terminal where you started the Flintlock server, you should see in the logs that the MircoVM
+In the terminal where you started the Flintlock server (flintlockd), you should see in the logs that the MircoVM
 has started.
 
 ## BloomRPC

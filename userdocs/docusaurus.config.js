@@ -84,10 +84,6 @@ const config = {
                 label: 'gRPC Proto',
                 to: '/docs/proto',
               },
-              {
-                label: 'ADR',
-                to: 'https://github.com/weaveworks/flintlock/tree/main/docs/adr',
-              },
             ],
           },
           {

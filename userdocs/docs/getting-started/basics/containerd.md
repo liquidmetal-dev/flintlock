@@ -6,11 +6,11 @@ sidebar_position: 2
 
 [Install ContainerD](https://github.com/containerd/containerd/releases).
 
-_RunC is not required; Flintlock only uses the snapshotter._
+_RunC is not required; Flintlock uses various containerd services only._
 
 ## Create thinpool
 
-Flintlock relies on ContainerD's devicemapper snapshotter to provide filesystem
+Flintlock relies on containerd's devicemapper snapshotter to provide filesystem
 devices for Firecracker microvms. Some configuration is required.
 
 The easy quick-start option is to run the `hack/scripts/devpool.sh` script as root.

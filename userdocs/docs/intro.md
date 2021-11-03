@@ -7,7 +7,7 @@ sidebar_position: 1
 ## What is flintlock?
 
 Flintlock is a service for creating and managing the lifecycle of microVMs on a
-host machine. Initially we will be supporting [Firecracker][firecracker]. 
+host machine. Initially we will be supporting [Firecracker][firecracker].
 
 The primary use case for flintlock is to create microVMs on a bare-metal host
 where the microVMs will be used as nodes in a virtualized Kubernetes cluster.
@@ -20,16 +20,17 @@ driven by Cluster API Provider Microvm (coming soon).
 ## Features
 
 Using API requests (via gRPC or HTTP):
+
 - Create, update, delete microVMs using Firecracker
 - Manage the lifecycle of microVMs (i.e. start, stop, pause)
-- Make metadata available to microVMs to support cloud-init, ignition etc
-- Use OCI images for the volumes, kernel & initrd
+- Configure microVM metadata via cloud-init, ignition etc
+- Use OCI images for microVM volumes, kernel and initrd
 - (coming soon) Use CNI to configure the network for the microVMs
 
 ## Documentation
 
 :::info
-Flintlock and flintlock tests are only compatible with Linux. We recommend that
+Flintlock is only compatible with Linux. We recommend that
 non-linux users provision a [Linux VM][vagrant] in which to work.
 :::
 

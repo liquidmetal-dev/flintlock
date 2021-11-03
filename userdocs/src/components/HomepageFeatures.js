@@ -30,7 +30,7 @@ const FeatureList = [
     description: (
       <>
         Flintlock lets you focus on your deploying your application,
-        and we&apos;ll do privision MicroVMs for you need.
+        with the right MicroVMs provisioned based on your need.
       </>
     ),
   },

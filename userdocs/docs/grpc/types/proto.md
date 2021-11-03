@@ -44,7 +44,7 @@ ContainerVolumeSource represents the details of a volume coming from a OCI image
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| image | [string](#string) |  | Image specifies teh conatiner image to use for the volume. |
+| image | [string](#string) |  | Image specifies the conatiner image to use for the volume. |
 
 
 

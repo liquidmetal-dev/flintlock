@@ -5,22 +5,19 @@ sidebar_position: 1
 # Configure network
 
 :::info
-Flintlock and flintlock tests are only compatible with Linux. We recommend that
+Flintlock is only compatible with Linux. We recommend that
 non-linux users provision a [Linux VM][vagrant] in which to work.
 :::
 
 [vagrant]: ../extras/use-vagrant
 
-If you are using wired connection, you can skip this and jump straight to the
-"Containerd" section. With wireless adapter, macvtap has some issues. The easy
-workaround is to use a bridge and tap devices instead.
+If you are using a wired connection, you can skip this and jump straight to the "Containerd" section.
 
-You can use the default kvm network, in this case, skip to "Create and connect
-tap device" and use `default`. We recommend using a dedicated network to avoid
-interference from other kvm machines or processes like IP or MAC address
-conflict.
+If you are using a wireless adapter, macvtap cannot be used normally. The workaround is to use a bridge and tap devices instead.
 
-### Install packages and start `libvirtd`
+You can use the default kvm network, in this case, skip to "Create and connect tap device" and use `default`. However, we recommend using a dedicated network to avoid interference from other kvm machines or processes like IP or MAC address conflict.
+
+## Install packages and start `libvirtd`
 
 ```bash
 sudo apt install qemu qemu-kvm libvirt-clients libvirt-daemon-system virtinst bridge-utils
@@ -52,7 +49,7 @@ Create the `flintlock.xml` file (feel free to change the IP range):
 
 Define, start and set autostart on the `flintlock` network:
 
-```
+```bash
 sudo virsh net-define flintlock.xml
 sudo virsh net-start flintlock
 sudo virsh net-autostart flintlock
@@ -60,7 +57,7 @@ sudo virsh net-autostart flintlock
 
 Now you should see the network in the network list:
 
-```
+```bash
 virsh net-list
  Name       State    Autostart   Persistent
 ---------------------------------------------
