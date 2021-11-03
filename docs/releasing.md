@@ -6,6 +6,14 @@
 
 The projects follows [semantic versioning](https://semver.org/#semantic-versioning-200) and so the release version must adhere to this specification. Depending on the changes in the release you will need to decide the next appropriate version number.
 
+Its advised that you pull the tags and view the latest release (i.e. tag):
+
+```bash
+git pull --tags
+
+git describe --tags --abbrev=0
+```
+
 ## Create tag
 
 * Checkout upstream main
@@ -13,13 +21,13 @@ The projects follows [semantic versioning](https://semver.org/#semantic-versioni
 
 ```bash
 RELEASE_VERSION=v0.1.0-alpha.1
-git tag -s ${RELEASE_VERSION} -m "${RELEASE_VERSION}
+git tag -s "${RELEASE_VERSION}" -m "${RELEASE_VERSION}"
 ```
 
 * Push the tag (to upstream if working from a fork)
 
 ``` bash
-git push origin ${RELEASE_VERSION}
+git push origin "${RELEASE_VERSION}"
 ```
 
 * Check the [release](https://github.com/weaveworks/flintlock/actions/workflows/release.yml) GitHub Actions workflow completes successfully.

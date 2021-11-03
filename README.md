@@ -27,7 +27,9 @@ See our [getting started with flintlock][quickstart] guide.
 
 ## Contributing
 
-Contributions are welcome. Please read the [CONTRIBUTING.md][contrib] and our [Code Of Conduct][coc]. We have the [#liquid-metal](https://weave-community.slack.com/archives/C02KARWGR7S) slack channel for discussions when contributors and users.
+Contributions are welcome. Please read the [CONTRIBUTING.md][contrib] and our [Code Of Conduct][coc]. 
+
+You can reach out to the maintainers and other contributors using the [#liquid-metal](https://weave-community.slack.com/archives/C02KARWGR7S) slack channel.
 
 Other interesting resources include:
 
