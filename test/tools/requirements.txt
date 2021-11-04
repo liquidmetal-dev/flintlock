@@ -1,0 +1,4 @@
+click==7.1.2
+packet-python==1.44.1
+pycryptodome==3.11.0
+spur==0.3.22

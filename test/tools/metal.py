@@ -1,6 +1,5 @@
 import packet
 import time
-import base64
 import spur
 import logging
 import os

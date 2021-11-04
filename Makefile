@@ -100,7 +100,11 @@ test-with-cov: ## Run unit tests with coverage
 	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt ./...
 
 .PHONY: test-e2e
-test-e2e: compile-e2e ## Run e2e tests locally in a container
+test-e2e: compile-e2e ## Run e2e tests locally
+		go test -timeout 30m -p 1 -v -tags=e2e ./test/e2e/...
+
+.PHONY: test-e2e-docker
+test-e2e-docker: compile-e2e ## Run e2e tests locally in a container
 	docker run --rm -it \
 		--privileged \
 		--volume /dev:/dev \
@@ -109,11 +113,11 @@ test-e2e: compile-e2e ## Run e2e tests locally in a container
 		--ipc=host \
 		--workdir=/src/flintlock \
 		$(test_image):latest \
-		"go test -timeout 30m -p 1 -v -tags=e2e ./test/e2e/..."
+		"make test-e2e"
 
 .PHONY: test-e2e-metal
 test-e2e-metal: ## Run e2e tests in Equinix
-	echo "coming soon to some hardware near you"
+	./test/tools/run.py run-e2e -o $(EQUINIX_ORG_ID)
 
 .PHONY: compile-e2e
 compile-e2e: ## Test e2e compilation
