@@ -8,21 +8,40 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    env:
+      PROJECT_NAME: "flintlock_nightly_e2e"
     name: e2e tests
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '^1.17.2'
-    # TODO
-    # have a custom action for the setup so that we can get outputs for the cleanup projects
-    # rather than hardcoding
     - name: Run tests
-      run: make test-e2e
       env:
         METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
-    - name: Cleanup projects
-      uses: weaveworks/metal-janitor-action@b0373b3a6a8bb1e6573616040121c22ba230cdc8
+      run: |
+        pip3 install -r test/tools/requirements.txt
+        test/tools/run.py run-e2e -o ${{ secrets.EQUINIX_ORG_ID }} -p ${{ env.PROJECT_NAME }}
+
+    - name: Notify slack on failure
+      uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+      if: ${{ failure() }}
+      with:
+        slack_token: ${{ secrets.SLACK_TOKEN }}
+        message: "An end-to-end test run failed :sad-parrot: [Click here](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) and weep."
+        channel: team-quick-silver
+        color: red
+        verbose: false
+
+    - name: Notify slack on success
+      uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+      if: ${{ success() }}
+      with:
+        slack_token: ${{ secrets.SLACK_TOKEN }}
+        message: "An end-to-end test run succeeded :party-gopher:"
+        channel: team-quick-silver
+        color: green
+        verbose: false
+
+    - name: Cleanup project
+      uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95
       with:
         metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
-        project_names: 'quicksilver_e2e_1'
+        project_names: ${{ env.PROJECT_NAME }}
