@@ -17,8 +17,8 @@ Using API requests (via gRPC or HTTP):
 
 - Create, update, delete microVMs using Firecracker
 - Manage the lifecycle of microVMs (i.e. start, stop, pause)
-- Make metadata available to microVMs to support cloud-init, ignition etc
-- Use OCI images for the volumes, kernel & initrd
+- Configure microVM metadata via cloud-init, ignition etc
+- Use OCI images for microVM volumes, kernel and initrd
 - (coming soon) Use CNI to configure the network for the microVMs
 
 ## Documentation

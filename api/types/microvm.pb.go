@@ -770,7 +770,7 @@ type ContainerVolumeSource struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Image specifies teh conatiner image to use for the volume.
+	// Image specifies the conatiner image to use for the volume.
 	Image string `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
 }
 

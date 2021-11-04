@@ -131,7 +131,7 @@ message VolumeSource {
 
 // ContainerVolumeSource represents the details of a volume coming from a OCI image.
 message ContainerVolumeSource {
-    // Image specifies teh conatiner image to use for the volume.
+    // Image specifies the conatiner image to use for the volume.
     string image = 1;
 }
 

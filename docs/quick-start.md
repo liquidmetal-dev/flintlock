@@ -28,12 +28,12 @@ and run: mdtoc -inplace docs/quick-start.md
 
 ## MacOS Users
 
-Flintlock and flintlock tests are only compatible with Linux. We recommend that
+Flintlock is only compatible with Linux. We recommend that
 non-linux users provision a Linux VM in which to work.
 
 You can use Vagrant:
 
-```
+```bash
 vagrant up
 ```
 
@@ -42,14 +42,11 @@ Run the rest of the instructions on this page on that machine.
 
 ## Configure network
 
-If you are using wired connection, you can skip this and jump straight to the
-"Containerd" section. With wireless adapter, macvtap has some issues. The easy
-workaround is to use a bridge and tap devices instead.
+If you are using a wired connection, you can skip this and jump straight to the "Containerd" section.
 
-You can use the default kvm network, in this case, skip to "Create and connect
-tap device" and use `default`. We recommend using a dedicated network to avoid
-interference from other kvm machines or processes like IP or MAC address
-conflict.
+If you are using a wireless adapter, macvtap cannot be used normally. The workaround is to use a bridge and tap devices instead.
+
+You can use the default kvm network, in this case, skip to "Create and connect tap device" and use `default`. However, we recommend using a dedicated network to avoid interference from other kvm machines or processes like IP or MAC address conflict.
 
 ### Install packages and start `libvirtd`
 
@@ -83,7 +80,7 @@ Create the `flintlock.xml` file (feel free to change the IP range):
 
 Define, start and set autostart on the `flintlock` network:
 
-```
+```bash
 sudo virsh net-define flintlock.xml
 sudo virsh net-start flintlock
 sudo virsh net-autostart flintlock
@@ -91,7 +88,7 @@ sudo virsh net-autostart flintlock
 
 Now you should see the network in the network list:
 
-```
+```bash
 virsh net-list
  Name       State    Autostart   Persistent
 ---------------------------------------------
@@ -132,7 +129,7 @@ sudo virsh net-dhcp-leases default
 
 [Install ContainerD](https://github.com/containerd/containerd/releases).
 
-_RunC is not required; Flintlock only uses the snapshotter._
+_RunC is not required; Flintlock uses various containerd services only._
 
 ### Create thinpool
 
@@ -268,7 +265,7 @@ There are both GUI and a CLI option.
 
 ### grpc-client-cli
 
-Install the [grpcurl](grpcurl).
+Install [grpcurl][grpcurl].
 
 Use the `./hack/scripts/send.sh` script.
 
@@ -276,12 +273,12 @@ Use the `./hack/scripts/send.sh` script.
 
 To created a MicroVM:
 
-```
+```bash
 ./hack/scripts/send.sh \
   --method CreateMicroVM
 ```
 
-In the terminal where you started the Flintlock server, you should see in the logs that the MircoVM
+In the terminal where you started the Flintlock server (flintlockd), you should see in the logs that the MircoVM
 has started.
 
 ### BloomRPC
