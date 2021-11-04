@@ -25,7 +25,7 @@ jobs:
       if: ${{ failure() }}
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
-        message: "An end-to-end test run failed :sad-parrot: [Click here](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) and weep."
+        message: "An end-to-end test run failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here> and weep."
         channel: team-quick-silver
         color: red
         verbose: false
