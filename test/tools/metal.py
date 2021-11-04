@@ -123,10 +123,10 @@ class Welder():
 
       self.logger.info(f"device {device.hostname} (id: {device.id}) ready")
 
-   def run_ssh_command(self, cmd, cwd):
+   def run_ssh_command(self, cmd, cwd, allow_error=True):
       shell = self.new_shell(self.ip)
       with shell:
-         result = shell.run(command=cmd, cwd=cwd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, allow_error=True)
+         result = shell.run(command=cmd, cwd=cwd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, allow_error=allow_error)
       self.logger.info("command exited with code %d", result.return_code)
 
    def delete_all(self, project, device, key):
