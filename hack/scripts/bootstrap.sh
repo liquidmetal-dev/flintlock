@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# WARNING: THIS SCRIPT HAS MUTLIPLE PURPOSES.
+# TAKE CARE WHEN EDITING.
+
 set -euxo pipefail
 
 if [[ $(id -u) != 0 ]]; then
@@ -28,7 +31,8 @@ apt install -y \
     git
 
 # install go
-export PATH="$PATH:$INSTALL_ROOT/go/bin"
+export GOPATH=/root/go
+export PATH="$PATH:$INSTALL_ROOT/go/bin:$GOPATH/bin"
 curl -sL "https://golang.org/dl/go$GO_VERSION.linux-amd64.tar.gz" | tar xz -C "$INSTALL_ROOT" && \
   go version
 

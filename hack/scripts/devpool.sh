@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# WARNING: THIS SCRIPT HAS MUTLIPLE PURPOSES.
+# TAKE CARE WHEN EDITING.
+
 set -ex
 
 if [[ $(id -u) != 0 ]]; then
@@ -11,11 +14,13 @@ fi
 CROOT=/var/lib/containerd-dev
 # This is the name of the thinpool.
 POOL="${1:-dev-thinpool}"
+set +u
 # This is the tag which will be appended to the loop device volumes
 VOL_TAG=""
 if [[ -n "$2" ]]; then
   VOL_TAG="-$2"
 fi
+set -u
 # These are some useful vars for useful things
 DIR="${CROOT}/snapshotter/devmapper"
 META="${CROOT}/snapshotter/devmapper/metadata$VOL_TAG"
