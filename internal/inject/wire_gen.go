@@ -71,8 +71,8 @@ func InitializeGRPCServer(app application.App) ports.MicroVMGRPCService {
 
 func containerdConfig(cfg *config.Config) *containerd.Config {
 	return &containerd.Config{
-		SnapshotterKernel: cfg.CtrSnapshotterKernel,
-		SnapshotterVolume: cfg.CtrSnapshotterVolume,
+		SnapshotterKernel: cfg.CtrKernelSnapshotter,
+		SnapshotterVolume: cfg.CtrVolumeSnapshotter,
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
 	}
@@ -81,7 +81,7 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 	return &firecracker.Config{
 		FirecrackerBin: cfg.FirecrackerBin,
-		RunDetached:    cfg.FirecrackerDetatch,
+		RunDetached:    cfg.FirecrackerDetach,
 		APIConfig:      cfg.FirecrackerUseAPI,
 		StateRoot:      fmt.Sprintf("%s/vm", cfg.StateRootDir),
 	}

@@ -2,110 +2,143 @@ package command
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
 
 	"github.com/weaveworks/flintlock/internal/command/gw"
 	"github.com/weaveworks/flintlock/internal/command/run"
 	"github.com/weaveworks/flintlock/internal/config"
 	"github.com/weaveworks/flintlock/internal/version"
 	"github.com/weaveworks/flintlock/pkg/defaults"
-	"github.com/weaveworks/flintlock/pkg/flags"
 	"github.com/weaveworks/flintlock/pkg/log"
 )
 
-func NewRootCommand() (*cobra.Command, error) {
+const usage = `
+  __  _  _         _    _               _        _
+ / _|| |(_) _ __  | |_ | |  ___    ___ | | __ __| |
+| |_ | || || '_ \ | __|| | / _ \  / __|| |/ // _' |
+|  _|| || || | | || |_ | || (_) || (__ |   <| (_| |
+|_|  |_||_||_| |_| \__||_| \___/  \___||_|\_\\__,_|
+
+Create and manage the lifecycle of MicroVMs, backed by containerd
+`
+
+func NewApp(out io.Writer) *cli.App {
 	cfg := &config.Config{}
+	// Append to the default template
+	cli.AppHelpTemplate = fmt.Sprintf(`%s
 
-	cmd := &cobra.Command{
-		Use:   "flintlockd",
-		Short: "The flintlock API",
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			flags.BindCommandToViper(cmd)
+		WEBSITE: https://docs.flintlock.dev/
+		
+		SUPPORT: https://github.com/weaveworks/flintlock
+		
+		`, cli.AppHelpTemplate)
 
-			if err := log.Configure(&cfg.Logging); err != nil {
-				return fmt.Errorf("configuring logging: %w", err)
+	app := cli.NewApp()
+
+	if out != nil {
+		app.Writer = out
+	}
+
+	app.Name = "flintlockd"
+	app.Usage = usage
+	app.Description = `
+flintlock is a service for creating and managing the lifecycle of microVMs on a host machine. 
+Initially we will be supporting Firecracker.
+
+The primary use case for flintlock is to create microVMs on a bare-metal host where the microVMs 
+will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of 
+Liquid Metal and will ultimately be driven by Cluster API Provider Microvm (coming soon).
+
+A default configuration is used if located at the default file location /etc/opt/flintlockd/config.yaml. It can also be set with XDG_CONFIG_HOME environment variable.
+The file path has to be XDG_CONFIG_HOME/flintlockd/config.yaml.`
+	app.HideVersion = true
+
+	log.AddFlagsToApp(app, &cfg.Logging)
+	addCommands(app, cfg)
+
+	app.Action = func(c *cli.Context) error {
+		err := cli.ShowAppHelp(c)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	app.Before = func(context *cli.Context) error {
+		// Load the configuration file
+		var configPath string
+
+		xdgCfg := os.Getenv("XDG_CONFIG_HOME")
+		if xdgCfg != "" {
+			configPath = filepath.Join(xdgCfg, "flintlockd", defaults.ConfigFile)
+		} else {
+			configPath = filepath.Join(defaults.ConfigurationDir, defaults.ConfigFile)
+		}
+
+		if _, err := os.Stat(configPath); err == nil {
+			inputSource, err := altsrc.NewYamlSourceFromFile(configPath)
+			if err != nil {
+				return fmt.Errorf("unable to create input source with context: %w", err)
 			}
 
-			return nil
-		},
-		RunE: func(c *cobra.Command, _ []string) error {
-			return c.Help()
-		},
+			err = altsrc.ApplyInputSourceValues(context, inputSource, app.Flags)
+			if err != nil {
+				return fmt.Errorf("unable to apply input source with context: %w", err)
+			}
+		}
+
+		if err := log.Configure(&cfg.Logging); err != nil {
+			return fmt.Errorf("configuring logging: %w", err)
+		}
+
+		return nil
 	}
 
-	log.AddFlagsToCommand(cmd, &cfg.Logging)
-
-	if err := addRootSubCommands(cmd, cfg); err != nil {
-		return nil, fmt.Errorf("adding subcommands: %w", err)
-	}
-
-	cobra.OnInitialize(initCobra)
-
-	return cmd, nil
+	return app
 }
 
-func initCobra() {
-	viper.SetEnvPrefix("FLINTLOCKD")
-	viper.AutomaticEnv()
-	viper.SetConfigType("yaml")
-	viper.SetConfigName("config")
-	viper.AddConfigPath(defaults.ConfigurationDir)
-
-	xdgCfg := os.Getenv("XDG_CONFIG_HOME")
-	if xdgCfg != "" {
-		viper.AddConfigPath("$XDG_CONFIG_HOME/flintlockd/")
-	} else {
-		viper.AddConfigPath("$HOME/.config/flintlockd/")
-	}
-
-	_ = viper.ReadInConfig()
-}
-
-func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) error {
-	runCmd, err := run.NewCommand(cfg)
-	if err != nil {
-		return fmt.Errorf("creating run cobra command: %w", err)
-	}
-
-	cmd.AddCommand(runCmd)
-	cmd.AddCommand(versionCommand())
-
+func addCommands(app *cli.App, cfg *config.Config) {
+	runCmd := run.NewCommand(cfg)
 	gwCmd := gw.NewCommand(cfg)
-	cmd.AddCommand(gwCmd)
-
-	return nil
+	versionCmd := versionCommand()
+	app.Commands = append(app.Commands, runCmd, gwCmd, versionCmd)
 }
 
-func versionCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Print the version number of flintlock",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var (
-				long, short bool
-				err         error
-			)
-
-			if long, err = cmd.Flags().GetBool("long"); err != nil {
-				return err
-			}
-
-			if short, err = cmd.Flags().GetBool("short"); err != nil {
-				return err
-			}
+func versionCommand() *cli.Command {
+	cmd := &cli.Command{
+		Name:  "version",
+		Usage: "Print the version number of flintlock",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "long",
+				Usage: "Print the long version information",
+				Value: false,
+			},
+			&cli.BoolFlag{
+				Name:  "short",
+				Usage: "Print the short version information",
+				Value: false,
+			},
+		},
+		Action: func(context *cli.Context) error {
+			long := context.Bool("long")
+			short := context.Bool("short")
 
 			if short {
-				fmt.Fprintln(cmd.OutOrStdout(), version.Version)
+				fmt.Fprintln(context.App.Writer, version.Version)
 
 				return nil
 			}
 
 			if long {
 				fmt.Fprintf(
-					cmd.OutOrStdout(),
+					context.App.Writer,
 					"%s\n  Version:    %s\n  CommitHash: %s\n  BuildDate:  %s\n",
 					version.PackageName,
 					version.Version,
@@ -116,14 +149,11 @@ func versionCommand() *cobra.Command {
 				return nil
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "%s %s\n", version.PackageName, version.Version)
+			fmt.Fprintf(context.App.Writer, "%s %s\n", version.PackageName, version.Version)
 
 			return nil
 		},
 	}
-
-	_ = cmd.Flags().Bool("long", false, "Print long version information")
-	_ = cmd.Flags().Bool("short", false, "Print short version information")
 
 	return cmd
 }

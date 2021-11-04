@@ -60,4 +60,7 @@ const (
 
 	// MaximumRetry is the default value how many times we retry failed reconciliation.
 	MaximumRetry = 10
+
+	// ConfigFile is the name of the configuration file.
+	ConfigFile = "config.yaml"
 )

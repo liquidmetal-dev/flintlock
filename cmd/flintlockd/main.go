@@ -1,18 +1,17 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"os"
 
 	"github.com/weaveworks/flintlock/internal/command"
 )
 
 func main() {
-	rootCmd, err := command.NewRootCommand()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	app := command.NewApp(os.Stdout)
 
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err)
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintf(os.Stderr, "flintlockd: %s\n", err)
+		os.Exit(1)
 	}
 }

@@ -18,18 +18,18 @@ type Config struct {
 	HTTPAPIEndpoint string
 	// FirecrackerBin is the firecracker binary to use.
 	FirecrackerBin string
-	// FirecrackerDetatch indicates if the child firecracker processes should be detached from their parent.
-	FirecrackerDetatch bool
+	// FirecrackerDetach indicates if the child firecracker processes should be detached from their parent.
+	FirecrackerDetach bool
 	// FirecrackerUseAPI indicates that we should configure the microvm using the api and not a config file.
 	FirecrackerUseAPI bool
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
 	// ParentIface is the name of the network interface to use for the parent in macvtap interfaces.
 	ParentIface string
-	// CtrSnapshotterKernel is the name of the containerd snapshotter to use for kernel images.
-	CtrSnapshotterKernel string
-	// CtrSnapshotterVolume is the name of the containerd snapshotter to use for volume (inc initrd) images.
-	CtrSnapshotterVolume string
+	// CtrKernelSnapshotter is the name of the containerd snapshotter to use for kernel images.
+	CtrKernelSnapshotter string
+	// CtrVolumeSnapshotter is the name of the containerd snapshotter to use for volume (inc initrd) images.
+	CtrVolumeSnapshotter string
 	// CtrSocketPath is the path to the containerd socket.
 	CtrSocketPath string
 	// CtrNamespace is the default containerd namespace to use

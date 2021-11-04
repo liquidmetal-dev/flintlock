@@ -6,44 +6,67 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
 	"google.golang.org/grpc"
 
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
 	"github.com/weaveworks/flintlock/internal/config"
 	"github.com/weaveworks/flintlock/internal/version"
-	"github.com/weaveworks/flintlock/pkg/flags"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/log"
 )
 
-// NewCommand creates a new cobra command for running the gRPC HTTP gateway.
-func NewCommand(cfg *config.Config) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "gw",
-		Short: "Start serving the HTTP gateway for the flintlock gRPC API",
-		PreRunE: func(c *cobra.Command, _ []string) error {
-			flags.BindCommandToViper(c)
-
-			logger := log.GetLogger(c.Context())
-			logger.Infof(
-				"flintlockd, version=%s, built_on=%s, commit=%s",
-				version.Version,
-				version.BuildDate,
-				version.CommitHash,
-			)
-
-			return nil
-		},
-		RunE: func(c *cobra.Command, _ []string) error {
-			return runGWServer(c.Context(), cfg)
+// NewCommand creates a new cli command for running the gRPC HTTP gateway.
+func NewCommand(cfg *config.Config) *cli.Command {
+	cmd := &cli.Command{
+		Name:  "gw",
+		Usage: "Run the gRPC HTTP gateway",
+		Action: func(c *cli.Context) error {
+			return runGWServer(c.Context, cfg)
 		},
 	}
 
 	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
+
+	cmd.Before = func(context *cli.Context) error {
+		// Load the configuration file
+		var configPath string
+
+		xdgCfg := os.Getenv("XDG_CONFIG_HOME")
+		if xdgCfg != "" {
+			configPath = filepath.Join(xdgCfg, "flintlockd", defaults.ConfigFile)
+		} else {
+			configPath = filepath.Join(defaults.ConfigurationDir, defaults.ConfigFile)
+		}
+
+		if _, err := os.Stat(configPath); err == nil {
+			inputSource, err := altsrc.NewYamlSourceFromFile(configPath)
+			if err != nil {
+				return fmt.Errorf("unable to create input source with context: %w", err)
+			}
+
+			err = altsrc.ApplyInputSourceValues(context, inputSource, cmd.Flags)
+			if err != nil {
+				return fmt.Errorf("unable to apply input source with context: %w", err)
+			}
+		}
+
+		logger := log.GetLogger(context.Context)
+		logger.Infof(
+			"flintlockd, version=%s, built_on=%s, commit=%s",
+			version.Version,
+			version.BuildDate,
+			version.CommitHash,
+		)
+
+		return nil
+	}
 
 	return cmd
 }
