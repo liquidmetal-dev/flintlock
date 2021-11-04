@@ -28,7 +28,7 @@ class Test:
 
     def run_tests(self):
         cmd = ['make', 'test-e2e']
-        self.welder.run_ssh_command(cmd, "/root/work/flintlock")
+        self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
 
     def teardown(self):
         self.welder.delete_all(self.project, self.device, self.key)
