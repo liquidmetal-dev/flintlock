@@ -52,6 +52,7 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return []planner.Procedure{}, nil
 	}
 
+	p.clearPlanList()
 	p.ensureStatus()
 
 	var err error
@@ -70,6 +71,14 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 
 func (p *microvmCreateOrUpdatePlan) Result() interface{} {
 	return nil
+}
+
+// This is the most important function in the codebase DO NOT REMOVE
+// Without this, the Create will always return the full origin list of steps
+// and the State will never be saved, meaning the steps will always return true
+// on ShouldDo. The loop will be infinite.
+func (p *microvmCreateOrUpdatePlan) clearPlanList() {
+	p.steps = []planner.Procedure{}
 }
 
 func (p *microvmCreateOrUpdatePlan) create(ctx context.Context, ports *ports.Collection) error {

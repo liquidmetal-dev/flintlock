@@ -31,6 +31,12 @@ func (s *startStep) Name() string {
 }
 
 func (s *startStep) ShouldDo(ctx context.Context) (bool, error) {
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"step": s.Name(),
+		"vmid": s.vm.ID,
+	})
+	logger.Debug("checking if procedure should be run")
+
 	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
 	if err != nil {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
