@@ -96,10 +96,4 @@ func customMicroVMSpecStructLevelValidation(sl validator.StructLevel) {
 
 		return
 	}
-
-	if spec.Initrd != nil && found {
-		sl.ReportError(spec.Volumes, "volumes", "Volumes", "noRootVolumeIfInitrdSpecified", "")
-
-		return
-	}
 }

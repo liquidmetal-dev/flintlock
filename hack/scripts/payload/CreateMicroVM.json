@@ -20,7 +20,7 @@
     "volumes": [
       {
         "id": "root",
-        "is_root": false,
+        "is_root": true,
         "is_read_only": false,
         "mount_point": "/",
         "source": {

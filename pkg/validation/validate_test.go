@@ -46,6 +46,18 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 	}
 
+	tooManyRoots := basicMicroVM
+	tooManyRoots.Spec.Volumes = models.Volumes{
+		{
+			IsRoot:     true,
+			MountPoint: "/",
+		},
+		{
+			IsRoot:     true,
+			MountPoint: "/",
+		},
+	}
+
 	tt := []struct {
 		name      string
 		numErrors int
@@ -75,6 +87,11 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "should fail validation when no volumes are marked as root",
 			numErrors: 1,
 			vmspec:    invalidVolumes,
+		},
+		{
+			name:      "should fail validation when more than one volume is marked as root",
+			numErrors: 1,
+			vmspec:    tooManyRoots,
 		},
 	}
 
