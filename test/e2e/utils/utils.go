@@ -102,7 +102,7 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 		Volumes: []*types.Volume{
 			{
 				Id:         "root",
-				IsRoot:     false,
+				IsRoot:     true,
 				IsReadOnly: true,
 				MountPoint: "/",
 				Source: &types.VolumeSource{
