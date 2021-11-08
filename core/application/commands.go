@@ -70,53 +70,6 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	return createdMVM, nil
 }
 
-func (a *app) UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
-	logger := log.GetLogger(ctx).WithField("component", "app")
-	logger.Trace("updating microvm")
-
-	if mvm == nil {
-		return nil, coreerrs.ErrSpecRequired
-	}
-	if mvm.ID.IsEmpty() {
-		return nil, coreerrs.ErrVMIDRequired
-	}
-
-	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
-		Name:      mvm.ID.Name(),
-		Namespace: mvm.ID.Namespace(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("checking to see if spec exists: %w", err)
-	}
-
-	if foundMvm == nil {
-		return nil, specNotFoundError{
-			name:      mvm.ID.Name(),
-			namespace: mvm.ID.Namespace(),
-		}
-	}
-
-	// TODO: validate incoming spec
-	// TODO: check if update is valid (i.e. compare existing to requested update)
-
-	// Set the timestamp when the VMspec was updated.
-	mvm.Spec.UpdatedAt = a.ports.Clock().Unix()
-
-	updatedMVM, err := a.ports.Repo.Save(ctx, mvm)
-	if err != nil {
-		return nil, fmt.Errorf("updating microvm spec: %w", err)
-	}
-
-	if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecUpdated{
-		ID:        mvm.ID.Name(),
-		Namespace: mvm.ID.Namespace(),
-	}); err != nil {
-		return nil, fmt.Errorf("publishing microvm updated event: %w", err)
-	}
-
-	return updatedMVM, nil
-}
-
 func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 	logger := log.GetLogger(ctx).WithField("component", "app")
 	logger.Trace("deleting microvm")

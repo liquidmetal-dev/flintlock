@@ -28,11 +28,6 @@ service MicroVM {
       post: "/v1alpha1/microvm"
     };
   }
-  rpc UpdateMicroVM(UpdateMicroVMRequest) returns (UpdateMicroVMResponse) {
-    option (google.api.http) = {
-      put: "/v1alpha1/microvm/{microvm.namespace}/{microvm.id}"
-    };
-  }
   rpc DeleteMicroVM(DeleteMicroVMRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/v1alpha1/microvm/{namespace}/{id}"
@@ -63,15 +58,6 @@ message CreateMicroVMResponse {
 message DeleteMicroVMRequest {
   string id = 1;
   string namespace = 2;
-}
-
-message UpdateMicroVMRequest {
-  flintlock.types.MicroVMSpec  microvm = 1;
-  google.protobuf.FieldMask update_mask = 2;
-}
-
-message UpdateMicroVMResponse {
-  flintlock.types.MicroVMSpec  microvm = 1;
 }
 
 message GetMicroVMRequest {

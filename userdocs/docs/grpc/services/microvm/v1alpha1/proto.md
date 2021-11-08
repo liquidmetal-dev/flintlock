@@ -13,8 +13,6 @@
     - [ListMessage](#microvm.services.api.v1alpha1.ListMessage)
     - [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest)
     - [ListMicroVMsResponse](#microvm.services.api.v1alpha1.ListMicroVMsResponse)
-    - [UpdateMicroVMRequest](#microvm.services.api.v1alpha1.UpdateMicroVMRequest)
-    - [UpdateMicroVMResponse](#microvm.services.api.v1alpha1.UpdateMicroVMResponse)
   
     - [MicroVM](#microvm.services.api.v1alpha1.MicroVM)
   
@@ -167,37 +165,6 @@
 
 
 
-
-<a name="microvm.services.api.v1alpha1.UpdateMicroVMRequest"></a>
-
-### UpdateMicroVMRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVMSpec](#flintlock.types.MicroVMSpec) |  |  |
-| update_mask | [google.protobuf.FieldMask](#google.protobuf.FieldMask) |  |  |
-
-
-
-
-
-
-<a name="microvm.services.api.v1alpha1.UpdateMicroVMResponse"></a>
-
-### UpdateMicroVMResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVMSpec](#flintlock.types.MicroVMSpec) |  |  |
-
-
-
-
-
  
 
  
@@ -213,7 +180,6 @@ MicroVM providers a service to create and manage the lifecycle of microvms.
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | CreateMicroVM | [CreateMicroVMRequest](#microvm.services.api.v1alpha1.CreateMicroVMRequest) | [CreateMicroVMResponse](#microvm.services.api.v1alpha1.CreateMicroVMResponse) |  |
-| UpdateMicroVM | [UpdateMicroVMRequest](#microvm.services.api.v1alpha1.UpdateMicroVMRequest) | [UpdateMicroVMResponse](#microvm.services.api.v1alpha1.UpdateMicroVMResponse) |  |
 | DeleteMicroVM | [DeleteMicroVMRequest](#microvm.services.api.v1alpha1.DeleteMicroVMRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
 | GetMicroVM | [GetMicroVMRequest](#microvm.services.api.v1alpha1.GetMicroVMRequest) | [GetMicroVMResponse](#microvm.services.api.v1alpha1.GetMicroVMResponse) |  |
 | ListMicroVMs | [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest) | [ListMicroVMsResponse](#microvm.services.api.v1alpha1.ListMicroVMsResponse) |  |

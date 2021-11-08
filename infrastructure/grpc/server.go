@@ -33,7 +33,6 @@ type server struct {
 	validator validation.Validator
 }
 
-//nolint:dupl
 func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequest) (*mvmv1.CreateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 
@@ -65,43 +64,6 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	logger.Trace("converting model to response")
 	resp := &mvmv1.CreateMicroVMResponse{
 		Microvm: convertModelToMicroVM(createdModel),
-	}
-
-	return resp, nil
-}
-
-//nolint:dupl
-func (s *server) UpdateMicroVM(ctx context.Context, req *mvmv1.UpdateMicroVMRequest) (*mvmv1.UpdateMicroVMResponse, error) {
-	logger := log.GetLogger(ctx)
-
-	logger.Trace("converting request to model")
-	modelSpec, err := convertMicroVMToModel(req.Microvm)
-	if err != nil {
-		return nil, fmt.Errorf("converting request: %w", err)
-	}
-
-	logger.Trace("validating model")
-	err = s.validator.ValidateStruct(modelSpec)
-	var valErrors validator.ValidationErrors
-	if err != nil {
-		if errors.As(err, &valErrors) {
-			return nil, status.Errorf(codes.InvalidArgument, "an error occurred when attempting to validate the request: %v", err)
-		}
-
-		return nil, status.Errorf(codes.Internal, "an error occurred: %v", err)
-	}
-
-	logger.Infof("updating microvm %s", modelSpec.ID)
-	updatedModel, err := s.commandUC.UpdateMicroVM(ctx, modelSpec)
-	if err != nil {
-		logger.Errorf("failed to update microvm: %s", err)
-
-		return nil, fmt.Errorf("updating microvm: %w", err)
-	}
-
-	logger.Trace("converting model to response")
-	resp := &mvmv1.UpdateMicroVMResponse{
-		Microvm: convertModelToMicroVM(updatedModel),
 	}
 
 	return resp, nil

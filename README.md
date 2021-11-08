@@ -15,7 +15,7 @@ The primary use case for flintlock is to create microVMs on a bare-metal host wh
 
 Using API requests (via gRPC or HTTP):
 
-- Create, update, delete microVMs using Firecracker
+- Create and delete microVMs using Firecracker
 - Manage the lifecycle of microVMs (i.e. start, stop, pause)
 - Configure microVM metadata via cloud-init, ignition etc
 - Use OCI images for microVM volumes, kernel and initrd

@@ -10,8 +10,6 @@ import (
 type MicroVMCommandUseCases interface {
 	// CreateMicroVM is a use case for creating a microvm.
 	CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error)
-	// UpdateMicroVM is a use case for updating a microvm.
-	UpdateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error)
 	// DeleteMicroVM is a use case for deleting a microvm.
 	DeleteMicroVM(ctx context.Context, id, namespace string) error
 }

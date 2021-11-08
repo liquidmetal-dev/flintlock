@@ -20,7 +20,6 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MicroVMClient interface {
 	CreateMicroVM(ctx context.Context, in *CreateMicroVMRequest, opts ...grpc.CallOption) (*CreateMicroVMResponse, error)
-	UpdateMicroVM(ctx context.Context, in *UpdateMicroVMRequest, opts ...grpc.CallOption) (*UpdateMicroVMResponse, error)
 	DeleteMicroVM(ctx context.Context, in *DeleteMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetMicroVM(ctx context.Context, in *GetMicroVMRequest, opts ...grpc.CallOption) (*GetMicroVMResponse, error)
 	ListMicroVMs(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (*ListMicroVMsResponse, error)
@@ -38,15 +37,6 @@ func NewMicroVMClient(cc grpc.ClientConnInterface) MicroVMClient {
 func (c *microVMClient) CreateMicroVM(ctx context.Context, in *CreateMicroVMRequest, opts ...grpc.CallOption) (*CreateMicroVMResponse, error) {
 	out := new(CreateMicroVMResponse)
 	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/CreateMicroVM", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *microVMClient) UpdateMicroVM(ctx context.Context, in *UpdateMicroVMRequest, opts ...grpc.CallOption) (*UpdateMicroVMResponse, error) {
-	out := new(UpdateMicroVMResponse)
-	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/UpdateMicroVM", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +107,6 @@ func (x *microVMListMicroVMsStreamClient) Recv() (*ListMessage, error) {
 // for forward compatibility
 type MicroVMServer interface {
 	CreateMicroVM(context.Context, *CreateMicroVMRequest) (*CreateMicroVMResponse, error)
-	UpdateMicroVM(context.Context, *UpdateMicroVMRequest) (*UpdateMicroVMResponse, error)
 	DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error)
 	GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error)
 	ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error)
@@ -130,9 +119,6 @@ type UnimplementedMicroVMServer struct {
 
 func (UnimplementedMicroVMServer) CreateMicroVM(context.Context, *CreateMicroVMRequest) (*CreateMicroVMResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateMicroVM not implemented")
-}
-func (UnimplementedMicroVMServer) UpdateMicroVM(context.Context, *UpdateMicroVMRequest) (*UpdateMicroVMResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateMicroVM not implemented")
 }
 func (UnimplementedMicroVMServer) DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMicroVM not implemented")
@@ -172,24 +158,6 @@ func _MicroVM_CreateMicroVM_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MicroVMServer).CreateMicroVM(ctx, req.(*CreateMicroVMRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MicroVM_UpdateMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateMicroVMRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MicroVMServer).UpdateMicroVM(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/UpdateMicroVM",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroVMServer).UpdateMicroVM(ctx, req.(*UpdateMicroVMRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -279,10 +247,6 @@ var MicroVM_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateMicroVM",
 			Handler:    _MicroVM_CreateMicroVM_Handler,
-		},
-		{
-			MethodName: "UpdateMicroVM",
-			Handler:    _MicroVM_UpdateMicroVM_Handler,
 		},
 		{
 			MethodName: "DeleteMicroVM",
