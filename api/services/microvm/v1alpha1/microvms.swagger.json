@@ -39,44 +39,6 @@
         ]
       }
     },
-    "/v1alpha1/microvm/{microvm.namespace}/{microvm.id}": {
-      "put": {
-        "operationId": "MicroVM_UpdateMicroVM",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1alpha1UpdateMicroVMResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "microvm.namespace",
-            "description": "Namespace is the name of the namespace the microvm belongs to.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "microvm.id",
-            "description": "ID is the identifier of the microvm.\nIf this empty at creation time a ID will be automatically generated.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "MicroVM"
-        ]
-      }
-    },
     "/v1alpha1/microvm/{namespace}": {
       "get": {
         "operationId": "MicroVM_ListMicroVMs",
@@ -547,14 +509,6 @@
           "items": {
             "$ref": "#/definitions/typesMicroVM"
           }
-        }
-      }
-    },
-    "v1alpha1UpdateMicroVMResponse": {
-      "type": "object",
-      "properties": {
-        "microvm": {
-          "$ref": "#/definitions/typesMicroVMSpec"
         }
       }
     }

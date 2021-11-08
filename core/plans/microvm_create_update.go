@@ -55,15 +55,28 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 	p.clearPlanList()
 	p.ensureStatus()
 
-	var err error
-	switch {
-	case p.vm.Spec.UpdatedAt != 0:
-		err = p.update(ctx, ports)
-	default:
-		err = p.create(ctx, ports)
+	if err := p.addStep(ctx, runtime.NewCreateDirectory(p.stateDir, defaults.DataDirPerm, ports.FileSystem)); err != nil {
+		return nil, fmt.Errorf("adding root dir step: %w", err)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("error occurred generating plan: %w", err)
+
+	// Images
+	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
+		return nil, fmt.Errorf("adding image steps: %w", err)
+	}
+
+	// Network interfaces
+	if err := p.addNetworkSteps(ctx, p.vm, ports.NetworkService); err != nil {
+		return nil, fmt.Errorf("adding network steps: %w", err)
+	}
+
+	// MicroVM provider create
+	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, ports.Provider)); err != nil {
+		return nil, fmt.Errorf("adding microvm create step: %w", err)
+	}
+
+	// MicroVM provider start
+	if err := p.addStep(ctx, microvm.NewStartStep(p.vm, ports.Provider)); err != nil {
+		return nil, fmt.Errorf("adding microvm start step: %w", err)
 	}
 
 	return p.steps, nil
@@ -79,38 +92,6 @@ func (p *microvmCreateOrUpdatePlan) Result() interface{} {
 // on ShouldDo. The loop will be infinite.
 func (p *microvmCreateOrUpdatePlan) clearPlanList() {
 	p.steps = []planner.Procedure{}
-}
-
-func (p *microvmCreateOrUpdatePlan) create(ctx context.Context, ports *ports.Collection) error {
-	if err := p.addStep(ctx, runtime.NewCreateDirectory(p.stateDir, defaults.DataDirPerm, ports.FileSystem)); err != nil {
-		return fmt.Errorf("adding root dir step: %w", err)
-	}
-
-	// Images
-	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
-		return fmt.Errorf("adding image steps: %w", err)
-	}
-
-	// Network interfaces
-	if err := p.addNetworkSteps(ctx, p.vm, ports.NetworkService); err != nil {
-		return fmt.Errorf("adding network steps: %w", err)
-	}
-
-	// MicroVM provider create
-	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, ports.Provider)); err != nil {
-		return fmt.Errorf("adding microvm create step: %w", err)
-	}
-
-	// MicroVM provider start
-	if err := p.addStep(ctx, microvm.NewStartStep(p.vm, ports.Provider)); err != nil {
-		return fmt.Errorf("adding microvm start step: %w", err)
-	}
-
-	return nil
-}
-
-func (p *microvmCreateOrUpdatePlan) update(ctx context.Context, ports *ports.Collection) error {
-	return nil
 }
 
 func (p *microvmCreateOrUpdatePlan) addStep(ctx context.Context, step planner.Procedure) error {
@@ -136,7 +117,7 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context, vm *model
 		}
 		if vol.Source.Container != nil {
 			if err := p.addStep(ctx, runtime.NewVolumeMount(&vm.ID, &vol, status, imageSvc)); err != nil {
-				return fmt.Errorf("adding  volume mount step: %w", err)
+				return fmt.Errorf("adding volume mount step: %w", err)
 			}
 		}
 	}
