@@ -36,9 +36,9 @@ type IfaceType string
 
 const (
 	// IfaceTypeTap is a TAP network interface.
-	IfaceTypeTap = "tap"
+	IfaceTypeTap IfaceType = "tap"
 	// IfaceTypeMacvtap is a MACVTAP network interface.
-	IfaceTypeMacvtap = "macvtap"
+	IfaceTypeMacvtap IfaceType = "macvtap"
 	// IfaceTypeUnsupported is a type that represents an unsupported network interface type.
-	IfaceTypeUnsupported = "unsupported"
+	IfaceTypeUnsupported IfaceType = "unsupported"
 )

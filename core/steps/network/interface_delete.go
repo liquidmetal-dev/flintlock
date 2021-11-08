@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
-func DeleteNetworkInterface(vmid *models.VMID, iface *models.NetworkInterface, svc ports.NetworkService) planner.Procedure {
+func DeleteNetworkInterface(vmid *models.VMID, iface *models.NetworkInterfaceStatus, svc ports.NetworkService) planner.Procedure {
 	return deleteInterface{
 		vmid:  vmid,
 		iface: iface,
@@ -21,7 +22,7 @@ func DeleteNetworkInterface(vmid *models.VMID, iface *models.NetworkInterface, s
 
 type deleteInterface struct {
 	vmid  *models.VMID
-	iface *models.NetworkInterface
+	iface *models.NetworkInterfaceStatus
 
 	svc ports.NetworkService
 }
@@ -33,13 +34,21 @@ func (s deleteInterface) Name() string {
 
 // Do will perform the operation/procedure.
 func (s deleteInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.iface == nil {
+		return nil, errors.ErrMissingStatusInfo
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step":  s.Name(),
-		"iface": s.iface.GuestDeviceName,
+		"iface": s.iface.HostDeviceName,
+		"vm":    s.vmid.String(),
 	})
 	logger.Debug("running step to delete network interface")
 
-	deviceName := getDeviceName(s.vmid, s.iface)
+	deviceName := s.iface.HostDeviceName
+	if deviceName == "" {
+		return nil, errors.ErrMissingStatusInfo
+	}
 
 	exists, err := s.svc.IfaceExists(ctx, deviceName)
 	if err != nil {
@@ -60,13 +69,21 @@ func (s deleteInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 // ShouldDo determines if this procedure should be executed.
 func (s deleteInterface) ShouldDo(ctx context.Context) (bool, error) {
+	if s.iface == nil {
+		return false, nil
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step":  s.Name(),
-		"iface": s.iface.GuestDeviceName,
+		"iface": s.iface.HostDeviceName,
+		"vm":    s.vmid.String(),
 	})
 	logger.Debug("checking if procedure should be run")
 
-	deviceName := getDeviceName(s.vmid, s.iface)
+	deviceName := s.iface.HostDeviceName
+	if deviceName == "" {
+		return false, nil
+	}
 
 	exists, err := s.svc.IfaceExists(ctx, deviceName)
 	if err != nil {

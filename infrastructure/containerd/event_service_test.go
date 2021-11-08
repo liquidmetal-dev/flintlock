@@ -15,7 +15,7 @@ import (
 
 const (
 	numberOfSubscribers = 2
-	sleepTime           = 10
+	sleepTime           = 40
 )
 
 func TestEventService_Integration(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks/flintlock/infrastructure/network"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
@@ -45,7 +46,7 @@ func (s *createInterface) ShouldDo(ctx context.Context) (bool, error) {
 		return true, nil
 	}
 
-	deviceName := getDeviceName(s.vmid, s.iface)
+	deviceName := s.status.HostDeviceName
 
 	exists, err := s.svc.IfaceExists(ctx, deviceName)
 	if err != nil {
@@ -68,10 +69,19 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 	}
 
 	if s.status == nil {
-		s.status = &models.NetworkInterfaceStatus{}
+		return nil, errors.ErrMissingStatusInfo
 	}
 
-	deviceName := getDeviceName(s.vmid, s.iface)
+	if s.status.HostDeviceName == "" {
+		ifaceName, err := network.NewIfaceName(s.iface.Type)
+		if err != nil {
+			return nil, err
+		}
+
+		s.status.HostDeviceName = ifaceName
+	}
+
+	deviceName := s.status.HostDeviceName
 
 	exists, err := s.svc.IfaceExists(ctx, deviceName)
 	if err != nil {

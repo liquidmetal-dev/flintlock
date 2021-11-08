@@ -46,9 +46,12 @@ func TestNewNetworkInterface_doesNotExist(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	var status *models.NetworkInterfaceStatus
 	vmid, _ := models.NewVMID(vmName, nsName)
-	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice}
+	status := &models.NetworkInterfaceStatus{}
+	iface := &models.NetworkInterface{
+		GuestDeviceName: defaultEthDevice,
+		Type:            models.IfaceTypeTap,
+	}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
@@ -63,14 +66,12 @@ func TestNewNetworkInterface_doesNotExist(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
+		IfaceExists(gomock.Eq(ctx), &hostDeviceNameMatcher{}).
 		Return(false, nil).
 		Times(1)
 
 	svc.EXPECT().
-		IfaceCreate(gomock.Eq(ctx), gomock.Eq(ports.IfaceCreateInput{
-			DeviceName: expectedTapDeviceName,
-		})).
+		IfaceCreate(gomock.Eq(ctx), &ifaceCreateInputMatcher{}).
 		Return(&ports.IfaceDetails{
 			DeviceName: expectedTapDeviceName,
 			Type:       models.IfaceTypeTap,
@@ -82,6 +83,41 @@ func TestNewNetworkInterface_doesNotExist(t *testing.T) {
 	_, err = step.Do(ctx)
 
 	g.Expect(err).To(g.BeNil())
+}
+
+func TestNewNetworkInterface_emptyStatus(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	g.RegisterTestingT(t)
+
+	var status *models.NetworkInterfaceStatus
+	vmid, _ := models.NewVMID(vmName, nsName)
+	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice}
+	svc := mock.NewMockNetworkService(mockCtrl)
+	ctx := context.Background()
+
+	svc.EXPECT().
+		IfaceExists(gomock.Eq(ctx), gomock.Any()).
+		Times(0)
+
+	step := network.NewNetworkInterface(vmid, iface, status, svc)
+	shouldDo, err := step.ShouldDo(ctx)
+
+	g.Expect(err).To(g.BeNil())
+	g.Expect(shouldDo).To(g.BeTrue())
+
+	svc.EXPECT().
+		IfaceExists(gomock.Eq(ctx), gomock.Any()).
+		Times(0)
+
+	svc.EXPECT().
+		IfaceCreate(gomock.Eq(ctx), gomock.Any()).
+		Times(0)
+
+	_, err = step.Do(ctx)
+
+	g.Expect(err).ToNot(g.BeNil())
 }
 
 func TestNewNetworkInterface_existingInterface(t *testing.T) {
@@ -224,14 +260,14 @@ func TestNewNetworkInterface_fillChangedStatus(t *testing.T) {
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedMacvtapDeviceName)).
+		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(true, nil).
 		Times(1)
 
 	svc.EXPECT().
-		IfaceDetails(gomock.Eq(ctx), gomock.Eq(expectedMacvtapDeviceName)).
+		IfaceDetails(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
 		Return(&ports.IfaceDetails{
-			DeviceName: expectedMacvtapDeviceName,
+			DeviceName: expectedTapDeviceName,
 			Type:       models.IfaceTypeMacvtap,
 			MAC:        reverseMACAddress,
 			Index:      0,
@@ -242,7 +278,7 @@ func TestNewNetworkInterface_fillChangedStatus(t *testing.T) {
 
 	g.Expect(err).To(g.BeNil())
 	g.Expect(status.MACAddress).To(g.Equal(reverseMACAddress))
-	g.Expect(status.HostDeviceName).To(g.Equal(expectedMacvtapDeviceName))
+	g.Expect(status.HostDeviceName).To(g.Equal(expectedTapDeviceName))
 }
 
 func TestNewNetworkInterface_createError(t *testing.T) {
@@ -253,7 +289,7 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 
 	vmid, _ := models.NewVMID(vmName, nsName)
 	status := &models.NetworkInterfaceStatus{}
-	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice}
+	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice, Type: models.IfaceTypeTap}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
@@ -268,14 +304,12 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	svc.EXPECT().
-		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
+		IfaceExists(gomock.Eq(ctx), &hostDeviceNameMatcher{}).
 		Return(false, nil).
 		Times(1)
 
 	svc.EXPECT().
-		IfaceCreate(gomock.Eq(ctx), gomock.Eq(ports.IfaceCreateInput{
-			DeviceName: expectedTapDeviceName,
-		})).
+		IfaceCreate(gomock.Eq(ctx), &ifaceCreateInputMatcher{}).
 		Return(nil, errors.ErrParentIfaceRequired).
 		Times(1)
 

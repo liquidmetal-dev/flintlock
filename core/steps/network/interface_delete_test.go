@@ -21,7 +21,7 @@ func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	vmid, _ := models.NewVMID(vmName, nsName)
-	iface := &models.NetworkInterface{}
+	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
@@ -46,6 +46,28 @@ func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {
 	g.Expect(err).To(g.BeNil())
 }
 
+func TestDeleteNetworkInterface_emptyStatus(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	g.RegisterTestingT(t)
+
+	vmid, _ := models.NewVMID(vmName, nsName)
+	iface := &models.NetworkInterfaceStatus{}
+	svc := mock.NewMockNetworkService(mockCtrl)
+	ctx := context.Background()
+
+	step := network.DeleteNetworkInterface(vmid, iface, svc)
+	shouldDo, err := step.ShouldDo(ctx)
+
+	g.Expect(err).To(g.BeNil())
+	g.Expect(shouldDo).To(g.BeFalse())
+
+	_, err = step.Do(ctx)
+
+	g.Expect(err).ToNot(g.BeNil())
+}
+
 func TestDeleteNetworkInterface_exists(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -53,7 +75,7 @@ func TestDeleteNetworkInterface_exists(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	vmid, _ := models.NewVMID(vmName, nsName)
-	iface := &models.NetworkInterface{}
+	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
@@ -93,7 +115,7 @@ func TestDeleteNetworkInterface_exists_errorDeleting(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	vmid, _ := models.NewVMID(vmName, nsName)
-	iface := &models.NetworkInterface{}
+	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
@@ -133,7 +155,7 @@ func TestDeleteNetworkInterface_IfaceExistsError(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	vmid, _ := models.NewVMID(vmName, nsName)
-	iface := &models.NetworkInterface{}
+	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
 
