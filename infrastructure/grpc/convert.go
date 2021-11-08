@@ -174,6 +174,7 @@ func convertModelToNetworkInterface(modelNetInt *models.NetworkInterface) *types
 		converted.Type = types.NetworkInterface_MACVTAP
 	case models.IfaceTypeTap:
 		converted.Type = types.NetworkInterface_TAP
+	case models.IfaceTypeUnsupported:
 	}
 
 	if modelNetInt.Address != "" {

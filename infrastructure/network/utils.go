@@ -12,16 +12,17 @@ import (
 )
 
 const (
-	ifaceLength   = 7
-	retryGenerate = 5
-	prefix        = "fl"
-	tapPrefix     = "tap"
+	ifaceLength       = 7
+	retryGenerate     = 5
+	randomBytesLength = 32
+	prefix            = "fl"
+	tapPrefix         = "tap"
 	// It's vtap only to save space.
 	macvtapPrefix = "vtap"
 )
 
 func generateRandomName(prefix string) (string, error) {
-	id := make([]byte, 32)
+	id := make([]byte, randomBytesLength)
 	if _, err := io.ReadFull(rand.Reader, id); err != nil {
 		return "", err
 	}
@@ -37,6 +38,8 @@ func NewIfaceName(ifaceType models.IfaceType) (string, error) {
 		devPrefix = fmt.Sprintf("%s%s", prefix, tapPrefix)
 	case models.IfaceTypeMacvtap:
 		devPrefix = fmt.Sprintf("%s%s", prefix, macvtapPrefix)
+	case models.IfaceTypeUnsupported:
+		return "", interfaceErrorf("unsupported interface type: %s", ifaceType)
 	default:
 		return "", interfaceErrorf("unsupported interface type: %s", ifaceType)
 	}
