@@ -21,15 +21,6 @@ const (
 	macvtapPrefix = "vtap"
 )
 
-func generateRandomName(prefix string) (string, error) {
-	id := make([]byte, randomBytesLength)
-	if _, err := io.ReadFull(rand.Reader, id); err != nil {
-		return "", err
-	}
-
-	return prefix + hex.EncodeToString(id)[:ifaceLength], nil
-}
-
 func NewIfaceName(ifaceType models.IfaceType) (string, error) {
 	devPrefix := ""
 
@@ -41,7 +32,7 @@ func NewIfaceName(ifaceType models.IfaceType) (string, error) {
 	case models.IfaceTypeUnsupported:
 		return "", interfaceErrorf("unsupported interface type: %s", ifaceType)
 	default:
-		return "", interfaceErrorf("unsupported interface type: %s", ifaceType)
+		return "", interfaceErrorf("unknown interface type: %s", ifaceType)
 	}
 
 	for i := 0; i < retryGenerate; i++ {
@@ -61,4 +52,13 @@ func NewIfaceName(ifaceType models.IfaceType) (string, error) {
 	}
 
 	return "", interfaceErrorf("could not generate interface name")
+}
+
+func generateRandomName(prefix string) (string, error) {
+	id := make([]byte, randomBytesLength)
+	if _, err := io.ReadFull(rand.Reader, id); err != nil {
+		return "", err
+	}
+
+	return prefix + hex.EncodeToString(id)[:ifaceLength], nil
 }

@@ -1,4 +1,4 @@
-# 4. Merge Create and Update Plan into a Single Plan
+# 5. Network Device Name on Host
 
 * Status: pending   // will be updated after PR review
 * Date: 2021-11-08
@@ -28,12 +28,11 @@ Considered options:
 
 Following the device name generator in docker-ce[^3], we decided to use a random
 value. Docker-ce tries to generate a name 3 times, if the generated name is
-already taken. To reduce possible failures from the source, we decided to retry
-5 times[^4], it's still not slow, but gives more opportunities on machines
-with a lot of network devices.
+already taken. To reduce possible failures, we decided to retry 5 times,
+it's still not slow, but gives more opportunities on machines with a lot of
+network devices.
 
 [^3]: https://github.com/docker/docker-ce/blob/1093a93b336461032352e776893afefc2cf3a50d/components/engine/libnetwork/netutils/utils.go#L126
-[^4]: https://github.com/weaveworks/flintlock/pull/226/commits/49cb6eb5995329183dece0c8d53fbca64442cc30#diff-9e94d7fac05179aace5e4eeacb886688b55188cd3169f1aaac232a4c5a265e49R16
 
 ## Consequences
 
