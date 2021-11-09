@@ -12,6 +12,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating vmid from spec: %w", err)
 	}
+
 	convertedModel := &models.MicroVM{
 		ID: *vmid,
 		// Labels
@@ -28,6 +29,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 	if spec.Kernel.Filename != nil {
 		convertedModel.Spec.Kernel.Filename = *spec.Kernel.Filename
 	}
+
 	if spec.Initrd != nil {
 		convertedModel.Spec.Initrd = &models.Initrd{
 			Image: models.ContainerImage(spec.Initrd.Image),
@@ -60,9 +62,11 @@ func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.Netw
 		AllowMetadataRequests: netInt.AllowMetadataReq,
 		GuestDeviceName:       netInt.GuestDeviceName,
 	}
+
 	if netInt.GuestMac != nil {
 		converted.GuestMAC = *netInt.GuestMac
 	}
+
 	if netInt.Address != nil {
 		converted.Address = *netInt.Address
 	}
@@ -84,9 +88,11 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 		IsRoot:     volume.IsRoot,
 		IsReadOnly: volume.IsReadOnly,
 	}
+
 	if volume.PartitionId != nil {
 		convertedVol.PartitionID = *volume.PartitionId
 	}
+
 	if volume.SizeInMb != nil {
 		convertedVol.Size = *volume.SizeInMb
 	}
@@ -135,6 +141,7 @@ func convertModelToMicroVM(mvm *models.MicroVM) *types.MicroVMSpec {
 	}
 
 	converted.Metadata = map[string]string{}
+
 	for metadataKey, metadataValue := range mvm.Spec.Metadata {
 		converted.Metadata[metadataKey] = metadataValue
 	}

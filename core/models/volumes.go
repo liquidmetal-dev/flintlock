@@ -17,7 +17,6 @@ type Volume struct {
 	PartitionID string `json:"partition_id,omitempty"`
 	// Size is the size to resize this volume to.
 	Size int32 `json:"size,omitempty"`
-	// TODO: add rate limiting.
 }
 
 // Volumes represents a collection of volumes.
@@ -38,7 +37,6 @@ func (v Volumes) GetByID(id string) *Volume {
 type VolumeSource struct {
 	// Container is used to specify a source of a volume as a OCI container.
 	Container *ContainerVolumeSource `json:"container,omitempty"`
-	// TODO: add CSI.
 }
 
 // ContainerDriveSource represents the details of a volume coming from a OCI image.

@@ -107,25 +107,32 @@ func (p *microvmCreateOrUpdatePlan) addStep(ctx context.Context, step planner.Pr
 	return nil
 }
 
-func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context, vm *models.MicroVM, imageSvc ports.ImageService) error {
+func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
+	vm *models.MicroVM,
+	imageSvc ports.ImageService,
+) error {
 	for i := range vm.Spec.Volumes {
 		vol := vm.Spec.Volumes[i]
+
 		status, ok := vm.Status.Volumes[vol.ID]
 		if !ok {
 			status = &models.VolumeStatus{}
 			vm.Status.Volumes[vol.ID] = status
 		}
+
 		if vol.Source.Container != nil {
 			if err := p.addStep(ctx, runtime.NewVolumeMount(&vm.ID, &vol, status, imageSvc)); err != nil {
 				return fmt.Errorf("adding volume mount step: %w", err)
 			}
 		}
 	}
+
 	if string(vm.Spec.Kernel.Image) != "" {
 		if err := p.addStep(ctx, runtime.NewKernelMount(vm, imageSvc)); err != nil {
 			return fmt.Errorf("adding kernel mount step: %w", err)
 		}
 	}
+
 	if vm.Spec.Initrd != nil {
 		if err := p.addStep(ctx, runtime.NewInitrdMount(vm, imageSvc)); err != nil {
 			return fmt.Errorf("adding initrd mount step: %w", err)
@@ -135,14 +142,19 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context, vm *model
 	return nil
 }
 
-func (p *microvmCreateOrUpdatePlan) addNetworkSteps(ctx context.Context, vm *models.MicroVM, networkSvc ports.NetworkService) error {
+func (p *microvmCreateOrUpdatePlan) addNetworkSteps(ctx context.Context,
+	vm *models.MicroVM,
+	networkSvc ports.NetworkService,
+) error {
 	for i := range vm.Spec.NetworkInterfaces {
 		iface := vm.Spec.NetworkInterfaces[i]
+
 		status, ok := vm.Status.NetworkInterfaces[iface.GuestDeviceName]
 		if !ok {
 			status = &models.NetworkInterfaceStatus{}
 			vm.Status.NetworkInterfaces[iface.GuestDeviceName] = status
 		}
+
 		if err := p.addStep(ctx, network.NewNetworkInterface(&vm.ID, &iface, status, networkSvc)); err != nil {
 			return fmt.Errorf("adding create network interface step: %w", err)
 		}

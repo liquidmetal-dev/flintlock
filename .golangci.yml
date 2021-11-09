@@ -6,6 +6,22 @@ run:
       - "./*/mock"
 
 linters-settings:
+  funlen:
+    lines: 110
+    statements: 60
+  staticcheck:
+    go: "1.17"
+  stylecheck:
+    go: "1.17"
+  cyclop:
+    max-complexity: 12
+    skip-tests: true
+  gosec:
+    exclude-generated: true
+  lll:
+    line-length: 120
+  misspell:
+    locale: GB
   goimports:
     local-prefixes: github.com/weaveworks/flintlock
   govet:
@@ -28,6 +44,9 @@ issues:
   - text: "local replacement are not allowed: github.com/weaveworks/flintlock/"
     linters:
     - gomoddirectives
+  - source: "https://"
+    linters:
+    - lll
   - path: _test\.go
     linters:
     - goerr113
@@ -45,55 +64,49 @@ issues:
     linters:
     - exhaustivestruct
     - lll
-
-linters-settings:
-  funlen:
-    lines: 110
-    statements: 60
-  staticcheck:
-    go: "1.17"
-  stylecheck:
-    go: "1.17"
-  cyclop:
-    max-complexity: 12
-    skip-tests: true
+  - source: "// .* #\\d+"
+    linters:
+    - godox
+  - path: test/e2e/
+    linters:
+    - goerr113
+    - gomnd
 
 linters:
   disable-all: true
   enable:
-  - deadcode
-  - errcheck
-  - gosimple
-  - govet
-  - ineffassign
-  - staticcheck
-  - structcheck
-  - typecheck
-  - unused
-  - varcheck
   - bodyclose
+  - deadcode
   - depguard
   - dogsled
   - dupl
+  - errcheck
   - exhaustive
   - exportloopref
+  - exportloopref
   - funlen
+  - gci
+  - gochecknoglobals
   - gochecknoinits
   - gocognit
   - goconst
   - gocritic
   - gocyclo
   - godot
+  - godox
   - goerr113
   - gofmt
   - gofumpt
   - goheader
   - goimports
-  - revive
   - gomnd
   - gomodguard
   - goprintffuncname
   - gosec
+  - gosimple
+  - govet
+  - ineffassign
+  - lll
   - misspell
   - nakedret
   - nestif
@@ -101,17 +114,18 @@ linters:
   - noctx
   - nolintlint
   - prealloc
+  - revive
   - rowserrcheck
-  - exportloopref
   - sqlclosecheck
+  - staticcheck
+  - structcheck
   - stylecheck
   - testpackage
+  - typecheck
   - unconvert
   - unparam
+  - unused
+  - varcheck
   - whitespace
-  disabled:
-  - gci
-  - godox
-  - gochecknoglobals
-  - lll
   - wsl
+  disabled: []

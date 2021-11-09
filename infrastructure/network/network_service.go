@@ -35,10 +35,18 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 		"service": "netlink_network",
 		"iface":   input.DeviceName,
 	})
-	logger.Debugf("creating network interface with type %s and MAC %s using parent %s", input.Type, input.MAC, n.parentDeviceName)
+	logger.Debugf(
+		"creating network interface with type %s and MAC %s using parent %s",
+		input.Type,
+		input.MAC,
+		n.parentDeviceName,
+	)
 
-	var parentLink netlink.Link
-	var err error
+	var (
+		parentLink netlink.Link
+		err        error
+	)
+
 	if input.Type == models.IfaceTypeMacvtap {
 		if n.parentDeviceName == "" {
 			return nil, errors.ErrParentIfaceRequired
@@ -51,12 +59,13 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 	}
 
 	var link netlink.Link
+
 	switch input.Type {
 	case models.IfaceTypeTap:
 		link = &netlink.Tuntap{
 			LinkAttrs: netlink.LinkAttrs{
 				Name: input.DeviceName,
-				// TODO: add Namespace
+				// TODO: add Namespace #206
 			},
 			Mode: netlink.TUNTAP_MODE_TAP,
 		}
@@ -67,7 +76,7 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 					Name:        input.DeviceName,
 					MTU:         parentLink.Attrs().MTU,
 					ParentIndex: parentLink.Attrs().Index,
-					Namespace:   parentLink.Attrs().Namespace, // TODO: add namespace specific to vm
+					Namespace:   parentLink.Attrs().Namespace, // TODO: add namespace specific to vm #206
 					TxQLen:      parentLink.Attrs().TxQLen,
 				},
 				Mode: netlink.MACVLAN_MODE_BRIDGE,
@@ -88,7 +97,7 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 		return nil, errors.NewErrUnsupportedInterface(string(input.Type))
 	}
 
-	if err := netlink.LinkAdd(link); err != nil {
+	if err = netlink.LinkAdd(link); err != nil {
 		return nil, fmt.Errorf("creating interface %s using netlink: %w", link.Attrs().Name, err)
 	}
 
@@ -120,8 +129,7 @@ func (n *networkService) IfaceDelete(ctx context.Context, input ports.DeleteIfac
 
 	link, err := netlink.LinkByName(input.DeviceName)
 	if err != nil {
-		_, ok := err.(netlink.LinkNotFoundError) //nolint: errorlint
-		if !ok {
+		if _, ok := err.(netlink.LinkNotFoundError); !ok {
 			return fmt.Errorf("failed to lookup network interface %s: %w", input.DeviceName, err)
 		}
 
@@ -164,6 +172,7 @@ func (n *networkService) IfaceDetails(ctx context.Context, name string) (*ports.
 	if err != nil {
 		return nil, fmt.Errorf("getting interface %s: %w", name, err)
 	}
+
 	if !found {
 		return nil, errors.ErrIfaceNotFound
 	}
@@ -189,8 +198,7 @@ func (n *networkService) IfaceDetails(ctx context.Context, name string) (*ports.
 func (n *networkService) getIface(name string) (bool, netlink.Link, error) {
 	link, err := netlink.LinkByName(name)
 	if err != nil {
-		_, ok := err.(netlink.LinkNotFoundError) //nolint: errorlint
-		if !ok {
+		if _, ok := err.(netlink.LinkNotFoundError); !ok {
 			return false, nil, fmt.Errorf("failed to lookup network interface %s: %w", name, err)
 		}
 

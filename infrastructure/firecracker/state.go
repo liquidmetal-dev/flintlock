@@ -113,10 +113,11 @@ func (s *fsState) pidReadFromFile(pidFile string) (int, error) {
 
 func (s *fsState) pidWriteToFile(pid int, pidFile string) error {
 	file, err := s.fs.OpenFile(pidFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, defaults.DataFilePerm)
-	defer file.Close() //nolint: staticcheck
 	if err != nil {
 		return fmt.Errorf("opening pid file %s: %w", pidFile, err)
 	}
+
+	defer file.Close()
 
 	_, err = fmt.Fprintf(file, "%d", pid)
 	if err != nil {
@@ -138,6 +139,7 @@ func (s *fsState) cfgReadFromFile(cfgFile string) (*VmmConfig, error) {
 	}
 
 	cfg := &VmmConfig{}
+
 	err = json.Unmarshal(data, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling firecracker config: %w", err)
@@ -153,10 +155,11 @@ func (s *fsState) cfgWriteToFile(cfg *VmmConfig, cfgFile string) error {
 	}
 
 	file, err := s.fs.OpenFile(cfgFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, defaults.DataFilePerm)
-	defer file.Close() //nolint: staticcheck
 	if err != nil {
 		return fmt.Errorf("opening firecracker config file %s: %w", cfgFile, err)
 	}
+
+	defer file.Close()
 
 	_, err = file.Write(data)
 	if err != nil {

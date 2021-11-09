@@ -37,6 +37,7 @@ type eventService struct {
 func (es *eventService) Publish(ctx context.Context, topic string, eventToPublish interface{}) error {
 	namespaceCtx := namespaces.WithNamespace(ctx, es.cfg.Namespace)
 	ctrEventSrv := es.client.EventService()
+
 	if err := ctrEventSrv.Publish(namespaceCtx, topic, eventToPublish); err != nil {
 		return fmt.Errorf("publishing event: %w", err)
 	}
@@ -45,14 +46,18 @@ func (es *eventService) Publish(ctx context.Context, topic string, eventToPublis
 }
 
 // SubscribeTopic will subscribe to events on a named topic.
-func (es *eventService) SubscribeTopic(ctx context.Context, topic string) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
+func (es *eventService) SubscribeTopic(ctx context.Context,
+	topic string,
+) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
 	topicFilter := topicFilter(topic)
 
 	return es.subscribe(ctx, topicFilter)
 }
 
 // SubscribeTopics will subscribe to events on a set of named topics.
-func (es *eventService) SubscribeTopics(ctx context.Context, topics []string) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
+func (es *eventService) SubscribeTopics(ctx context.Context,
+	topics []string,
+) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
 	topicFilters := []string{}
 
 	for _, topic := range topics {
@@ -67,18 +72,20 @@ func (es *eventService) Subscribe(ctx context.Context) (ch <-chan *ports.EventEn
 	return es.subscribe(ctx)
 }
 
-func (es *eventService) subscribe(ctx context.Context, filters ...string) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
+func (es *eventService) subscribe(ctx context.Context,
+	filters ...string,
+) (ch <-chan *ports.EventEnvelope, errs <-chan error) {
 	var (
-		evtCh    = make(chan *ports.EventEnvelope)
-		evtErrCh = make(chan error, 1)
+		evtCh     = make(chan *ports.EventEnvelope)
+		evtErrCh  = make(chan error, 1)
+		ctrEvents <-chan *events.Envelope
+		ctrErrs   <-chan error
 	)
+
 	errs = evtErrCh
 	ch = evtCh
-
 	namespaceCtx := namespaces.WithNamespace(ctx, es.cfg.Namespace)
 
-	var ctrEvents <-chan *events.Envelope
-	var ctrErrs <-chan error
 	if len(filters) == 0 {
 		ctrEvents, ctrErrs = es.client.Subscribe(namespaceCtx)
 	} else {

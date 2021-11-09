@@ -39,11 +39,13 @@ func getOverlayMountPath(m mount.Mount) string {
 
 func convertMountsToModel(mounts []mount.Mount, snapshotter string) ([]models.Mount, error) {
 	convertedMounts := []models.Mount{}
+
 	for _, m := range mounts {
 		counvertedMount, err := convertMountToModel(m, snapshotter)
 		if err != nil {
 			return nil, fmt.Errorf("converting mount: %w", err)
 		}
+
 		convertedMounts = append(convertedMounts, counvertedMount)
 	}
 
@@ -65,6 +67,7 @@ func convertCtrEventEnvelope(evt *events.Envelope) (*ports.EventEnvelope, error)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling event: %w", err)
 	}
+
 	converted.Event = v
 
 	return converted, nil

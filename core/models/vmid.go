@@ -29,6 +29,7 @@ func NewVMID(name, namespace string) (*VMID, error) {
 	if name == "" {
 		return nil, coreerrs.ErrNameRequired
 	}
+
 	if namespace == "" {
 		return nil, coreerrs.ErrNamespaceRequired
 	}
@@ -98,6 +99,7 @@ func splitVMIDFromString(id string) (namespace string, name string, err error) {
 	if parts[0] == "" {
 		return "", "", coreerrs.ErrNamespaceRequired
 	}
+
 	if parts[1] == "" {
 		return "", "", coreerrs.ErrNameRequired
 	}

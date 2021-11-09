@@ -59,8 +59,10 @@ func runGWServer(ctx context.Context, cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(log.WithLogger(ctx, logger))
 
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+
 		if err := serveAPI(ctx, cfg); err != nil {
 			logger.Errorf("failed serving api: %v", err)
 		}
@@ -81,16 +83,6 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 	mux := runtime.NewServeMux()
 
-	// TODO: create the dependencies for the server
-
-	// grpcServer := grpc.NewServer(
-	// 	grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-	// 	grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-	// )
-	// mvmv1.RegisterMicroVMServer(grpcServer, server.NewServer())
-	// grpc_prometheus.Register(grpcServer)
-	// http.Handle("/metrics", promhttp.Handler())
-
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 	}
@@ -107,26 +99,14 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	go func() {
 		<-ctx.Done()
 		logger.Infof("shutting down the http gateway server")
+
 		if err := s.Shutdown(context.Background()); err != nil {
 			logger.Errorf("failed to shutdown http gateway server: %v", err)
 		}
-		// logger.Infof("shutting down grpc server")
-		// grpcServer.GracefulStop()
 	}()
 
-	// logger.Debugf("starting grpc server listening on endpoint %s", cfg.GRPCAPIEndpoint)
-	// l, err := net.Listen("tcp", cfg.GRPCAPIEndpoint)
-	// if err != nil {
-	// 	return fmt.Errorf("setting up gRPC api listener: %w", err)
-	// }
-	// defer l.Close()
-	// go func() {
-	// 	if err := grpcServer.Serve(l); err != nil {
-	// 		logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal
-	// 	}
-	// }()
-
 	logger.Debugf("starting http server listening on endpoint %s", cfg.HTTPAPIEndpoint)
+
 	if err := s.ListenAndServe(); err != nil {
 		return fmt.Errorf("listening and serving http api: %w", err)
 	}

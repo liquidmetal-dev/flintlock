@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -12,7 +13,10 @@ import (
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
-func DeleteNetworkInterface(vmid *models.VMID, iface *models.NetworkInterfaceStatus, svc ports.NetworkService) planner.Procedure {
+func DeleteNetworkInterface(vmid *models.VMID,
+	iface *models.NetworkInterfaceStatus,
+	svc ports.NetworkService,
+) planner.Procedure {
 	return deleteInterface{
 		vmid:  vmid,
 		iface: iface,

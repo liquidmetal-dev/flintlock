@@ -49,18 +49,23 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	}
 
 	cmdflags.AddGRPCServerFlagsToCommand(cmd, cfg)
+
 	if err := cmdflags.AddContainerDFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding containerd flags to run command: %w", err)
 	}
+
 	if err := cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding firecracker flags to run command: %w", err)
 	}
+
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)
 	}
+
 	if err := cmdflags.AddHiddenFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding hidden flags to run command: %w", err)
 	}
+
 	cmd.Flags().StringVar(&cfg.StateRootDir, "state-dir", defaults.StateRootDir, "The directory to use for the as the root for runtime state.")
 	cmd.Flags().DurationVar(&cfg.ResyncPeriod, "resync-period", defaults.ResyncPeriod, "Reconcile the specs to resynchronise them based on this period.")
 
@@ -79,8 +84,10 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 	if !cfg.DisableAPI {
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
+
 			if err := serveAPI(ctx, cfg); err != nil {
 				logger.Errorf("failed serving api: %v", err)
 			}
@@ -89,8 +96,10 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 	if !cfg.DisableReconcile {
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
+
 			if err := runControllers(ctx, cfg); err != nil {
 				logger.Errorf("failed running controllers: %v", err)
 			}
@@ -113,8 +122,9 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 
 	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
-		return fmt.Errorf("initializing ports for application: %w", err)
+		return fmt.Errorf("initialising ports for application: %w", err)
 	}
+
 	app := inject.InitializeApp(cfg, ports)
 	server := inject.InitializeGRPCServer(app)
 
@@ -133,6 +143,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	}()
 
 	logger.Debugf("starting grpc server listening on endpoint %s", cfg.GRPCAPIEndpoint)
+
 	l, err := net.Listen("tcp", cfg.GRPCAPIEndpoint)
 	if err != nil {
 		return fmt.Errorf("setting up gRPC api listener: %w", err)
@@ -142,7 +153,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	reflection.Register(grpcServer)
 
 	if err := grpcServer.Serve(l); err != nil {
-		logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal
+		logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal #235
 	}
 
 	return nil
@@ -153,12 +164,14 @@ func runControllers(ctx context.Context, cfg *config.Config) error {
 
 	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
-		return fmt.Errorf("initializing ports for controller: %w", err)
+		return fmt.Errorf("initialising ports for controller: %w", err)
 	}
+
 	app := inject.InitializeApp(cfg, ports)
 	mvmControllers := inject.InializeController(app, ports)
 
 	logger.Info("starting microvm controller")
+
 	if err := mvmControllers.Run(ctx, 1, cfg.ResyncPeriod, true); err != nil {
 		logger.Fatalf("starting microvm controller: %v", err)
 	}

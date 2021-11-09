@@ -7,6 +7,7 @@ import (
 
 	"github.com/containerd/containerd/reference"
 	"github.com/go-playground/validator/v10"
+
 	"github.com/weaveworks/flintlock/core/models"
 )
 
@@ -21,7 +22,7 @@ type validate struct {
 func NewValidator() Validator {
 	v := validator.New()
 
-	// TODO(@jmickey): Do something with this error maybe?
+	// TODO(@jmickey): Do something with this error maybe? #236
 	_ = v.RegisterValidation("imageURI", customImageURIValidator, false)
 	_ = v.RegisterValidation("datetimeInPast", customTimestampValidator, false)
 	_ = v.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
@@ -79,6 +80,7 @@ func customMicroVMSpecStructLevelValidation(sl validator.StructLevel) {
 	// that a root device has been configured.
 
 	var found bool
+
 	for _, vol := range spec.Volumes {
 		if vol.IsRoot {
 			if found {

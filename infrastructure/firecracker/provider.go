@@ -7,14 +7,13 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/afero"
-
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	"github.com/firecracker-microvm/firecracker-go-sdk/client"
 	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 	"github.com/firecracker-microvm/firecracker-go-sdk/client/operations"
+	"github.com/go-openapi/strfmt"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
 
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -78,6 +77,7 @@ func (p *fcProvider) Start(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("checking if instance is running: %w", err)
 	}
+
 	if state == ports.MicroVMStateRunning {
 		logger.Debug("instance is already running, not starting")
 
@@ -88,15 +88,17 @@ func (p *fcProvider) Start(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("parsing vmid: %w", err)
 	}
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
 
+	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
 	socketPath := vmState.SockPath()
 	logger.Tracef("using socket %s", socketPath)
 
 	client := firecracker.NewClient(socketPath, logger, true)
+
 	_, err = client.CreateSyncAction(ctx, &fcmodels.InstanceActionInfo{
 		ActionType: firecracker.String("InstanceStart"),
 	})
+
 	if err != nil {
 		return fmt.Errorf("failed to create start action: %w", err)
 	}
@@ -139,8 +141,8 @@ func (p *fcProvider) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("parsing vmid: %w", err)
 	}
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
 
+	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
 	socketPath := vmState.SockPath()
 	logger.Tracef("using socket %s", socketPath)
 
@@ -193,13 +195,15 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 	if err != nil {
 		return ports.MicroVMStateUnknown, fmt.Errorf("parsing vmid: %w", err)
 	}
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
 
+	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
 	pidPath := vmState.PIDPath()
+
 	exists, err := afero.Exists(p.fs, pidPath)
 	if err != nil {
 		return ports.MicroVMStateUnknown, fmt.Errorf("checking pid file exists: %w", err)
 	}
+
 	if !exists {
 		return ports.MicroVMStatePending, nil
 	}
@@ -213,6 +217,7 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 	if err != nil {
 		return ports.MicroVMStateUnknown, fmt.Errorf("checking if firecracker process is running: %w", err)
 	}
+
 	if !processExists {
 		return ports.MicroVMStatePending, nil
 	}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/vishvananda/netlink"
+
 	"github.com/weaveworks/flintlock/core/models"
 )
 

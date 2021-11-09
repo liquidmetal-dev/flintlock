@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containerd/containerd/snapshots"
-
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/snapshots"
 	"github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/flintlock/core/models"
@@ -62,12 +61,14 @@ func (im *imageService) PullAndMount(ctx context.Context, input *ports.ImageMoun
 	logger.Debugf("getting and mounting image %s for owner %s", input.ImageName, input.Owner)
 
 	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
+
 	leaseCtx, err := withOwnerLease(nsCtx, input.Owner, im.client)
 	if err != nil {
 		return nil, fmt.Errorf("getting lease for image pulling and mounting: %w", err)
 	}
 
 	var image containerd.Image
+
 	exists, image, err := im.imageExists(leaseCtx, input.ImageName, input.Owner)
 	if err != nil {
 		return nil, fmt.Errorf("checking if image %s exists for owner %s: %w", input.ImageName, input.Owner, err)
@@ -79,6 +80,7 @@ func (im *imageService) PullAndMount(ctx context.Context, input *ports.ImageMoun
 			return nil, fmt.Errorf("getting image %s for owner %s: %w", input.ImageName, input.Owner, err)
 		}
 	}
+
 	ss := im.getSnapshotter(input.Use)
 
 	return im.snapshotAndMount(leaseCtx, image, input.Owner, input.OwnerUsageID, ss, logger)
@@ -110,6 +112,7 @@ func (im *imageService) IsMounted(ctx context.Context, input *ports.ImageMountSp
 	if err != nil {
 		return false, fmt.Errorf("checking image exists: %w", err)
 	}
+
 	if !exists {
 		return false, nil
 	}
@@ -126,7 +129,7 @@ func (im *imageService) IsMounted(ctx context.Context, input *ports.ImageMountSp
 	return snapshotExists, nil
 }
 
-func (im *imageService) imageExists(ctx context.Context, imageName string, owner string) (bool, containerd.Image, error) {
+func (im *imageService) imageExists(ctx context.Context, imageName, owner string) (bool, containerd.Image, error) {
 	leaseCtx, err := withOwnerLease(ctx, owner, im.client)
 	if err != nil {
 		return false, nil, fmt.Errorf("getting lease for owner: %w", err)
@@ -158,13 +161,23 @@ func (im *imageService) pullImage(ctx context.Context, imageName string, owner s
 	return image, nil
 }
 
-func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.Image, owner, ownerUsageID, snapshotter string, logger *logrus.Entry) ([]models.Mount, error) {
+func (im *imageService) snapshotAndMount(ctx context.Context,
+	image containerd.Image,
+	owner, ownerUsageID, snapshotter string,
+	logger *logrus.Entry,
+) ([]models.Mount, error) {
 	unpacked, err := image.IsUnpacked(ctx, snapshotter)
 	if err != nil {
-		return nil, fmt.Errorf("checking if image %s has been unpacked with snapshotter %s: %w", image.Name(), snapshotter, err)
+		return nil, fmt.Errorf("checking if image %s has been unpacked with snapshotter %s: %w",
+			image.Name(),
+			snapshotter,
+			err,
+		)
 	}
+
 	if !unpacked {
 		logger.Debugf("image %s isn't unpacked, unpacking using %s snapshotter", image.Name(), snapshotter)
+
 		if unpackErr := image.Unpack(ctx, snapshotter); unpackErr != nil {
 			return nil, fmt.Errorf("unpacking %s with snapshotter %s: %w", image.Name(), snapshotter, err)
 		}
@@ -174,6 +187,7 @@ func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.I
 	if err != nil {
 		return nil, fmt.Errorf("getting rootfs content for %s: %w", image.Name(), err)
 	}
+
 	parent := imageContent[0].String()
 
 	snapshotKey := snapshotKey(owner, ownerUsageID)
@@ -186,11 +200,13 @@ func (im *imageService) snapshotAndMount(ctx context.Context, image containerd.I
 	}
 
 	var mounts []mount.Mount
+
 	if !snapshotExists {
 		labels := map[string]string{
 			"flintlock/owner":       owner,
 			"flintlock/owner-usage": ownerUsageID,
 		}
+
 		mounts, err = ss.Prepare(ctx, snapshotKey, parent, snapshots.WithLabels(labels))
 		if err != nil {
 			return nil, fmt.Errorf("preparing snapshot of %s: %w", image.Name(), err)

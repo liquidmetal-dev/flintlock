@@ -38,8 +38,8 @@ func (s *createDirectory) ShouldDo(ctx context.Context) (bool, error) {
 		"mode": s.mode.String(),
 	})
 	logger.Debug("checking if procedure should be run")
-
 	logger.Trace("checking if directory exists")
+
 	exists, err := s.directoryExists()
 	if err != nil {
 		return false, err
@@ -50,6 +50,7 @@ func (s *createDirectory) ShouldDo(ctx context.Context) (bool, error) {
 	}
 
 	logger.Trace("checking directory permissions")
+
 	info, err := s.fs.Stat(s.dir)
 	if err != nil {
 		return false, fmt.Errorf("doing stat on %s: %w", s.dir, err)
@@ -78,14 +79,17 @@ func (s *createDirectory) Do(ctx context.Context) ([]planner.Procedure, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if !exists {
 		logger.Trace("creating directory")
+
 		if err := s.fs.Mkdir(s.dir, s.mode); err != nil {
 			return nil, fmt.Errorf("creating directory %s: %w", s.dir, err)
 		}
 	}
 
 	logger.Trace("setting permissions for directory")
+
 	if err := s.fs.Chmod(s.dir, s.mode); err != nil {
 		return nil, fmt.Errorf("changing directory permissions for %s: %w", s.dir, err)
 	}

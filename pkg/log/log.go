@@ -44,9 +44,11 @@ type Config struct {
 // Configure will configure the logger from the supplied config.
 func Configure(logConfig *Config) error {
 	configureVerbosity(logConfig)
+
 	if err := configureFormatter(logConfig); err != nil {
 		return fmt.Errorf("configuring log formatter: %w", err)
 	}
+
 	if err := configureOutput(logConfig); err != nil {
 		return fmt.Errorf("configuring log output: %w", err)
 	}
@@ -69,6 +71,7 @@ func configureFormatter(logConfig *Config) error {
 
 func configureVerbosity(logConfig *Config) {
 	logrus.SetLevel(logrus.InfoLevel)
+
 	if logConfig.Verbosity >= LogVerbosityDebug && logConfig.Verbosity < LogVerbosityTrace {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else if logConfig.Verbosity >= LogVerbosityTrace {
@@ -90,6 +93,7 @@ func configureOutput(logConfig *Config) error {
 		if err != nil {
 			return fmt.Errorf("opening log file %s: %w", output, err)
 		}
+
 		logrus.SetOutput(file)
 	}
 

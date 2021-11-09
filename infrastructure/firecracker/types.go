@@ -1,7 +1,30 @@
 package firecracker
 
-// VmmConfig contains the configuration of the microvm. Based on the rust structure
-// from here https://github.com/firecracker-microvm/firecracker/blob/0690010524001b606f67c1a65c67f3c27883183f/src/vmm/src/resources.rs#L51.
+const (
+	// CacheTypeUnsafe indovates the flushing mechanic will be advertised to
+	// the guest driver, but the operation will be a noop.
+	CacheTypeUnsafe CacheType = "Unsafe"
+	// CacheTypeWriteBack indicates the flushing mechanic will be advertised
+	// to the guest driver and flush requests coming from the guest will be
+	// performed using `fsync`.
+	CacheTypeWriteBack CacheType = "WriteBack"
+
+	LogLevelError   LogLevel = "Error"
+	LogLevelWarning LogLevel = "Warning"
+	LogLevelInfo    LogLevel = "Info"
+	LogLevelDebug   LogLevel = "Debug"
+
+	// InstanceStateNotStarted the instance hasn't started running yet.
+	InstanceStateNotStarted InstanceState = "Not started"
+	// InstanceStateRunning the instance is running.
+	InstanceStateRunning InstanceState = "Running"
+	// InstanceStatePaused the instance is currently paused.
+	InstanceStatePaused InstanceState = "Paused"
+)
+
+// VmmConfig contains the configuration of the microvm.
+// Based on the rust structure from firecracker:
+// https://github.com/firecracker-microvm/firecracker/blob/0690010524001b606f67c1a65c67f3c27883183f/src/vmm/src/resources.rs#L51.
 type VmmConfig struct {
 	// Balloon hols the balloon device configuration.
 	Balloon *BalloonDeviceConfig `json:"balloon,omitempty"`
@@ -37,16 +60,6 @@ type VMConfig struct {
 }
 
 type CacheType string
-
-var (
-	// CacheTypeUnsafe indovates the flushing mechanic will be advertised to
-	// the guest driver, but the operation will be a noop.
-	CacheTypeUnsafe CacheType = "Unsafe"
-	// CacheTypeWriteBack indicates the flushing mechanic will be advertised
-	// to the guest driver and flush requests coming from the guest will be
-	// performed using `fsync`.
-	CacheTypeWriteBack CacheType = "WriteBack"
-)
 
 // BlockDeviceConfig contains the configuration for a microvm block device.
 type BlockDeviceConfig struct {
@@ -104,13 +117,6 @@ type NetworkInterfaceConfig struct {
 
 type LogLevel string
 
-var (
-	LogLevelError   LogLevel = "Error"
-	LogLevelWarning LogLevel = "Warning"
-	LogLevelInfo    LogLevel = "Info"
-	LogLevelDebug   LogLevel = "Debug"
-)
-
 // LoggerConfig holds the configuration for the logger.
 type LoggerConfig struct {
 	// LogPath is the named pipe or file used as output for logs.
@@ -161,12 +167,3 @@ type Metadata struct {
 
 // InstanceState is a type that represents the running state of a Firecracker instance.
 type InstanceState string
-
-var (
-	// InstanceStateNotStarted the instance hasn't started running yet.
-	InstanceStateNotStarted InstanceState = "Not started"
-	// InstanceStateRunning the instance is running.
-	InstanceStateRunning InstanceState = "Running"
-	// InstanceStatePaused the instance is currently paused.
-	InstanceStatePaused InstanceState = "Paused"
-)

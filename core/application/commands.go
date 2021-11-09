@@ -25,10 +25,12 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		if err != nil {
 			return nil, fmt.Errorf("generating random name for microvm: %w", err)
 		}
+
 		vmid, err := models.NewVMID(name, defaults.MicroVMNamespace)
 		if err != nil {
 			return nil, fmt.Errorf("creating vmid: %w", err)
 		}
+
 		mvm.ID = *vmid
 	}
 
@@ -48,8 +50,6 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 			namespace: mvm.ID.Namespace(),
 		}
 	}
-
-	// TODO: validate the spec
 
 	// Set the timestamp when the VMspec was created.
 	mvm.Spec.CreatedAt = a.ports.Clock().Unix()

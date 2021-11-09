@@ -54,6 +54,7 @@ func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) 
 
 func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.Entry) (int, error) {
 	numStepsExecuted := 0
+
 	for {
 		steps, err := p.Create(ctx)
 		if err != nil {
@@ -68,6 +69,7 @@ func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.E
 
 		executed, err := e.react(ctx, steps, logger)
 		numStepsExecuted += executed
+
 		if err != nil {
 			return numStepsExecuted, fmt.Errorf("executing steps: %w", err)
 		}
@@ -76,6 +78,7 @@ func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.E
 
 func (e *actuatorImpl) react(ctx context.Context, steps []Procedure, logger *logrus.Entry) (int, error) {
 	var childSteps []Procedure
+
 	numStepsExecuted := 0
 
 	for _, step := range steps {
@@ -83,12 +86,13 @@ func (e *actuatorImpl) react(ctx context.Context, steps []Procedure, logger *log
 		case <-ctx.Done():
 			logger.WithField("step_name", step.Name()).Info("step not executed due to context done")
 
-			return numStepsExecuted, ctx.Err() //nolint:wrapcheck
+			return numStepsExecuted, ctx.Err() //nolint:wrapcheck // It's ok ;)
 		default:
 			shouldDo, err := step.ShouldDo(ctx)
 			if err != nil {
 				return numStepsExecuted, fmt.Errorf("checking if step %s should be executed: %w", step.Name(), err)
 			}
+
 			if shouldDo {
 				logger.WithField("step", step.Name()).Debug("execute step")
 
@@ -100,9 +104,11 @@ func (e *actuatorImpl) react(ctx context.Context, steps []Procedure, logger *log
 				}
 			}
 		}
+
 		if len(childSteps) > 0 {
 			executed, err := e.react(ctx, childSteps, logger)
 			numStepsExecuted += executed
+
 			if err != nil {
 				return numStepsExecuted, err
 			}

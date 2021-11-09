@@ -64,9 +64,11 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 	if err != nil {
 		return nil, fmt.Errorf("getting vm spec from store: %w", err)
 	}
+
 	if existingSpec != nil {
 		specDiff := cmp.Diff(existingSpec.Spec, microvm.Spec)
 		statusDiff := cmp.Diff(existingSpec.Status, microvm.Status)
+
 		if specDiff == "" && statusDiff == "" {
 			logger.Debug("microvm specs have no diff, skipping save")
 
@@ -75,15 +77,18 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 	}
 
 	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
+
 	leaseCtx, err := withOwnerLease(namespaceCtx, microvm.ID.String(), r.client)
 	if err != nil {
 		return nil, fmt.Errorf("getting lease for owner: %w", err)
 	}
+
 	store := r.client.ContentStore()
 
 	microvm.Version++
 
 	refName := contentRefName(microvm)
+
 	writer, err := store.Writer(leaseCtx, content.WithRef(refName))
 	if err != nil {
 		return nil, fmt.Errorf("getting containerd writer: %w", err)
@@ -100,6 +105,7 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 	}
 
 	labels := getVMLabels(microvm)
+
 	err = writer.Commit(namespaceCtx, 0, "", content.WithLabels(labels))
 	if err != nil {
 		return nil, fmt.Errorf("committing content to store: %w", err)
@@ -119,6 +125,7 @@ func (r *containerdRepo) Get(ctx context.Context, options ports.RepositoryGetOpt
 	if err != nil {
 		return nil, fmt.Errorf("getting vm spec from store: %w", err)
 	}
+
 	if spec == nil {
 		return nil, errors.NewSpecNotFound(options.Name, options.Namespace, options.Version)
 	}
@@ -131,17 +138,17 @@ func (r *containerdRepo) Get(ctx context.Context, options ports.RepositoryGetOpt
 func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
 	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 	store := r.client.ContentStore()
-
-	filters := []string{labelFilter(TypeLabel, MicroVMSpecType)}
-	if namespace != "" {
-		filters = append(filters, labelFilter(NamespaceLabel, namespace))
-	}
-
+	filters := []string{labelFilter(TypeLabel(), MicroVMSpecType)}
 	versions := map[string]int{}
 	digests := map[string]*digest.Digest{}
+
+	if namespace != "" {
+		filters = append(filters, labelFilter(NamespaceLabel(), namespace))
+	}
+
 	err := store.Walk(namespaceCtx, func(i content.Info) error {
-		name := i.Labels[NameLabel]
-		version, err := strconv.Atoi(i.Labels[VersionLabel])
+		name := i.Labels[NameLabel()]
+		version, err := strconv.Atoi(i.Labels[VersionLabel()])
 		if err != nil {
 			return fmt.Errorf("parsing version number: %w", err)
 		}
@@ -163,6 +170,7 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 	}
 
 	items := []*models.MicroVM{}
+
 	for _, d := range digests {
 		vm, getErr := r.getWithDigest(namespaceCtx, d)
 		if getErr != nil {
@@ -200,6 +208,7 @@ func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) er
 	if err != nil {
 		return fmt.Errorf("finding digests for %s: %w", microvm.ID, err)
 	}
+
 	if len(digests) == 0 {
 		// Ignore not found
 		return nil
@@ -244,6 +253,7 @@ func (r *containerdRepo) get(ctx context.Context, options ports.RepositoryGetOpt
 	if err != nil {
 		return nil, fmt.Errorf("finding content in store: %w", err)
 	}
+
 	if digest == nil {
 		return nil, nil
 	}
@@ -260,6 +270,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 	}
 
 	microvm := &models.MicroVM{}
+
 	err = json.Unmarshal(readData, microvm)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling json content to microvm: %w", err)
@@ -268,10 +279,14 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 	return microvm, nil
 }
 
-func (r *containerdRepo) findDigestForSpec(ctx context.Context, options ports.RepositoryGetOptions) (*digest.Digest, error) {
-	idLabelFilter := labelFilter(NameLabel, options.Name)
-	nsFilter := labelFilter(NamespaceLabel, options.Namespace)
-	versionFilter := labelFilter(VersionLabel, options.Version)
+func (r *containerdRepo) findDigestForSpec(ctx context.Context,
+	options ports.RepositoryGetOptions,
+) (*digest.Digest, error) {
+	var digest *digest.Digest
+
+	idLabelFilter := labelFilter(NameLabel(), options.Name)
+	nsFilter := labelFilter(NamespaceLabel(), options.Namespace)
+	versionFilter := labelFilter(VersionLabel(), options.Version)
 
 	combinedFilters := []string{idLabelFilter, nsFilter}
 
@@ -281,14 +296,12 @@ func (r *containerdRepo) findDigestForSpec(ctx context.Context, options ports.Re
 
 	allFilters := strings.Join(combinedFilters, ",")
 	store := r.client.ContentStore()
-
-	var digest *digest.Digest
 	highestVersion := 0
 
 	err := store.Walk(
 		ctx,
 		func(i content.Info) error {
-			version, err := strconv.Atoi(i.Labels[VersionLabel])
+			version, err := strconv.Atoi(i.Labels[VersionLabel()])
 			if err != nil {
 				return fmt.Errorf("parsing version number: %w", err)
 			}
@@ -311,12 +324,12 @@ func (r *containerdRepo) findDigestForSpec(ctx context.Context, options ports.Re
 
 func (r *containerdRepo) findAllDigestForSpec(ctx context.Context, name, namespace string) ([]*digest.Digest, error) {
 	store := r.client.ContentStore()
-	idLabelFilter := labelFilter(NameLabel, name)
-	nsLabelFilter := labelFilter(NamespaceLabel, namespace)
+	idLabelFilter := labelFilter(NameLabel(), name)
+	nsLabelFilter := labelFilter(NamespaceLabel(), namespace)
 	combinedFilters := []string{idLabelFilter, nsLabelFilter}
 	allFilters := strings.Join(combinedFilters, ",")
-
 	digests := []*digest.Digest{}
+
 	err := store.Walk(
 		ctx,
 		func(i content.Info) error {
@@ -350,10 +363,10 @@ func (r *containerdRepo) getMutex(name string) *sync.RWMutex {
 
 func getVMLabels(microvm *models.MicroVM) map[string]string {
 	labels := map[string]string{
-		NameLabel:      microvm.ID.Name(),
-		NamespaceLabel: microvm.ID.Namespace(),
-		TypeLabel:      MicroVMSpecType,
-		VersionLabel:   strconv.Itoa(microvm.Version),
+		NameLabel():      microvm.ID.Name(),
+		NamespaceLabel(): microvm.ID.Namespace(),
+		TypeLabel():      MicroVMSpecType,
+		VersionLabel():   strconv.Itoa(microvm.Version),
 	}
 
 	return labels
