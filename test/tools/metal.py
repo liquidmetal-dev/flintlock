@@ -75,7 +75,7 @@ class Welder():
       return key
 
    def create_user_data(self):
-      files = ["hack/scripts/bootstrap.sh", "hack/scripts/devpool.sh", "test/tools/userdata.sh"]
+      files = ["hack/scripts/bootstrap.sh", "test/tools/userdata.sh"]
       userdata = ""
       for file in files:
          with open(self.base+"/"+file) as f:
