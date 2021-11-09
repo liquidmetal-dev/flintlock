@@ -114,10 +114,11 @@ test-e2e-docker: compile-e2e ## Run e2e tests locally in a container
 		--ipc=host \
 		--workdir=/src/flintlock \
 		$(test_image):latest \
-		"make test-e2e"
+		/bin/bash -c "make test-e2e"
 
 .PHONY: test-e2e-metal
 test-e2e-metal: ## Run e2e tests in Equinix
+	echo "must set EQUINIX_ORG_ID"
 	./test/tools/run.py run-e2e -o $(EQUINIX_ORG_ID)
 
 .PHONY: compile-e2e
