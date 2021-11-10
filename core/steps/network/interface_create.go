@@ -88,10 +88,6 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 		return nil, fmt.Errorf("checking if networking interface exists: %w", err)
 	}
 	if exists {
-		// This whole block is unreachable right now, because
-		// the Do function is called only if ShouldDo returns
-		// true. It retruns false if IfaceExists returns true.
-		// Line 76 will never return exists=true
 		details, err := s.svc.IfaceDetails(ctx, deviceName)
 		if err != nil {
 			return nil, fmt.Errorf("getting interface details: %w", err)
