@@ -18,7 +18,9 @@ jobs:
       - name: Build e2e
         run: make compile-e2e
       - name: Test with coverage
-        run: sudo --preserve-env=CTR_SOCK_PATH make test-with-cov
+        run: |
+          export CTR_SOCK_PATH=/var/run/containerd/containerd.sock
+          make test-with-cov
         env:
           CTR_SOCK_PATH: /run/containerd/containerd.sock
       - name: Upload coverage to Codecov
