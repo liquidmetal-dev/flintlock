@@ -48,23 +48,20 @@ func TestMicroVMDeletePlan(t *testing.T) {
 
 	mList.MicroVMService.
 		EXPECT().
-		Delete(gomock.Any(), "namespace/vmid").
+		Delete(gomock.Any(), gomock.Eq("namespace/vmid")).
 		Return(nil).
 		Times(1)
 
 	mList.NetworkService.
 		EXPECT().
-		IfaceExists(gomock.Any(), gomock.Eq("namespace_vmid_tap")).
+		IfaceExists(gomock.Any(), &hostDeviceNameMatcher{}).
 		Return(true, nil).
 		AnyTimes()
 
 	mList.NetworkService.
 		EXPECT().
-		IfaceDelete(
-			gomock.Any(),
-			ports.DeleteIfaceInput{DeviceName: "namespace_vmid_tap"},
-		).
-		Times(2)
+		IfaceDelete(gomock.Any(), &deleteInterfaceMatcher{}).
+		Times(1)
 
 	mList.MicroVMRepository.
 		EXPECT().
@@ -81,7 +78,7 @@ func TestMicroVMDeletePlan(t *testing.T) {
 	steps, createErr := plan.Create(ctx)
 
 	Expect(createErr).NotTo(HaveOccurred())
-	Expect(steps).To(HaveLen(5))
+	Expect(steps).To(HaveLen(4))
 
 	for _, step := range steps {
 		should, err := step.ShouldDo(ctx)

@@ -14,8 +14,10 @@ import (
 )
 
 const (
-	numberOfSubscribers = 2
-	sleepTime           = 10
+	numberOfSubscribers        = 2
+	sleepTime                  = 40
+	subscriberWait             = 30
+	subscriberTimeoutInSeconds = 20
 )
 
 func TestEventService_Integration(t *testing.T) {
@@ -65,7 +67,7 @@ func TestEventService_Integration(t *testing.T) {
 
 	// Without this, it's still possible we publish the first ever before the
 	// connection is read.
-	time.Sleep(time.Microsecond * sleepTime)
+	time.Sleep(time.Millisecond * sleepTime)
 
 	t.Log("publishing events")
 
@@ -101,22 +103,26 @@ func newSubscriber(t *testing.T, rootContext context.Context, data subData) {
 	}
 
 	t.Logf("subscriber (%d) is ready to receive events", data.ID)
+
 	data.Ready()
-	recvd, err := watch(t, &subscriber, data.MaxEvents)
+	defer data.Done()
+
+	recvd, err := watch(&subscriber, data.MaxEvents)
+
 	t.Logf("subscriber (%d) is done", data.ID)
 
 	Expect(err).To(BeNil())
 	Expect(recvd).To(HaveLen(data.MaxEvents))
 
-	data.Done()
 }
 
-func watch(t *testing.T, subscriber *testSubscriber, maxEvents int) ([]interface{}, error) {
-
+func watch(subscriber *testSubscriber, maxEvents int) ([]interface{}, error) {
 	recvd := []interface{}{}
+	start := time.Now()
 
 	var err error
 
+mainloop:
 	for {
 		select {
 		case env := <-subscriber.eventCh:
@@ -126,10 +132,19 @@ func watch(t *testing.T, subscriber *testSubscriber, maxEvents int) ([]interface
 			recvd = append(recvd, env.Event)
 		case err = <-subscriber.eventErrCh:
 			break
+		default:
+			if time.Since(start).Seconds() > subscriberTimeoutInSeconds {
+				subscriber.cancel()
+
+				break mainloop
+			}
+
+			time.Sleep(time.Microsecond * subscriberWait)
 		}
 
 		if len(recvd) == maxEvents {
 			subscriber.cancel()
+
 			break
 		}
 	}

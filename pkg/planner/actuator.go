@@ -59,6 +59,7 @@ func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.E
 		if err != nil {
 			return numStepsExecuted, fmt.Errorf("creating plan for %s: %w", p.Name(), err)
 		}
+
 		if len(steps) == 0 {
 			logger.Debug("no more steps to execute")
 

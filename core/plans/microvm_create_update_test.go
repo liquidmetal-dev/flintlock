@@ -45,24 +45,20 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 		Start(gomock.Any(), gomock.Eq("namespace/vmid")).
 		Return(nil)
 
-	// Start(ctx context.Context, id string) error
-
 	mList.NetworkService.
 		EXPECT().
-		IfaceExists(gomock.Any(), gomock.Eq("namespace_vmid_tap")).
-		DoAndReturn(func(_ context.Context, _ string) (bool, error) {
-			return false, nil
-		}).
+		IfaceExists(gomock.Any(), &hostDeviceNameMatcher{}).
+		Return(false, nil).
 		Times(4)
 
 	mList.NetworkService.
 		EXPECT().
 		IfaceCreate(
 			gomock.Any(),
-			gomock.Eq(ports.IfaceCreateInput{
-				DeviceName: "namespace_vmid_tap",
-				MAC:        "AA:FF:00:00:00:01",
-			}),
+			&createInterfaceMatcher{
+				MAC:  "AA:FF:00:00:00:01",
+				Type: models.IfaceTypeTap,
+			},
 		).
 		Return(&ports.IfaceDetails{}, nil)
 
@@ -70,9 +66,9 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 		EXPECT().
 		IfaceCreate(
 			gomock.Any(),
-			gomock.Eq(ports.IfaceCreateInput{
-				DeviceName: "namespace_vmid_tap",
-			}),
+			&createInterfaceMatcher{
+				Type: models.IfaceTypeTap,
+			},
 		).
 		Return(&ports.IfaceDetails{}, nil)
 

@@ -56,7 +56,7 @@ func createTestSpec(name, ns string) *models.MicroVM {
 			State: models.PendingState,
 			NetworkInterfaces: models.NetworkInterfaceStatuses{
 				"eth0": &models.NetworkInterfaceStatus{
-					HostDeviceName: "namespace_vmid_tap",
+					HostDeviceName: "fltap5675122",
 					Index:          0,
 				},
 			},
@@ -71,10 +71,12 @@ func createTestSpec(name, ns string) *models.MicroVM {
 			NetworkInterfaces: []models.NetworkInterface{
 				{
 					AllowMetadataRequests: true,
+					Type:                  models.IfaceTypeTap,
 					GuestMAC:              "AA:FF:00:00:00:01",
 					GuestDeviceName:       "eth0",
 				},
 				{
+					Type:                  models.IfaceTypeTap,
 					AllowMetadataRequests: false,
 					GuestDeviceName:       "eth1",
 				},

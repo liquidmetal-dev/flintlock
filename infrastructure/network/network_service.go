@@ -72,6 +72,8 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 				Mode: netlink.MACVLAN_MODE_BRIDGE,
 			},
 		}
+	case models.IfaceTypeUnsupported:
+		return nil, errors.NewErrUnsupportedInterface(string(input.Type))
 	default:
 		return nil, errors.NewErrUnsupportedInterface(string(input.Type))
 	}
