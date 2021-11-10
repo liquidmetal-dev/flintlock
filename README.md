@@ -42,7 +42,7 @@ Other interesting resources include:
 
 If you have any questions about, feedback for or problems with flintlock:
 
-- [File an issue][issues].
+- [File an issue](CONTRIBUTING.md#opening-issues).
 
 Your feedback is always welcome!
 
