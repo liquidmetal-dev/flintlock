@@ -1,13 +1,16 @@
 from metal import Welder
 
 class Test:
-    def __init__(self, auth_token, org_id, prj_name, key_name, dev_name, skip_delete, dev_id=None):
-        self.welder = Welder(auth_token, org_id)
-        self.prj_name = prj_name
-        self.key_name = key_name
-        self.dev_name = dev_name
-        self.skip_delete = skip_delete
-        self.dev_id = dev_id
+    def __init__(self, auth_token, config):
+        self.testCfg = config['test']
+        devCfg = config['device']
+
+        self.welder = Welder(auth_token, config)
+        self.prj_name = config['project']
+        self.key_name = devCfg['ssh_key_name']
+        self.dev_name = devCfg['name']
+        self.skip_teardown = self.testCfg['skip_teardown']
+        self.dev_id = devCfg['id']
         self.dev_ip = None
         self.project = None
         self.key = None
@@ -17,7 +20,7 @@ class Test:
         return self
 
     def __exit__(self, *args, **kwargs):
-        if self.skip_delete == False:
+        if self.skip_teardown == False:
             self.teardown()
 
     def setup(self):
