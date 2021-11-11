@@ -11,5 +11,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '1.17'
+      - name: debug
+        uses: mxschmitt/action-tmate@v3
       - name: E2E tests in container
         run: make test-e2e-docker
