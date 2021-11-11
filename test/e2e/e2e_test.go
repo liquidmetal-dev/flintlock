@@ -13,6 +13,15 @@ import (
 	u "github.com/weaveworks/flintlock/test/e2e/utils"
 )
 
+var params *u.Params
+
+func init() {
+	// Call testing.Init() prior to tests.NewParams(), as otherwise custom test flags
+	// will not be recognised.
+	testing.Init()
+	params = u.NewParams()
+}
+
 func TestE2E(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -26,7 +35,7 @@ func TestE2E(t *testing.T) {
 		mvmPid2 int
 	)
 
-	r := u.Runner{}
+	r := u.NewRunner(params)
 	defer func() {
 		log.Println("TEST STEP: cleaning up running processes")
 		r.Teardown()
@@ -78,6 +87,11 @@ func TestE2E(t *testing.T) {
 		g.Expect(res.Microvm[1].Status.State).To(Equal(types.MicroVMStatus_CREATED))
 		return nil
 	}, "120s").Should(Succeed())
+
+	if params.SkipDelete {
+		log.Println("TEST STEP: skipping delete")
+		return
+	}
 
 	log.Println("TEST STEP: deleting existing MicroVMs")
 	Expect(u.DeleteMVM(flintlockClient, mvmID, mvmNS)).To(Succeed())
