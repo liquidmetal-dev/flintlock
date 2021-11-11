@@ -144,15 +144,15 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 
 	logger.Debugf("starting grpc server listening on endpoint %s", cfg.GRPCAPIEndpoint)
 
-	l, err := net.Listen("tcp", cfg.GRPCAPIEndpoint)
+	listener, err := net.Listen("tcp", cfg.GRPCAPIEndpoint)
 	if err != nil {
 		return fmt.Errorf("setting up gRPC api listener: %w", err)
 	}
-	defer l.Close()
+	defer listener.Close()
 
 	reflection.Register(grpcServer)
 
-	if err := grpcServer.Serve(l); err != nil {
+	if err := grpcServer.Serve(listener); err != nil {
 		logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal #235
 	}
 

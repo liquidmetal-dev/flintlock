@@ -11,22 +11,22 @@ import (
 	"github.com/weaveworks/flintlock/core/ports"
 )
 
-func convertMountToModel(m mount.Mount, snapshotter string) (models.Mount, error) {
+func convertMountToModel(mountPoint mount.Mount, snapshotter string) (models.Mount, error) {
 	switch snapshotter {
 	case "overlayfs":
 		return models.Mount{
 			Type:   models.MountTypeHostPath,
-			Source: getOverlayMountPath(m),
+			Source: getOverlayMountPath(mountPoint),
 		}, nil
 	case "native":
 		return models.Mount{
 			Type:   models.MountTypeHostPath,
-			Source: m.Source,
+			Source: mountPoint.Source,
 		}, nil
 	case "devmapper":
 		return models.Mount{
 			Type:   models.MountTypeDev,
-			Source: m.Source,
+			Source: mountPoint.Source,
 		}, nil
 	default:
 		return models.Mount{}, unsupportedSnapshotterError{name: snapshotter}

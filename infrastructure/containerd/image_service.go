@@ -192,9 +192,9 @@ func (im *imageService) snapshotAndMount(ctx context.Context,
 
 	snapshotKey := snapshotKey(owner, ownerUsageID)
 	logger.Debugf("creating snapshot %s for image %s with snapshotter %s", snapshotKey, image.Name(), snapshotter)
-	ss := im.client.SnapshotService(snapshotter)
+	snapService := im.client.SnapshotService(snapshotter)
 
-	snapshotExists, err := snapshotExists(ctx, snapshotKey, ss)
+	snapshotExists, err := snapshotExists(ctx, snapshotKey, snapService)
 	if err != nil {
 		return nil, fmt.Errorf("checking for existence of snapshot %s: %w", snapshotKey, err)
 	}
@@ -207,12 +207,12 @@ func (im *imageService) snapshotAndMount(ctx context.Context,
 			"flintlock/owner-usage": ownerUsageID,
 		}
 
-		mounts, err = ss.Prepare(ctx, snapshotKey, parent, snapshots.WithLabels(labels))
+		mounts, err = snapService.Prepare(ctx, snapshotKey, parent, snapshots.WithLabels(labels))
 		if err != nil {
 			return nil, fmt.Errorf("preparing snapshot of %s: %w", image.Name(), err)
 		}
 	} else {
-		mounts, err = ss.Mounts(ctx, snapshotKey)
+		mounts, err = snapService.Mounts(ctx, snapshotKey)
 		if err != nil {
 			return nil, fmt.Errorf("getting mounts of %s: %w", image.Name(), err)
 		}

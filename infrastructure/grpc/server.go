@@ -148,8 +148,11 @@ func (s *server) ListMicroVMs(ctx context.Context,
 	return resp, nil
 }
 
-func (s *server) ListMicroVMsStream(req *mvmv1.ListMicroVMsRequest, ss mvmv1.MicroVM_ListMicroVMsStreamServer) error {
-	ctx := ss.Context()
+func (s *server) ListMicroVMsStream(
+	req *mvmv1.ListMicroVMsRequest,
+	streamServer mvmv1.MicroVM_ListMicroVMsStreamServer,
+) error {
+	ctx := streamServer.Context()
 	logger := log.GetLogger(ctx)
 
 	logger.Infof("getting all microvms in %s", req.Namespace)
@@ -168,7 +171,7 @@ func (s *server) ListMicroVMsStream(req *mvmv1.ListMicroVMsRequest, ss mvmv1.Mic
 			Microvm: convertModelToMicroVM(mvm),
 		}
 
-		if err := ss.Send(resp); err != nil {
+		if err := streamServer.Send(resp); err != nil {
 			logger.Errorf("failed to stream response to client: %s", err)
 
 			return fmt.Errorf("streaming response to client: %w", err)

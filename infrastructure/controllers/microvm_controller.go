@@ -148,7 +148,7 @@ func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *logrus.Entry) error {
 	var name, namespace string
 
-	switch v := envelope.Event.(type) {
+	switch eventType := envelope.Event.(type) {
 	case *events.MicroVMSpecCreated:
 		created, _ := envelope.Event.(*events.MicroVMSpecCreated)
 		name = created.ID
@@ -163,7 +163,7 @@ func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *l
 		name = updated.ID
 		namespace = updated.Namespace
 	default:
-		logger.Debugf("unhandled event type (%T) received", v)
+		logger.Debugf("unhandled event type (%T) received", eventType)
 
 		return nil
 	}

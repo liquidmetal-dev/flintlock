@@ -14,7 +14,7 @@ linters-settings:
   stylecheck:
     go: "1.17"
   cyclop:
-    max-complexity: 12
+    max-complexity: 15
     skip-tests: true
   gosec:
     exclude-generated: true
@@ -33,6 +33,14 @@ linters-settings:
     allow-unused: false
     require-explanation: true
     require-specific: false
+  varnamelen:
+    ignore-names:
+    - err
+    - wg
+    - fs
+    - id
+    - vm
+    - ns
 
 issues:
   max-same-issues: 0
@@ -44,6 +52,9 @@ issues:
   - text: "local replacement are not allowed: github.com/weaveworks/flintlock/"
     linters:
     - gomoddirectives
+  - text: "sig: func github.com/weaveworks/flintlock/"
+    linters:
+    - wrapcheck
   - source: "https://"
     linters:
     - lll
@@ -64,6 +75,7 @@ issues:
     linters:
     - exhaustivestruct
     - lll
+    - wrapcheck
   - source: "// .* #\\d+"
     linters:
     - godox
@@ -73,59 +85,13 @@ issues:
     - gomnd
 
 linters:
-  disable-all: true
-  enable:
-  - bodyclose
-  - deadcode
-  - depguard
-  - dogsled
-  - dupl
-  - errcheck
-  - exhaustive
-  - exportloopref
-  - exportloopref
-  - funlen
-  - gci
-  - gochecknoglobals
-  - gochecknoinits
-  - gocognit
-  - goconst
-  - gocritic
-  - gocyclo
-  - godot
-  - godox
-  - goerr113
-  - gofmt
-  - gofumpt
-  - goheader
-  - goimports
-  - gomnd
-  - gomodguard
-  - goprintffuncname
-  - gosec
-  - gosimple
-  - govet
-  - ineffassign
-  - lll
-  - misspell
-  - nakedret
-  - nestif
-  - nlreturn
-  - noctx
-  - nolintlint
-  - prealloc
-  - revive
-  - rowserrcheck
-  - sqlclosecheck
-  - staticcheck
-  - structcheck
-  - stylecheck
-  - testpackage
-  - typecheck
-  - unconvert
-  - unparam
-  - unused
-  - varcheck
-  - whitespace
-  - wsl
-  disabled: []
+  enable-all: true
+  disable:
+  - exhaustivestruct
+  - golint
+  - interfacer
+  - ireturn
+  - maligned
+  - nilnil
+  - scopelint
+  - tagliatelle

@@ -24,17 +24,17 @@ func NewActuator() Actuator {
 type actuatorImpl struct{}
 
 // Execute will execute the plan.
-func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) (int, error) {
+func (e *actuatorImpl) Execute(ctx context.Context, plan Plan, executionID string) (int, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"execution_id": executionID,
-		"plan_name":    p.Name(),
+		"plan_name":    plan.Name(),
 	})
 
 	start := time.Now().UTC()
 
 	logger.Infof("started executing plan")
 
-	numStepsExecuted, err := e.executePlan(ctx, p, logger)
+	numStepsExecuted, err := e.executePlan(ctx, plan, logger)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"execution_time": time.Since(start),
@@ -52,13 +52,13 @@ func (e *actuatorImpl) Execute(ctx context.Context, p Plan, executionID string) 
 	return numStepsExecuted, nil
 }
 
-func (e *actuatorImpl) executePlan(ctx context.Context, p Plan, logger *logrus.Entry) (int, error) {
+func (e *actuatorImpl) executePlan(ctx context.Context, plan Plan, logger *logrus.Entry) (int, error) {
 	numStepsExecuted := 0
 
 	for {
-		steps, err := p.Create(ctx)
+		steps, err := plan.Create(ctx)
 		if err != nil {
-			return numStepsExecuted, fmt.Errorf("creating plan for %s: %w", p.Name(), err)
+			return numStepsExecuted, fmt.Errorf("creating plan for %s: %w", plan.Name(), err)
 		}
 
 		if len(steps) == 0 {

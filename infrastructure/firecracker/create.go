@@ -59,7 +59,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		WithBin(p.config.FirecrackerBin).
 		WithSocketPath(vmState.SockPath()).
 		WithArgs(args).
-		Build(context.TODO())
+		Build(context.TODO()) //nolint: contextcheck // Intentional.
 
 	proc, err := p.startFirecracker(cmd, vmState, p.config.RunDetached)
 	if err != nil {

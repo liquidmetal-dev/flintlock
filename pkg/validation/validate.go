@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/containerd/containerd/reference"
-	"github.com/go-playground/validator/v10"
+	playgroundValidator "github.com/go-playground/validator/v10"
 
 	"github.com/weaveworks/flintlock/core/models"
 )
@@ -16,20 +16,20 @@ type Validator interface {
 }
 
 type validate struct {
-	validator *validator.Validate
+	validator *playgroundValidator.Validate
 }
 
 func NewValidator() Validator {
-	v := validator.New()
+	validator := playgroundValidator.New()
 
 	// TODO(@jmickey): Do something with this error maybe? #236
-	_ = v.RegisterValidation("imageURI", customImageURIValidator, false)
-	_ = v.RegisterValidation("datetimeInPast", customTimestampValidator, false)
-	_ = v.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
-	v.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
+	_ = validator.RegisterValidation("imageURI", customImageURIValidator, false)
+	_ = validator.RegisterValidation("datetimeInPast", customTimestampValidator, false)
+	_ = validator.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
+	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
 
 	return &validate{
-		validator: v,
+		validator: validator,
 	}
 }
 
@@ -41,7 +41,7 @@ func (v *validate) ValidateStruct(obj interface{}) error {
 	return nil
 }
 
-func customImageURIValidator(fl validator.FieldLevel) bool {
+func customImageURIValidator(fl playgroundValidator.FieldLevel) bool {
 	uri := fl.Field().String()
 
 	_, err := reference.Parse(uri)
@@ -50,24 +50,24 @@ func customImageURIValidator(fl validator.FieldLevel) bool {
 }
 
 // Ensure that the timestamp is in the past and greater than 0.
-func customTimestampValidator(fl validator.FieldLevel) bool {
+func customTimestampValidator(fl playgroundValidator.FieldLevel) bool {
 	tm := fl.Field().Int()
 
 	return tm <= time.Now().Unix() && tm > 0
 }
 
-func customNetworkGuestDeviceNameValidator(fl validator.FieldLevel) bool {
-	name := fl.Field().String()
+func customNetworkGuestDeviceNameValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	name := fieldLevel.Field().String()
 	re := regexp.MustCompile("^[a-z][a-z0-9_]*$")
 
 	return re.MatchString(name)
 }
 
-func customMicroVMSpecStructLevelValidation(sl validator.StructLevel) {
-	spec, _ := sl.Current().Interface().(models.MicroVMSpec)
+func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.StructLevel) {
+	spec, _ := structLevel.Current().Interface().(models.MicroVMSpec)
 
 	if spec.Initrd == nil && len(spec.Volumes) == 0 {
-		sl.ReportError(spec.Volumes, "volumes", "Volumes", "volumeOrInitrdRequired", "")
+		structLevel.ReportError(spec.Volumes, "volumes", "Volumes", "volumeOrInitrdRequired", "")
 
 		return
 	}
@@ -86,7 +86,7 @@ func customMicroVMSpecStructLevelValidation(sl validator.StructLevel) {
 			if found {
 				// Only one volume can be specified as the root volume. If a root volume is found twice then
 				// report an error.
-				sl.ReportError(spec.Volumes, "volumes", "Volumes", "onlyOneRootVolume", "")
+				structLevel.ReportError(spec.Volumes, "volumes", "Volumes", "onlyOneRootVolume", "")
 			}
 
 			found = true
@@ -94,7 +94,7 @@ func customMicroVMSpecStructLevelValidation(sl validator.StructLevel) {
 	}
 
 	if spec.Initrd == nil && !found {
-		sl.ReportError(spec.Volumes, "volumes", "Volumes", "oneVolumeMustBeRoot", "")
+		structLevel.ReportError(spec.Volumes, "volumes", "Volumes", "oneVolumeMustBeRoot", "")
 
 		return
 	}

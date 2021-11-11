@@ -146,9 +146,9 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 		filters = append(filters, labelFilter(NamespaceLabel(), namespace))
 	}
 
-	err := store.Walk(namespaceCtx, func(i content.Info) error {
-		name := i.Labels[NameLabel()]
-		version, err := strconv.Atoi(i.Labels[VersionLabel()])
+	err := store.Walk(namespaceCtx, func(info content.Info) error {
+		name := info.Labels[NameLabel()]
+		version, err := strconv.Atoi(info.Labels[VersionLabel()])
 		if err != nil {
 			return fmt.Errorf("parsing version number: %w", err)
 		}
@@ -160,7 +160,7 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 
 		if version > high {
 			versions[name] = version
-			digests[name] = &i.Digest
+			digests[name] = &info.Digest
 		}
 
 		return nil
@@ -300,14 +300,14 @@ func (r *containerdRepo) findDigestForSpec(ctx context.Context,
 
 	err := store.Walk(
 		ctx,
-		func(i content.Info) error {
-			version, err := strconv.Atoi(i.Labels[VersionLabel()])
+		func(info content.Info) error {
+			version, err := strconv.Atoi(info.Labels[VersionLabel()])
 			if err != nil {
 				return fmt.Errorf("parsing version number: %w", err)
 			}
 
 			if version > highestVersion {
-				digest = &i.Digest
+				digest = &info.Digest
 				highestVersion = version
 			}
 

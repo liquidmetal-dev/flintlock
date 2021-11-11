@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	ierror "errors"
 	"fmt"
 	"net"
 	"strings"
@@ -129,7 +130,7 @@ func (n *networkService) IfaceDelete(ctx context.Context, input ports.DeleteIfac
 
 	link, err := netlink.LinkByName(input.DeviceName)
 	if err != nil {
-		if _, ok := err.(netlink.LinkNotFoundError); !ok {
+		if ierror.Is(err, netlink.LinkNotFoundError{}) {
 			return fmt.Errorf("failed to lookup network interface %s: %w", input.DeviceName, err)
 		}
 
@@ -198,7 +199,7 @@ func (n *networkService) IfaceDetails(ctx context.Context, name string) (*ports.
 func (n *networkService) getIface(name string) (bool, netlink.Link, error) {
 	link, err := netlink.LinkByName(name)
 	if err != nil {
-		if _, ok := err.(netlink.LinkNotFoundError); !ok {
+		if ierror.Is(err, netlink.LinkNotFoundError{}) {
 			return false, nil, fmt.Errorf("failed to lookup network interface %s: %w", name, err)
 		}
 

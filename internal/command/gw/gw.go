@@ -91,7 +91,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("could not register microvm server: %w", err)
 	}
 
-	s := &http.Server{
+	server := &http.Server{
 		Addr:    cfg.HTTPAPIEndpoint,
 		Handler: mux,
 	}
@@ -100,14 +100,15 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 		<-ctx.Done()
 		logger.Infof("shutting down the http gateway server")
 
-		if err := s.Shutdown(context.Background()); err != nil {
+		//nolint: contextcheck // Intentional.
+		if err := server.Shutdown(context.Background()); err != nil {
 			logger.Errorf("failed to shutdown http gateway server: %v", err)
 		}
 	}()
 
 	logger.Debugf("starting http server listening on endpoint %s", cfg.HTTPAPIEndpoint)
 
-	if err := s.ListenAndServe(); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		return fmt.Errorf("listening and serving http api: %w", err)
 	}
 

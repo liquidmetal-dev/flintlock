@@ -32,7 +32,7 @@ func NewRootCommand() (*cobra.Command, error) {
 			return nil
 		},
 		RunE: func(c *cobra.Command, _ []string) error {
-			return c.Help() //nolint: wrapcheck // It's ok ;)
+			return c.Help()
 		},
 	}
 
@@ -90,11 +90,11 @@ func versionCommand() *cobra.Command {
 			)
 
 			if long, err = cmd.Flags().GetBool("long"); err != nil {
-				return nil
+				return err
 			}
 
 			if short, err = cmd.Flags().GetBool("short"); err != nil {
-				return nil
+				return err
 			}
 
 			if short {
