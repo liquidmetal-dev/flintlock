@@ -50,6 +50,7 @@ func (s *initrdMount) ShouldDo(ctx context.Context) (bool, error) {
 	}
 
 	input := s.getMountSpec()
+
 	mounted, err := s.imageSvc.IsMounted(ctx, input)
 	if err != nil {
 		return false, fmt.Errorf("checking if image %s is mounted: %w", input.ImageName, err)
@@ -76,6 +77,7 @@ func (s *initrdMount) Do(ctx context.Context) ([]planner.Procedure, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mount images %s for initrd use: %w", input.ImageName, err)
 	}
+
 	if len(mounts) == 0 {
 		return nil, cerrs.ErrNoMount
 	}

@@ -78,9 +78,11 @@ func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 	if err := cmd.Flags().MarkHidden(disableReconcileFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", disableReconcileFlag, err)
 	}
+
 	if err := cmd.Flags().MarkHidden(maximumRetryFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", maximumRetryFlag, err)
 	}
+
 	if err := cmd.Flags().MarkHidden(disableAPIFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", disableAPIFlag, err)
 	}

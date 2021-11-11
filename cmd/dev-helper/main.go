@@ -1,4 +1,4 @@
-//nolint
+//nolint // We don't care about this, it will be deleted.
 package main
 
 import (

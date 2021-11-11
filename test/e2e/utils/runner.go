@@ -14,8 +14,9 @@ import (
 	gm "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pelletier/go-toml"
-	"github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	"google.golang.org/grpc"
+
+	"github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 )
 
 const (
@@ -109,6 +110,7 @@ func createThinPools() {
 	scriptPath := filepath.Join(baseDir(), "hack", "scripts", "devpool.sh")
 	command := exec.Command(scriptPath, thinpoolName, loopDeviceTag)
 	session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
+
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 	gm.Eventually(session).Should(gexec.Exit(0))
 }
@@ -118,6 +120,7 @@ func cleanupThinPools() {
 
 	cmd := exec.Command("losetup")
 	loopDevices := grep(cmd, loopDeviceTag, 0)
+
 	for _, dev := range loopDevices {
 		command := exec.Command("losetup", "-d", dev)
 		session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
@@ -135,8 +138,9 @@ func writeContainerdConfig() {
 	}
 	pluginTree, err := toml.TreeFromMap(dmplug)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	cfg := ccfg.Config{
-		Version: 2, //nolint:gomnd
+		Version: 2,
 		Root:    containerdRootDir,
 		State:   containerdStateDir,
 		GRPC: ccfg.GRPCConfig{
@@ -155,13 +159,16 @@ func writeContainerdConfig() {
 
 	f, err := os.Create(containerdCfg)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	defer f.Close()
+
 	gm.Expect(toml.NewEncoder(f).Encode(cfg)).To(gm.Succeed())
 }
 
 func (r *Runner) buildFLBinary() {
 	flBin, err := gexec.Build(flintlockCmdDir)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	r.flintlockdBin = flBin
 }
 
@@ -169,29 +176,42 @@ func (r *Runner) startContainerd() {
 	ctrdCmd := exec.Command(containerdBin, "--config", containerdCfg)
 	ctrdSess, err := gexec.Start(ctrdCmd, gk.GinkgoWriter, gk.GinkgoWriter)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	r.containerdSession = ctrdSess
 }
 
 func (r *Runner) startFlintlockd() {
 	parentIface, err := getParentInterface()
 	gm.Expect(err).NotTo(gm.HaveOccurred())
-	flCmd := exec.Command(r.flintlockdBin, "run", "--containerd-socket", containerdSocket, "--parent-iface", parentIface) //nolint:gosec
+
+	//nolint: gosec // We know what we're doing.
+	flCmd := exec.Command(
+		r.flintlockdBin,
+		"run",
+		"--containerd-socket",
+		containerdSocket,
+		"--parent-iface",
+		parentIface,
+	)
 	flSess, err := gexec.Start(flCmd, gk.GinkgoWriter, gk.GinkgoWriter)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	r.flintlockdSession = flSess
 }
 
 func (r *Runner) dialGRPCServer() {
 	conn, err := grpc.Dial(grpcDialTarget, grpc.WithInsecure(), grpc.WithBlock())
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	r.flintlockdConn = conn
 }
 
 func getParentInterface() (string, error) {
 	cmd := exec.Command("ip", "route", "show")
-	iface := grep(cmd, "default", 4) //nolint:gomnd
+	iface := grep(cmd, "default", 4)
+
 	if len(iface) == 0 {
-		return "", errors.New("parent interface not found") //nolint:goerr113
+		return "", errors.New("parent interface not found")
 	}
 
 	return iface[0], nil
@@ -200,8 +220,10 @@ func getParentInterface() (string, error) {
 func grep(cmd *exec.Cmd, match string, loc int) []string {
 	output, err := cmd.Output()
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	out := []string{}
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, match) {

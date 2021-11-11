@@ -52,8 +52,10 @@ func (s *deleteDirectory) Do(ctx context.Context) ([]planner.Procedure, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if exists {
 		logger.Trace("deleting directory")
+
 		if err := s.fs.RemoveAll(s.dir); err != nil {
 			return nil, fmt.Errorf("deleting directory %s: %w", s.dir, err)
 		}

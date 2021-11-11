@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/vishvananda/netlink"
+
 	"github.com/weaveworks/flintlock/core/models"
 )
 
@@ -22,7 +23,7 @@ const (
 )
 
 func NewIfaceName(ifaceType models.IfaceType) (string, error) {
-	devPrefix := ""
+	var devPrefix string
 
 	switch ifaceType {
 	case models.IfaceTypeTap:
@@ -57,7 +58,7 @@ func NewIfaceName(ifaceType models.IfaceType) (string, error) {
 func generateRandomName(prefix string) (string, error) {
 	id := make([]byte, randomBytesLength)
 	if _, err := io.ReadFull(rand.Reader, id); err != nil {
-		return "", err
+		return "", interfaceErrorf("random generator error: %s", err.Error())
 	}
 
 	return prefix + hex.EncodeToString(id)[:ifaceLength], nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"

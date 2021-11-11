@@ -10,13 +10,14 @@ import (
 	"github.com/weaveworks/flintlock/core/ports"
 )
 
-// DefaultRand is a random source based on the unix time not.
-var DefaultRand = rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+func randomSource() *rand.Rand {
+	return rand.New(rand.NewSource(time.Now().UnixNano())) //nolint: gosec // It's not a security context
+}
 
 // New will create a new ulid based ID service using the default random source.
 func New() ports.IDService {
 	return &ulidIDService{
-		rnd: DefaultRand,
+		rnd: randomSource(),
 	}
 }
 
@@ -34,6 +35,7 @@ type ulidIDService struct {
 // GenerateRandom will generate a random identifier using ulid.
 func (u *ulidIDService) GenerateRandom() (string, error) {
 	entropy := ulid.Monotonic(u.rnd, 0)
+
 	newID, err := ulid.New(ulid.Now(), entropy)
 	if err != nil {
 		return "", fmt.Errorf("generating microvm id: %w", err)

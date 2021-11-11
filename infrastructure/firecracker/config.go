@@ -5,8 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/weaveworks/flintlock/pkg/ptr"
-
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 	"gopkg.in/yaml.v3"
@@ -14,6 +12,7 @@ import (
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/pkg/cloudinit"
+	"github.com/weaveworks/flintlock/pkg/ptr"
 )
 
 const (
@@ -31,8 +30,6 @@ func CreateConfig(opts ...ConfigOption) (*VmmConfig, error) {
 		}
 	}
 
-	// TODO: do we need to add validation?
-
 	return cfg, nil
 }
 
@@ -49,6 +46,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		}
 
 		cfg.NetDevices = []NetworkInterfaceConfig{}
+
 		for i := range vm.Spec.NetworkInterfaces {
 			iface := vm.Spec.NetworkInterfaces[i]
 
@@ -62,6 +60,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		}
 
 		cfg.BlockDevices = []BlockDeviceConfig{}
+
 		for _, vol := range vm.Spec.Volumes {
 			status, ok := vm.Status.Volumes[vol.ID]
 			if !ok {
@@ -80,11 +79,13 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		}
 
 		kernelArgs := vm.Spec.Kernel.CmdLine
+
 		if vm.Spec.Kernel.AddNetworkConfig {
 			networkConfig, err := generateNetworkConfig(vm)
 			if err != nil {
 				return fmt.Errorf("generating kernel network-config: %w", err)
 			}
+
 			kernelArgs = fmt.Sprintf("%s network-config=%s", kernelArgs, networkConfig)
 		}
 
@@ -132,29 +133,31 @@ func ApplyConfig(ctx context.Context, cfg *VmmConfig, client *firecracker.Client
 	if err != nil {
 		return fmt.Errorf("failed to put machine configuration: %w", err)
 	}
+
 	for _, drive := range cfg.BlockDevices {
-		_, err := client.PutGuestDriveByID(ctx, drive.ID, &fcmodels.Drive{
+		_, requestErr := client.PutGuestDriveByID(ctx, drive.ID, &fcmodels.Drive{
 			DriveID:      &drive.ID,
 			IsReadOnly:   &drive.IsReadOnly,
 			IsRootDevice: &drive.IsRootDevice,
 			Partuuid:     drive.PartUUID,
 			PathOnHost:   &drive.PathOnHost,
-			// RateLimiter: ,
 		})
-		if err != nil {
-			return fmt.Errorf("putting drive configuration: %w", err)
+		if requestErr != nil {
+			return fmt.Errorf("putting drive configuration: %w", requestErr)
 		}
 	}
+
 	for i, netInt := range cfg.NetDevices {
 		guestIfaceName := fmt.Sprintf("eth%d", i)
-		_, err := client.PutGuestNetworkInterfaceByID(ctx, guestIfaceName, &fcmodels.NetworkInterface{
+
+		_, requestErr := client.PutGuestNetworkInterfaceByID(ctx, guestIfaceName, &fcmodels.NetworkInterface{
 			IfaceID:           &guestIfaceName,
 			GuestMac:          netInt.GuestMAC,
 			HostDevName:       &netInt.HostDevName,
 			AllowMmdsRequests: netInt.AllowMMDSRequests,
 		})
-		if err != nil {
-			return fmt.Errorf("putting %s network configuration: %w", guestIfaceName, err)
+		if requestErr != nil {
+			return fmt.Errorf("putting %s network configuration: %w", guestIfaceName, requestErr)
 		}
 	}
 
@@ -188,6 +191,7 @@ func ApplyConfig(ctx context.Context, cfg *VmmConfig, client *firecracker.Client
 			return fmt.Errorf("failed to put logging configuration: %w", err)
 		}
 	}
+
 	if cfg.Metrics != nil {
 		_, err = client.PutMetrics(ctx, &fcmodels.Metrics{
 			MetricsPath: &cfg.Metrics.Path,
@@ -210,6 +214,7 @@ func ApplyMetadata(ctx context.Context, metadata map[string]string, client *fire
 	meta := &Metadata{
 		Latest: map[string]string{},
 	}
+
 	for metadataKey, metadataVal := range metadata {
 		encodedVal, err := base64.StdEncoding.DecodeString(metadataVal)
 		if err != nil {
@@ -232,6 +237,7 @@ func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkIn
 
 	if iface.Type == models.IfaceTypeMacvtap {
 		hostDevName = fmt.Sprintf("/dev/tap%d", status.Index)
+
 		if macAddr == "" {
 			macAddr = status.MACAddress
 		}
@@ -255,10 +261,12 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 
 	for i := range vm.Spec.NetworkInterfaces {
 		iface := vm.Spec.NetworkInterfaces[i]
+
 		status, ok := vm.Status.NetworkInterfaces[iface.GuestDeviceName]
 		if !ok {
 			return "", errors.NewNetworkInterfaceStatusMissing(iface.GuestDeviceName)
 		}
+
 		macAdress := getMacAddress(&iface, status)
 
 		eth := &cloudinit.Ethernet{

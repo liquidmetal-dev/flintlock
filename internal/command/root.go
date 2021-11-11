@@ -32,11 +32,12 @@ func NewRootCommand() (*cobra.Command, error) {
 			return nil
 		},
 		RunE: func(c *cobra.Command, _ []string) error {
-			return c.Help() //nolint: wrapcheck
+			return c.Help()
 		},
 	}
 
 	log.AddFlagsToCommand(cmd, &cfg.Logging)
+
 	if err := addRootSubCommands(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding subcommands: %w", err)
 	}
@@ -89,11 +90,11 @@ func versionCommand() *cobra.Command {
 			)
 
 			if long, err = cmd.Flags().GetBool("long"); err != nil {
-				return nil
+				return err
 			}
 
 			if short, err = cmd.Flags().GetBool("short"); err != nil {
-				return nil
+				return err
 			}
 
 			if short {

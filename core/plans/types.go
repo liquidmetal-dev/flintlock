@@ -2,6 +2,7 @@ package plans
 
 import (
 	"github.com/spf13/afero"
+
 	"github.com/weaveworks/flintlock/core/ports"
 )
 

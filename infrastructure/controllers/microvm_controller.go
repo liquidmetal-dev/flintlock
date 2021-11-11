@@ -32,7 +32,11 @@ type MicroVMController struct {
 	queue queue.Queue
 }
 
-func (r *MicroVMController) Run(ctx context.Context, numWorkers int, resyncPeriod time.Duration, resyncOnStart bool) error {
+func (r *MicroVMController) Run(ctx context.Context,
+	numWorkers int,
+	resyncPeriod time.Duration,
+	resyncOnStart bool,
+) error {
 	logger := log.GetLogger(ctx).WithField("controller", "microvm")
 	ctx = log.WithLogger(ctx, logger)
 	logger.Infof("starting microvm controller with %d workers", numWorkers)
@@ -44,14 +48,15 @@ func (r *MicroVMController) Run(ctx context.Context, numWorkers int, resyncPerio
 
 	if resyncOnStart {
 		if err := r.resyncSpecs(ctx, logger); err != nil {
-			// TODO: should we just log here?
 			return fmt.Errorf("resyncing specs on start: %w", err)
 		}
 	}
 
 	wg := &sync.WaitGroup{}
+
 	logger.Info("starting event listener")
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
 		r.runEventListener(ctx, resyncPeriod)
@@ -59,9 +64,11 @@ func (r *MicroVMController) Run(ctx context.Context, numWorkers int, resyncPerio
 
 	logger.Info("Starting workers", "num_workers", numWorkers)
 	wg.Add(numWorkers)
+
 	for i := 0; i < numWorkers; i++ {
 		go func() {
 			defer wg.Done()
+
 			for r.processQueueItem(ctx) {
 			}
 		}()
@@ -90,23 +97,24 @@ func (r *MicroVMController) runEventListener(ctx context.Context, resyncPeriod t
 			return
 		case evt := <-evtCh:
 			if err := r.handleEvent(evt, logger); err != nil {
+				// TODO: should we exit here? #233
 				logger.Errorf("handling events: %s", err)
-				// TODO: should we exit here
 			}
 		case <-ticker.C:
 			if err := r.resyncSpecs(ctx, logger); err != nil {
+				// TODO: should we exit here? #233
 				logger.Errorf("resyncing specs: %s", err)
-				// TODO: should we exit here
 			}
 		case evtErr := <-errCh:
+			// TODO: should we exit here? #233
 			logger.Errorf("error from event service: %s", evtErr)
-			// TODO: should we exit here?
 		}
 	}
 }
 
 func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 	logger := log.GetLogger(ctx)
+
 	item, shutdown := r.queue.Dequeue()
 	if shutdown {
 		return false
@@ -118,6 +126,7 @@ func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 
 		return true
 	}
+
 	vmid, err := models.NewVMIDFromString(id)
 	if err != nil {
 		logger.Errorf("failed to parse id into vmid %s, skipping: %s", id, err)
@@ -138,7 +147,8 @@ func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 
 func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *logrus.Entry) error {
 	var name, namespace string
-	switch v := envelope.Event.(type) {
+
+	switch eventType := envelope.Event.(type) {
 	case *events.MicroVMSpecCreated:
 		created, _ := envelope.Event.(*events.MicroVMSpecCreated)
 		name = created.ID
@@ -153,7 +163,7 @@ func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *l
 		name = updated.ID
 		namespace = updated.Namespace
 	default:
-		logger.Debugf("unhandled event type (%T) received", v)
+		logger.Debugf("unhandled event type (%T) received", eventType)
 
 		return nil
 	}

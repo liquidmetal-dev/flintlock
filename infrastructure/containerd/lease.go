@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/containerd/containerd"
-
 	"github.com/containerd/containerd/leases"
 )
 
@@ -22,6 +21,7 @@ func withOwnerLease(ctx context.Context, owner string, client *containerd.Client
 
 func getExistingOrCreateLease(ctx context.Context, name string, manager leases.Manager) (*leases.Lease, error) {
 	filter := fmt.Sprintf("id==%s", name)
+
 	existingLeases, err := manager.List(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("listing existing containerd leases: %w", err)
@@ -44,6 +44,7 @@ func getExistingOrCreateLease(ctx context.Context, name string, manager leases.M
 func deleteLease(ctx context.Context, owner string, client *containerd.Client) error {
 	leaseName := getLeaseNameForOwner(owner)
 	lease := leases.Lease{ID: leaseName}
+
 	err := client.LeasesService().Delete(ctx, lease, leases.SynchronousDelete)
 	if err != nil {
 		return fmt.Errorf("delete lease %s: %w", leaseName, err)

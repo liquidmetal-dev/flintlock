@@ -18,6 +18,7 @@ func (a *app) ReconcileMicroVM(ctx context.Context, id, namespace string) error 
 	logger := log.GetLogger(ctx).WithField("action", "reconcile")
 
 	logger.Debugf("Getting spec for %s/%s", namespace, id)
+
 	spec, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
 		Name:      id,
 		Namespace: namespace,
@@ -35,8 +36,8 @@ func (a *app) ResyncMicroVMs(ctx context.Context, namespace string) error {
 		"namespace": "ns",
 	})
 	logger.Info("Resyncing specs")
-
 	logger.Debug("Getting all specs")
+
 	specs, err := a.ports.Repo.GetAll(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("getting all microvm specs for resync: %w", err)

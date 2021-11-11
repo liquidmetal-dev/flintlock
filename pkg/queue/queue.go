@@ -6,7 +6,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// NOTE: this is heavily based on the workerqueue from client-go: https://github.com/kubernetes/client-go/blob/master/util/workqueue/queue.go
+// NOTE: this is heavily based on the workerqueue from client-go:
+// https://github.com/kubernetes/client-go/blob/master/util/workqueue/queue.go
 
 // Queue is the interface for a queue.
 type Queue interface {

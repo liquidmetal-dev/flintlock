@@ -34,6 +34,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	logger.Debugf("creating microvm")
 
 	vmState := NewState(vm.ID, p.config.StateRoot, p.fs)
+
 	if err := p.ensureState(vmState); err != nil {
 		return fmt.Errorf("ensuring state dir: %w", err)
 	}
@@ -42,12 +43,14 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	if err != nil {
 		return fmt.Errorf("creating firecracker config: %w", err)
 	}
-	if err := vmState.SetConfig(config); err != nil {
+
+	if err = vmState.SetConfig(config); err != nil {
 		return fmt.Errorf("saving firecracker config: %w", err)
 	}
 
 	id := strings.ReplaceAll(vm.ID.String(), "/", "-")
 	args := []string{"--id", id, "--boot-timer"}
+
 	if !p.config.APIConfig {
 		args = append(args, "--config-file", vmState.ConfigPath())
 	}
@@ -56,18 +59,22 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		WithBin(p.config.FirecrackerBin).
 		WithSocketPath(vmState.SockPath()).
 		WithArgs(args).
-		Build(context.TODO())
+		Build(context.TODO()) //nolint: contextcheck // Intentional.
 
 	proc, err := p.startFirecracker(cmd, vmState, p.config.RunDetached)
 	if err != nil {
 		return fmt.Errorf("starting firecracker process: %w", err)
 	}
 
-	if err := vmState.SetPid(proc.Pid); err != nil {
+	if err = vmState.SetPid(proc.Pid); err != nil {
 		return fmt.Errorf("saving pid %d to file: %w", proc.Pid, err)
 	}
 
-	err = wait.ForCondition(wait.FileExistsCondition(vmState.SockPath(), p.fs), socketTimeoutInSec*time.Second, socketPollInMs*time.Millisecond)
+	err = wait.ForCondition(
+		wait.FileExistsCondition(vmState.SockPath(), p.fs),
+		socketTimeoutInSec*time.Second,
+		socketPollInMs*time.Millisecond,
+	)
 	if err != nil {
 		return fmt.Errorf("waiting for sock file to exist: %w", err)
 	}
@@ -77,6 +84,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		if err := ApplyConfig(ctx, config, client); err != nil {
 			return fmt.Errorf("applying firecracker configuration: %w", err)
 		}
+
 		if err := ApplyMetadata(ctx, vm.Spec.Metadata, client); err != nil {
 			return fmt.Errorf("applying metadata to mmds: %w", err)
 		}
@@ -95,6 +103,7 @@ func (p *fcProvider) startFirecracker(cmd *exec.Cmd, vmState State, detached boo
 	if err != nil {
 		return nil, fmt.Errorf("opening sterr file %s: %w", vmState.StderrPath(), err)
 	}
+
 	cmd.Stderr = stdErrFile
 	cmd.Stdout = stdOutFile
 	cmd.Stdin = &bytes.Buffer{}
@@ -121,7 +130,7 @@ func (p *fcProvider) ensureState(vmState State) error {
 	}
 
 	if !exists {
-		if err := p.fs.MkdirAll(vmState.Root(), defaults.DataDirPerm); err != nil {
+		if err = p.fs.MkdirAll(vmState.Root(), defaults.DataDirPerm); err != nil {
 			return fmt.Errorf("creating state directory %s: %w", vmState.Root(), err)
 		}
 	}
@@ -130,6 +139,7 @@ func (p *fcProvider) ensureState(vmState State) error {
 	if err != nil {
 		return fmt.Errorf("checking if sock dir exists: %w", err)
 	}
+
 	if sockExists {
 		if delErr := p.fs.Remove(vmState.SockPath()); delErr != nil {
 			return fmt.Errorf("deleting existing sock file: %w", err)
@@ -140,12 +150,14 @@ func (p *fcProvider) ensureState(vmState State) error {
 	if err != nil {
 		return fmt.Errorf("opening log file %s: %w", vmState.LogPath(), err)
 	}
+
 	logFile.Close()
 
 	metricsFile, err := p.fs.OpenFile(vmState.MetricsPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
 		return fmt.Errorf("opening metrics file %s: %w", vmState.MetricsPath(), err)
 	}
+
 	metricsFile.Close()
 
 	return nil

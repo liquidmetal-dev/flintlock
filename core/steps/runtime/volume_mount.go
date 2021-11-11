@@ -13,7 +13,11 @@ import (
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
-func NewVolumeMount(vmid *models.VMID, volume *models.Volume, status *models.VolumeStatus, imageService ports.ImageService) planner.Procedure {
+func NewVolumeMount(vmid *models.VMID,
+	volume *models.Volume,
+	status *models.VolumeStatus,
+	imageService ports.ImageService,
+) planner.Procedure {
 	return &volumeMount{
 		vmid:     vmid,
 		volume:   volume,
@@ -46,6 +50,7 @@ func (s *volumeMount) ShouldDo(ctx context.Context) (bool, error) {
 	}
 
 	input := s.getMountSpec()
+
 	mounted, err := s.imageSvc.IsMounted(ctx, input)
 	if err != nil {
 		return false, fmt.Errorf("checking if image %s is mounted: %w", input.ImageName, err)
@@ -72,6 +77,7 @@ func (s *volumeMount) Do(ctx context.Context) ([]planner.Procedure, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mount images %s for volume use: %w", input.ImageName, err)
 	}
+
 	if len(mounts) == 0 {
 		return nil, cerrs.ErrNoVolumeMount
 	}

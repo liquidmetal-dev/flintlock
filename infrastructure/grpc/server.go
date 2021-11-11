@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/go-playground/validator/v10"
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/flintlock/api/types"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -33,27 +33,36 @@ type server struct {
 	validator validation.Validator
 }
 
-func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequest) (*mvmv1.CreateMicroVMResponse, error) {
+func (s *server) CreateMicroVM(ctx context.Context,
+	req *mvmv1.CreateMicroVMRequest,
+) (*mvmv1.CreateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 
 	logger.Trace("converting request to model")
+
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)
 	}
 
 	logger.Trace("validating model")
-	err = s.validator.ValidateStruct(modelSpec)
+
 	var valErrors validator.ValidationErrors
-	if err != nil {
+
+	if err = s.validator.ValidateStruct(modelSpec); err != nil {
 		if errors.As(err, &valErrors) {
-			return nil, status.Errorf(codes.InvalidArgument, "an error occurred when attempting to validate the request: %v", err)
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"an error occurred when attempting to validate the request: %v",
+				err,
+			)
 		}
 
 		return nil, status.Errorf(codes.Internal, "an error occurred: %v", err)
 	}
 
 	logger.Infof("creating microvm %s", modelSpec.ID)
+
 	createdModel, err := s.commandUC.CreateMicroVM(ctx, modelSpec)
 	if err != nil {
 		logger.Errorf("failed to create microvm: %s", err)
@@ -62,6 +71,7 @@ func (s *server) CreateMicroVM(ctx context.Context, req *mvmv1.CreateMicroVMRequ
 	}
 
 	logger.Trace("converting model to response")
+
 	resp := &mvmv1.CreateMicroVMResponse{
 		Microvm: convertModelToMicroVM(createdModel),
 	}
@@ -73,8 +83,8 @@ func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequ
 	logger := log.GetLogger(ctx)
 
 	logger.Infof("deleting microvm %s/%s", req.Id, req.Namespace)
-	err := s.commandUC.DeleteMicroVM(ctx, req.Id, req.Namespace)
-	if err != nil {
+
+	if err := s.commandUC.DeleteMicroVM(ctx, req.Id, req.Namespace); err != nil {
 		logger.Errorf("failed to delete microvm: %s", err)
 
 		return nil, fmt.Errorf("deleting microvm: %w", err)
@@ -85,8 +95,8 @@ func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequ
 
 func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (*mvmv1.GetMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
-
 	logger.Infof("getting microvm %s/%s", req.Namespace, req.Id)
+
 	foundMicrovm, err := s.queryUC.GetMicroVM(ctx, req.Id, req.Namespace)
 	if err != nil {
 		logger.Errorf("failed to get microvm: %s", err)
@@ -95,6 +105,7 @@ func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (
 	}
 
 	logger.Trace("converting model to response")
+
 	resp := &mvmv1.GetMicroVMResponse{
 		Microvm: &types.MicroVM{
 			Version: int32(foundMicrovm.Version),
@@ -106,10 +117,12 @@ func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (
 	return resp, nil
 }
 
-func (s *server) ListMicroVMs(ctx context.Context, req *mvmv1.ListMicroVMsRequest) (*mvmv1.ListMicroVMsResponse, error) {
+func (s *server) ListMicroVMs(ctx context.Context,
+	req *mvmv1.ListMicroVMsRequest,
+) (*mvmv1.ListMicroVMsResponse, error) {
 	logger := log.GetLogger(ctx)
-
 	logger.Infof("getting all microvms in %s", req.Namespace)
+
 	foundMicrovms, err := s.queryUC.GetAllMicroVM(ctx, req.Namespace)
 	if err != nil {
 		logger.Errorf("failed to getting all microvm: %s", err)
@@ -118,6 +131,7 @@ func (s *server) ListMicroVMs(ctx context.Context, req *mvmv1.ListMicroVMsReques
 	}
 
 	logger.Trace("converting model to response")
+
 	resp := &mvmv1.ListMicroVMsResponse{
 		Microvm: []*types.MicroVM{},
 	}
@@ -134,11 +148,15 @@ func (s *server) ListMicroVMs(ctx context.Context, req *mvmv1.ListMicroVMsReques
 	return resp, nil
 }
 
-func (s *server) ListMicroVMsStream(req *mvmv1.ListMicroVMsRequest, ss mvmv1.MicroVM_ListMicroVMsStreamServer) error {
-	ctx := ss.Context()
+func (s *server) ListMicroVMsStream(
+	req *mvmv1.ListMicroVMsRequest,
+	streamServer mvmv1.MicroVM_ListMicroVMsStreamServer,
+) error {
+	ctx := streamServer.Context()
 	logger := log.GetLogger(ctx)
 
 	logger.Infof("getting all microvms in %s", req.Namespace)
+
 	foundMicrovms, err := s.queryUC.GetAllMicroVM(ctx, req.Namespace)
 	if err != nil {
 		logger.Errorf("failed to getting all microvm: %s", err)
@@ -147,12 +165,13 @@ func (s *server) ListMicroVMsStream(req *mvmv1.ListMicroVMsRequest, ss mvmv1.Mic
 	}
 
 	logger.Info("streaming found microvm results")
+
 	for _, mvm := range foundMicrovms {
 		resp := &mvmv1.ListMessage{
 			Microvm: convertModelToMicroVM(mvm),
 		}
 
-		if err := ss.Send(resp); err != nil {
+		if err := streamServer.Send(resp); err != nil {
 			logger.Errorf("failed to stream response to client: %s", err)
 
 			return fmt.Errorf("streaming response to client: %w", err)

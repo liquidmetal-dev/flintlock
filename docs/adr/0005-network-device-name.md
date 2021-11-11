@@ -1,6 +1,6 @@
 # 5. Network Device Name on Host
 
-* Status: pending   // will be updated after PR review
+* Status: accepted
 * Date: 2021-11-08
 * Authors: @yitsushi
 * Deciders: @Callisto13 @jmickey @richardcase @yitsushi

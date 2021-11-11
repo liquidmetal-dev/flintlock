@@ -119,7 +119,11 @@ func (p *microvmDeletePlan) addStep(ctx context.Context, step planner.Procedure)
 	return nil
 }
 
-func (p *microvmDeletePlan) addNetworkSteps(ctx context.Context, vm *models.MicroVM, networkSvc ports.NetworkService) error {
+func (p *microvmDeletePlan) addNetworkSteps(
+	ctx context.Context,
+	vm *models.MicroVM,
+	networkSvc ports.NetworkService,
+) error {
 	for i := range vm.Spec.NetworkInterfaces {
 		iface := vm.Spec.NetworkInterfaces[i]
 		ifaceStats := vm.Status.NetworkInterfaces[iface.GuestDeviceName]

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -13,7 +14,11 @@ import (
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
-func NewNetworkInterface(vmid *models.VMID, iface *models.NetworkInterface, status *models.NetworkInterfaceStatus, svc ports.NetworkService) planner.Procedure {
+func NewNetworkInterface(vmid *models.VMID,
+	iface *models.NetworkInterface,
+	status *models.NetworkInterfaceStatus,
+	svc ports.NetworkService,
+) planner.Procedure {
 	return &createInterface{
 		vmid:   vmid,
 		iface:  iface,
@@ -87,10 +92,11 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 	if err != nil {
 		return nil, fmt.Errorf("checking if networking interface exists: %w", err)
 	}
+
 	if exists {
-		details, err := s.svc.IfaceDetails(ctx, deviceName)
-		if err != nil {
-			return nil, fmt.Errorf("getting interface details: %w", err)
+		details, detailsErr := s.svc.IfaceDetails(ctx, deviceName)
+		if detailsErr != nil {
+			return nil, fmt.Errorf("getting interface details: %w", detailsErr)
 		}
 
 		s.status.HostDeviceName = deviceName
