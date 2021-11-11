@@ -85,10 +85,11 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 		}
 
 		if input.MAC != "" {
-			addr, err := net.ParseMAC(input.MAC)
+			addr, parseErr := net.ParseMAC(input.MAC)
 			if err != nil {
-				return nil, fmt.Errorf("parsing mac address %s: %w", input.MAC, err)
+				return nil, fmt.Errorf("parsing mac address %s: %w", input.MAC, parseErr)
 			}
+
 			link.Attrs().HardwareAddr = addr
 			logger.Tracef("added mac address %s to interface", addr)
 		}
@@ -110,6 +111,7 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 	if err := netlink.LinkSetUp(macIf); err != nil {
 		return nil, fmt.Errorf("enabling device %s: %w", macIf.Attrs().Name, err)
 	}
+
 	logger.Debugf("created interface with mac %s", macIf.Attrs().HardwareAddr.String())
 
 	return &ports.IfaceDetails{
