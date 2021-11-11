@@ -131,7 +131,7 @@ func (r *Runner) createThinPools() {
 	session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
 
 	gm.Expect(err).NotTo(gm.HaveOccurred())
-	gm.Eventually(session).Should(gexec.Exit(0))
+	gm.Eventually(session, "20s").Should(gexec.Exit(0))
 }
 
 func (r *Runner) cleanupThinPools() {
