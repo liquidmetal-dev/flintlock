@@ -21,7 +21,7 @@ jobs:
       - name: Build docs
         run: make docs-build
   release:
-    if: github.event_name != 'pull_request'
+    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'weaveworks' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
