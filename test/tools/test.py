@@ -37,7 +37,7 @@ class Test:
         self.welder.delete_all(self.project, self.device, self.key)
 
     def create_infra(self):
-        self.dev_ip = self.welder.create_all(self.prj_name, self.dev_name, self.key_name)
+        self.dev_ip = self.welder.create_all()
 
     def fetch_infra(self):
         try:

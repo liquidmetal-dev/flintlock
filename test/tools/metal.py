@@ -8,9 +8,9 @@ from Crypto.PublicKey import RSA
 from os.path import dirname, abspath
 
 class Welder():
-   def __init__(self, auth_token, org_id, level=logging.INFO):
-      self.org_id = org_id
-      self.base = dirname(dirname(dirname(abspath(__file__))))
+   def __init__(self, auth_token, config, level=logging.INFO):
+      self.config = config
+      self.org_id = config['org_id']
       self.packet_manager = packet.Manager(auth_token=auth_token)
       self.private_key_path = dirname(abspath(__file__))+"/private.key"
       self.public_key_path = dirname(abspath(__file__))+"/public.key"
@@ -28,34 +28,33 @@ class Welder():
 
       return logger
 
-   def create_all(self, prj_name_or_id, dev_name, key_name, userdata=None):
-      project = self.create_new_project_if_not_exist(prj_name_or_id)
+   def create_all(self):
+      project = self.create_new_project_if_not_exist()
       self.project = project
-      key = self.create_new_key(project.id, key_name)
+      key = self.create_new_key(project.id, self.config['device']['ssh_key_name'])
       self.key = key
-      if userdata == None:
-         userdata = self.create_user_data()
-      device = self.create_device(project.id, dev_name, key.id, userdata)
+      device = self.create_device(project.id, key.id)
       self.device = device
       self.dev_id = device.id
       self.wait_until_device_ready(device)
 
       return self.ip
 
-   def create_new_project_if_not_exist(self, name_or_id):
+   def create_new_project_if_not_exist(self):
       project = None
       try:
-         project = self.packet_manager.get_project(name_or_id)
-         self.logger.info(f"using found project {name_or_id}")
+         project = self.packet_manager.get_project(self.config['project_id'])
+         self.logger.info(f"using found project {self.config['project_id']}")
          return project
       except Exception:
+         self.logger.info(f"could not find project {self.config['project_id']}")
          pass
 
       project = self.packet_manager.create_organization_project(
           org_id=self.org_id,
-          name=name_or_id
+          name=self.config['project_name']
       )
-      self.logger.info(f"created project {name_or_id}")
+      self.logger.info(f"created project {project.name}")
 
       return project
 
@@ -74,24 +73,15 @@ class Welder():
 
       return key
 
-   def create_user_data(self):
-      files = ["hack/scripts/bootstrap.sh", "test/tools/userdata.sh"]
-      userdata = ""
-      for file in files:
-         with open(self.base+"/"+file) as f:
-             userdata += f.read()
-             userdata += "\n"
-
-      return userdata
-
-   def create_device(self, project_id, name, key_id, userdata):
+   def create_device(self, project_id, key_id):
+      cfg = self.config['device']
       device = self.packet_manager.create_device(project_id=project_id,
-                                     hostname=name,
-                                     plan='c1.small.x86', metro='sv',
-                                     operating_system='ubuntu_18_04',
-                                     facility="ewr1", billing_cycle='hourly',
+                                     hostname=cfg['name'],
+                                     plan=cfg['plan'], metro=cfg['metro'],
+                                     operating_system=cfg['operating_system'],
+                                     facility=cfg['facility'], billing_cycle=cfg['billing_cycle'],
                                      project_ssh_keys=[key_id],
-                                     userdata=userdata)
+                                     userdata=cfg['userdata'])
       self.logger.info(f"created device {device.hostname}")
 
       return device

@@ -65,29 +65,39 @@ def run_e2e(config_file, org_id, project_name, ssh_key_name, device_name, skip_t
         click.echo(f"Device `{dev_id}` left alive for debugging. Use with `--config-file` setting `device.id` to re-run tests. SSH command `ssh -i test/tools/private.key root@{dev_ip}`. Teardown device with `teardown-device` command.")
 
 @cli.command()
+@click.option('-c', '--config-file', type=str, help='Path to configuration file')
 @click.option('-o', '--org-id', type=str, help='Equinix organisation id (required)')
 @click.option('-p', '--project-id', type=str, help='ID of the project to create the device in (required)')
-@click.option('-k', '--ssh-key-name', type=str, help='Name of the ssh key to create and attach to the device (default: randomly generated)', default=generated_key_name())
-@click.option('-d', '--device-name', type=str, help='Name of the device to create (default: randomly generated)', default='T-800')
+@click.option('-k', '--ssh-key-name', type=str, help='Name of the ssh key to create and attach to the device (default: randomly generated)')
+@click.option('-d', '--device-name', type=str, help='Name of the device to create (default: randomly generated)')
 @click.option('-u', '--userdata', type=str, help='String containing shell bootstrap userdata (default: standard flintlockd bootstrapping, see readme for details)')
-def create_device(org_id, project_id, ssh_key_name, device_name, userdata):
+def create_device(config_file, org_id, project_id, ssh_key_name, device_name, userdata):
     token = os.environ.get("METAL_AUTH_TOKEN")
     if token is None:
         click.echo("must set METAL_AUTH_TOKEN")
         sys.exit()
-    if org_id is None:
-        click.echo("must set --org-id")
+
+    cfg = Config()
+    if config_file is not None:
+        try:
+            cfg.load_config_from_file(config_file)
+        except ValueError as e:
+            click.echo(str(e))
+            sys.exit()
+
+    cfg.set_create_flag_config(org_id, project_id, ssh_key_name, device_name)
+    try:
+        cfg.validate_create()
+    except ValueError as e:
+        click.echo(str(e))
         sys.exit()
-    if project_id is None:
-        click.echo("must set --project-id")
-        sys.exit()
 
-    click.echo(f"Creating device {device_name}")
+    click.echo(f"Creating device {cfg['device']['name']} with config {cfg['device']}")
 
-    welder = Welder(token, org_id)
-    ip = welder.create_all(project_id, device_name, ssh_key_name, userdata)
+    welder = Welder(token, cfg)
+    ip = welder.create_all()
 
-    click.echo(f"Device {device_name} created. SSH command `ssh -i hack/tools/private.key root@{ip}`. Run tests with `run-e2e`. Delete with `delete-device`.")
+    click.echo(f"Device {cfg['device']['name']} created. SSH command `ssh -i test/tools/private.key root@{ip}`. Run tests with `run-e2e`. Teardown with `delete-device`.")
 
 @cli.command()
 @click.option('-o', '--org-id', type=str, help='Equinix organisation id (required)')
