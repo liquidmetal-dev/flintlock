@@ -1,3 +1,6 @@
+//go:build e2e
+// +build e2e
+
 package utils
 
 import (
@@ -34,15 +37,20 @@ const (
 	devMapperRoot         = containerdRootDir + "/snapshotter/devmapper"
 )
 
-// Runner is a very poorly named thing and honestly idk what to call it.
-// What it does is compile flintlockd and start containerd and flintlockd.
-// So 'TestSetterUpper' did not sound as slick, but that is what it is.
-// I am happy for literally any suggestions.
+// Runner holds test runner configuration.
 type Runner struct {
+	params            *Params
 	flintlockdBin     string
 	containerdSession *gexec.Session
 	flintlockdSession *gexec.Session
 	flintlockdConn    *grpc.ClientConn
+}
+
+// NewRunner creates a new instance of Runner with a set of Params.
+func NewRunner(params *Params) Runner {
+	return Runner{
+		params: params,
+	}
 }
 
 // Setup is a helper for the e2e tests which:
@@ -57,8 +65,8 @@ type Runner struct {
 // Teardown should be called before Setup in a defer.
 func (r *Runner) Setup() v1alpha1.MicroVMClient {
 	makeDirectories()
-	createThinPools()
-	writeContainerdConfig()
+	r.createThinPools()
+	r.writeContainerdConfig()
 	r.buildFLBinary()
 	r.startContainerd()
 	r.startFlintlockd()
@@ -80,6 +88,13 @@ func (r *Runner) Teardown() {
 		r.flintlockdConn.Close()
 	}
 
+	// If either of these is true, we should still close the connection held
+	// by the runner itself. The other processes can be killed manually after
+	// debugging.
+	if r.params.SkipTeardown || r.params.SkipDelete {
+		return
+	}
+
 	if r.flintlockdSession != nil {
 		r.flintlockdSession.Terminate().Wait()
 	}
@@ -88,7 +103,7 @@ func (r *Runner) Teardown() {
 		r.containerdSession.Terminate().Wait()
 	}
 
-	cleanupThinPools()
+	r.cleanupThinPools()
 	cleanupDirectories()
 
 	gexec.CleanupBuildArtifacts()
@@ -106,7 +121,11 @@ func cleanupDirectories() {
 	gm.Expect(os.RemoveAll(containerdStateDir)).To(gm.Succeed())
 }
 
-func createThinPools() {
+func (r *Runner) createThinPools() {
+	if r.params.SkipSetupThinpool {
+		return
+	}
+
 	scriptPath := filepath.Join(baseDir(), "hack", "scripts", "devpool.sh")
 	command := exec.Command(scriptPath, thinpoolName, loopDeviceTag)
 	session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
@@ -115,7 +134,11 @@ func createThinPools() {
 	gm.Eventually(session).Should(gexec.Exit(0))
 }
 
-func cleanupThinPools() {
+func (r *Runner) cleanupThinPools() {
+	if r.params.SkipSetupThinpool {
+		return
+	}
+
 	gm.Expect(dmsetup.RemoveDevice(thinpoolName, dmsetup.RemoveWithForce)).To(gm.Succeed())
 
 	cmd := exec.Command("losetup")
@@ -129,16 +152,7 @@ func cleanupThinPools() {
 	}
 }
 
-func writeContainerdConfig() {
-	dmplug := map[string]interface{}{
-		"pool_name":       thinpoolName,
-		"root_path":       devMapperRoot,
-		"base_image_size": "10GB",
-		"discard_blocks":  "true",
-	}
-	pluginTree, err := toml.TreeFromMap(dmplug)
-	gm.Expect(err).NotTo(gm.HaveOccurred())
-
+func (r *Runner) writeContainerdConfig() {
 	cfg := ccfg.Config{
 		Version: 2,
 		Root:    containerdRootDir,
@@ -149,12 +163,23 @@ func writeContainerdConfig() {
 		Metrics: ccfg.MetricsConfig{
 			Address: "127.0.0.1:1338",
 		},
-		Plugins: map[string]toml.Tree{
-			"io.containerd.snapshotter.v1.devmapper": *pluginTree,
-		},
 		Debug: ccfg.Debug{
-			Level: "trace",
+			Level: r.params.ContainerdLogLevel,
 		},
+	}
+
+	if !r.params.SkipSetupThinpool {
+		dmplug := map[string]interface{}{
+			"pool_name":       thinpoolName,
+			"root_path":       devMapperRoot,
+			"base_image_size": "10GB",
+			"discard_blocks":  "true",
+		}
+		pluginTree, err := toml.TreeFromMap(dmplug)
+		gm.Expect(err).NotTo(gm.HaveOccurred())
+		cfg.Plugins = map[string]toml.Tree{
+			"io.containerd.snapshotter.v1.devmapper": *pluginTree,
+		}
 	}
 
 	f, err := os.Create(containerdCfg)
@@ -185,14 +210,10 @@ func (r *Runner) startFlintlockd() {
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 
 	//nolint: gosec // We know what we're doing.
-	flCmd := exec.Command(
-		r.flintlockdBin,
-		"run",
-		"--containerd-socket",
-		containerdSocket,
-		"--parent-iface",
-		parentIface,
-	)
+	flCmd := exec.Command(r.flintlockdBin, "run",
+		"--containerd-socket", containerdSocket,
+		"--parent-iface", parentIface,
+		"--verbosity", r.params.FlintlockdLogLevel)
 	flSess, err := gexec.Start(flCmd, gk.GinkgoWriter, gk.GinkgoWriter)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 
