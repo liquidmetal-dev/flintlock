@@ -40,7 +40,11 @@ class Test:
             cmd.append('-skip.delete')
         if self.testCfg['skip_dmsetup']:
             cmd.append('-skip.setup.thinpool')
-        self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
+        try:
+            self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
+        except RuntimeError as e:
+            print(str(e))
+            pass
 
     def teardown(self):
         self.welder.delete_all(self.project, self.device, self.key)

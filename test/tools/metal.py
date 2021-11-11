@@ -117,6 +117,8 @@ class Welder():
       shell = self.new_shell(self.ip)
       with shell:
          result = shell.run(command=cmd, cwd=cwd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, allow_error=allow_error)
+      if result.return_code != 0:
+         raise result.to_error()
       self.logger.info("command exited with code %d", result.return_code)
 
    def delete_all(self, project, device, key):
