@@ -332,42 +332,7 @@ make test
 
 ### Running the end to end tests
 
-There are several ways to run the end to end tests.
-
-#### In your local environment
-
-```
-make test-e2e
-```
-
-This will run the tests directly on your host with minimal fuss.
-You must ensure that you have installed all the dependencies per the
-[Quick-Start guide][quick-start].
-
-#### In a local docker container
-
-```
-make test-e2e-docker
-```
-
-This will run the tests in a Docker container running on your host machine.
-Note that due to the nature of flintlock, the container will be run with
-high privileges and will share some devices and process memory with the host.
-
-#### In an Equinix device
-
-```bash
-export METAL_AUTH_TOKEN=<your token>
-export EQUINIX_ORG_ID=<your org id>
-make test-e2e-metal
-```
-
-This will use the tool at `./test/tools/run.py` to create a new project and device
-with the credentials provided above, and then run the tests within that device.
-
-This exact command will run tests against main of the upstream branch, and only with
-minimal configuration. Read the tool [usage docs](test/tools/README.md) for information
-on how to configure and use the tool in your development.
+See the dedicated docs for the end to end tests [here](test/e2e/README.md).
 
 ### Writing your solution
 
