@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -72,6 +73,15 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 				Mode: netlink.MACVLAN_MODE_BRIDGE,
 			},
 		}
+
+		if input.MAC != "" {
+			addr, err := net.ParseMAC(input.MAC)
+			if err != nil {
+				return nil, fmt.Errorf("parsing mac address %s: %w", input.MAC, err)
+			}
+			link.Attrs().HardwareAddr = addr
+			logger.Tracef("added mac address %s to interface", addr)
+		}
 	case models.IfaceTypeUnsupported:
 		return nil, errors.NewErrUnsupportedInterface(string(input.Type))
 	default:
@@ -90,6 +100,7 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 	if err := netlink.LinkSetUp(macIf); err != nil {
 		return nil, fmt.Errorf("enabling device %s: %w", macIf.Attrs().Name, err)
 	}
+	logger.Debugf("created interface with mac %s", macIf.Attrs().HardwareAddr.String())
 
 	return &ports.IfaceDetails{
 		DeviceName: input.DeviceName,
