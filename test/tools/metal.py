@@ -121,20 +121,20 @@ class Welder():
          raise result.to_error()
       self.logger.info("command exited with code %d", result.return_code)
 
-   def delete_all(self, project, device, key):
-      if device != None:
-         device.delete()
-         self.logger.info(f"deleted device {device.hostname}")
+   def delete_all(self):
+      if self.device is not None:
+         self.device.delete()
+         self.logger.info(f"deleted device {self.device.hostname}")
 
-      if key != None:
-         key.delete()
+      if self.key is not None:
+         self.key.delete()
          os.remove(self.private_key_path)
          os.remove(self.public_key_path)
-         self.logger.info(f"deleted key {key.label}")
+         self.logger.info(f"deleted key {self.key.label}")
 
-      if project != None:
-         project.delete()
-         self.logger.info(f"deleted project {project.name}")
+      if self.project is not None:
+         self.project.delete()
+         self.logger.info(f"deleted project {self.project.name}")
 
    def new_shell(self, ip):
       shell = spur.SshShell(

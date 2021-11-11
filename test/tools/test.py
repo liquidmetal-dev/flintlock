@@ -13,19 +13,15 @@ class Test:
         self.skip_teardown = self.testCfg['skip_teardown']
         self.dev_id = devCfg['id']
         self.dev_ip = None
-        self.project = None
-        self.key = None
-        self.device = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs):
-        if self.skip_teardown == False:
-            self.teardown()
+        self.teardown()
 
     def setup(self):
-        if self.dev_id != None:
+        if self.dev_id is not None:
             self.fetch_infra()
         else:
             self.create_infra()
@@ -47,7 +43,9 @@ class Test:
             pass
 
     def teardown(self):
-        self.welder.delete_all(self.project, self.device, self.key)
+        if self.skip_teardown:
+            return
+        self.welder.delete_all()
 
     def create_infra(self):
         self.dev_ip = self.welder.create_all()
