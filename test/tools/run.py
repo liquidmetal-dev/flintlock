@@ -10,12 +10,14 @@ import random
 import string
 from os.path import dirname, abspath
 
+
 @click.group()
 def cli():
     """
     General thing doer for flintlock
     """
     pass
+
 
 @cli.command()
 @click.option('-c', '--config-file', type=str, help='Path to configuration file')
@@ -38,7 +40,8 @@ def run_e2e(config_file, org_id, project_name, ssh_key_name, device_name, skip_t
             click.echo(str(e))
             sys.exit()
 
-    cfg.set_run_flag_config(org_id, project_name, ssh_key_name, device_name, skip_teardown)
+    cfg.set_run_flag_config(org_id, project_name,
+                            ssh_key_name, device_name, skip_teardown)
     try:
         cfg.validate_run()
     except ValueError as e:
@@ -46,12 +49,15 @@ def run_e2e(config_file, org_id, project_name, ssh_key_name, device_name, skip_t
         sys.exit()
 
     if cfg['device']['id'] == None:
-        click.echo(f"Running e2e tests. Will create project `{cfg['project_name']}`, ssh_key `{cfg['device']['ssh_key_name']}` and device `{cfg['device']['name']}`")
-        click.echo("Note: this will create and bootstrap a new device in Equinix and may take some time")
+        click.echo(
+            f"Running e2e tests. Will create project `{cfg['project_name']}`, ssh_key `{cfg['device']['ssh_key_name']}` and device `{cfg['device']['name']}`")
+        click.echo(
+            "Note: this will create and bootstrap a new device in Equinix and may take some time")
     else:
         tool_dir = dirname(abspath(__file__))
         if os.path.exists(tool_dir+"/private.key") != True:
-            click.echo(f"`private.key` file must be saved at `{tool_dir}` when `--existing-device-id` flag set")
+            click.echo(
+                f"`private.key` file must be saved at `{tool_dir}` when `--existing-device-id` flag set")
             sys.exit()
         click.echo("running e2e tests using device `{cfg['device']['id']}`")
 
@@ -63,6 +69,7 @@ def run_e2e(config_file, org_id, project_name, ssh_key_name, device_name, skip_t
     if cfg['test']['skip_teardown']:
         dev_id, dev_ip = runner.device_details()
         click.echo(f"Device `{dev_id}` left alive for debugging. Use with `--config-file` setting `device.id` to re-run tests. SSH command `ssh -i test/tools/private.key root@{dev_ip}`. Teardown device with `teardown-device` command.")
+
 
 @cli.command()
 @click.option('-c', '--config-file', type=str, help='Path to configuration file')
@@ -92,12 +99,15 @@ def create_device(config_file, org_id, project_id, ssh_key_name, device_name, us
         click.echo(str(e))
         sys.exit()
 
-    click.echo(f"Creating device {cfg['device']['name']} with config {cfg['device']}")
+    click.echo(
+        f"Creating device {cfg['device']['name']} with config {cfg['device']}")
 
     welder = Welder(token, cfg)
     ip = welder.create_all()
 
-    click.echo(f"Device {cfg['device']['name']} created. SSH command `ssh -i test/tools/private.key root@{ip}`. Run tests with `run-e2e`. Teardown with `delete-device`.")
+    click.echo(
+        f"Device {cfg['device']['name']} created. SSH command `ssh -i test/tools/private.key root@{ip}`. Run tests with `run-e2e`. Teardown with `delete-device`.")
+
 
 @cli.command()
 @click.option('-o', '--org-id', type=str, help='Equinix organisation id (required)')
@@ -118,6 +128,7 @@ def delete_device(org_id, device_id):
 
     welder = Welder(token, org_id)
     welder.delete_device(device_id)
+
 
 if __name__ == "__main__":
     cli()
