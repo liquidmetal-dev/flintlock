@@ -10,20 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PROJECT_NAME: "flintlock_release_e2e"
-    name: e2e tests
-      steps:
-      - uses: actions/checkout@v2
-      - name: Run e2es
-        env:
-          METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
-        run: |
-          pip3 install -r test/tools/requirements.txt
-          test/tools/run.py run-e2e -o ${{ secrets.EQUINIX_ORG_ID }} -p ${{ env.PROJECT_NAME }}
-      - name: Cleanup project
-        uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95
-        with:
-          metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
-          project_names: ${{ env.PROJECT_NAME }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run e2es
+      env:
+        METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
+      run: |
+        pip3 install -r test/tools/requirements.txt
+        test/tools/run.py run-e2e -o ${{ secrets.EQUINIX_ORG_ID }} -p ${{ env.PROJECT_NAME }}
+    - name: Cleanup project
+      uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95
+      with:
+        metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
+        project_names: ${{ env.PROJECT_NAME }}
   build:
     runs-on: ubuntu-latest
     needs: [test]
