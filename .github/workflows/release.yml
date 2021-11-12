@@ -1,79 +1,79 @@
 name: release
 
 on:
-    push:
-        tags:
-            - "v*.*.*"
+  push:
+    tags:
+    - "v*.*.*"
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_NAME: "flintlock_release_e2e"
+    name: e2e tests
+      steps:
+      - uses: actions/checkout@v2
+      - name: Run e2es
         env:
-            PROJECT_NAME: "flintlock_release_e2e"
-        name: e2e tests
-        steps:
-        - uses: actions/checkout@v2
-        - name: Run e2es
-            env:
-            METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
-            run: |
-            pip3 install -r test/tools/requirements.txt
-            test/tools/run.py run-e2e -o ${{ secrets.EQUINIX_ORG_ID }} -p ${{ env.PROJECT_NAME }}
-        - name: Cleanup project
-            uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95
-            with:
-                metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
-                project_names: ${{ env.PROJECT_NAME }}
-    build:
-        runs-on: ubuntu-latest
-        needs: [test]
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-              with:
-                  fetch-depth: 0
-            - name: Set up Go
-              uses: actions/setup-go@v2
-              with:
-                  go-version: 1.17
-            - name: Build binaries
-              run: make build-release
-            - name: Store flintlock binaries
-              uses: actions/upload-artifact@v2
-              with:
-                name: flintlock-binaries
-                path: bin/*
-                retention-days: 1
-    release:
-        runs-on: ubuntu-latest
-        needs: [test, build]
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-              with:
-                  fetch-depth: 0
-            - name: Download flintlock binaries
-              uses: actions/download-artifact@v2
-              with:
-                name: flintlock-binaries
-                path: bin
-            - name: Generate release notes
-              run: |
-                release_notes=$(gh api repos/{owner}/{repo}/releases/generate-notes -F tag_name=${{ github.ref }} --jq .body)
-                echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
-                echo "${release_notes}" >> $GITHUB_ENV
-                echo 'EOF' >> $GITHUB_ENV
-              env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                OWNER: ${{ github.repository_owner }}
-                REPO: ${{ github.event.repository.name }}
-            - name: Release
-              uses: softprops/action-gh-release@v1
-              with:
-                prerelease: false
-                draft: true
-                fail_on_unmatched_files: true
-                body: ${{ env.RELEASE_NOTES }}
-                files: |
-                  bin/flintlockd_amd64
-                  bin/flintlockd_arm64
+          METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
+        run: |
+          pip3 install -r test/tools/requirements.txt
+          test/tools/run.py run-e2e -o ${{ secrets.EQUINIX_ORG_ID }} -p ${{ env.PROJECT_NAME }}
+      - name: Cleanup project
+        uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95
+        with:
+          metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
+          project_names: ${{ env.PROJECT_NAME }}
+  build:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+    - name: Build binaries
+      run: make build-release
+    - name: Store flintlock binaries
+      uses: actions/upload-artifact@v2
+      with:
+        name: flintlock-binaries
+        path: bin/*
+        retention-days: 1
+  release:
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Download flintlock binaries
+      uses: actions/download-artifact@v2
+      with:
+        name: flintlock-binaries
+        path: bin
+    - name: Generate release notes
+      run: |
+        release_notes=$(gh api repos/{owner}/{repo}/releases/generate-notes -F tag_name=${{ github.ref }} --jq .body)
+        echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
+        echo "${release_notes}" >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OWNER: ${{ github.repository_owner }}
+        REPO: ${{ github.event.repository.name }}
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        prerelease: false
+        draft: true
+        fail_on_unmatched_files: true
+        body: ${{ env.RELEASE_NOTES }}
+        files: |
+          bin/flintlockd_amd64
+          bin/flintlockd_arm64
