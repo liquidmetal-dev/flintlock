@@ -31,6 +31,7 @@ git push origin "${RELEASE_VERSION}"
 ```
 
 * Check the [release](https://github.com/weaveworks/flintlock/actions/workflows/release.yml) GitHub Actions workflow completes successfully.
+  This may take a few minutes as it runs the e2es as part of the process.
 
 ## Edit & Publish GitHub Release
 
