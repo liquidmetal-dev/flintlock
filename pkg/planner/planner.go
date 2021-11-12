@@ -25,4 +25,6 @@ type Procedure interface {
 	Do(ctx context.Context) ([]Procedure, error)
 	// ShouldDo determines if this procedure should be executed
 	ShouldDo(ctx context.Context) (bool, error)
+	// Verify the state after Do.
+	Verify(ctx context.Context) error
 }

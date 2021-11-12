@@ -63,3 +63,7 @@ func (s *createStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 	return nil, nil
 }
+
+func (s *createStep) Verify(ctx context.Context) error {
+	return nil
+}

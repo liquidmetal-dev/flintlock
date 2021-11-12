@@ -59,6 +59,8 @@ type MicroVMStatus struct {
 	NetworkInterfaces NetworkInterfaceStatuses `json:"network_interfaces"`
 	// Retry is a counter about how many times we retried to reconcile.
 	Retry int `json:"retry"`
+	// DeletedAt indicates the time the microvm was marked as deleted.
+	NotBefore int64 `json:"not_before" validate:"omitempty"`
 }
 
 // Kernel is the specification of the kernel and its arguments.

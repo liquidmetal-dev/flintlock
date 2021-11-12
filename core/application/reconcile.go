@@ -3,16 +3,21 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/flintlock/api/events"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/plans"
 	"github.com/weaveworks/flintlock/core/ports"
 	portsctx "github.com/weaveworks/flintlock/core/ports/context"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
+
+const backoffBaseInSeconds = 20
 
 func (a *app) ReconcileMicroVM(ctx context.Context, id, namespace string) error {
 	logger := log.GetLogger(ctx).WithField("action", "reconcile")
@@ -52,13 +57,9 @@ func (a *app) ResyncMicroVMs(ctx context.Context, namespace string) error {
 	return nil
 }
 
-func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) (planner.Plan, error) {
+func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) planner.Plan {
 	l := logger.WithField("stage", "plan")
 	l.Info("Generate plan")
-
-	if spec.Status.Retry > a.cfg.MaximumRetry {
-		return nil, reachedMaximumRetryError{vmid: spec.ID, retries: spec.Status.Retry}
-	}
 
 	// Delete only if the spec was marked as deleted.
 	if spec.Spec.DeletedAt != 0 {
@@ -67,7 +68,7 @@ func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) (planner.Plan, er
 			VM:             spec,
 		}
 
-		return plans.MicroVMDeletePlan(input), nil
+		return plans.MicroVMDeletePlan(input)
 	}
 
 	input := &plans.CreateOrUpdatePlanInput{
@@ -75,22 +76,69 @@ func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) (planner.Plan, er
 		VM:             spec,
 	}
 
-	return plans.MicroVMCreateOrUpdatePlan(input), nil
+	return plans.MicroVMCreateOrUpdatePlan(input)
+}
+
+func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models.MicroVM) error {
+	spec.Status.Retry++
+	waitTime := time.Duration(spec.Status.Retry*backoffBaseInSeconds) * time.Second
+	spec.Status.NotBefore = time.Now().Add(waitTime).Unix()
+
+	logger.Infof(
+		"[%d/%d] reconciliation failed, reschedule at %s",
+		spec.Status.Retry,
+		a.cfg.MaximumRetry,
+		time.Unix(spec.Status.NotBefore, 0),
+	)
+
+	if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
+		return fmt.Errorf("saving spec after plan failed: %w", err)
+	}
+
+	go func(id, ns string, sleepTime time.Duration) {
+		logger.Info("Wait to emit update")
+		time.Sleep(sleepTime)
+		logger.Info("Emit pdate")
+
+		_ = a.ports.EventService.Publish(
+			context.Background(),
+			defaults.TopicMicroVMEvents,
+			&events.MicroVMSpecUpdated{
+				ID:        id,
+				Namespace: ns,
+			},
+		)
+	}(spec.ID.Name(), spec.ID.Namespace(), waitTime)
+
+	return nil
 }
 
 func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logrus.Entry) error {
-	l := logger.WithField("vmid", spec.ID.String())
-	l.Info("Starting reconciliation")
+	localLogger := logger.WithField("vmid", spec.ID.String())
+	localLogger.Info("Starting reconciliation")
 
-	plan, planErr := a.plan(spec, l)
-	if planErr != nil {
-		return planErr
+	if spec.Status.Retry > a.cfg.MaximumRetry {
+		spec.Status.State = models.FailedState
+
+		logger.Error(reachedMaximumRetryError{vmid: spec.ID, retries: spec.Status.Retry})
+
+		return nil
 	}
+
+	if spec.Status.NotBefore > 0 && time.Now().Before(time.Unix(spec.Status.NotBefore, 0)) {
+		return nil
+	}
+
+	plan := a.plan(spec, localLogger)
 
 	execCtx := portsctx.WithPorts(ctx, a.ports)
 
 	executionID, err := a.ports.IdentifierService.GenerateRandom()
 	if err != nil {
+		if scheduleErr := a.reschedule(ctx, localLogger, spec); scheduleErr != nil {
+			return fmt.Errorf("saving spec after plan failed: %w", scheduleErr)
+		}
+
 		return fmt.Errorf("generating plan execution id: %w", err)
 	}
 
@@ -98,6 +146,10 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 
 	stepCount, err := actuator.Execute(execCtx, plan, executionID)
 	if err != nil {
+		if scheduleErr := a.reschedule(ctx, localLogger, spec); scheduleErr != nil {
+			return fmt.Errorf("saving spec after plan failed: %w", scheduleErr)
+		}
+
 		return fmt.Errorf("executing plan: %w", err)
 	}
 
@@ -108,6 +160,9 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	if stepCount == 0 {
 		return nil
 	}
+
+	spec.Status.Retry = 0
+	spec.Status.NotBefore = 0
 
 	if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
 		return fmt.Errorf("saving spec after plan execution: %w", err)

@@ -105,3 +105,7 @@ func (s *createDirectory) directoryExists() (bool, error) {
 
 	return exists, nil
 }
+
+func (s *createDirectory) Verify(ctx context.Context) error {
+	return nil
+}

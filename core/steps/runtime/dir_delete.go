@@ -72,3 +72,7 @@ func (s *deleteDirectory) targetExists() (bool, error) {
 
 	return exists, nil
 }
+
+func (s *deleteDirectory) Verify(ctx context.Context) error {
+	return nil
+}

@@ -95,3 +95,7 @@ func (s *initrdMount) getMountSpec() *ports.ImageMountSpec {
 		Use:          models.ImageUseInitrd,
 	}
 }
+
+func (s *initrdMount) Verify(ctx context.Context) error {
+	return nil
+}
