@@ -84,7 +84,18 @@ func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.Netw
 	}
 
 	if netInt.Address != nil {
-		converted.Address = *netInt.Address
+		converted.StaticAddress = &models.StaticAddress{
+			Address:     models.IPAddressCIDR(netInt.Address.Address),
+			Nameservers: []string{},
+		}
+		if netInt.Address.Gateway != nil {
+			converted.StaticAddress.Gateway = (*models.IPAddressCIDR)(netInt.Address.Gateway)
+		}
+
+		for index := range netInt.Address.Nameservers {
+			nameserver := netInt.Address.Nameservers[index]
+			converted.StaticAddress.Nameservers = append(converted.StaticAddress.Nameservers, nameserver)
+		}
 	}
 
 	switch netInt.Type {
@@ -201,8 +212,20 @@ func convertModelToNetworkInterface(modelNetInt *models.NetworkInterface) *types
 	case models.IfaceTypeUnsupported:
 	}
 
-	if modelNetInt.Address != "" {
-		converted.Address = &modelNetInt.Address
+	if modelNetInt.StaticAddress != nil {
+		converted.Address = &types.StaticAddress{
+			Address:     string(modelNetInt.StaticAddress.Address),
+			Nameservers: []string{},
+		}
+
+		if modelNetInt.StaticAddress.Gateway != nil {
+			converted.Address.Gateway = (*string)(modelNetInt.StaticAddress.Gateway)
+		}
+
+		for index := range modelNetInt.StaticAddress.Nameservers {
+			nameserver := modelNetInt.StaticAddress.Nameservers[index]
+			converted.Address.Nameservers = append(converted.Address.Nameservers, nameserver)
+		}
 	}
 
 	return converted

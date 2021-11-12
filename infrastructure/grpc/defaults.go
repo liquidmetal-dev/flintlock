@@ -10,6 +10,8 @@ func newMetadataInterface() *models.NetworkInterface {
 		Type:                  models.IfaceTypeTap,
 		AllowMetadataRequests: true,
 		GuestMAC:              "AA:FF:00:00:00:01",
-		Address:               "169.254.0.1/16",
+		StaticAddress: &models.StaticAddress{
+			Address: "169.254.0.1/16",
+		},
 	}
 }

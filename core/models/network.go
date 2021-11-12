@@ -1,5 +1,10 @@
 package models
 
+import (
+	"fmt"
+	"net"
+)
+
 // NetworkInterface represents a network interface for the microvm.
 type NetworkInterface struct {
 	// GuestDeviceName is the name of the network interface to create in the microvm.
@@ -15,8 +20,54 @@ type NetworkInterface struct {
 	GuestMAC string `json:"guest_mac,omitempty" validate:"omitempty,mac"`
 	// Type is the type of host network interface type to create to use by the guest.
 	Type IfaceType `json:"type" validate:"oneof=tap macvtap unsupported"`
-	// Address is an optional IP address to assign to this interface. If not supplied then DHCP will be used.
-	Address string `json:"address,omitempty" validate:"omitempty,cidr"`
+	// StaticAddress is an optional static IP address to assign to this interface.
+	// If not supplied then DHCP will be used.
+	StaticAddress *StaticAddress `json:"staticAddress,omitempty"`
+}
+
+// StaticAddress specifies a static IP address configuration.
+type StaticAddress struct {
+	// Address is the static IP address (IPv4 or IPv6) to assign to this interface.
+	// Must be CIDR notation.
+	Address IPAddressCIDR `json:"address" validate:"cidr"`
+	// Gateway is used to optionally set the default gateway for IPv4 or IPv6.
+	Gateway *IPAddressCIDR `json:"gateway,omitempty" validate:"omitempty,cidr"`
+	// Nameservers allows you to optionally specify nameservers for the interface.
+	Nameservers []string `json:"nameservers" validate:"omitempty,dive,ip"`
+}
+
+// IPAddressCIDR represents a IPv4/IPv6 address in CIDR notation.
+type IPAddressCIDR string
+
+func (i IPAddressCIDR) IsIPv4() (bool, error) {
+	ip, _, err := net.ParseCIDR(string(i))
+	if err != nil {
+		return false, fmt.Errorf("parsing %s as cidr: %w", i, err)
+	}
+
+	ipv4 := ip.To4()
+
+	return ipv4 != nil, nil
+}
+
+func (i IPAddressCIDR) IsIPv6() (bool, error) {
+	ip, _, err := net.ParseCIDR(string(i))
+	if err != nil {
+		return false, fmt.Errorf("parsing %s as cidr: %w", i, err)
+	}
+
+	ipv4 := ip.To4()
+
+	return ipv4 == nil, nil
+}
+
+func (i IPAddressCIDR) IP() (string, error) {
+	ip, _, err := net.ParseCIDR(string(i))
+	if err != nil {
+		return "", fmt.Errorf("parsing %s as cidr: %w", i, err)
+	}
+
+	return ip.String(), nil
 }
 
 type NetworkInterfaceStatus struct {

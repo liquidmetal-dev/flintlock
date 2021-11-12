@@ -166,23 +166,24 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 			return "", errors.NewNetworkInterfaceStatusMissing(iface.GuestDeviceName)
 		}
 
-		macAdress := getMacAddress(&iface, status)
+		macAddress := getMacAddress(&iface, status)
 
 		eth := &cloudinit.Ethernet{
 			Match: cloudinit.Match{},
+			DHCP4: firecracker.Bool(true),
+			DHCP6: firecracker.Bool(true),
 		}
 
-		if macAdress != "" {
-			eth.Match.MACAddress = &macAdress
+		if macAddress != "" {
+			eth.Match.MACAddress = &macAddress
 		} else {
 			eth.Match.Name = &iface.GuestDeviceName
 		}
 
-		if iface.Address != "" {
-			eth.Addresses = []string{iface.Address}
-			eth.DHCP4 = ptr.Bool(false)
-		} else {
-			eth.DHCP4 = firecracker.Bool(true)
+		if iface.StaticAddress != nil {
+			if err := configureStaticEthernet(&iface, eth); err != nil {
+				return "", fmt.Errorf("configuring static ethernet address: %w", err)
+			}
 		}
 
 		network.Ethernet[iface.GuestDeviceName] = eth
@@ -194,6 +195,44 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(nd), nil
+}
+
+func configureStaticEthernet(iface *models.NetworkInterface, eth *cloudinit.Ethernet) error {
+	eth.Addresses = []string{string(iface.StaticAddress.Address)}
+
+	if iface.StaticAddress.Gateway != nil {
+		isIPv4, err := iface.StaticAddress.Gateway.IsIPv4()
+		if err != nil {
+			return fmt.Errorf("parsing gateway address: %w", err)
+		}
+
+		ipAddr, err := iface.StaticAddress.Gateway.IP()
+		if err != nil {
+			return fmt.Errorf("parsing gateway address: %w", err)
+		}
+
+		if isIPv4 {
+			eth.GatewayIPv4 = &ipAddr
+		} else {
+			eth.GatewayIPv6 = &ipAddr
+		}
+	}
+
+	if len(iface.StaticAddress.Nameservers) > 0 {
+		eth.Nameservers = &cloudinit.Nameservers{
+			Addresses: []string{},
+		}
+
+		for nsIndex := range iface.StaticAddress.Nameservers {
+			ns := iface.StaticAddress.Nameservers[nsIndex]
+			eth.Nameservers.Addresses = append(eth.Nameservers.Addresses, ns)
+		}
+	}
+
+	eth.DHCP4 = ptr.Bool(false)
+	eth.DHCP6 = ptr.Bool(false)
+
+	return nil
 }
 
 func getMacAddress(iface *models.NetworkInterface, status *models.NetworkInterfaceStatus) string {

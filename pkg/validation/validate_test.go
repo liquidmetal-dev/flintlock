@@ -33,8 +33,10 @@ func TestValidation_Invalid(t *testing.T) {
 		{
 			GuestDeviceName: "!eth0",
 			GuestMAC:        "F5:C3:19:56:01:F4",
-			Address:         "192.168.1.1/32",
-			Type:            "macvtap",
+			StaticAddress: &models.StaticAddress{
+				Address: "192.168.1.1/32",
+			},
+			Type: "macvtap",
 		},
 	}
 
@@ -100,8 +102,10 @@ var basicMicroVM = models.MicroVM{
 			{
 				GuestDeviceName: "eth0",
 				GuestMAC:        "F5:C3:19:56:01:F4",
-				Address:         "192.168.1.1/32",
-				Type:            "macvtap",
+				StaticAddress: &models.StaticAddress{
+					Address: "192.168.1.1/32",
+				},
+				Type: "macvtap",
 			},
 		},
 		CreatedAt: time.Now().Add(-100 * time.Second).Unix(),
