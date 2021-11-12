@@ -49,8 +49,6 @@ This will:
 
 To keep the device around for debugging, add `--skip-delete`.
 
-To not creating anything new and run the tests in an existing device, set `--existing-device-id <id>`.
-
 ## Creating a device
 
 ```bash
@@ -71,3 +69,29 @@ export METAL_AUTH_TOKEN=<your token>
 ```
 
 This will delete the given device. The project will not be deleted.
+
+## Advanced config
+
+The `run-e2e` and `create-device` commands both support receiving params via config
+file.
+
+```bash
+export METAL_AUTH_TOKEN=<your token>
+./test/tools/run.py run-e2e --config-file <path to yaml>
+```
+
+With a config file you can do more, for example:
+
+##### `run-e2e`
+- Run tests in an existing device, without spinning up fresh infra (`device.id`)
+- Configure the device which is created
+- Configure test parameters (`test.flintlockd_log_level`, `test.containerd_log_level`, etc)
+
+##### `create-device`
+- Create a device in an existing project
+- Configure the device which is created
+
+Not all device configuration is exposed yet, but is it fairly trivial to add more when
+required.
+
+To see all available configuration, see the [example config](tests/tools/example-config.yaml).

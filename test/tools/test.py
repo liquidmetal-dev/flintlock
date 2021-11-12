@@ -1,40 +1,54 @@
 from metal import Welder
 
+
 class Test:
-    def __init__(self, auth_token, org_id, prj_name, key_name, dev_name, skip_delete, dev_id=None):
-        self.welder = Welder(auth_token, org_id)
-        self.prj_name = prj_name
-        self.key_name = key_name
-        self.dev_name = dev_name
-        self.skip_delete = skip_delete
-        self.dev_id = dev_id
+    def __init__(self, auth_token, config):
+        self.testCfg = config['test']
+        devCfg = config['device']
+
+        self.welder = Welder(auth_token, config)
+        self.prj_name = config['project']
+        self.key_name = devCfg['ssh_key_name']
+        self.dev_name = devCfg['name']
+        self.skip_teardown = self.testCfg['skip_teardown']
+        self.dev_id = devCfg['id']
         self.dev_ip = None
-        self.project = None
-        self.key = None
-        self.device = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs):
-        if self.skip_delete == False:
-            self.teardown()
+        self.teardown()
 
     def setup(self):
-        if self.dev_id != None:
+        if self.dev_id is not None:
             self.fetch_infra()
         else:
             self.create_infra()
 
     def run_tests(self):
-        cmd = ['make', 'test-e2e']
-        self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
+        cmd = ['./test/e2e/test.sh',
+               '-level.flintlockd', self.testCfg['flintlock_log_level'],
+               '-level.containerd', self.testCfg['containerd_log_level'],
+               ]
+        if self.testCfg['skip_delete']:
+            cmd.append('-skip.teardown')
+            cmd.append('-skip.delete')
+        if self.testCfg['skip_dmsetup']:
+            cmd.append('-skip.setup.thinpool')
+        try:
+            self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
+        except RuntimeError as e:
+            print(str(e))
+            pass
 
     def teardown(self):
-        self.welder.delete_all(self.project, self.device, self.key)
+        if self.skip_teardown:
+            return
+        self.welder.delete_all()
 
     def create_infra(self):
-        self.dev_ip = self.welder.create_all(self.prj_name, self.dev_name, self.key_name)
+        self.dev_ip = self.welder.create_all()
 
     def fetch_infra(self):
         try:

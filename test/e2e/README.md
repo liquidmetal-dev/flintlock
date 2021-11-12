@@ -58,7 +58,7 @@ At the time of writing these are:
 You can pass in these flags to the test like so:
 
 ```bash
-go test -timeout 30m -p 1 -v -tags=e2e ./test/e2e/... -level.flintlockd=9
+./test/e2e/test.sh -level.flintlockd=9
 ```
 
 All the flags can be found at [`params.go`](test/e2e/utils/params.go).
