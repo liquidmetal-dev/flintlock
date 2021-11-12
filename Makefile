@@ -102,7 +102,7 @@ test-with-cov: ## Run unit tests with coverage
 
 .PHONY: test-e2e
 test-e2e: compile-e2e ## Run e2e tests locally
-		go test -timeout 30m -p 1 -v -tags=e2e ./test/e2e/...
+		./test/e2e/test.sh
 
 .PHONY: test-e2e-docker
 test-e2e-docker: compile-e2e ## Run e2e tests locally in a container

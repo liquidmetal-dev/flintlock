@@ -1,5 +1,6 @@
 from metal import Welder
 
+
 class Test:
     def __init__(self, auth_token, config):
         self.testCfg = config['test']
@@ -30,7 +31,15 @@ class Test:
             self.create_infra()
 
     def run_tests(self):
-        cmd = ['make', 'test-e2e']
+        cmd = ['./test/e2e/test.sh',
+               '-level.flintlockd', self.testCfg['flintlock_log_level'],
+               '-level.containerd', self.testCfg['containerd_log_level'],
+               ]
+        if self.testCfg['skip_delete']:
+            cmd.append('-skip.teardown')
+            cmd.append('-skip.delete')
+        if self.testCfg['skip_dmsetup']:
+            cmd.append('-skip.setup.thinpool')
         self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
 
     def teardown(self):
