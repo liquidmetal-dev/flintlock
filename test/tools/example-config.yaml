@@ -1,0 +1,22 @@
+---
+org_id: "test-org" # required
+project_name: "test-project" # or project ID
+project_id: "abcdef123456" # or project ID
+test:
+  skip_delete: false # skip the test cleanup and process teardown steps
+  skip_teardown: false # skip tearing down the equinix infra
+  skip_dmsetup: true # skip the thinpool setup, this should always be true for equinix
+  containerd_log_level: "debug"
+  flintlock_log_level: "2"
+device:
+  name: "test-device" # omit if device.id set
+  id: "abcdef123456" # set if using existing device
+  ssh_key_name: "test-key"
+  # the following mirror the equinix options
+  # see https://metal.equinix.com/developers/docs/ for values
+  userdata: "echo hello"
+  plan: "c1.small.x86"
+  metro: "sv"
+  operating_system: "ubuntu_18_04"
+  facility: "ewr1"
+  billing_cycle: "hourly"
