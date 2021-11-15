@@ -14,7 +14,7 @@ import (
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
-const waitToBoot = 10
+const waitToBoot = 5
 
 func NewStartStep(vm *models.MicroVM, vmSvc ports.MicroVMService) planner.Procedure {
 	return &startStep{
