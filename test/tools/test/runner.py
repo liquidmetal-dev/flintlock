@@ -1,4 +1,4 @@
-from metal import Welder
+from metal.welder import Welder
 
 
 class Test:
