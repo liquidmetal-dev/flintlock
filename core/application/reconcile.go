@@ -98,7 +98,7 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 	go func(id, ns string, sleepTime time.Duration) {
 		logger.Info("Wait to emit update")
 		time.Sleep(sleepTime)
-		logger.Info("Emit pdate")
+		logger.Info("Emit update")
 
 		_ = a.ports.EventService.Publish(
 			context.Background(),
