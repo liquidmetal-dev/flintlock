@@ -44,7 +44,7 @@ func TestNewStartStep(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMToStart()
 
-	step := microvm.NewStartStep(vm, microVMService)
+	step := microvm.NewStartStep(vm, microVMService, 1)
 
 	microVMService.
 		EXPECT().
@@ -53,16 +53,23 @@ func TestNewStartStep(t *testing.T) {
 
 	microVMService.
 		EXPECT().
+		State(ctx, vm.ID.String()).
+		Return(ports.MicroVMStateRunning, nil)
+
+	microVMService.
+		EXPECT().
 		Start(ctx, vm.ID.String()).
 		Return(nil)
 
 	shouldDo, shouldErr := step.ShouldDo(ctx)
 	subSteps, doErr := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
 	g.Expect(shouldDo).To(g.BeTrue())
 	g.Expect(shouldErr).To(g.BeNil())
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.BeNil())
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewStartStep_StateCheck(t *testing.T) {
@@ -87,7 +94,7 @@ func TestNewStartStep_StateCheck(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMToStart()
 
-	step := microvm.NewStartStep(vm, microVMService)
+	step := microvm.NewStartStep(vm, microVMService, 1)
 
 	for _, testCase := range stateTestCases {
 		microVMService.
@@ -100,7 +107,6 @@ func TestNewStartStep_StateCheck(t *testing.T) {
 		g.Expect(shouldDo).To(g.Equal(testCase.ExpectToRun))
 		g.Expect(shouldErr).To(g.BeNil())
 	}
-
 }
 
 func TestNewStartStep_StateCheckError(t *testing.T) {
@@ -112,7 +118,7 @@ func TestNewStartStep_StateCheckError(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMToStart()
 
-	step := microvm.NewStartStep(vm, microVMService)
+	step := microvm.NewStartStep(vm, microVMService, 1)
 
 	microVMService.
 		EXPECT().
@@ -135,7 +141,7 @@ func TestNewStartStep_VMIsNotDefined(t *testing.T) {
 	microVMService := mock.NewMockMicroVMService(mockCtrl)
 	ctx := context.Background()
 
-	step := microvm.NewStartStep(vm, microVMService)
+	step := microvm.NewStartStep(vm, microVMService, 1)
 
 	subSteps, err := step.Do(ctx)
 
@@ -152,7 +158,7 @@ func TestNewStartStep_ServiceStartError(t *testing.T) {
 	vm := testVMToStart()
 	ctx := context.Background()
 
-	step := microvm.NewStartStep(vm, microVMService)
+	step := microvm.NewStartStep(vm, microVMService, 1)
 
 	microVMService.
 		EXPECT().
@@ -163,4 +169,43 @@ func TestNewStartStep_ServiceStartError(t *testing.T) {
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(err).ToNot(g.BeNil())
+}
+
+func TestNewStartStep_unableToBoot(t *testing.T) {
+	g.RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	microVMService := mock.NewMockMicroVMService(mockCtrl)
+	vm := testVMToStart()
+	ctx := context.Background()
+
+	step := microvm.NewStartStep(vm, microVMService, 1)
+
+	microVMService.
+		EXPECT().
+		Start(ctx, vm.ID.String()).
+		Return(nil)
+
+	microVMService.
+		EXPECT().
+		State(ctx, vm.ID.String()).
+		Return(ports.MicroVMStateUnknown, nil)
+
+	subSteps, err := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
+
+	g.Expect(subSteps).To(g.BeEmpty())
+	g.Expect(err).To(g.BeNil())
+	g.Expect(verifyErr).To(g.MatchError(internalerr.ErrUnableToBoot))
+
+	microVMService.
+		EXPECT().
+		State(ctx, vm.ID.String()).
+		Return(ports.MicroVMStateUnknown, errors.New("nope"))
+
+	verifyErr = step.Verify(ctx)
+
+	g.Expect(verifyErr).ToNot(g.BeNil())
+	g.Expect(verifyErr).ToNot(g.MatchError(internalerr.ErrUnableToBoot))
 }

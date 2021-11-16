@@ -62,6 +62,9 @@ func TestNewRepoRelease(t *testing.T) {
 	g.Expect(shouldErr).To(g.BeNil())
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewRepoRelease_doesNotExist(t *testing.T) {
@@ -84,6 +87,9 @@ func TestNewRepoRelease_doesNotExist(t *testing.T) {
 
 	g.Expect(shouldDo).To(g.BeFalse())
 	g.Expect(shouldErr).To(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewRepoRelease_VMIsNotDefined(t *testing.T) {
@@ -105,6 +111,9 @@ func TestNewRepoRelease_VMIsNotDefined(t *testing.T) {
 	g.Expect(shouldErr).To(g.MatchError(internalerrors.ErrSpecRequired))
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.MatchError(internalerrors.ErrSpecRequired))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewRepoRelease_existsCheckFails(t *testing.T) {
@@ -127,6 +136,9 @@ func TestNewRepoRelease_existsCheckFails(t *testing.T) {
 
 	g.Expect(shouldDo).To(g.BeFalse())
 	g.Expect(shouldErr).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewRepoRelease_repoServiceError(t *testing.T) {
@@ -157,4 +169,7 @@ func TestNewRepoRelease_repoServiceError(t *testing.T) {
 	g.Expect(shouldErr).To(g.BeNil())
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }

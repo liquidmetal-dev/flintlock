@@ -41,10 +41,12 @@ func TestNewPublish(t *testing.T) {
 	// now than crying later if the system does not do what we want.
 	shouldDo, _ := step.ShouldDo(ctx)
 	subSteps, err := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
 	g.Expect(shouldDo).To(g.BeTrue())
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(err).To(g.BeNil())
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewPublish_eventServiceFailure(t *testing.T) {
@@ -67,7 +69,9 @@ func TestNewPublish_eventServiceFailure(t *testing.T) {
 	step := event.NewPublish(testTopic, evt, eventService)
 
 	subSteps, err := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(err).ToNot(g.BeNil())
+	g.Expect(verifyErr).To(g.BeNil())
 }

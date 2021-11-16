@@ -30,14 +30,16 @@ func TestNewNetworkInterface_everythingIsEmpty(t *testing.T) {
 		Times(0)
 
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
-	shouldDo, err := step.ShouldDo(ctx)
 
+	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).To(g.BeNil())
 	g.Expect(shouldDo).To(g.BeTrue())
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.MatchError(errors.ErrGuestDeviceNameRequired))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewNetworkInterface_doesNotExist(t *testing.T) {
@@ -81,8 +83,10 @@ func TestNewNetworkInterface_doesNotExist(t *testing.T) {
 		Times(1)
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewNetworkInterface_emptyStatus(t *testing.T) {
@@ -116,8 +120,10 @@ func TestNewNetworkInterface_emptyStatus(t *testing.T) {
 		Times(0)
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewNetworkInterface_existingInterface(t *testing.T) {
@@ -168,8 +174,10 @@ func TestNewNetworkInterface_existingInterface(t *testing.T) {
 		Times(1)
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewNetworkInterface_missingInterface(t *testing.T) {
@@ -241,8 +249,10 @@ func TestNewNetworkInterface_svcError(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeFalse())
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequired))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewNetworkInterface_fillChangedStatus(t *testing.T) {
@@ -275,10 +285,12 @@ func TestNewNetworkInterface_fillChangedStatus(t *testing.T) {
 		Times(1)
 
 	_, err := step.Do(ctx)
-
 	g.Expect(err).To(g.BeNil())
 	g.Expect(status.MACAddress).To(g.Equal(reverseMACAddress))
 	g.Expect(status.HostDeviceName).To(g.Equal(expectedTapDeviceName))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewNetworkInterface_createError(t *testing.T) {
@@ -298,8 +310,8 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 		Times(0)
 
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
-	shouldDo, err := step.ShouldDo(ctx)
 
+	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).To(g.BeNil())
 	g.Expect(shouldDo).To(g.BeTrue())
 
@@ -314,6 +326,8 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 		Times(1)
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequired))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }

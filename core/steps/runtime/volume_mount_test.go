@@ -103,6 +103,9 @@ func TestVolumeMount(t *testing.T) {
 		g.Expect(shouldErr).To(g.BeNil())
 		g.Expect(subSteps).To(g.BeEmpty())
 		g.Expect(doErr).To(g.BeNil())
+
+		verifyErr := step.Verify(ctx)
+		g.Expect(verifyErr).To(g.BeNil())
 	}
 
 	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
@@ -148,6 +151,9 @@ func TestVolumeMount_statusAlreadySetBoth(t *testing.T) {
 		g.Expect(shouldErr).To(g.BeNil())
 		g.Expect(subSteps).To(g.BeEmpty())
 		g.Expect(doErr).To(g.BeNil())
+
+		verifyErr := step.Verify(ctx)
+		g.Expect(verifyErr).To(g.BeNil())
 	}
 
 	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
@@ -203,6 +209,9 @@ func TestVolumeMount_retry(t *testing.T) {
 		g.Expect(shouldErr).To(g.BeNil())
 		g.Expect(subSteps).To(g.BeEmpty())
 		g.Expect(doErr).To(g.BeNil())
+
+		verifyErr := step.Verify(ctx)
+		g.Expect(verifyErr).To(g.BeNil())
 	}
 
 	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
@@ -283,6 +292,9 @@ func TestVolumeMount_doError(t *testing.T) {
 
 	g.Expect(extraSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrNoVolumeMount))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestVolumeMount_nilStatus(t *testing.T) {
@@ -309,4 +321,7 @@ func TestVolumeMount_nilStatus(t *testing.T) {
 
 	g.Expect(extraSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrMissingStatusInfo))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
