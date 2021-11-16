@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from test import Test
-from metal import Welder
-from config import Config
+from test.runner import Test
+from metal.welder import Welder
+from config.config import Config
 import click
 import os
 import sys
@@ -48,16 +48,16 @@ def run_e2e(config_file, org_id, project_name, ssh_key_name, device_name, skip_t
         click.echo(str(e))
         sys.exit()
 
+    key_dir = dirname(abspath(__file__)) + '/metal'
     if cfg['device']['id'] == None:
         click.echo(
             f"Running e2e tests. Will create project `{cfg['project_name']}`, ssh_key `{cfg['device']['ssh_key_name']}` and device `{cfg['device']['name']}`")
         click.echo(
             "Note: this will create and bootstrap a new device in Equinix and may take some time")
     else:
-        tool_dir = dirname(abspath(__file__))
-        if os.path.exists(tool_dir+"/private.key") != True:
+        if os.path.exists(key_dir+"/private.key") != True:
             click.echo(
-                f"`private.key` file must be saved at `{tool_dir}` when `--existing-device-id` flag set")
+                f"`private.key` file must be saved at `{key_dir}` when `--existing-device-id` flag set")
             sys.exit()
         click.echo("running e2e tests using device `{cfg['device']['id']}`")
 
@@ -68,7 +68,7 @@ def run_e2e(config_file, org_id, project_name, ssh_key_name, device_name, skip_t
 
     if cfg['test']['skip_teardown']:
         dev_id, dev_ip = runner.device_details()
-        click.echo(f"Device `{dev_id}` left alive for debugging. Use with `--config-file` setting `device.id` to re-run tests. SSH command `ssh -i test/tools/private.key root@{dev_ip}`. Teardown device with `teardown-device` command.")
+        click.echo(f"Device `{dev_id}` left alive for debugging. Use with `--config-file` setting `device.id` to re-run tests. SSH command `ssh -i {key_dir}/private.key root@{dev_ip}`. Teardown device with `teardown-device` command.")
 
 
 @cli.command()
@@ -105,8 +105,9 @@ def create_device(config_file, org_id, project_id, ssh_key_name, device_name, us
     welder = Welder(token, cfg)
     ip = welder.create_all()
 
+    key_dir = dirname(abspath(__file__)) + '/metal'
     click.echo(
-        f"Device {cfg['device']['name']} created. SSH command `ssh -i test/tools/private.key root@{ip}`. Run tests with `run-e2e`. Teardown with `delete-device`.")
+        f"Device {cfg['device']['name']} created. SSH command `ssh -i {key_dir}/private.key root@{ip}`. Run tests with `run-e2e`. Teardown with `delete-device`.")
 
 
 @cli.command()
