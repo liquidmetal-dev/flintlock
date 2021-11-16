@@ -8,7 +8,7 @@ from os.path import dirname, abspath
 class Config:
     def __init__(self):
         self.dir = dirname(abspath(__file__))
-        self.base = dirname(dirname(dirname(abspath(__file__))))
+        self.base = dirname(dirname(dirname(dirname(abspath(__file__)))))
         self.schema = self.dir + '/schema.yaml'
         self.params = {}
         self.set_default_config()
@@ -108,7 +108,7 @@ class Config:
         }
 
     def default_user_data(self):
-        files = ["hack/scripts/bootstrap.sh", "test/tools/userdata.sh"]
+        files = ["hack/scripts/bootstrap.sh", "test/tools/config/userdata.sh"]
         userdata = ""
         for file in files:
             with open(self.base + "/" + file) as f:

@@ -1,4 +1,4 @@
-from metal import Welder
+from metal.welder import Welder
 
 
 class Test:
@@ -7,9 +7,6 @@ class Test:
         devCfg = config['device']
 
         self.welder = Welder(auth_token, config)
-        self.prj_name = config['project']
-        self.key_name = devCfg['ssh_key_name']
-        self.dev_name = devCfg['name']
         self.skip_teardown = self.testCfg['skip_teardown']
         self.dev_id = devCfg['id']
         self.dev_ip = None
