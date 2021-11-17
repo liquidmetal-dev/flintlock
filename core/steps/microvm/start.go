@@ -17,19 +17,19 @@ import (
 func NewStartStep(
 	vm *models.MicroVM,
 	vmSvc ports.MicroVMService,
-	bootTime int,
+	bootWaitTimeSeconds int,
 ) planner.Procedure {
 	return &startStep{
-		vm:       vm,
-		vmSvc:    vmSvc,
-		bootTime: bootTime,
+		vm:                  vm,
+		vmSvc:               vmSvc,
+		bootWaitTimeSeconds: bootWaitTimeSeconds,
 	}
 }
 
 type startStep struct {
-	vm       *models.MicroVM
-	vmSvc    ports.MicroVMService
-	bootTime int
+	vm                  *models.MicroVM
+	vmSvc               ports.MicroVMService
+	bootWaitTimeSeconds int
 }
 
 // Name is the name of the procedure/operation.
@@ -77,7 +77,7 @@ func (s *startStep) Verify(ctx context.Context) error {
 		"vmid": s.vm.ID,
 	})
 	logger.Debug("waiting for the microvm to start")
-	time.Sleep(time.Duration(s.bootTime) * time.Second)
+	time.Sleep(time.Duration(s.bootWaitTimeSeconds) * time.Second)
 	logger.Debug("verify microvm is started")
 
 	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
