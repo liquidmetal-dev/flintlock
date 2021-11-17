@@ -7,10 +7,10 @@ device: include('device', required=False)
 test:
   skip_delete: bool(required=False)
   skip_teardown: bool(required=False)
-  skip_dmsetup: bool(required=False)
   containerd_log_level: str(required=False)
   flintlock_log_level: str(required=False)
 device:
+  skip_dmsetup: bool(required=False)
   name: str(required=False)
   id: str(required=False)
   ssh_key_name: str(required=False)
