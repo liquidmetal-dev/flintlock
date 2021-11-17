@@ -3,7 +3,6 @@ package microvm
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -17,19 +16,16 @@ import (
 func NewStartStep(
 	vm *models.MicroVM,
 	vmSvc ports.MicroVMService,
-	bootTime int,
 ) planner.Procedure {
 	return &startStep{
-		vm:       vm,
-		vmSvc:    vmSvc,
-		bootTime: bootTime,
+		vm:    vm,
+		vmSvc: vmSvc,
 	}
 }
 
 type startStep struct {
-	vm       *models.MicroVM
-	vmSvc    ports.MicroVMService
-	bootTime int
+	vm    *models.MicroVM
+	vmSvc ports.MicroVMService
 }
 
 // Name is the name of the procedure/operation.
@@ -76,8 +72,6 @@ func (s *startStep) Verify(ctx context.Context) error {
 		"step": s.Name(),
 		"vmid": s.vm.ID,
 	})
-	logger.Debug("waiting for the microvm to start")
-	time.Sleep(time.Duration(s.bootTime) * time.Second)
 	logger.Debug("verify microvm is started")
 
 	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
