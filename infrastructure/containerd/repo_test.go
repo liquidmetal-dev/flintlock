@@ -22,7 +22,7 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	repo := containerd.NewMicroVMRepoWithClient(&containerd.Config{
 		SnapshotterKernel: testSnapshotter,
 		SnapshotterVolume: testSnapshotter,
-		Namespace:         testContainerdNs,
+		Namespace:         testContainerdNS,
 	}, client)
 	exists, err := repo.Exists(ctx, testOwnerName, testOwnerNamespace)
 	Expect(err).NotTo(HaveOccurred())
@@ -93,7 +93,7 @@ func TestMicroVMRepo_Integration_MultipleSave(t *testing.T) {
 	repo := containerd.NewMicroVMRepoWithClient(&containerd.Config{
 		SnapshotterKernel: testSnapshotter,
 		SnapshotterVolume: testSnapshotter,
-		Namespace:         testContainerdNs,
+		Namespace:         testContainerdNS,
 	}, client)
 	savedVM, err := repo.Save(ctx, testVm)
 	Expect(err).NotTo(HaveOccurred())

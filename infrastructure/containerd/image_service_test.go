@@ -19,11 +19,11 @@ import (
 const (
 	testImageVolume    = "docker.io/library/alpine:3.14.1"
 	testImageKernel    = "docker.io/linuxkit/kernel:5.4.129"
-	testSnapshotter    = "native"
+	testSnapshotter    = "devmapper"
 	testOwnerNamespace = "int_ns"
 	testOwnerUsageID   = "vol1"
 	testOwnerName      = "imageservice-get-test"
-	testContainerdNs   = "flintlock_test_ctr"
+	testContainerdNS   = "flintlock_test_ctr"
 )
 
 func TestImageService_Integration(t *testing.T) {
@@ -34,12 +34,12 @@ func TestImageService_Integration(t *testing.T) {
 	RegisterTestingT(t)
 
 	client, ctx := testCreateClient(t)
-	namespaceCtx := namespaces.WithNamespace(ctx, testContainerdNs)
+	namespaceCtx := namespaces.WithNamespace(ctx, testContainerdNS)
 
 	imageSvc := containerd.NewImageServiceWithClient(&containerd.Config{
 		SnapshotterKernel: testSnapshotter,
 		SnapshotterVolume: testSnapshotter,
-		Namespace:         testContainerdNs,
+		Namespace:         testContainerdNS,
 	}, client)
 
 	inputGetAndMount := &ports.ImageMountSpec{
@@ -52,6 +52,24 @@ func TestImageService_Integration(t *testing.T) {
 		ImageName: inputGetAndMount.ImageName,
 		Owner:     inputGetAndMount.Owner,
 	}
+	expectedSnapshotName := fmt.Sprintf(
+		"flintlock/%s/%s/%s",
+		testOwnerNamespace,
+		testOwnerName,
+		testOwnerUsageID,
+	)
+	expectedLeaseName := fmt.Sprintf("flintlock/%s/%s", testOwnerNamespace, testOwnerName)
+
+	defer func() {
+		// Make sure it's deleted.
+		client.ImageService().Delete(namespaceCtx, testImageKernel)
+		client.ImageService().Delete(namespaceCtx, testImageVolume)
+		client.SnapshotService(testSnapshotter).Remove(namespaceCtx, expectedSnapshotName)
+		leases, _ := client.LeasesService().List(namespaceCtx)
+		for _, lease := range leases {
+			client.LeasesService().Delete(namespaceCtx, lease)
+		}
+	}()
 
 	err := imageSvc.Pull(ctx, inputGet)
 	Expect(err).NotTo(HaveOccurred())
@@ -61,12 +79,35 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(mounts).NotTo(BeNil())
 	Expect(len(mounts)).To(Equal(1))
 
+	fakePull := &ports.ImageMountSpec{
+		ImageName:    "random/whynot/definitely-not-there",
+		Owner:        fmt.Sprintf("%s/%s", testOwnerNamespace, testOwnerName),
+		OwnerUsageID: testOwnerUsageID,
+		Use:          models.ImageUseVolume,
+	}
+	mounts, err = imageSvc.PullAndMount(ctx, fakePull)
+	Expect(err).To(HaveOccurred())
+	Expect(mounts).To(BeNil())
+
+	testImageMounted(ctx, imageSvc, testImageMountOptions{
+		ImageName: getTestVolumeImage(),
+		Owner:     inputGetAndMount.Owner,
+		Use:       models.ImageUseVolume,
+		Expected:  true,
+	})
+
+	testImageMounted(ctx, imageSvc, testImageMountOptions{
+		ImageName: "definitely-not-there",
+		Owner:     inputGetAndMount.Owner,
+		Use:       models.ImageUseVolume,
+		Expected:  false,
+	})
+
 	img, err := client.ImageService().List(namespaceCtx)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(img)).To(Equal(1))
 	Expect(img[0].Name).To(Equal(getTestVolumeImage()))
 
-	expectedSnapshotName := fmt.Sprintf("flintlock/%s/%s/%s", testOwnerNamespace, testOwnerName, testOwnerUsageID)
 	snapshotExists := false
 	err = client.SnapshotService(testSnapshotter).Walk(namespaceCtx, func(walkCtx context.Context, info snapshots.Info) error {
 		if info.Name == expectedSnapshotName {
@@ -78,9 +119,7 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(snapshotExists).To(BeTrue(), "expect snapshot with name %s to exist", expectedSnapshotName)
 
-	expectedLeaseName := fmt.Sprintf("flintlock/%s/%s", testOwnerNamespace, testOwnerName)
 	leases, err := client.LeasesService().List(namespaceCtx)
-	Expect(err).NotTo(HaveOccurred())
 	Expect(len(leases)).To(Equal(1))
 	Expect(leases[0].ID).To(Equal(expectedLeaseName), "expect lease with name %s to exists", expectedLeaseName)
 
@@ -89,11 +128,35 @@ func TestImageService_Integration(t *testing.T) {
 	err = imageSvc.Pull(ctx, inputGet)
 	Expect(err).NotTo(HaveOccurred())
 
+	exists, err := imageSvc.Exists(ctx, &ports.ImageSpec{
+		ImageName: testImageVolume,
+		Owner:     testOwnerUsageID,
+	})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(exists).To(BeTrue())
+
+	mounts, err = imageSvc.PullAndMount(ctx, &ports.ImageMountSpec{
+		ImageName:    testImageKernel,
+		Owner:        testOwnerUsageID,
+		Use:          models.ImageUseKernel,
+		OwnerUsageID: testOwnerUsageID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(mounts).NotTo(BeNil())
+	Expect(len(mounts)).To(Equal(1))
+
 	err = client.ImageService().Delete(namespaceCtx, testImageKernel)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = client.ImageService().Delete(namespaceCtx, testImageVolume)
 	Expect(err).NotTo(HaveOccurred())
+
+	exists, err = imageSvc.Exists(ctx, &ports.ImageSpec{
+		ImageName: testImageKernel,
+		Owner:     testOwnerUsageID,
+	})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(exists).To(BeFalse())
 }
 
 func testCreateClient(t *testing.T) (*ctr.Client, context.Context) {
@@ -131,4 +194,22 @@ func getTestKernelImage() string {
 	}
 
 	return testImageKernel
+}
+
+type testImageMountOptions struct {
+	ImageName string
+	Owner     string
+	Use       models.ImageUse
+	Expected  bool
+}
+
+func testImageMounted(ctx context.Context, imageSvc ports.ImageService, opts testImageMountOptions) {
+	mounted, err := imageSvc.IsMounted(ctx, &ports.ImageMountSpec{
+		ImageName:    opts.ImageName,
+		Owner:        opts.Owner,
+		Use:          opts.Use,
+		OwnerUsageID: testOwnerUsageID,
+	})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(mounted).To(Equal(opts.Expected))
 }
