@@ -4,5 +4,5 @@ const (
 	MicroVMDeletePlanName         = "microvm_delete"
 	MicroVMCreateOrUpdatePlanName = "microvm_create_update"
 
-	microVMBootTime = 30
+	microVMBootTime = 5
 )
