@@ -5,10 +5,10 @@ project_id: "abcdef123456" # or project ID
 test:
   skip_delete: false # skip the test cleanup and process teardown steps
   skip_teardown: false # skip tearing down the equinix infra
-  skip_dmsetup: true # skip the thinpool setup, this should always be true for equinix
   containerd_log_level: "debug"
   flintlock_log_level: "2"
 device:
+  skip_dmsetup: false # skip the thinpool setup
   name: "test-device" # omit if device.id set
   id: "abcdef123456" # set if using existing device
   ssh_key_name: "test-key"
