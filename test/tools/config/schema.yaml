@@ -1,22 +1,25 @@
 org_id: str(required=True)
 project_name: str(required=False)
 project_id: str(required=False)
+repo: include('repo', required=False)
 test: include('test', required=False)
 device: include('device', required=False)
 ---
+repo:
+  username: str(required=False)
+  branch: str(required=False)
 test:
   skip_delete: bool(required=False)
   skip_teardown: bool(required=False)
-  skip_dmsetup: bool(required=False)
   containerd_log_level: str(required=False)
   flintlock_log_level: str(required=False)
 device:
+  skip_dmsetup: bool(required=False)
   name: str(required=False)
   id: str(required=False)
   ssh_key_name: str(required=False)
   userdata: str(required=False)
   plan: str(required=False)
-  metro: str(required=False)
+  facility: list(str(), required=False)
   operating_system: str(required=False)
-  facility: str(required=False)
   billing_cycle: str(required=False)
