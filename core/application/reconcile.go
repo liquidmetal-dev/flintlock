@@ -85,7 +85,7 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 	spec.Status.NotBefore = time.Now().Add(waitTime).Unix()
 
 	logger.Infof(
-		"[%d/%d] reconciliation failed, reschedule at %s",
+		"[%d/%d] reconciliation failed, rescheduled for next attempt at %s",
 		spec.Status.Retry,
 		a.cfg.MaximumRetry,
 		time.Unix(spec.Status.NotBefore, 0),

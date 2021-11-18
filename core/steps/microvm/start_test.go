@@ -195,10 +195,10 @@ func TestNewStartStep_unableToBoot(t *testing.T) {
 		Return(ports.MicroVMStateUnknown, nil)
 
 	subSteps, err := step.Do(ctx)
-	verifyErr := step.Verify(ctx)
-
-	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(err).To(g.BeNil())
+	g.Expect(subSteps).To(g.BeEmpty())
+	
+	verifyErr := step.Verify(ctx)
 	g.Expect(verifyErr).To(g.MatchError(internalerr.ErrUnableToBoot))
 
 	microVMService.
