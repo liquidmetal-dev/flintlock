@@ -1,9 +1,17 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 mv /usr/local/go/bin/go /usr/local/bin
 
 mkdir -p /root/work && cd /root/work
-# TODO make it so that repo/branch etc can be configured for local runs / copy up binary / clone at commit etc
-git clone https://github.com/weaveworks/flintlock --depth 1
+
+if [[ -z $FL_USER ]];then
+    FL_USER=weaveworks
+fi
+
+if [[ -z "$FL_BRANCH" ]]; then
+    FL_BRANCH=main
+fi
+
+git clone "https://github.com/$FL_USER/flintlock" --depth 1 --branch "$FL_BRANCH"
 
 touch /flintlock_ready
