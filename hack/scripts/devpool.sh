@@ -23,8 +23,8 @@ fi
 set -u
 # These are some useful vars for useful things
 DIR="${CROOT}/snapshotter/devmapper"
-META="${CROOT}/snapshotter/devmapper/metadata$VOL_TAG"
-DATA="${CROOT}/snapshotter/devmapper/data$VOL_TAG"
+META="${DIR}/metadata$VOL_TAG"
+DATA="${DIR}/data$VOL_TAG"
 
 mkdir -p "${DIR}"
 

@@ -48,7 +48,8 @@ There are a couple of custom test flags which you can set to alter the behaviour
 of the tests.
 
 At the time of writing these are:
-- `skip.setup.thinpool`: skips the setup of devicemapper thinpools.
+- `skip.setup.thinpool`: skips the setup of devicemapper thinpool.
+- `thinpool`: set the name of a custom thinpool to create and/or use instead.
 - `skip.delete`: skip the Delete step of the tests and leave the mVMs around for debugging.
   This will also leave containerd and flintlockd running. All cleanup will be manual.
 - `skip.teardown`: skip stopping containerd and flintlockd processes.
