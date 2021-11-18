@@ -16,7 +16,6 @@ device:
   ssh_key_name: str(required=False)
   userdata: str(required=False)
   plan: str(required=False)
-  metro: str(required=False)
+  facility: list(str(), required=False)
   operating_system: str(required=False)
-  facility: str(required=False)
   billing_cycle: str(required=False)
