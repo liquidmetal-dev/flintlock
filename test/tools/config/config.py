@@ -61,17 +61,13 @@ class Config:
         self.params = always_merger.merge(self.params, data[0][0])
 
     def validate_run(self):
-        if self.params['org_id'] is None:
-            raise ValueError("must set org_id")
-
+        self.validate_common()
         self.configure_test()
         self.configure_device()
 
     def validate_create(self):
+        self.validate_common()
         self.configure_device()
-
-        if self.params['org_id'] is None:
-            raise ValueError("must set org_id")
 
         if self.params['project_id'] is None:
             raise ValueError("must set project_id")
@@ -82,6 +78,13 @@ class Config:
                     "Error validating config: device.id should not be set")
         except KeyError:
             pass
+
+    def validate_common(self):
+        if self.params['org_id'] is None:
+            raise ValueError("must set org_id")
+
+        if len(self.params['device']['facility']) < 1:
+            raise ValueError("must set at least one facility")
 
     def configure_test(self):
         if self.params['device']['id'] is not None:
@@ -111,9 +114,8 @@ class Config:
             'ssh_key_name': self.generated_key_name(),
             'userdata': None,
             'plan': 'c3.small.x86',
-            'operating_system': 'ubuntu_18_04',
-            'metro': 'sv',
-            'facility': 'am6',
+            'operating_system': 'ubuntu_20_10',
+            'facility': ['am6', 'ams1', 'fr2', 'fra2'],
             'billing_cycle': 'hourly'
         }
 

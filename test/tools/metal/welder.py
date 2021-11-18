@@ -4,6 +4,7 @@ import spur
 import logging
 import os
 import sys
+from .error import CapacityError
 from Crypto.PublicKey import RSA
 from os.path import dirname, abspath
 
@@ -32,17 +33,30 @@ class Welder():
         return logger
 
     def create_all(self):
+        facility = None
+        try:
+            facility = self.check_capacity()
+            self.logger.info(f"using facility {facility}")
+        except CapacityError as e:
+            self.logger.error(f"{e}")
         project = self.create_new_project_if_not_exist()
         self.project = project
         key = self.create_new_key(
             project.id, self.config['device']['ssh_key_name'])
         self.key = key
-        device = self.create_device(project.id, key.id)
+        device = self.create_device(project.id, key.id, facility)
         self.device = device
         self.dev_id = device.id
         self.wait_until_device_ready(device)
 
         return self.ip
+
+    def check_capacity(self):
+        for facility in self.config['device']['facility']:
+            server = [(facility, self.config['device']['plan'], 1)]
+            if self.packet_manager.validate_capacity(server):
+                return facility
+        raise CapacityError('none of the given facilities have capacity for device')
 
     def create_new_project_if_not_exist(self):
         project = None
@@ -81,13 +95,13 @@ class Welder():
 
         return key
 
-    def create_device(self, project_id, key_id):
+    def create_device(self, project_id, key_id, facility):
         cfg = self.config['device']
         device = self.packet_manager.create_device(project_id=project_id,
                                                    hostname=cfg['name'],
-                                                   plan=cfg['plan'], metro=cfg['metro'],
+                                                   plan=cfg['plan'], facility=facility,
                                                    operating_system=cfg['operating_system'],
-                                                   facility=cfg['facility'], billing_cycle=cfg['billing_cycle'],
+                                                   billing_cycle=cfg['billing_cycle'],
                                                    project_ssh_keys=[key_id],
                                                    userdata=cfg['userdata'])
         self.logger.info(f"created device {device.hostname}")
