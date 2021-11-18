@@ -4,6 +4,7 @@ from test.runner import Test
 from metal.welder import Welder
 from config.config import Config
 import click
+import json
 import os
 import sys
 import random
@@ -99,8 +100,9 @@ def create_device(config_file, org_id, project_id, ssh_key_name, device_name, us
         click.echo(str(e))
         sys.exit()
 
+    pretty = json.dumps(cfg['device'], indent=4)
     click.echo(
-        f"Creating device {cfg['device']['name']} with config {cfg['device']}")
+        f"Creating device {cfg['device']['name']} with config {pretty}")
 
     welder = Welder(token, cfg)
     ip = welder.create_all()

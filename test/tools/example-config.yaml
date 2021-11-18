@@ -15,8 +15,16 @@ device:
   # the following mirror the equinix options
   # see https://metal.equinix.com/developers/docs/ for values
   userdata: "echo hello"
-  plan: "c1.small.x86"
-  metro: "sv"
-  operating_system: "ubuntu_18_04"
-  facility: "ewr1"
+  # note: if setting up lvm thinpool, ensure that plan comes with at least
+  # one spare (unpartitioned and unmounted) disk
+  plan: "c3.small.x86"
+  # list of facilities to attempt device creation.
+  # minimum of 1 must be supplied
+  # note: ensure that the specified plan is availble in each facility
+  facility:
+  - "fr2"
+  - "fra2"
+  - "am6"
+  - "ams1"
+  operating_system: "ubuntu_20_10"
   billing_cycle: "hourly"
