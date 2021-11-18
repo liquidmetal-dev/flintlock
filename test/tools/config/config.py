@@ -24,6 +24,7 @@ class Config:
             'org_id': None,
             'project_id': None,
             'project_name': self.generated_project_name(),
+            'repo': self.default_repo_config(),
             'device': self.initial_device_config(),
             'test': self.initial_test_config()
         }
@@ -98,6 +99,12 @@ class Config:
         if self.params['device']['userdata'] is None:
             self.params['device']['userdata'] = self.default_user_data()
 
+    def default_repo_config(self):
+        return {
+            'username': 'weaveworks',
+            'branch': 'main'
+        }
+
     def initial_test_config(self):
         return {
             'skip_delete': False,
@@ -125,7 +132,14 @@ class Config:
 
         if self.params['device']['skip_dmsetup'] is False:
             files.insert(1, "hack/scripts/direct_lvm.sh")
-            userdata += "#!/bin/bash\n export THINPOOL_DISK_NAME=sdb\n"
+            userdata += ("#!/bin/bash\n"
+                         "export THINPOOL_DISK_NAME=sdb\n"
+                         )
+
+        userdata += ("#!/bin/bash\n"
+                     f"export FL_USER={self.params['repo']['username']}\n"
+                     f"export FL_BRANCH={self.params['repo']['branch']}\n"
+                     )
 
         for file in files:
             with open(self.base + "/" + file) as f:

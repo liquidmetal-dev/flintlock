@@ -1,9 +1,13 @@
 org_id: str(required=True)
 project_name: str(required=False)
 project_id: str(required=False)
+repo: include('repo', required=False)
 test: include('test', required=False)
 device: include('device', required=False)
 ---
+repo:
+  username: str(required=False)
+  branch: str(required=False)
 test:
   skip_delete: bool(required=False)
   skip_teardown: bool(required=False)
