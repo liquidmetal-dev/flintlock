@@ -92,15 +92,13 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 	)
 
 	if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
-		return fmt.Errorf("saving spec after plan failed: %w", err)
+		return fmt.Errorf("saving spec failed: %w", err)
 	}
 
 	go func(id, ns string, sleepTime time.Duration) {
-		logger.Info("Wait to emit update")
 		time.Sleep(sleepTime)
-		logger.Info("Emit update")
 
-		_ = a.ports.EventService.Publish(
+		err := a.ports.EventService.Publish(
 			context.Background(),
 			defaults.TopicMicroVMEvents,
 			&events.MicroVMSpecUpdated{
@@ -108,6 +106,9 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 				Namespace: ns,
 			},
 		)
+		if err != nil {
+			logger.Errorf("failed to publish an update event for %s/%s", ns, id)
+		}
 	}(spec.ID.Name(), spec.ID.Namespace(), waitTime)
 
 	return nil
@@ -136,7 +137,7 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	executionID, err := a.ports.IdentifierService.GenerateRandom()
 	if err != nil {
 		if scheduleErr := a.reschedule(ctx, localLogger, spec); scheduleErr != nil {
-			return fmt.Errorf("saving spec after plan failed: %w", scheduleErr)
+			return fmt.Errorf("rescheduling failed: %w", scheduleErr)
 		}
 
 		return fmt.Errorf("generating plan execution id: %w", err)
@@ -147,7 +148,7 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	stepCount, err := actuator.Execute(execCtx, plan, executionID)
 	if err != nil {
 		if scheduleErr := a.reschedule(ctx, localLogger, spec); scheduleErr != nil {
-			return fmt.Errorf("saving spec after plan failed: %w", scheduleErr)
+			return fmt.Errorf("rescheduling failed: %w", scheduleErr)
 		}
 
 		return fmt.Errorf("executing plan: %w", err)

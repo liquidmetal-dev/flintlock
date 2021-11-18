@@ -14,6 +14,8 @@ import (
 	"github.com/weaveworks/flintlock/infrastructure/mock"
 )
 
+const bootTimeInSeconds = 1
+
 func testVMToStart() *models.MicroVM {
 	vmid, _ := models.NewVMID("vm", "ns")
 	return &models.MicroVM{
@@ -44,7 +46,7 @@ func TestNewStartStep(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMToStart()
 
-	step := microvm.NewStartStep(vm, microVMService, 1)
+	step := microvm.NewStartStep(vm, microVMService, bootTimeInSeconds)
 
 	microVMService.
 		EXPECT().
@@ -94,7 +96,7 @@ func TestNewStartStep_StateCheck(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMToStart()
 
-	step := microvm.NewStartStep(vm, microVMService, 1)
+	step := microvm.NewStartStep(vm, microVMService, bootTimeInSeconds)
 
 	for _, testCase := range stateTestCases {
 		microVMService.
@@ -118,7 +120,7 @@ func TestNewStartStep_StateCheckError(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMToStart()
 
-	step := microvm.NewStartStep(vm, microVMService, 1)
+	step := microvm.NewStartStep(vm, microVMService, bootTimeInSeconds)
 
 	microVMService.
 		EXPECT().
@@ -141,7 +143,7 @@ func TestNewStartStep_VMIsNotDefined(t *testing.T) {
 	microVMService := mock.NewMockMicroVMService(mockCtrl)
 	ctx := context.Background()
 
-	step := microvm.NewStartStep(vm, microVMService, 1)
+	step := microvm.NewStartStep(vm, microVMService, bootTimeInSeconds)
 
 	subSteps, err := step.Do(ctx)
 
@@ -158,7 +160,7 @@ func TestNewStartStep_ServiceStartError(t *testing.T) {
 	vm := testVMToStart()
 	ctx := context.Background()
 
-	step := microvm.NewStartStep(vm, microVMService, 1)
+	step := microvm.NewStartStep(vm, microVMService, bootTimeInSeconds)
 
 	microVMService.
 		EXPECT().
@@ -180,7 +182,7 @@ func TestNewStartStep_unableToBoot(t *testing.T) {
 	vm := testVMToStart()
 	ctx := context.Background()
 
-	step := microvm.NewStartStep(vm, microVMService, 1)
+	step := microvm.NewStartStep(vm, microVMService, bootTimeInSeconds)
 
 	microVMService.
 		EXPECT().
