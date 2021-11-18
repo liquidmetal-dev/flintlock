@@ -30,12 +30,6 @@ func TestVMID_New(t *testing.T) {
 			vmNamespace: "ns1",
 			expectError: true,
 		},
-		{
-			name:        "non-empty name, empty namespace, should error",
-			vmName:      "test1",
-			vmNamespace: "",
-			expectError: true,
-		},
 	}
 
 	for _, tc := range testCases {

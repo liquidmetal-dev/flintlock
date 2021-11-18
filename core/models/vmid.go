@@ -31,7 +31,7 @@ func NewVMID(name, namespace string) (*VMID, error) {
 	}
 
 	if namespace == "" {
-		return nil, coreerrs.ErrNamespaceRequired
+		namespace = "default"
 	}
 
 	return &VMID{

@@ -66,35 +66,14 @@ func customNetworkGuestDeviceNameValidator(fieldLevel playgroundValidator.FieldL
 func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.StructLevel) {
 	spec, _ := structLevel.Current().Interface().(models.MicroVMSpec)
 
-	if spec.Initrd == nil && len(spec.Volumes) == 0 {
-		structLevel.ReportError(spec.Volumes, "volumes", "Volumes", "volumeOrInitrdRequired", "")
-
-		return
-	}
-
 	// Based on the firecracker documentation:
 	// https://github.com/firecracker-microvm/firecracker/blob/main/docs/initrd.md#notes
 	//
 	// If initramfs is not specified then at least one volume needs to specify is the `is_root_device` flag.
 	// Therefore this validation checks if spec.Initrd is `nil`, and if so loops through the volumes to check
 	// that a root device has been configured.
-
-	var found bool
-
-	for _, vol := range spec.Volumes {
-		if vol.IsRoot {
-			if found {
-				// Only one volume can be specified as the root volume. If a root volume is found twice then
-				// report an error.
-				structLevel.ReportError(spec.Volumes, "volumes", "Volumes", "onlyOneRootVolume", "")
-			}
-
-			found = true
-		}
-	}
-
-	if spec.Initrd == nil && !found {
-		structLevel.ReportError(spec.Volumes, "volumes", "Volumes", "oneVolumeMustBeRoot", "")
+	if spec.Initrd == nil && (models.Volume{}) == spec.RootVolume {
+		structLevel.ReportError(spec.RootVolume, "root_volume", "RootVolume", "volumeOrInitrdRequired", "")
 
 		return
 	}

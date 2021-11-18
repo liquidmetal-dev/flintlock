@@ -39,24 +39,7 @@ func TestValidation_Invalid(t *testing.T) {
 	}
 
 	invalidVolumes := basicMicroVM
-	invalidVolumes.Spec.Volumes = models.Volumes{
-		{
-			IsRoot:     false,
-			MountPoint: "/",
-		},
-	}
-
-	tooManyRoots := basicMicroVM
-	tooManyRoots.Spec.Volumes = models.Volumes{
-		{
-			IsRoot:     true,
-			MountPoint: "/",
-		},
-		{
-			IsRoot:     true,
-			MountPoint: "/",
-		},
-	}
+	invalidVolumes.Spec.RootVolume = models.Volume{}
 
 	tt := []struct {
 		name      string
@@ -84,14 +67,9 @@ func TestValidation_Invalid(t *testing.T) {
 			vmspec:    invalidNetworkGuestDeviceName,
 		},
 		{
-			name:      "should fail validation when no volumes are marked as root",
-			numErrors: 1,
+			name:      "should fail validation when there is no root volume",
+			numErrors: 2,
 			vmspec:    invalidVolumes,
-		},
-		{
-			name:      "should fail validation when more than one volume is marked as root",
-			numErrors: 1,
-			vmspec:    tooManyRoots,
 		},
 	}
 
@@ -131,10 +109,12 @@ var basicMicroVM = models.MicroVM{
 			Image:    "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
 			Filename: "vmlinux",
 		},
-		Volumes: models.Volumes{
+		RootVolume: models.Volume{
+			MountPoint: "/",
+		},
+		AdditionalVolumes: models.Volumes{
 			{
-				IsRoot:     true,
-				MountPoint: "/",
+				MountPoint: "/mnt/vol1",
 			},
 		},
 	},
