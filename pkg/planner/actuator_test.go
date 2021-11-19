@@ -173,3 +173,7 @@ func (p *testProc) Do(ctx context.Context) ([]planner.Procedure, error) {
 func (p *testProc) ShouldDo(ctx context.Context) (bool, error) {
 	return true, nil
 }
+
+func (p *testProc) Verify(ctx context.Context) error {
+	return nil
+}

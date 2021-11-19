@@ -47,3 +47,7 @@ func (s *eventPublish) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 	return nil, nil
 }
+
+func (s *eventPublish) Verify(ctx context.Context) error {
+	return nil
+}

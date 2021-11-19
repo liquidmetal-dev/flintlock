@@ -123,3 +123,7 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 	return nil, nil
 }
+
+func (s *createInterface) Verify(ctx context.Context) error {
+	return nil
+}

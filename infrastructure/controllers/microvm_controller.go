@@ -48,7 +48,10 @@ func (r *MicroVMController) Run(ctx context.Context,
 
 	if resyncOnStart {
 		if err := r.resyncSpecs(ctx, logger); err != nil {
-			return fmt.Errorf("resyncing specs on start: %w", err)
+			// Do not return here, if one fails, we can still listen on
+			// new requests and reconcile vms, if they are failing always,
+			// the retry logic will handle this.
+			logger.Errorf("resyncing specs on start: %s", err.Error())
 		}
 	}
 

@@ -95,3 +95,7 @@ func (s *volumeMount) getMountSpec() *ports.ImageMountSpec {
 		Use:          models.ImageUseVolume,
 	}
 }
+
+func (s *volumeMount) Verify(ctx context.Context) error {
+	return nil
+}

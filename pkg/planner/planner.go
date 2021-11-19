@@ -25,4 +25,11 @@ type Procedure interface {
 	Do(ctx context.Context) ([]Procedure, error)
 	// ShouldDo determines if this procedure should be executed
 	ShouldDo(ctx context.Context) (bool, error)
+	// Verify the state after Do. Most cases it can return nil
+	// without doing anything, but in special cases we want to measure
+	// resources if they are in the desired state.
+	// Example: When we start MicroVM, it may does not tell us if it was
+	// successful or not, in Verify we can verify if it's running or not
+	// and report back an error if the state is not the desired state.
+	Verify(ctx context.Context) error
 }

@@ -65,3 +65,7 @@ func (s *repoRelease) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 	return nil, nil
 }
+
+func (s *repoRelease) Verify(ctx context.Context) error {
+	return nil
+}

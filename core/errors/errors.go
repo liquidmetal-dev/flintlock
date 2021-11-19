@@ -20,6 +20,7 @@ var (
 	ErrUnsupportedIfaceType    = errors.New("unsupported network interface type")
 	ErrIfaceNotFound           = errors.New("network interface not found")
 	ErrMissingStatusInfo       = errors.New("status is not defined")
+	ErrUnableToBoot            = errors.New("microvm is unable to boot")
 )
 
 // TopicNotFoundError is an error created when a topic with a specific name isn't found.
