@@ -5,6 +5,7 @@ import (
 
 	"github.com/weaveworks/flintlock/api/types"
 	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 )
 
 func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
@@ -28,11 +29,11 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 	}
 
 	if convertedModel.Spec.VCPU == 0 {
-		convertedModel.Spec.VCPU = 2
+		convertedModel.Spec.VCPU = defaults.VCPU
 	}
 
 	if convertedModel.Spec.MemoryInMb == 0 {
-		convertedModel.Spec.MemoryInMb = 1024
+		convertedModel.Spec.MemoryInMb = defaults.MemoryInMb
 	}
 
 	if spec.Kernel.Filename != nil {

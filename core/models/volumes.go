@@ -4,12 +4,6 @@ package models
 type Volume struct {
 	// ID is the uinique identifier of the volume.
 	ID string `json:"id"`
-	// IsRoot specifies that the volume is to be used as the root volume. A machine
-	// must have a root volume.
-	//
-	// NOTE: This field does not exist on the gRPC API, it is automatically filled
-	// when converting from the API model to the this internal model.
-	// IsRoot bool `json:"is_root"`
 	// IsReadOnly specifies that the volume is to be mounted readonly.
 	IsReadOnly bool `json:"is_read_only,omitempty"`
 	// MountPoint is the mount point for the volume in the microvm.
