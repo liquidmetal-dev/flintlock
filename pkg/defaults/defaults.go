@@ -60,4 +60,13 @@ const (
 
 	// MaximumRetry is the default value how many times we retry failed reconciliation.
 	MaximumRetry = 10
+
+	// Namespace is the default MicroVM namespace if one is not provided by the user.
+	Namespace = "default"
+
+	// VCPU is the default number if VCPUs for a MicroVM if one is not provided by the user.
+	VCPU = 2
+
+	// MemoryInMb is the default amount of RAM for a MicroVM if one is not provided by the user.
+	MemoryInMb = 1024
 )

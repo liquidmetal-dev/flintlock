@@ -23,22 +23,20 @@ func testVMWithMount() *models.MicroVM {
 			Volumes: models.VolumeStatuses{},
 		},
 		Spec: models.MicroVMSpec{
-			Volumes: models.Volumes{
-				models.Volume{
-					ID:         "rootVolume",
-					IsRoot:     true,
-					IsReadOnly: true,
-					MountPoint: "/",
-					Source: models.VolumeSource{
-						Container: &models.ContainerVolumeSource{
-							Image: "myimage:tag",
-						},
+			RootVolume: models.Volume{
+				ID:         "rootVolume",
+				IsReadOnly: true,
+				MountPoint: "/",
+				Source: models.VolumeSource{
+					Container: &models.ContainerVolumeSource{
+						Image: "myimage:tag",
 					},
-					Size: 20,
 				},
+				Size: 20,
+			},
+			AdditionalVolumes: models.Volumes{
 				models.Volume{
 					ID:         "homeVolume",
-					IsRoot:     false,
 					IsReadOnly: false,
 					MountPoint: "/home",
 					Source: models.VolumeSource{
@@ -82,7 +80,7 @@ func TestVolumeMount(t *testing.T) {
 
 	expectedVolume := testMount("firstsouArce")
 
-	for _, volume := range vm.Spec.Volumes {
+	for _, volume := range vm.Spec.AdditionalVolumes {
 		vm.Status.Volumes[volume.ID] = &models.VolumeStatus{}
 		step := runtime.NewVolumeMount(
 			&vm.ID,
@@ -108,7 +106,7 @@ func TestVolumeMount(t *testing.T) {
 		g.Expect(verifyErr).To(g.BeNil())
 	}
 
-	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
+	g.Expect(vm.Status.Volumes).To(g.HaveLen(1))
 }
 
 func TestVolumeMount_statusAlreadySetBoth(t *testing.T) {
@@ -120,7 +118,9 @@ func TestVolumeMount_statusAlreadySetBoth(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMWithMount()
 
-	for _, volume := range vm.Spec.Volumes {
+	// RootVolume
+
+	for _, volume := range vm.Spec.AdditionalVolumes {
 		expectedMount := testMount("firstsouArce")
 		mountSpec := testVolumeMountSpec(&vm.ID, &volume)
 
@@ -156,7 +156,7 @@ func TestVolumeMount_statusAlreadySetBoth(t *testing.T) {
 		g.Expect(verifyErr).To(g.BeNil())
 	}
 
-	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
+	g.Expect(vm.Status.Volumes).To(g.HaveLen(1))
 }
 
 func TestVolumeMount_retry(t *testing.T) {
@@ -168,7 +168,7 @@ func TestVolumeMount_retry(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMWithMount()
 
-	for _, volume := range vm.Spec.Volumes {
+	for _, volume := range vm.Spec.AdditionalVolumes {
 		expectedMount := testMount("firstsouArce")
 		mountSpec := testVolumeMountSpec(&vm.ID, &volume)
 
@@ -214,7 +214,7 @@ func TestVolumeMount_retry(t *testing.T) {
 		g.Expect(verifyErr).To(g.BeNil())
 	}
 
-	g.Expect(vm.Status.Volumes).To(g.HaveLen(2))
+	g.Expect(vm.Status.Volumes).To(g.HaveLen(1))
 }
 
 func TestVolumeMount_IsMountedError(t *testing.T) {
@@ -226,7 +226,7 @@ func TestVolumeMount_IsMountedError(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMWithMount()
 
-	volume := vm.Spec.Volumes[0]
+	volume := vm.Spec.AdditionalVolumes[0]
 	mountSpec := testVolumeMountSpec(&vm.ID, &volume)
 	expectedMount := testMount("firstsouArce")
 	vm.Status.Volumes[volume.ID] = &models.VolumeStatus{
@@ -259,7 +259,7 @@ func TestVolumeMount_doError(t *testing.T) {
 	ctx := context.Background()
 	vm := testVMWithMount()
 
-	volume := vm.Spec.Volumes[0]
+	volume := vm.Spec.AdditionalVolumes[0]
 	expectedMount := testMount("firstsouArce")
 	vm.Status.Volumes[volume.ID] = &models.VolumeStatus{
 		Mount: expectedMount,
@@ -308,7 +308,7 @@ func TestVolumeMount_nilStatus(t *testing.T) {
 
 	var volumeStatus *models.VolumeStatus
 
-	volume := vm.Spec.Volumes[0]
+	volume := vm.Spec.AdditionalVolumes[0]
 	vm.Status.Volumes[volume.ID] = volumeStatus
 	step := runtime.NewVolumeMount(
 		&vm.ID,

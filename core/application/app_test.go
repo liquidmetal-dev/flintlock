@@ -554,19 +554,16 @@ func createTestSpec(name, ns string) *models.MicroVM {
 					// TODO:
 				},
 			},
-			Volumes: []models.Volume{
-				{
-					ID:         "root",
-					IsRoot:     true,
-					IsReadOnly: false,
-					MountPoint: "/",
-					Source: models.VolumeSource{
-						Container: &models.ContainerVolumeSource{
-							Image: "docker.io/library/ubuntu:groovy",
-						},
+			RootVolume: models.Volume{
+				ID:         "root",
+				IsReadOnly: false,
+				MountPoint: "/",
+				Source: models.VolumeSource{
+					Container: &models.ContainerVolumeSource{
+						Image: "docker.io/library/ubuntu:groovy",
 					},
-					Size: 20000,
 				},
+				Size: 20000,
 			},
 			CreatedAt: 0,
 			UpdatedAt: 0,

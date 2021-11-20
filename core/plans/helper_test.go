@@ -81,19 +81,16 @@ func createTestSpec(name, ns string) *models.MicroVM {
 					GuestDeviceName:       "eth1",
 				},
 			},
-			Volumes: []models.Volume{
-				{
-					ID:         "root",
-					IsRoot:     true,
-					IsReadOnly: false,
-					MountPoint: "/",
-					Source: models.VolumeSource{
-						Container: &models.ContainerVolumeSource{
-							Image: "docker.io/library/ubuntu:myimage",
-						},
+			RootVolume: models.Volume{
+				ID:         "root",
+				IsReadOnly: false,
+				MountPoint: "/",
+				Source: models.VolumeSource{
+					Container: &models.ContainerVolumeSource{
+						Image: "docker.io/library/ubuntu:myimage",
 					},
-					Size: 20000,
 				},
+				Size: 20000,
 			},
 			CreatedAt: 1,
 			UpdatedAt: 0,
