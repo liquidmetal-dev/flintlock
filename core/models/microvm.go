@@ -61,6 +61,8 @@ type MicroVMStatus struct {
 	NetworkInterfaces NetworkInterfaceStatuses `json:"network_interfaces"`
 	// Retry is a counter about how many times we retried to reconcile.
 	Retry int `json:"retry"`
+	// NotBefore tells the system to do not reconcile until given timestamp.
+	NotBefore int64 `json:"not_before" validate:"omitempty"`
 }
 
 // Kernel is the specification of the kernel and its arguments.

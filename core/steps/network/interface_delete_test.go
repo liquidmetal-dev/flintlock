@@ -31,8 +31,8 @@ func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {
 		Times(1)
 
 	step := network.DeleteNetworkInterface(vmid, iface, svc)
-	shouldDo, err := step.ShouldDo(ctx)
 
+	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).To(g.BeNil())
 	g.Expect(shouldDo).To(g.BeFalse())
 
@@ -42,8 +42,10 @@ func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {
 		Times(1)
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestDeleteNetworkInterface_emptyStatus(t *testing.T) {
@@ -58,14 +60,16 @@ func TestDeleteNetworkInterface_emptyStatus(t *testing.T) {
 	ctx := context.Background()
 
 	step := network.DeleteNetworkInterface(vmid, iface, svc)
-	shouldDo, err := step.ShouldDo(ctx)
 
+	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).To(g.BeNil())
 	g.Expect(shouldDo).To(g.BeFalse())
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestDeleteNetworkInterface_exists(t *testing.T) {
@@ -85,8 +89,8 @@ func TestDeleteNetworkInterface_exists(t *testing.T) {
 		Times(1)
 
 	step := network.DeleteNetworkInterface(vmid, iface, svc)
-	shouldDo, err := step.ShouldDo(ctx)
 
+	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).To(g.BeNil())
 	g.Expect(shouldDo).To(g.BeTrue())
 
@@ -104,8 +108,10 @@ func TestDeleteNetworkInterface_exists(t *testing.T) {
 		Times(1)
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestDeleteNetworkInterface_exists_errorDeleting(t *testing.T) {
@@ -125,8 +131,8 @@ func TestDeleteNetworkInterface_exists_errorDeleting(t *testing.T) {
 		Times(1)
 
 	step := network.DeleteNetworkInterface(vmid, iface, svc)
-	shouldDo, err := step.ShouldDo(ctx)
 
+	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).To(g.BeNil())
 	g.Expect(shouldDo).To(g.BeTrue())
 
@@ -144,8 +150,10 @@ func TestDeleteNetworkInterface_exists_errorDeleting(t *testing.T) {
 		Times(1)
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestDeleteNetworkInterface_IfaceExistsError(t *testing.T) {
@@ -165,12 +173,14 @@ func TestDeleteNetworkInterface_IfaceExistsError(t *testing.T) {
 		Times(2)
 
 	step := network.DeleteNetworkInterface(vmid, iface, svc)
-	shouldDo, err := step.ShouldDo(ctx)
 
+	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).ToNot(g.BeNil())
 	g.Expect(shouldDo).To(g.BeFalse())
 
 	_, err = step.Do(ctx)
-
 	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequired))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }

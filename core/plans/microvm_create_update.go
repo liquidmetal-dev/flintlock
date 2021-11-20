@@ -75,7 +75,7 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 	}
 
 	// MicroVM provider start
-	if err := p.addStep(ctx, microvm.NewStartStep(p.vm, ports.Provider)); err != nil {
+	if err := p.addStep(ctx, microvm.NewStartStep(p.vm, ports.Provider, microVMBootTime)); err != nil {
 		return nil, fmt.Errorf("adding microvm start step: %w", err)
 	}
 

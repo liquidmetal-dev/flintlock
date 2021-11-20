@@ -5,14 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/onsi/gomega"
+	g "github.com/onsi/gomega"
 	"github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
 	"github.com/weaveworks/flintlock/core/steps/runtime"
 )
 
 func TestDeleteDirectory_NotExists(t *testing.T) {
-	gomega.RegisterTestingT(t)
+	g.RegisterTestingT(t)
 
 	testDir := "/test/or/not-to-test"
 
@@ -22,15 +21,17 @@ func TestDeleteDirectory_NotExists(t *testing.T) {
 	step := runtime.NewDeleteDirectory(testDir, fs)
 	should, shouldErr := step.ShouldDo(ctx)
 	extraSteps, doErr := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
-	assert.NoError(t, shouldErr)
-	assert.False(t, should)
-	assert.NoError(t, doErr)
-	assert.Empty(t, extraSteps)
+	g.Expect(should).To(g.BeFalse())
+	g.Expect(shouldErr).To(g.BeNil())
+	g.Expect(doErr).To(g.BeNil())
+	g.Expect(extraSteps).To(g.BeEmpty())
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestDeleteDirectory_Exists(t *testing.T) {
-	gomega.RegisterTestingT(t)
+	g.RegisterTestingT(t)
 
 	testDir := "/test/or/not-to-test"
 
@@ -42,9 +43,11 @@ func TestDeleteDirectory_Exists(t *testing.T) {
 	step := runtime.NewDeleteDirectory(testDir, fs)
 	should, shouldErr := step.ShouldDo(ctx)
 	extraSteps, doErr := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
-	assert.NoError(t, shouldErr)
-	assert.True(t, should)
-	assert.NoError(t, doErr)
-	assert.Empty(t, extraSteps)
+	g.Expect(should).To(g.BeTrue())
+	g.Expect(shouldErr).To(g.BeNil())
+	g.Expect(doErr).To(g.BeNil())
+	g.Expect(extraSteps).To(g.BeEmpty())
+	g.Expect(verifyErr).To(g.BeNil())
 }

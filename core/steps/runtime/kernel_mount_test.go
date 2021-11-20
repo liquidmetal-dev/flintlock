@@ -80,6 +80,9 @@ func TestKernelMount(t *testing.T) {
 	g.Expect(vm.Status.KernelMount).To(
 		g.BeEquivalentTo(&expectedMount),
 	)
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestKernelMount_noKernel(t *testing.T) {
@@ -103,6 +106,9 @@ func TestKernelMount_noKernel(t *testing.T) {
 
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrKernelImageRequired))
 	g.Expect(subSteps).To(g.BeEmpty())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestKernelMount_statusAlreadySet(t *testing.T) {
@@ -151,6 +157,9 @@ func TestKernelMount_statusAlreadySet(t *testing.T) {
 
 	g.Expect(shouldDo).To(g.BeFalse())
 	g.Expect(shouldErr).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestKernelMount_vmNotSet(t *testing.T) {
@@ -171,6 +180,9 @@ func TestKernelMount_vmNotSet(t *testing.T) {
 	g.Expect(shouldErr).To(g.MatchError(internalerr.ErrSpecRequired))
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrSpecRequired))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestKernelMount_pullAndMountError(t *testing.T) {
@@ -193,6 +205,9 @@ func TestKernelMount_pullAndMountError(t *testing.T) {
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestKernelMount_emptyResponse(t *testing.T) {
@@ -215,4 +230,7 @@ func TestKernelMount_emptyResponse(t *testing.T) {
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrNoMount))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }

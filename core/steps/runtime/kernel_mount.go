@@ -95,3 +95,7 @@ func (s *kernelMount) getMountSpec() *ports.ImageMountSpec {
 		Use:          models.ImageUseKernel,
 	}
 }
+
+func (s *kernelMount) Verify(ctx context.Context) error {
+	return nil
+}

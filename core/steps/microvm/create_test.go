@@ -58,11 +58,13 @@ func TestNewCreateStep(t *testing.T) {
 
 	shouldDo, shouldErr := step.ShouldDo(ctx)
 	subSteps, doErr := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
 	g.Expect(shouldDo).To(g.BeTrue())
 	g.Expect(shouldErr).To(g.BeNil())
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.BeNil())
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewCreateStep_StateCheck(t *testing.T) {
@@ -96,9 +98,11 @@ func TestNewCreateStep_StateCheck(t *testing.T) {
 			Return(testCase.State, nil)
 
 		shouldDo, shouldErr := step.ShouldDo(ctx)
+		verifyErr := step.Verify(ctx)
 
 		g.Expect(shouldDo).To(g.Equal(testCase.ExpectToRun))
 		g.Expect(shouldErr).To(g.BeNil())
+		g.Expect(verifyErr).To(g.BeNil())
 	}
 }
 
@@ -119,9 +123,11 @@ func TestNewCreateStep_StateCheckError(t *testing.T) {
 		Return(ports.MicroVMStateUnknown, errors.New("i have no idea"))
 
 	shouldDo, shouldErr := step.ShouldDo(ctx)
+	verifyErr := step.Verify(ctx)
 
 	g.Expect(shouldDo).To(g.BeFalse())
 	g.Expect(shouldErr).ToNot(g.BeNil())
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewCreateStep_VMIsNotDefined(t *testing.T) {
@@ -137,9 +143,11 @@ func TestNewCreateStep_VMIsNotDefined(t *testing.T) {
 	step := microvm.NewCreateStep(vm, microVMService)
 
 	subSteps, err := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(err).To(g.MatchError(internalerr.ErrSpecRequired))
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestNewCreateStep_ServiceCreateError(t *testing.T) {
@@ -159,7 +167,9 @@ func TestNewCreateStep_ServiceCreateError(t *testing.T) {
 		Return(errors.New("ensuring state dir: ...."))
 
 	subSteps, err := step.Do(ctx)
+	verifyErr := step.Verify(ctx)
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(err).ToNot(g.BeNil())
+	g.Expect(verifyErr).To(g.BeNil())
 }

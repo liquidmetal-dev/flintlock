@@ -60,3 +60,7 @@ func (s *deleteStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 	return nil, nil
 }
+
+func (s *deleteStep) Verify(ctx context.Context) error {
+	return nil
+}

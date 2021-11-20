@@ -102,6 +102,10 @@ func (e *actuatorImpl) react(ctx context.Context, steps []Procedure, logger *log
 				if err != nil {
 					return numStepsExecuted, fmt.Errorf("executing step %s: %w", step.Name(), err)
 				}
+
+				if verifyErr := step.Verify(ctx); verifyErr != nil {
+					return numStepsExecuted, fmt.Errorf("verifying step %s: %w", step.Name(), verifyErr)
+				}
 			}
 		}
 

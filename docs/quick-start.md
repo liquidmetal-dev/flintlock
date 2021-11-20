@@ -8,10 +8,13 @@ and run: mdtoc -inplace docs/quick-start.md
 <!-- toc -->
 - [MacOS Users](#macos-users)
 - [Configure network](#configure-network)
+  - [Install packages and start <code>libvirtd</code>](#install-packages-and-start-)
   - [Create kvm network](#create-kvm-network)
   - [Create and connect tap device](#create-and-connect-tap-device)
 - [Containerd](#containerd)
   - [Create thinpool](#create-thinpool)
+    - [Development](#development)
+    - [Production](#production)
   - [Configuration](#configuration)
   - [Start containerd](#start-containerd)
 - [Set up Firecracker](#set-up-firecracker)
@@ -136,6 +139,11 @@ _RunC is not required; Flintlock uses various containerd services only._
 Flintlock relies on ContainerD's devicemapper snapshotter to provide filesystem
 devices for Firecracker microvms. Some configuration is required.
 
+#### Development
+
+While in development it is fine to use loop devices in place of a physical volume.
+This will save you having to provide a dedicated disk while testing.
+
 The easy quick-start option is to run the `hack/scripts/devpool.sh` script as root.
 I know, it's not recommended in general, and I'm happy you think it's not a good
 way to do things, read the comments in the script for details.
@@ -147,11 +155,46 @@ sudo apt install -y dmsetup bc
 sudo ./hack/scripts/devpool.sh
 ```
 
-Verify with `sudo dmsetup ls`.
+Verify with `sudo dmsetup ls` that a device called `dev-thinpool` has been created.
+
+#### Production
+
+In production, or if you would rather not use loops, it is recommended to use a
+real disk to back the devicemapper thinpool.
+
+A script to set this up is provided at `hack/scripts/direct_lvm.sh`. It must be
+run as root and given the name of a clean, unpartitioned and unmounted disk
+as an argument.
+
+Note: the direct lvm setup will erase the disk you provide.
+
+For example:
+
+```bash
+# locate an unused disk
+lsblk # or fdisk -l
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sda      8:0    0 447.1G  0 disk
+├─sda1   8:1    0     2M  0 part
+├─sda2   8:2    0   1.9G  0 part [SWAP]
+└─sda3   8:3    0 445.2G  0 part /
+sdb      8:16   0 447.1G  0 disk        # <---- this one looks good
+
+# run the script to set up direct lvm
+sudo ./hack/scripts/direct_lvm.sh -d sdb
+```
+
+> Run `sudo ./hack/scripts/direct_lvm.sh -h` too see all options.
+
+Verify with `sudo dmsetup ls` that a device called `flintlock-thinpool` has been created.
 
 ### Configuration
 
 Save this config to `/etc/containerd/config-dev.toml`.
+
+Don't forget to replace the `pool_name` value with the correct thinpool name.
+This will be `dev-thinpool` if you chose the development loop-device setup,
+and `flintlock-thinpool` if you setup the production direct lvm mode.
 
 ```toml
 version = 2
@@ -167,7 +210,7 @@ state = "/run/containerd-dev"
 
 [plugins]
   [plugins."io.containerd.snapshotter.v1.devmapper"]
-    pool_name = "dev-thinpool"
+    pool_name = "REPLACE_ME"
     root_path = "/var/lib/containerd-dev/snapshotter/devmapper"
     base_image_size = "10GB"
     discard_blocks = true

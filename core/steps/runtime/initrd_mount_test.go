@@ -84,6 +84,9 @@ func TestInitrdMount(t *testing.T) {
 	g.Expect(vm.Status.InitrdMount).To(
 		g.BeEquivalentTo(&expectedMount),
 	)
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestInitrdMount_noInitrd(t *testing.T) {
@@ -103,6 +106,9 @@ func TestInitrdMount_noInitrd(t *testing.T) {
 
 	g.Expect(shouldDo).To(g.BeFalse())
 	g.Expect(shouldErr).To(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestInitrdMount_statusAlreadySet(t *testing.T) {
@@ -151,6 +157,9 @@ func TestInitrdMount_statusAlreadySet(t *testing.T) {
 
 	g.Expect(shouldDo).To(g.BeFalse())
 	g.Expect(shouldErr).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestInitrdMount_vmNotSet(t *testing.T) {
@@ -171,6 +180,9 @@ func TestInitrdMount_vmNotSet(t *testing.T) {
 	g.Expect(shouldErr).To(g.MatchError(internalerr.ErrSpecRequired))
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrSpecRequired))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestInitrdMount_pullAndMountError(t *testing.T) {
@@ -193,6 +205,9 @@ func TestInitrdMount_pullAndMountError(t *testing.T) {
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).ToNot(g.BeNil())
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }
 
 func TestInitrdMount_emptyResponse(t *testing.T) {
@@ -215,4 +230,7 @@ func TestInitrdMount_emptyResponse(t *testing.T) {
 
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(doErr).To(g.MatchError(internalerr.ErrNoMount))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 }

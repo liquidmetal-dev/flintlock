@@ -14,12 +14,24 @@ jobs:
     name: e2e tests
     steps:
     - uses: actions/checkout@v2
+
+    - name: Get branch name
+      id: branch-name
+      uses: tj-actions/branch-names@v5
+
     - name: Run tests
       env:
         METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
       run: |
         pip3 install -r test/tools/requirements.txt
-        test/tools/run.py run-e2e -o ${{ secrets.EQUINIX_ORG_ID }} -p ${{ env.PROJECT_NAME }}
+        cat <<'EOF' >> e2e-config.yaml
+        ---
+        org_id: ${{ secrets.EQUINIX_ORG_ID }}
+        project_name: ${{ env.PROJECT_NAME }}
+        repo:
+          branch: ${{ steps.branch-name.outputs.current_branch }}
+        EOF
+        test/tools/run.py run-e2e -c e2e-config.yaml
 
     - name: Notify slack on failure
       uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	g "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 
 	"github.com/weaveworks/flintlock/core/steps/runtime"
@@ -26,6 +27,9 @@ func TestCreateDirectory_NotExists(t *testing.T) {
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(childSteps)).To(Equal(0))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 
 	testDirExists(t, testDir, dirMode, fs)
 }
@@ -52,6 +56,9 @@ func TestCreateDirectory_Exists(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(childSteps)).To(Equal(0))
 
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
+
 	testDirExists(t, testDir, dirMode, fs)
 }
 
@@ -77,6 +84,9 @@ func TestCreateDirectory_ExistsButChangeMode(t *testing.T) {
 	Expect(shouldDo).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(childSteps)).To(Equal(0))
+
+	verifyErr := step.Verify(ctx)
+	g.Expect(verifyErr).To(g.BeNil())
 
 	testDirExists(t, testDir, dirMode, fs)
 }

@@ -31,7 +31,6 @@ const (
 	containerdRootDir     = "/var/lib/containerd-e2e"
 	containerdStateDir    = "/run/containerd-e2e"
 	grpcDialTarget        = "127.0.0.1:9090"
-	thinpoolName          = "dev-thinpool-e2e"
 	loopDeviceTag         = "e2e"
 	containerdGrpcAddress = containerdStateDir + "/containerd.sock"
 	devMapperRoot         = containerdRootDir + "/snapshotter/devmapper"
@@ -127,7 +126,7 @@ func (r *Runner) createThinPools() {
 	}
 
 	scriptPath := filepath.Join(baseDir(), "hack", "scripts", "devpool.sh")
-	command := exec.Command(scriptPath, thinpoolName, loopDeviceTag)
+	command := exec.Command(scriptPath, r.params.ThinpoolName, loopDeviceTag)
 	session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
 
 	gm.Expect(err).NotTo(gm.HaveOccurred())
@@ -139,7 +138,7 @@ func (r *Runner) cleanupThinPools() {
 		return
 	}
 
-	gm.Expect(dmsetup.RemoveDevice(thinpoolName, dmsetup.RemoveWithForce)).To(gm.Succeed())
+	gm.Expect(dmsetup.RemoveDevice(r.params.ThinpoolName, dmsetup.RemoveWithForce)).To(gm.Succeed())
 
 	cmd := exec.Command("losetup")
 	loopDevices := grep(cmd, loopDeviceTag, 0)
@@ -153,6 +152,15 @@ func (r *Runner) cleanupThinPools() {
 }
 
 func (r *Runner) writeContainerdConfig() {
+	dmplug := map[string]interface{}{
+		"pool_name":       r.params.ThinpoolName,
+		"root_path":       devMapperRoot,
+		"base_image_size": "10GB",
+		"discard_blocks":  "true",
+	}
+	pluginTree, err := toml.TreeFromMap(dmplug)
+	gm.Expect(err).NotTo(gm.HaveOccurred())
+
 	cfg := ccfg.Config{
 		Version: 2,
 		Root:    containerdRootDir,
@@ -166,20 +174,9 @@ func (r *Runner) writeContainerdConfig() {
 		Debug: ccfg.Debug{
 			Level: r.params.ContainerdLogLevel,
 		},
-	}
-
-	if !r.params.SkipSetupThinpool {
-		dmplug := map[string]interface{}{
-			"pool_name":       thinpoolName,
-			"root_path":       devMapperRoot,
-			"base_image_size": "10GB",
-			"discard_blocks":  "true",
-		}
-		pluginTree, err := toml.TreeFromMap(dmplug)
-		gm.Expect(err).NotTo(gm.HaveOccurred())
-		cfg.Plugins = map[string]toml.Tree{
+		Plugins: map[string]toml.Tree{
 			"io.containerd.snapshotter.v1.devmapper": *pluginTree,
-		}
+		},
 	}
 
 	f, err := os.Create(containerdCfg)

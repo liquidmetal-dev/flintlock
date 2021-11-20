@@ -1,15 +1,13 @@
-from metal import Welder
+from metal.welder import Welder
 
+
+THINPOOL_NAME = "flintlock-thinpool"
 
 class Test:
     def __init__(self, auth_token, config):
         self.testCfg = config['test']
         devCfg = config['device']
-
         self.welder = Welder(auth_token, config)
-        self.prj_name = config['project']
-        self.key_name = devCfg['ssh_key_name']
-        self.dev_name = devCfg['name']
         self.skip_teardown = self.testCfg['skip_teardown']
         self.dev_id = devCfg['id']
         self.dev_ip = None
@@ -30,12 +28,12 @@ class Test:
         cmd = ['./test/e2e/test.sh',
                '-level.flintlockd', self.testCfg['flintlock_log_level'],
                '-level.containerd', self.testCfg['containerd_log_level'],
+               '-skip.setup.thinpool',
+               '-thinpool', THINPOOL_NAME
                ]
         if self.testCfg['skip_delete']:
             cmd.append('-skip.teardown')
             cmd.append('-skip.delete')
-        if self.testCfg['skip_dmsetup']:
-            cmd.append('-skip.setup.thinpool')
         try:
             self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
         except RuntimeError as e:

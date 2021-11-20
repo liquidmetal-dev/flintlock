@@ -96,3 +96,7 @@ func (s deleteInterface) ShouldDo(ctx context.Context) (bool, error) {
 
 	return exists, nil
 }
+
+func (s deleteInterface) Verify(ctx context.Context) error {
+	return nil
+}
