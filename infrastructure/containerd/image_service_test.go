@@ -51,7 +51,7 @@ func TestImageService_Pull(t *testing.T) {
 		ImageName: testImage,
 		Owner:     testOwner,
 	})
-	g.Expect(err).ToNot(g.HaveOccurred())
+	g.Expect(err).NotTo(g.HaveOccurred())
 }
 
 // TestImageService_Pull_failedLease tests what happens when something goes
@@ -150,7 +150,7 @@ func TestImageService_PullAndMount(t *testing.T) {
 		Use:          models.ImageUseVolume,
 		OwnerUsageID: testOwnerID,
 	})
-	g.Expect(err).ToNot(g.HaveOccurred())
+	g.Expect(err).NotTo(g.HaveOccurred())
 }
 
 // TestImageService_PullAndMount_failedLease tests what happens when something

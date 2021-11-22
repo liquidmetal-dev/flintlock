@@ -205,7 +205,7 @@ func TestImageService_Integration(t *testing.T) {
 		ImageName: getTestVolumeImage(),
 		Owner:     testOwnerUsageID,
 	})
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 	Expect(exists).To(BeTrue())
 
 	mounts, err = imageSvc.PullAndMount(ctx, &ports.ImageMountSpec{
@@ -276,6 +276,6 @@ func testImageMounted(ctx context.Context, imageSvc ports.ImageService, opts tes
 		Use:          opts.Use,
 		OwnerUsageID: testOwnerUsageID,
 	})
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 	Expect(mounted).To(Equal(opts.Expected))
 }
