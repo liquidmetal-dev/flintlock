@@ -1,4 +1,3 @@
-
 # Flintlock - Create and manage the lifecycle of MicroVMs, backed by containerd.
 
 [![GitHub](https://img.shields.io/github/license/weaveworks/flintlock)](https://img.shields.io/github/license/weaveworks/flintlock)
