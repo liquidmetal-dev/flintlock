@@ -17,10 +17,9 @@
       "image": "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
       "filename": "initrd-generic"
     },
-    "volumes": [
+    "rootVolume": [
       {
         "id": "root",
-        "is_root": true,
         "is_read_only": false,
         "mount_point": "/",
         "source": {
@@ -30,16 +29,8 @@
     ],
     "interfaces": [
       {
-        "guest_device_name": "eth0",
-        "type": 1,
-        "allow_metadata_req": true,
-        "guest_mac": "AA:FF:00:00:00:01",
-        "address": "169.254.0.1/16"
-      },
-      {
         "guest_device_name": "eth1",
-        "type": 0,
-        "allow_metadata_req": false
+        "type": 0
       }
     ],
     "metadata": {
