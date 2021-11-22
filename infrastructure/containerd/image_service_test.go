@@ -85,7 +85,7 @@ func TestImageService_Pull_failedLease(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
-// TestImageService_Pull_failedLease tests a successful PullAndMount.
+// TestImageService_PullAndMount tests a successful PullAndMount.
 func TestImageService_PullAndMount(t *testing.T) {
 	g.RegisterTestingT(t)
 
