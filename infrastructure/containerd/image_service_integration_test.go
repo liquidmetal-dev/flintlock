@@ -62,8 +62,8 @@ func TestImageService_Integration(t *testing.T) {
 
 	defer func() {
 		// Make sure it's deleted.
-		client.ImageService().Delete(namespaceCtx, testImageKernel)
-		client.ImageService().Delete(namespaceCtx, testImageVolume)
+		client.ImageService().Delete(namespaceCtx, getTestKernelImage())
+		client.ImageService().Delete(namespaceCtx, getTestVolumeImage())
 		client.SnapshotService(testSnapshotter).Remove(namespaceCtx, expectedSnapshotName)
 		leases, _ := client.LeasesService().List(namespaceCtx)
 		for _, lease := range leases {
@@ -123,20 +123,20 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(len(leases)).To(Equal(1))
 	Expect(leases[0].ID).To(Equal(expectedLeaseName), "expect lease with name %s to exists", expectedLeaseName)
 
-	inputGet.ImageName = testImageKernel
+	inputGet.ImageName = getTestKernelImage()
 
 	err = imageSvc.Pull(ctx, inputGet)
 	Expect(err).NotTo(HaveOccurred())
 
 	exists, err := imageSvc.Exists(ctx, &ports.ImageSpec{
-		ImageName: testImageVolume,
+		ImageName: getTestVolumeImage(),
 		Owner:     testOwnerUsageID,
 	})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(exists).To(BeTrue())
 
 	mounts, err = imageSvc.PullAndMount(ctx, &ports.ImageMountSpec{
-		ImageName:    testImageKernel,
+		ImageName:    getTestKernelImage(),
 		Owner:        testOwnerUsageID,
 		Use:          models.ImageUseKernel,
 		OwnerUsageID: testOwnerUsageID,
@@ -145,14 +145,14 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(mounts).NotTo(BeNil())
 	Expect(len(mounts)).To(Equal(1))
 
-	err = client.ImageService().Delete(namespaceCtx, testImageKernel)
+	err = client.ImageService().Delete(namespaceCtx, getTestKernelImage())
 	Expect(err).NotTo(HaveOccurred())
 
-	err = client.ImageService().Delete(namespaceCtx, testImageVolume)
+	err = client.ImageService().Delete(namespaceCtx, getTestVolumeImage())
 	Expect(err).NotTo(HaveOccurred())
 
 	exists, err = imageSvc.Exists(ctx, &ports.ImageSpec{
-		ImageName: testImageKernel,
+		ImageName: getTestKernelImage(),
 		Owner:     testOwnerUsageID,
 	})
 	Expect(err).ToNot(HaveOccurred())
