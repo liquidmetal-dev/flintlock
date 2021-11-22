@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/leases"
 )
 
-func withOwnerLease(ctx context.Context, owner string, client *containerd.Client) (context.Context, error) {
+func withOwnerLease(ctx context.Context, owner string, client Client) (context.Context, error) {
 	leaseName := getLeaseNameForOwner(owner)
 
 	l, err := getExistingOrCreateLease(ctx, leaseName, client.LeasesService())
@@ -41,7 +40,7 @@ func getExistingOrCreateLease(ctx context.Context, name string, manager leases.M
 	return &lease, nil
 }
 
-func deleteLease(ctx context.Context, owner string, client *containerd.Client) error {
+func deleteLease(ctx context.Context, owner string, client Client) error {
 	leaseName := getLeaseNameForOwner(owner)
 	lease := leases.Lease{ID: leaseName}
 

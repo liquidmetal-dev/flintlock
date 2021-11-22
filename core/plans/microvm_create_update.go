@@ -111,8 +111,20 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 	vm *models.MicroVM,
 	imageSvc ports.ImageService,
 ) error {
-	for i := range vm.Spec.Volumes {
-		vol := vm.Spec.Volumes[i]
+	rootStatus, ok := vm.Status.Volumes[vm.Spec.RootVolume.ID]
+	if !ok {
+		rootStatus = &models.VolumeStatus{}
+		vm.Status.Volumes[vm.Spec.RootVolume.ID] = rootStatus
+	}
+
+	if vm.Spec.RootVolume.Source.Container != nil {
+		if err := p.addStep(ctx, runtime.NewVolumeMount(&vm.ID, &vm.Spec.RootVolume, rootStatus, imageSvc)); err != nil {
+			return fmt.Errorf("adding root volume mount step: %w", err)
+		}
+	}
+
+	for i := range vm.Spec.AdditionalVolumes {
+		vol := vm.Spec.AdditionalVolumes[i]
 
 		status, ok := vm.Status.Volumes[vol.ID]
 		if !ok {

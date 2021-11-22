@@ -120,10 +120,9 @@ func runCreateVMPlanTest(ctx context.Context, nodeNum int, sshKey string, logger
 				Image:    models.ContainerImage(kernelImage),
 				Filename: "initrd-generic",
 			},
-			Volumes: models.Volumes{
+			AdditionalVolumes: models.Volumes{
 				{
 					ID:         "root",
-					IsRoot:     true,
 					IsReadOnly: false,
 					MountPoint: "/",
 					Source: models.VolumeSource{

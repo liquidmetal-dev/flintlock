@@ -99,29 +99,18 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 			Image:    kernelImage,
 			Filename: pointyString("initrd-generic"),
 		},
-		Volumes: []*types.Volume{
-			{
-				Id:         "root",
-				IsRoot:     true,
-				IsReadOnly: true,
-				MountPoint: "/",
-				Source: &types.VolumeSource{
-					ContainerSource: pointyString(cloudImage),
-				},
+		RootVolume: &types.Volume{
+			Id:         "root",
+			IsReadOnly: true,
+			MountPoint: "/",
+			Source: &types.VolumeSource{
+				ContainerSource: pointyString(cloudImage),
 			},
 		},
 		Interfaces: []*types.NetworkInterface{
 			{
-				GuestDeviceName:  "eth0",
-				Type:             1,
-				AllowMetadataReq: true,
-				GuestMac:         pointyString("AA:FF:00:00:00:01"),
-				Address:          pointyString("169.254.0.1/16"),
-			},
-			{
-				GuestDeviceName:  "eth1",
-				Type:             0,
-				AllowMetadataReq: false,
+				GuestDeviceName: "eth0",
+				Type:            0,
 			},
 		},
 		Metadata: map[string]string{
