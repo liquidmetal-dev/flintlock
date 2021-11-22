@@ -27,7 +27,7 @@ func NewImageService(cfg *Config) (ports.ImageService, error) {
 }
 
 // NewImageServiceWithClient will create a new image service based on containerd with the supplied containerd client.
-func NewImageServiceWithClient(cfg *Config, client *containerd.Client) ports.ImageService {
+func NewImageServiceWithClient(cfg *Config, client Client) ports.ImageService {
 	return &imageService{
 		config: cfg,
 		client: client,
@@ -35,7 +35,7 @@ func NewImageServiceWithClient(cfg *Config, client *containerd.Client) ports.Ima
 }
 
 type imageService struct {
-	client *containerd.Client
+	client Client
 	config *Config
 }
 
