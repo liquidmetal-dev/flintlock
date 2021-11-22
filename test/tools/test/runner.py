@@ -3,6 +3,7 @@ from metal.welder import Welder
 
 THINPOOL_NAME = "flintlock-thinpool"
 
+
 class Test:
     def __init__(self, auth_token, config):
         self.testCfg = config['test']
@@ -46,14 +47,14 @@ class Test:
         self.welder.delete_all()
 
     def create_infra(self):
-        self.dev_ip = self.welder.create_all()
+        self.dev_ip, self.dev_id = self.welder.create_all()
 
     def fetch_infra(self):
         try:
-            ip = self.welder.get_device_ip(self.dev_id)
+            self.welder.set_key_dir()
+            self.dev_ip = self.welder.get_device_ip(self.dev_id)
         except:
             raise
-        self.ip = ip
 
     def device_details(self):
         return self.dev_id, self.dev_ip
