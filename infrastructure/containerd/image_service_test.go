@@ -21,6 +21,7 @@ const (
 	testOwnerID = "testownerid"
 )
 
+// TestImageService_Pull tests a successful Pull.
 func TestImageService_Pull(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -53,6 +54,8 @@ func TestImageService_Pull(t *testing.T) {
 	g.Expect(err).ToNot(g.HaveOccurred())
 }
 
+// TestImageService_Pull_failedLease tests what happens when something goes
+// wrong with Leases.
 func TestImageService_Pull_failedLease(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -82,6 +85,7 @@ func TestImageService_Pull_failedLease(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_Pull_failedLease tests a successful PullAndMount.
 func TestImageService_PullAndMount(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -149,6 +153,8 @@ func TestImageService_PullAndMount(t *testing.T) {
 	g.Expect(err).ToNot(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedLease tests what happens when something
+// goes wrong with Leases.
 func TestImageService_PullAndMount_failedLease(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -180,6 +186,8 @@ func TestImageService_PullAndMount_failedLease(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedLeaseOnImageCheck tests what happens
+// when something goes wrong with Leases on imageExists.
 func TestImageService_PullAndMount_failedLeaseOnImageCheck(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -216,6 +224,8 @@ func TestImageService_PullAndMount_failedLeaseOnImageCheck(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedImageCheck tests what happens when
+// something goes wrong with imageExists (and not Leases).
 func TestImageService_PullAndMount_failedImageCheck(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -254,6 +264,8 @@ func TestImageService_PullAndMount_failedImageCheck(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedUnpackCheck tests what happens when
+// something goes wrong with unpack check.
 func TestImageService_PullAndMount_failedUnpackCheck(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -299,6 +311,8 @@ func TestImageService_PullAndMount_failedUnpackCheck(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedUnpackCheck tests what happens when
+// something goes wrong with unpack.
 func TestImageService_PullAndMount_failedUnpack(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -348,6 +362,8 @@ func TestImageService_PullAndMount_failedUnpack(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedRootFS tests what happens when
+// something goes wrong with retrieving RootFS.
 func TestImageService_PullAndMount_failedRootFS(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -400,6 +416,8 @@ func TestImageService_PullAndMount_failedRootFS(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedSnapshotCheck tests what happens when
+// something goes wrong checking the snapshot.
 func TestImageService_PullAndMount_failedSnapshotCheck(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -461,6 +479,8 @@ func TestImageService_PullAndMount_failedSnapshotCheck(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_PullAndMount_failedPrepare tests what happens when
+// something goes wrong preparing the snapshot.
 func TestImageService_PullAndMount_failedPrepare(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -529,6 +549,8 @@ func TestImageService_PullAndMount_failedPrepare(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_IsMounted_failedImageCheck tests what happens when
+// something goes wrong with imageExists.
 func TestImageService_IsMounted_failedImageCheck(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -564,6 +586,8 @@ func TestImageService_IsMounted_failedImageCheck(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
+// TestImageService_IsMounted_failedSnapshotCheck tests what happens when
+// something goes wrong with snapshotExists.
 func TestImageService_IsMounted_failedSnapshotCheck(t *testing.T) {
 	g.RegisterTestingT(t)
 
