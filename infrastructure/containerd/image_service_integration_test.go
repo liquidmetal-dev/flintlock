@@ -68,11 +68,6 @@ const (
 // We do the same checks for kernel. The kernel and volume works the same way,
 // and the real reason why we test it here because the usage type is different,
 // and we should be able to pull and mount them.
-//
-// == Chapter IV: Delete
-//
-// We should be able to delete both the volume and the kernel image. After we
-// delete them, we should see zero images in containerd.
 func TestImageService_Integration(t *testing.T) {
 	if !runContainerDTests() {
 		t.Skip("skipping containerd image service integration test")
@@ -113,12 +108,27 @@ func TestImageService_Integration(t *testing.T) {
 
 	defer func() {
 		// Make sure it's deleted.
-		client.ImageService().Delete(namespaceCtx, getTestKernelImage())
-		client.ImageService().Delete(namespaceCtx, getTestVolumeImage())
-		client.SnapshotService(testSnapshotter).Remove(namespaceCtx, expectedSnapshotName)
-		leases, _ := client.LeasesService().List(namespaceCtx)
+		if err := client.ImageService().Delete(namespaceCtx, getTestKernelImage()); err != nil {
+			t.Logf("Unable to delete the %s volume: %s\n", getTestKernelImage(), err.Error())
+		}
+
+		if err := client.ImageService().Delete(namespaceCtx, getTestVolumeImage()); err != nil {
+			t.Logf("Unable to delete the %s volume: %s\n", getTestVolumeImage(), err.Error())
+		}
+
+		if err := client.SnapshotService(testSnapshotter).Remove(namespaceCtx, expectedSnapshotName); err != nil {
+			t.Logf("Unable to delete the %s snapshot: %s\n", expectedSnapshotName, err.Error())
+		}
+
+		leases, err := client.LeasesService().List(namespaceCtx)
+		if err != nil {
+			t.Logf("Unable to list leases: %s\n", err.Error())
+		}
+
 		for _, lease := range leases {
-			client.LeasesService().Delete(namespaceCtx, lease)
+			if err := client.LeasesService().Delete(namespaceCtx, lease); err != nil {
+				t.Logf("Unable to delete %s lease: %s\n", lease.ID, err.Error())
+			}
 		}
 	}()
 
@@ -207,27 +217,6 @@ func TestImageService_Integration(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mounts).NotTo(BeNil())
 	Expect(len(mounts)).To(Equal(1))
-
-	//
-	// Chapter IV: Delete
-	//
-
-	err = client.ImageService().Delete(namespaceCtx, getTestKernelImage())
-	Expect(err).NotTo(HaveOccurred())
-
-	err = client.ImageService().Delete(namespaceCtx, getTestVolumeImage())
-	Expect(err).NotTo(HaveOccurred())
-
-	exists, err = imageSvc.Exists(ctx, &ports.ImageSpec{
-		ImageName: getTestKernelImage(),
-		Owner:     testOwnerUsageID,
-	})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(exists).To(BeFalse())
-
-	images, err := client.ImageService().List(namespaceCtx)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(len(images)).To(BeZero())
 }
 
 func testCreateClient(t *testing.T) (*ctr.Client, context.Context) {
