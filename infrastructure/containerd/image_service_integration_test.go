@@ -278,7 +278,8 @@ type testImageMountOptions struct {
 	Expected  bool
 }
 
-// testImageMounted checks if we can mount an image.
+// testImageMounted checks that images have been mounted
+// tests the IsMounted method
 func testImageMounted(ctx context.Context, imageSvc ports.ImageService, opts testImageMountOptions) {
 	mounted, err := imageSvc.IsMounted(ctx, &ports.ImageMountSpec{
 		ImageName:    opts.ImageName,
