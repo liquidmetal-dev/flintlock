@@ -63,11 +63,10 @@ Implement the following changes to the Flintlock API:
 
 | Name | Description | Model | Value |
 |----------|---|---------|---------|
-| MicroVM Resources <img width="100px"/> | Provide default values for MicroVM VCPUs and RAM. This can be difficult to get right, but is even supported in Firecracker itself. However, Firecracker defaults to 1 VCPU and 128MB of RAM, which is probably a bit small for our particular use case. | `MicroVM.VCPU`<br />`MicroVM.MemoryInMb` <img width="400px"/> | `vcpu: 2`<br />`memory_in_mb: 1024` <img width="400px"/> |
+| MicroVM Resources <img width="100px"/> | Provide default values for MicroVM VCPUs and RAM. This can be difficult to get right, but is even supported in Firecracker itself. However, Firecracker defaults to 1 VCPU and 128MB of RAM, which is probably a bit small for our particular use case. | `MicroVM.VCPU`<br />`MicroVM.MemoryInMb` <img width="200px"/> | `vcpu: 2`<br />`memory_in_mb: 1024` <img width="200px"/> |
 | Default Namespace | If a namespace is not provided than default to using the `default` namespace | `MicroVM.Namespace` | `default` |
 | Metadata network interface | Automatically generate metadata network interface with address of `169.254.0.1/16` and `allow_metadata_req: true` | `MicroVM.NetworkInterfaces` | `169.254.0.1/16` |
 | Remove allow metadata requests  | If the metadata network interface is created automatically then we should remove the `allow_metadata_req` option on the network interface model | `MicroVM.NetworkInterfaces` |  |
-| Network interface name | Automatically generate the network interface name when one is not provided. | `MicroVM.NetworkInterfaces[*].GuestDeviceName` | |
 | `RootVolume` and `AdditionalVolumes[]` | Separate the `Volumes` field in the model into two fields. `RootVolume` specifically for the root volume, allowing us to hide the `is_root` flag, and `AdditionalVolumes[]` for non-root volumes. | `MicroVM.Volumes` | `MicroVM.RootVolume` and `MicroVM.AdditionalVolumes[]` |
 
 Note: This proposal _specifically_ avoids diving too deep into implementation details. E.g. Automatically generating a network device name will require us to validate that there are no conflicts in the name we use. These implementation details belong within the scope of the implementation phase and PR discussion.

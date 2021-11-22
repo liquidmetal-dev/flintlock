@@ -61,7 +61,15 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 
 		cfg.BlockDevices = []BlockDeviceConfig{}
 
-		for _, vol := range vm.Spec.Volumes {
+		cfg.BlockDevices = append(cfg.BlockDevices, BlockDeviceConfig{
+			ID:           vm.Spec.RootVolume.ID,
+			IsReadOnly:   vm.Spec.RootVolume.IsReadOnly,
+			IsRootDevice: true,
+			PathOnHost:   vm.Spec.RootVolume.MountPoint,
+			CacheType:    CacheTypeUnsafe,
+		})
+
+		for _, vol := range vm.Spec.AdditionalVolumes {
 			status, ok := vm.Status.Volumes[vol.ID]
 			if !ok {
 				return errors.NewVolumeNotMounted(vol.ID)
@@ -70,7 +78,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			cfg.BlockDevices = append(cfg.BlockDevices, BlockDeviceConfig{
 				ID:           vol.ID,
 				IsReadOnly:   vol.IsReadOnly,
-				IsRootDevice: vol.IsRoot,
+				IsRootDevice: false,
 				PathOnHost:   status.Mount.Source,
 				// Partuuid: ,
 				// RateLimiter: ,

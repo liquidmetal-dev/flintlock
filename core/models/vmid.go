@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	coreerrs "github.com/weaveworks/flintlock/core/errors"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 )
 
 const (
@@ -31,7 +32,7 @@ func NewVMID(name, namespace string) (*VMID, error) {
 	}
 
 	if namespace == "" {
-		return nil, coreerrs.ErrNamespaceRequired
+		namespace = defaults.Namespace
 	}
 
 	return &VMID{
