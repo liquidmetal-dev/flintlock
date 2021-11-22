@@ -32,7 +32,7 @@ func TestEventService_Integration(t *testing.T) {
 	es := containerd.NewEventServiceWithClient(&containerd.Config{
 		SnapshotterKernel: testSnapshotter,
 		SnapshotterVolume: testSnapshotter,
-		Namespace:         testContainerdNs,
+		Namespace:         testContainerdNS,
 	}, client)
 
 	testEvents := []*events.MicroVMSpecCreated{
