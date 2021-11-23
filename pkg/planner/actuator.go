@@ -13,7 +13,7 @@ import (
 // Actuator will execute the given plan.
 type Actuator interface {
 	// Execute the plan.
-	Execute(ctx context.Context, p Plan, executionID string) (int, error)
+	Execute(ctx context.Context, p Plan) (int, error)
 }
 
 // NewActuator creates a new actuator.
@@ -24,10 +24,9 @@ func NewActuator() Actuator {
 type actuatorImpl struct{}
 
 // Execute will execute the plan.
-func (e *actuatorImpl) Execute(ctx context.Context, plan Plan, executionID string) (int, error) {
+func (e *actuatorImpl) Execute(ctx context.Context, plan Plan) (int, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
-		"execution_id": executionID,
-		"plan_name":    plan.Name(),
+		"plan_name": plan.Name(),
 	})
 
 	start := time.Now().UTC()

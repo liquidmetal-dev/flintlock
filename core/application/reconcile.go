@@ -115,7 +115,15 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 }
 
 func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logrus.Entry) error {
-	localLogger := logger.WithField("vmid", spec.ID.String())
+	reconciliationID, err := a.ports.IdentifierService.GenerateRandom()
+	if err != nil {
+		return fmt.Errorf("generating reconciliationID id: %w", err)
+	}
+
+	localLogger := logger.WithFields(logrus.Fields{
+		"reconciliation_id": reconciliationID,
+		"vmid":              spec.ID.String(),
+	})
 	localLogger.Info("Starting reconciliation")
 
 	if spec.Status.Retry > a.cfg.MaximumRetry {
@@ -131,21 +139,10 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	}
 
 	plan := a.plan(spec, localLogger)
-
-	execCtx := portsctx.WithPorts(ctx, a.ports)
-
-	executionID, err := a.ports.IdentifierService.GenerateRandom()
-	if err != nil {
-		if scheduleErr := a.reschedule(ctx, localLogger, spec); scheduleErr != nil {
-			return fmt.Errorf("rescheduling failed: %w", scheduleErr)
-		}
-
-		return fmt.Errorf("generating plan execution id: %w", err)
-	}
-
+	execCtx := log.WithLogger(portsctx.WithPorts(ctx, a.ports), localLogger)
 	actuator := planner.NewActuator()
 
-	stepCount, err := actuator.Execute(execCtx, plan, executionID)
+	stepCount, err := actuator.Execute(execCtx, plan)
 	if err != nil {
 		if scheduleErr := a.reschedule(ctx, localLogger, spec); scheduleErr != nil {
 			return fmt.Errorf("rescheduling failed: %w", scheduleErr)
