@@ -35,18 +35,18 @@ type VmmConfig struct {
 	// Logger is the logger configuration.
 	Logger *LoggerConfig `json:"logger,omitempty"`
 	// MachineConfig contains the microvm machine config.
-	MachineConfig VMConfig `json:"machine-config"`
+	MachineConfig MachineConfig `json:"machine-config"`
 	// Metrics is the metrics configuration.
 	Metrics *MetricsConfig `json:"metrics,omitempty"`
 	// Mmds is the configuration for the metadata service
-	Mmds *MmdsConfig `json:"MmdsConfig,omitempty"`
+	Mmds *MMDSConfig `json:"MmdsConfig,omitempty"`
 	// NetDevices is the configuration for the microvm network devices.
 	NetDevices []NetworkInterfaceConfig `json:"network-interfaces"`
 	// VsockDevice is the configuration for the vsock device.
 	VsockDevice *VsockDeviceConfig `json:"vsock,omitempty"`
 }
 
-type VMConfig struct {
+type MachineConfig struct {
 	// VcpuCount is the number of vcpu to start.
 	VcpuCount int64 `json:"vcpu_count"`
 	// MemSizeMib is the memory size in MiB.
@@ -145,8 +145,8 @@ type MetricsConfig struct {
 	Path string `json:"metrics_path"`
 }
 
-// MmdsConfig is the config related to the mmds.
-type MmdsConfig struct {
+// MMDSConfig is the config related to the mmds.
+type MMDSConfig struct {
 	// IPV4Address is the MMDS IPv4 configured address.
 	IPV4Address *string `json:"ipv4_address,omitempty"`
 }

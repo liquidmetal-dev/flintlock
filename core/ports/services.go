@@ -18,7 +18,7 @@ type MicroVMService interface {
 	// DeleteVM will delete a VM and its runtime state.
 	Delete(ctx context.Context, id string) error
 	// StartVM will start a created microvm.
-	Start(ctx context.Context, id string) error
+	Start(ctx context.Context, vm *models.MicroVM) error
 	// PauseVM will pause a started microvm.
 	Pause(ctx context.Context, id string) error
 	// ResumeVM will resume a paused microvm.

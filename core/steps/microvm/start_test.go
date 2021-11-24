@@ -60,7 +60,7 @@ func TestNewStartStep(t *testing.T) {
 
 	microVMService.
 		EXPECT().
-		Start(ctx, vm.ID.String()).
+		Start(ctx, vm).
 		Return(nil)
 
 	shouldDo, shouldErr := step.ShouldDo(ctx)
@@ -164,7 +164,7 @@ func TestNewStartStep_ServiceStartError(t *testing.T) {
 
 	microVMService.
 		EXPECT().
-		Start(ctx, vm.ID.String()).
+		Start(ctx, vm).
 		Return(errors.New("nope"))
 
 	subSteps, err := step.Do(ctx)
@@ -186,7 +186,7 @@ func TestNewStartStep_unableToBoot(t *testing.T) {
 
 	microVMService.
 		EXPECT().
-		Start(ctx, vm.ID.String()).
+		Start(ctx, vm).
 		Return(nil)
 
 	microVMService.
@@ -197,7 +197,7 @@ func TestNewStartStep_unableToBoot(t *testing.T) {
 	subSteps, err := step.Do(ctx)
 	g.Expect(err).To(g.BeNil())
 	g.Expect(subSteps).To(g.BeEmpty())
-	
+
 	verifyErr := step.Verify(ctx)
 	g.Expect(verifyErr).To(g.MatchError(internalerr.ErrUnableToBoot))
 

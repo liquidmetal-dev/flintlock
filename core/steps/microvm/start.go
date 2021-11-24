@@ -64,7 +64,7 @@ func (s *startStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	})
 	logger.Debug("starting microvm")
 
-	if err := s.vmSvc.Start(ctx, s.vm.ID.String()); err != nil {
+	if err := s.vmSvc.Start(ctx, s.vm); err != nil {
 		return nil, fmt.Errorf("starting microvm: %w", err)
 	}
 

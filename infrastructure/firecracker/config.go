@@ -1,12 +1,10 @@
 package firecracker
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
-	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 	"gopkg.in/yaml.v3"
 
 	"github.com/weaveworks/flintlock/core/errors"
@@ -39,7 +37,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			return errors.ErrSpecRequired
 		}
 
-		cfg.MachineConfig = VMConfig{
+		cfg.MachineConfig = MachineConfig{
 			MemSizeMib: vm.Spec.MemoryInMb,
 			VcpuCount:  vm.Spec.VCPU,
 			HTEnabled:  false,
@@ -130,118 +128,6 @@ func WithState(vmState State) ConfigOption {
 
 		return nil
 	}
-}
-
-func ApplyConfig(ctx context.Context, cfg *VmmConfig, client *firecracker.Client) error {
-	machineConf := &fcmodels.MachineConfiguration{
-		VcpuCount:  &cfg.MachineConfig.VcpuCount,
-		MemSizeMib: &cfg.MachineConfig.MemSizeMib,
-		HtEnabled:  &cfg.MachineConfig.HTEnabled,
-	}
-	if cfg.MachineConfig.CPUTemplate != nil {
-		machineConf.CPUTemplate = fcmodels.CPUTemplate(*cfg.MachineConfig.CPUTemplate)
-	}
-
-	_, err := client.PutMachineConfiguration(ctx, machineConf)
-	if err != nil {
-		return fmt.Errorf("failed to put machine configuration: %w", err)
-	}
-
-	for _, drive := range cfg.BlockDevices {
-		_, requestErr := client.PutGuestDriveByID(ctx, drive.ID, &fcmodels.Drive{
-			DriveID:      &drive.ID,
-			IsReadOnly:   &drive.IsReadOnly,
-			IsRootDevice: &drive.IsRootDevice,
-			Partuuid:     drive.PartUUID,
-			PathOnHost:   &drive.PathOnHost,
-		})
-		if requestErr != nil {
-			return fmt.Errorf("putting drive configuration: %w", requestErr)
-		}
-	}
-
-	for i, netInt := range cfg.NetDevices {
-		guestIfaceName := fmt.Sprintf("eth%d", i)
-
-		_, requestErr := client.PutGuestNetworkInterfaceByID(ctx, guestIfaceName, &fcmodels.NetworkInterface{
-			IfaceID:           &guestIfaceName,
-			GuestMac:          netInt.GuestMAC,
-			HostDevName:       &netInt.HostDevName,
-			AllowMmdsRequests: netInt.AllowMMDSRequests,
-		})
-		if requestErr != nil {
-			return fmt.Errorf("putting %s network configuration: %w", guestIfaceName, requestErr)
-		}
-	}
-
-	bootSource := fcmodels.BootSource{
-		BootArgs:        "",
-		InitrdPath:      "",
-		KernelImagePath: &cfg.BootSource.KernelImagePage,
-	}
-
-	if cfg.BootSource.BootArgs != nil {
-		bootSource.BootArgs = *cfg.BootSource.BootArgs
-	}
-
-	if cfg.BootSource.InitrdPath != nil {
-		bootSource.InitrdPath = *cfg.BootSource.InitrdPath
-	}
-
-	_, err = client.PutGuestBootSource(ctx, &bootSource)
-	if err != nil {
-		return fmt.Errorf("failed to put machine bootsource: %w", err)
-	}
-
-	if cfg.Logger != nil {
-		_, err = client.PutLogger(ctx, &fcmodels.Logger{
-			LogPath:       &cfg.Logger.LogPath,
-			ShowLevel:     ptr.Bool(true),
-			ShowLogOrigin: ptr.Bool(true),
-			Level:         ptr.String(string(cfg.Logger.Level)),
-		})
-		if err != nil {
-			return fmt.Errorf("failed to put logging configuration: %w", err)
-		}
-	}
-
-	if cfg.Metrics != nil {
-		_, err = client.PutMetrics(ctx, &fcmodels.Metrics{
-			MetricsPath: &cfg.Metrics.Path,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to put metrics configuration: %w", err)
-		}
-	}
-	// vsock
-	// mmds
-
-	return nil
-}
-
-func ApplyMetadata(ctx context.Context, metadata map[string]string, client *firecracker.Client) error {
-	if len(metadata) == 0 {
-		return nil
-	}
-
-	meta := &Metadata{
-		Latest: map[string]string{},
-	}
-
-	for metadataKey, metadataVal := range metadata {
-		encodedVal, err := base64.StdEncoding.DecodeString(metadataVal)
-		if err != nil {
-			return fmt.Errorf("base64 decoding metadata %s: %w", metadataKey, err)
-		}
-
-		meta.Latest[metadataKey] = string(encodedVal)
-	}
-
-	if _, err := client.PutMmds(ctx, meta); err != nil {
-		return fmt.Errorf("putting %d metadata items into mmds: %w", len(meta.Latest), err)
-	}
-
-	return nil
 }
 
 func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkInterfaceStatus) *NetworkInterfaceConfig {
