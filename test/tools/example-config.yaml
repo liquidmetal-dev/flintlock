@@ -14,7 +14,17 @@ device:
   skip_dmsetup: false # skip the thinpool setup
   name: "test-device" # omit if device.id set
   id: "abcdef123456" # set if using existing device
-  ssh_key_name: "test-key"
+  ssh:
+    # create new keys for the device, will use name and write to path if set
+    # otherwise will create a new key and save the files to a tempdir
+    create_new: true
+    # name of key to use or create
+    name: "test-key"
+    # must be set to existing dir when `device.id` is set or `create_new`
+    # is false, otherwise optional.
+    # when set in the case of using existing keys, the dir must contain child
+    # dir `key` and contain files named `public.key` and `private.key`.
+    path: "/abs/path/to/keys/dir"
   # the following mirror the equinix options
   # see https://metal.equinix.com/developers/docs/ for values
   userdata: "echo hello"

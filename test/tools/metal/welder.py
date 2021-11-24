@@ -1,11 +1,16 @@
 import packet
+from packet import ResponseError
 import time
 import spur
 import logging
+import string
+import random
 import os
 import sys
 from .error import CapacityError
+import shutil
 from Crypto.PublicKey import RSA
+from pathlib import Path
 from os.path import dirname, abspath
 
 
@@ -14,10 +19,12 @@ class Welder():
         self.config = config
         self.org_id = config['org_id']
         self.packet_manager = packet.Manager(auth_token=auth_token)
-        self.private_key_path = dirname(abspath(__file__)) + "/private.key"
-        self.public_key_path = dirname(abspath(__file__)) + "/public.key"
         self.logger = self.set_logger(level)
         self.ip = None
+        self.project = None
+        self.key = None
+        self.key_dir = ""
+        self.device = None
 
     def set_logger(self, level):
         logger = logging.getLogger('welder')
@@ -41,22 +48,22 @@ class Welder():
             self.logger.error(f"{e}")
         project = self.create_new_project_if_not_exist()
         self.project = project
-        key = self.create_new_key(
-            project.id, self.config['device']['ssh_key_name'])
+        key = self.create_new_key_if_not_exist(project.id)
         self.key = key
         device = self.create_device(project.id, key.id, facility)
         self.device = device
         self.dev_id = device.id
         self.wait_until_device_ready(device)
 
-        return self.ip
+        return self.ip, self.device.id
 
     def check_capacity(self):
         for facility in self.config['device']['facility']:
             server = [(facility, self.config['device']['plan'], 1)]
             if self.packet_manager.validate_capacity(server):
                 return facility
-        raise CapacityError('none of the given facilities have capacity for device')
+        raise CapacityError(
+            'none of the given facilities have capacity for device')
 
     def create_new_project_if_not_exist(self):
         project = None
@@ -79,14 +86,22 @@ class Welder():
 
         return project
 
-    def create_new_key(self, project_id, name):
+    def create_new_key_if_not_exist(self, project_id):
+        self.set_key_dir()
+        self.mk_key_dir()
+
+        name = self.config['device']['ssh']['name']
+        if self.config['device']['ssh']['create_new'] is False:
+            self.logger.info(f"adding key {name} to device")
+            return name
+
         key = RSA.generate(2048)
-        with open(self.private_key_path, 'wb') as priv_file:
-            os.chmod(self.private_key_path, 0o600)
+        with open(self.private_key(), 'wb') as priv_file:
+            os.chmod(self.private_key(), 0o600)
             priv_file.write(key.exportKey('PEM'))
 
         pubkey = key.publickey().exportKey('OpenSSH')
-        with open(self.public_key_path, 'wb') as pub_file:
+        with open(self.public_key(), 'wb') as pub_file:
             pub_file.write(pubkey)
 
         key = self.packet_manager.create_project_ssh_key(
@@ -155,13 +170,12 @@ class Welder():
             self.device.delete()
             self.logger.info(f"deleted device {self.device.hostname}")
 
-        if self.key is not None:
+        if self.key is not None and self.config['device']['ssh']['create_new']:
             self.key.delete()
-            os.remove(self.private_key_path)
-            os.remove(self.public_key_path)
+            shutil.rmtree(self.key_dir)
             self.logger.info(f"deleted key {self.key.label}")
 
-        if self.project is not None:
+        if self.project is not None and self.config['project_id'] is None:
             self.project.delete()
             self.logger.info(f"deleted project {self.project.name}")
 
@@ -171,13 +185,16 @@ class Welder():
             username="root",
             load_system_host_keys=False,
             missing_host_key=spur.ssh.MissingHostKey.accept,
-            private_key_file=self.private_key_path
+            private_key_file=self.private_key()
         )
 
         return shell
 
     def get_device(self, device_id):
-        return self.packet_manager.get_device(device_id=device_id)
+        try:
+            return self.packet_manager.get_device(device_id=device_id)
+        except:
+            raise ValueError(f"device {device_id} not found")
 
     def get_device_ip(self, device_id):
         d = self.get_device(device_id)
@@ -190,3 +207,31 @@ class Welder():
         device = self.get_device(device_id)
         device.delete()
         self.logger.info(f"deleted device {device.hostname}")
+
+    def set_key_dir(self):
+        ssh_cfg = self.config['device']['ssh']
+        key_dir = f"/tmp/{ssh_cfg['name']}/keys"
+        try:
+            path = ssh_cfg['path']
+            if path is not None:
+                key_dir = f'{path}/keys'
+                self.logger.info(
+                    f'using key path: {key_dir}')
+        except ValueError:
+            pass
+
+        self.key_dir = key_dir
+
+    def mk_key_dir(self):
+        if self.config['device']['ssh']['create_new'] is False:
+            return
+
+        Path(self.key_dir).mkdir(parents=True, exist_ok=True)
+        self.logger.info(
+            f'created dir for keys: {self.key_dir}')
+
+    def private_key(self):
+        return self.key_dir + '/private.key'
+
+    def public_key(self):
+        return self.key_dir + '/public.key'
