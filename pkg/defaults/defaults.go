@@ -27,10 +27,6 @@ const (
 	// processes should be run detached.
 	FirecrackerDetach = true
 
-	// FirecrackerUseAPI is the default that indicates the Firecracker microvm should be configured
-	// using the API instead of using a config file.
-	FirecrackerUseAPI = true
-
 	// ConfigurationDir is the default configuration directory.
 	ConfigurationDir = "/etc/opt/flintlockd"
 

@@ -20,8 +20,6 @@ type Config struct {
 	FirecrackerBin string
 	// FirecrackerDetatch indicates if the child firecracker processes should be detached from their parent.
 	FirecrackerDetatch bool
-	// FirecrackerUseAPI indicates that we should configure the microvm using the api and not a config file.
-	FirecrackerUseAPI bool
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
 	// ParentIface is the name of the network interface to use for the parent in macvtap interfaces.

@@ -42,7 +42,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 
 	mList.MicroVMService.
 		EXPECT().
-		Start(gomock.Any(), gomock.Eq("namespace/vmid")).
+		Start(gomock.Any(), gomock.Any()).
 		Return(nil)
 
 	mList.NetworkService.

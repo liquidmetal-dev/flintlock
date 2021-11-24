@@ -17,7 +17,6 @@ const (
 	disableAPIFlag        = "disable-api"
 	firecrackerBinFlag    = "firecracker-bin"
 	firecrackerDetachFlag = "firecracker-detach"
-	firecrackerAPIFlag    = "firecracker-api"
 	containerdSocketFlag  = "containerd-socket"
 	volSnapshotterFlag    = "containerd-volume-ss"
 	kernelSnapshotterFlag = "containerd-kernel-ss"
@@ -100,10 +99,6 @@ func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error 
 		firecrackerDetachFlag,
 		defaults.FirecrackerDetach,
 		"If true the child firecracker processes will be detached from the parent flintlock process.")
-	cmd.Flags().BoolVar(&cfg.FirecrackerUseAPI,
-		firecrackerAPIFlag,
-		defaults.FirecrackerUseAPI,
-		"Indicates that the Firecracker API should be used to configure the microvm.")
 
 	return nil
 }

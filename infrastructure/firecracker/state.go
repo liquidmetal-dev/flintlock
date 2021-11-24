@@ -28,8 +28,12 @@ type State interface {
 	SockPath() string
 
 	ConfigPath() string
-	Config() (*VmmConfig, error)
+	Config() (VmmConfig, error)
 	SetConfig(cfg *VmmConfig) error
+
+	MetadataPath() string
+	Metadata() (Metadata, error)
+	SetMetadata(meta *Metadata) error
 }
 
 func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
@@ -84,12 +88,48 @@ func (s *fsState) ConfigPath() string {
 	return fmt.Sprintf("%s/firecracker.cfg", s.stateRoot)
 }
 
-func (s *fsState) Config() (*VmmConfig, error) {
-	return s.cfgReadFromFile(s.ConfigPath())
+func (s *fsState) Config() (VmmConfig, error) {
+	cfg := VmmConfig{}
+
+	err := s.readJSONFile(&cfg, s.ConfigPath())
+	if err != nil {
+		return VmmConfig{}, fmt.Errorf("firecracker config: %w", err)
+	}
+
+	return cfg, nil
 }
 
 func (s *fsState) SetConfig(cfg *VmmConfig) error {
-	return s.cfgWriteToFile(cfg, s.ConfigPath())
+	err := s.writeToFileAsJSON(cfg, s.ConfigPath())
+	if err != nil {
+		return fmt.Errorf("firecracker config: %w", err)
+	}
+
+	return nil
+}
+
+func (s *fsState) SetMetadata(meta *Metadata) error {
+	err := s.writeToFileAsJSON(meta, s.MetadataPath())
+	if err != nil {
+		return fmt.Errorf("firecracker metadata: %w", err)
+	}
+
+	return nil
+}
+
+func (s *fsState) Metadata() (Metadata, error) {
+	meta := Metadata{}
+
+	err := s.readJSONFile(&meta, s.ConfigPath())
+	if err != nil {
+		return Metadata{}, fmt.Errorf("firecracker metadata: %w", err)
+	}
+
+	return meta, nil
+}
+
+func (s *fsState) MetadataPath() string {
+	return fmt.Sprintf("%s/metadata.json", s.stateRoot)
 }
 
 func (s *fsState) pidReadFromFile(pidFile string) (int, error) {
@@ -127,43 +167,41 @@ func (s *fsState) pidWriteToFile(pid int, pidFile string) error {
 	return nil
 }
 
-func (s *fsState) cfgReadFromFile(cfgFile string) (*VmmConfig, error) {
-	file, err := s.fs.Open(cfgFile)
+func (s *fsState) readJSONFile(cfg interface{}, inputFile string) error {
+	file, err := s.fs.Open(inputFile)
 	if err != nil {
-		return nil, fmt.Errorf("opening firecracker config file %s: %w", cfgFile, err)
+		return fmt.Errorf("opening file %s: %w", inputFile, err)
 	}
 
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("reading firecracker config file %s: %w", cfgFile, err)
+		return fmt.Errorf("reading file %s: %w", inputFile, err)
 	}
-
-	cfg := &VmmConfig{}
 
 	err = json.Unmarshal(data, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshalling firecracker config: %w", err)
+		return fmt.Errorf("unmarshalling: %w", err)
 	}
 
-	return cfg, nil
+	return nil
 }
 
-func (s *fsState) cfgWriteToFile(cfg *VmmConfig, cfgFile string) error {
+func (s *fsState) writeToFileAsJSON(cfg interface{}, outputFilePath string) error {
 	data, err := json.MarshalIndent(cfg, "", " ")
 	if err != nil {
-		return fmt.Errorf("marshalling firecracker config: %w", err)
+		return fmt.Errorf("marshalling: %w", err)
 	}
 
-	file, err := s.fs.OpenFile(cfgFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, defaults.DataFilePerm)
+	file, err := s.fs.OpenFile(outputFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, defaults.DataFilePerm)
 	if err != nil {
-		return fmt.Errorf("opening firecracker config file %s: %w", cfgFile, err)
+		return fmt.Errorf("opening output file %s: %w", outputFilePath, err)
 	}
 
 	defer file.Close()
 
 	_, err = file.Write(data)
 	if err != nil {
-		return fmt.Errorf("writing firecracker cfg to file %s: %w", cfgFile, err)
+		return fmt.Errorf("writing output file %s: %w", outputFilePath, err)
 	}
 
 	return nil

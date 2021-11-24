@@ -48,12 +48,18 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("saving firecracker config: %w", err)
 	}
 
+	meta := &Metadata{
+		Latest: vm.Spec.Metadata,
+	}
+
+	if err = vmState.SetMetadata(meta); err != nil {
+		return fmt.Errorf("saving firecracker metadata: %w", err)
+	}
+
 	id := strings.ReplaceAll(vm.ID.String(), "/", "-")
 	args := []string{"--id", id, "--boot-timer"}
-
-	if !p.config.APIConfig {
-		args = append(args, "--config-file", vmState.ConfigPath())
-	}
+	args = append(args, "--config-file", vmState.ConfigPath())
+	args = append(args, "--metadata", vmState.MetadataPath())
 
 	cmd := firecracker.VMCommandBuilder{}.
 		WithBin(p.config.FirecrackerBin).
@@ -77,17 +83,6 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	)
 	if err != nil {
 		return fmt.Errorf("waiting for sock file to exist: %w", err)
-	}
-
-	if p.config.APIConfig {
-		client := firecracker.NewClient(vmState.SockPath(), logger, true)
-		if err := ApplyConfig(ctx, config, client); err != nil {
-			return fmt.Errorf("applying firecracker configuration: %w", err)
-		}
-
-		if err := ApplyMetadata(ctx, vm.Spec.Metadata, client); err != nil {
-			return fmt.Errorf("applying metadata to mmds: %w", err)
-		}
 	}
 
 	return nil
