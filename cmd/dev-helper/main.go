@@ -169,7 +169,7 @@ func runCreateVMPlanTest(ctx context.Context, nodeNum int, sshKey string, logger
 	plan := plans.MicroVMCreateOrUpdatePlan(input)
 
 	actuator := planner.NewActuator()
-	if _, err := actuator.Execute(execCtx, plan, "1234567890"); err != nil {
+	if _, err := actuator.Execute(execCtx, plan); err != nil {
 		panic(err)
 	}
 

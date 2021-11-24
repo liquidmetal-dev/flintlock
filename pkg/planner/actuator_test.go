@@ -7,7 +7,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/flintlock/infrastructure/ulid"
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
 
@@ -19,12 +18,8 @@ func TestActuator_SingleProc(t *testing.T) {
 	testProcs := []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{})}
 	testPlan := newTestPlan(testProcs)
 
-	idSrv := ulid.New()
-	execID, err := idSrv.GenerateRandom()
-	Expect(err).NotTo(HaveOccurred())
-
 	act := planner.NewActuator()
-	stepCount, err := act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan)
 
 	Expect(err).NotTo(HaveOccurred())
 	testProc, ok := testProcs[0].(*testProc)
@@ -41,12 +36,8 @@ func TestActuator_MultipleProcs(t *testing.T) {
 	testProcs := []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{}), newTestProc(10*time.Millisecond, []planner.Procedure{})}
 	testPlan := newTestPlan(testProcs)
 
-	idSrv := ulid.New()
-	execID, err := idSrv.GenerateRandom()
-	Expect(err).NotTo(HaveOccurred())
-
 	act := planner.NewActuator()
-	stepCount, err := act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(stepCount).To(Equal(2))
 
@@ -65,12 +56,8 @@ func TestActuator_ChildProcs(t *testing.T) {
 	testProcs := []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{newTestProc(10*time.Millisecond, []planner.Procedure{})})}
 	testPlan := newTestPlan(testProcs)
 
-	idSrv := ulid.New()
-	execID, err := idSrv.GenerateRandom()
-	Expect(err).NotTo(HaveOccurred())
-
 	act := planner.NewActuator()
-	stepCount, err := act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(stepCount).To(Equal(2))
 
@@ -96,12 +83,8 @@ func TestActuator_Timeout(t *testing.T) {
 	}
 	testPlan := newTestPlan(testProcs)
 
-	idSrv := ulid.New()
-	execID, err := idSrv.GenerateRandom()
-	Expect(err).NotTo(HaveOccurred())
-
 	act := planner.NewActuator()
-	stepCount, err := act.Execute(ctx, testPlan, execID)
+	stepCount, err := act.Execute(ctx, testPlan)
 	Expect(stepCount).To(Equal(1))
 
 	Expect(err).To(HaveOccurred())
