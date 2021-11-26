@@ -35,11 +35,7 @@ class Test:
         if self.testCfg['skip_delete']:
             cmd.append('-skip.teardown')
             cmd.append('-skip.delete')
-        try:
-            self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
-        except RuntimeError as e:
-            print(str(e))
-            pass
+        self.welder.run_ssh_command(cmd, "/root/work/flintlock", False)
 
     def teardown(self):
         if self.skip_teardown:
