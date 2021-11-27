@@ -37,7 +37,7 @@ curl -sL "https://golang.org/dl/go$GO_VERSION.linux-amd64.tar.gz" | tar xz -C "$
   go version
 
 # install firecracker
-wget -O /tmp/firecracker_macvtap.zip https://github.com/weaveworks/flintlock/files/7278467/firecracker_macvtap.zip && \
+wget -O /tmp/firecracker_macvtap.zip https://github.com/weaveworks/flintlock/files/7609728/firecracker_macvtap_forked.zip && \
     unzip -o /tmp/firecracker_macvtap.zip -d "$INSTALL_ROOT/bin" && \
     firecracker --version
 
