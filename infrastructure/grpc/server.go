@@ -18,7 +18,6 @@ import (
 )
 
 // NewServer creates a new server instance.
-// NOTE: this is an unimplemented server at present.
 func NewServer(commandUC ports.MicroVMCommandUseCases, queryUC ports.MicroVMQueryUseCases) ports.MicroVMGRPCService {
 	return &server{
 		commandUC: commandUC,
@@ -33,12 +32,19 @@ type server struct {
 	validator validation.Validator
 }
 
-func (s *server) CreateMicroVM(ctx context.Context,
+func (s *server) CreateMicroVM(
+	ctx context.Context,
 	req *mvmv1.CreateMicroVMRequest,
 ) (*mvmv1.CreateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
-
 	logger.Trace("converting request to model")
+
+	if req == nil {
+		logger.Error("invalid create microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
 
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
@@ -82,6 +88,13 @@ func (s *server) CreateMicroVM(ctx context.Context,
 func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequest) (*emptypb.Empty, error) {
 	logger := log.GetLogger(ctx)
 
+	if req == nil || req.Id == "" || req.Namespace == "" {
+		logger.Error("invalid delete microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
 	logger.Infof("deleting microvm %s/%s", req.Id, req.Namespace)
 
 	if err := s.commandUC.DeleteMicroVM(ctx, req.Id, req.Namespace); err != nil {
@@ -95,6 +108,14 @@ func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequ
 
 func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (*mvmv1.GetMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
+
+	if req == nil || req.Id == "" || req.Namespace == "" {
+		logger.Error("invalid get microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
 	logger.Infof("getting microvm %s/%s", req.Namespace, req.Id)
 
 	foundMicrovm, err := s.queryUC.GetMicroVM(ctx, req.Id, req.Namespace)
@@ -121,6 +142,14 @@ func (s *server) ListMicroVMs(ctx context.Context,
 	req *mvmv1.ListMicroVMsRequest,
 ) (*mvmv1.ListMicroVMsResponse, error) {
 	logger := log.GetLogger(ctx)
+
+	if req == nil || req.Namespace == "" {
+		logger.Error("invalid get microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
 	logger.Infof("getting all microvms in %s", req.Namespace)
 
 	foundMicrovms, err := s.queryUC.GetAllMicroVM(ctx, req.Namespace)
@@ -155,6 +184,13 @@ func (s *server) ListMicroVMsStream(
 	ctx := streamServer.Context()
 	logger := log.GetLogger(ctx)
 
+	if req == nil || req.Namespace == "" {
+		logger.Error("invalid get microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return status.Error(codes.InvalidArgument, "invalid request")
+	}
+
 	logger.Infof("getting all microvms in %s", req.Namespace)
 
 	foundMicrovms, err := s.queryUC.GetAllMicroVM(ctx, req.Namespace)
@@ -168,7 +204,11 @@ func (s *server) ListMicroVMsStream(
 
 	for _, mvm := range foundMicrovms {
 		resp := &mvmv1.ListMessage{
-			Microvm: convertModelToMicroVM(mvm),
+			Microvm: &types.MicroVM{
+				Version: int32(mvm.Version),
+				Spec:    convertModelToMicroVM(mvm),
+				Status:  convertModelToMicroVMStatus(mvm),
+			},
 		}
 
 		if err := streamServer.Send(resp); err != nil {
