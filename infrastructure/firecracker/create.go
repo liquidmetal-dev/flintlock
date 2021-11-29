@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	"github.com/sirupsen/logrus"
@@ -17,12 +16,6 @@ import (
 	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/process"
-	"github.com/weaveworks/flintlock/pkg/wait"
-)
-
-const (
-	socketTimeoutInSec = 10
-	socketPollInMs     = 500
 )
 
 // Create will create a new microvm.
@@ -48,16 +41,21 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("saving firecracker config: %w", err)
 	}
 
-	id := strings.ReplaceAll(vm.ID.String(), "/", "-")
-	args := []string{"--id", id, "--boot-timer"}
-
-	if !p.config.APIConfig {
-		args = append(args, "--config-file", vmState.ConfigPath())
+	meta := &Metadata{
+		Latest: vm.Spec.Metadata,
 	}
+
+	if err = vmState.SetMetadata(meta); err != nil {
+		return fmt.Errorf("saving firecracker metadata: %w", err)
+	}
+
+	id := strings.ReplaceAll(vm.ID.String(), "/", "-")
+	args := []string{"--id", id, "--boot-timer", "--no-api"}
+	args = append(args, "--config-file", vmState.ConfigPath())
+	args = append(args, "--metadata", vmState.MetadataPath())
 
 	cmd := firecracker.VMCommandBuilder{}.
 		WithBin(p.config.FirecrackerBin).
-		WithSocketPath(vmState.SockPath()).
 		WithArgs(args).
 		Build(context.TODO()) //nolint: contextcheck // Intentional.
 
@@ -68,26 +66,6 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 
 	if err = vmState.SetPid(proc.Pid); err != nil {
 		return fmt.Errorf("saving pid %d to file: %w", proc.Pid, err)
-	}
-
-	err = wait.ForCondition(
-		wait.FileExistsCondition(vmState.SockPath(), p.fs),
-		socketTimeoutInSec*time.Second,
-		socketPollInMs*time.Millisecond,
-	)
-	if err != nil {
-		return fmt.Errorf("waiting for sock file to exist: %w", err)
-	}
-
-	if p.config.APIConfig {
-		client := firecracker.NewClient(vmState.SockPath(), logger, true)
-		if err := ApplyConfig(ctx, config, client); err != nil {
-			return fmt.Errorf("applying firecracker configuration: %w", err)
-		}
-
-		if err := ApplyMetadata(ctx, vm.Spec.Metadata, client); err != nil {
-			return fmt.Errorf("applying metadata to mmds: %w", err)
-		}
 	}
 
 	return nil
@@ -132,17 +110,6 @@ func (p *fcProvider) ensureState(vmState State) error {
 	if !exists {
 		if err = p.fs.MkdirAll(vmState.Root(), defaults.DataDirPerm); err != nil {
 			return fmt.Errorf("creating state directory %s: %w", vmState.Root(), err)
-		}
-	}
-
-	sockExists, err := afero.Exists(p.fs, vmState.SockPath())
-	if err != nil {
-		return fmt.Errorf("checking if sock dir exists: %w", err)
-	}
-
-	if sockExists {
-		if delErr := p.fs.Remove(vmState.SockPath()); delErr != nil {
-			return fmt.Errorf("deleting existing sock file: %w", err)
 		}
 	}
 

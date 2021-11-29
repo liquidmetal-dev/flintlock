@@ -68,7 +68,6 @@ func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 	return &firecracker.Config{
 		FirecrackerBin: cfg.FirecrackerBin,
 		RunDetached:    cfg.FirecrackerDetatch,
-		APIConfig:      cfg.FirecrackerUseAPI,
 		StateRoot:      fmt.Sprintf("%s/vm", cfg.StateRootDir),
 	}
 }
