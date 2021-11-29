@@ -57,7 +57,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	}
 
 	id := strings.ReplaceAll(vm.ID.String(), "/", "-")
-	args := []string{"--id", id, "--boot-timer"}
+	args := []string{"--id", id, "--boot-timer", "--no-api"}
 	args = append(args, "--config-file", vmState.ConfigPath())
 	args = append(args, "--metadata", vmState.MetadataPath())
 
