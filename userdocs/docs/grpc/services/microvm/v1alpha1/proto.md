@@ -129,7 +129,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVMSpec](#flintlock.types.MicroVMSpec) |  |  |
+| microvm | [flintlock.types.MicroVM](#flintlock.types.MicroVM) |  |  |
 
 
 

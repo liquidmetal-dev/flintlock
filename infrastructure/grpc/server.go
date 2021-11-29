@@ -168,7 +168,11 @@ func (s *server) ListMicroVMsStream(
 
 	for _, mvm := range foundMicrovms {
 		resp := &mvmv1.ListMessage{
-			Microvm: convertModelToMicroVM(mvm),
+			Microvm: &types.MicroVM{
+				Version: int32(mvm.Version),
+				Spec:    convertModelToMicroVM(mvm),
+				Status:  convertModelToMicroVMStatus(mvm),
+			},
 		}
 
 		if err := streamServer.Send(resp); err != nil {
