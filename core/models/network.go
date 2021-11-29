@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 // NetworkInterface represents a network interface for the microvm.
@@ -45,9 +46,12 @@ func (i IPAddressCIDR) IsIPv4() (bool, error) {
 		return false, fmt.Errorf("parsing %s as cidr: %w", i, err)
 	}
 
-	ipv4 := ip.To4()
+	// 0:0:0:0:0:ffff:0101:0101 is the ipv6 representation of 1.1.1.1, the net
+	// package can parse and convert to IPv4. Based on Slack messages, we want a
+	// strict validation, they have to spcify an IPv4 CIDR block.
+	containsDot := strings.Contains(string(i), ".")
 
-	return ipv4 != nil, nil
+	return ip.To4() != nil && containsDot, nil
 }
 
 func (i IPAddressCIDR) IsIPv6() (bool, error) {
@@ -56,18 +60,24 @@ func (i IPAddressCIDR) IsIPv6() (bool, error) {
 		return false, fmt.Errorf("parsing %s as cidr: %w", i, err)
 	}
 
-	ipv4 := ip.To4()
+	// 0:0:0:0:0:ffff:0101:0101 is the ipv6 representation of 1.1.1.1, the net
+	// package can parse and convert to IPv4. Based on Slack messages, we want a
+	// strict validation, they have to spcify an IPv6 CIDR block.
+	containsDot := strings.Contains(string(i), ".")
 
-	return ipv4 == nil, nil
+	return ip.To16() != nil && !containsDot, nil
 }
 
 func (i IPAddressCIDR) IP() (string, error) {
-	ip, _, err := net.ParseCIDR(string(i))
-	if err != nil {
+	if _, _, err := net.ParseCIDR(string(i)); err != nil {
 		return "", fmt.Errorf("parsing %s as cidr: %w", i, err)
 	}
 
-	return ip.String(), nil
+	// We don't have to test if we can get IPv6 or IPv4 address with To4 or
+	// To16 because ParseCIDR returns with an error if it's neither of them.
+	slashIndex := strings.Index(string(i), "/")
+
+	return string(i)[:slashIndex], nil
 }
 
 type NetworkInterfaceStatus struct {
