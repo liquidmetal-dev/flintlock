@@ -52,7 +52,7 @@ message CreateMicroVMRequest {
 }
 
 message CreateMicroVMResponse {
-  flintlock.types.MicroVMSpec  microvm = 1;
+  flintlock.types.MicroVMSpec microvm = 1;
 }
 
 message DeleteMicroVMRequest {
@@ -74,9 +74,9 @@ message ListMicroVMsRequest {
 }
 
 message ListMicroVMsResponse {
-  repeated flintlock.types.MicroVM  microvm = 1;
+  repeated flintlock.types.MicroVM microvm = 1;
 }
 
 message ListMessage {
-  flintlock.types.MicroVMSpec  microvm = 1;
+  flintlock.types.MicroVM microvm = 1;
 }
