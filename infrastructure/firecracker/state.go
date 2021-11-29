@@ -125,7 +125,7 @@ func (s *fsState) SetMetadata(meta *Metadata) error {
 		}
 	}
 
-	err := s.writeToFileAsJSON(meta, s.MetadataPath())
+	err := s.writeToFileAsJSON(decoded, s.MetadataPath())
 	if err != nil {
 		return fmt.Errorf("firecracker metadata: %w", err)
 	}
