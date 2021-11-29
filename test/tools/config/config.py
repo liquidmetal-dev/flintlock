@@ -2,6 +2,7 @@ import yamale
 from deepmerge import always_merger
 import random
 import string
+import os
 from os.path import dirname, abspath
 
 
@@ -30,25 +31,23 @@ class Config:
         }
         self.params.update(data)
 
-    def set_run_flag_config(self, org_id=None, project_name=None, key_name=None, dev_name=None, skip_teardown=None):
-        self.set_common_flags(org_id, key_name, dev_name)
+    def set_run_flag_config(self, org_id=None, project_name=None, dev_name=None, skip_teardown=None):
+        self.set_common_flags(org_id, dev_name)
 
         if project_name is not None:
             self.params['project_name'] = project_name
         if skip_teardown is not None:
             self.params['test']['skip_teardown'] = skip_teardown
 
-    def set_create_flag_config(self, org_id=None, project_id=None, key_name=None, dev_name=None):
-        self.set_common_flags(org_id, key_name, dev_name)
+    def set_create_flag_config(self, org_id=None, project_id=None, dev_name=None):
+        self.set_common_flags(org_id, dev_name)
 
         if project_id is not None:
             self.params['project_id'] = project_id
 
-    def set_common_flags(self, org_id=None, key_name=None, dev_name=None):
+    def set_common_flags(self, org_id=None, dev_name=None):
         if org_id is not None:
             self.params['org_id'] = org_id
-        if key_name is not None:
-            self.params['device']['ssh_key_name'] = key_name
         if dev_name is not None:
             self.params['device']['name'] = dev_name
 
@@ -63,6 +62,13 @@ class Config:
 
     def validate_run(self):
         self.validate_common()
+        ssh_cfg = self.params['device']['ssh']
+        if self.params['device']['id'] is not None:
+            self.validate_ssh_path('device.id')
+        elif ssh_cfg['create_new'] is False:
+            self.validate_ssh_name('device.id')
+            self.validate_ssh_path('device.ssh.create_new: false')
+
         self.configure_test()
         self.configure_device()
 
@@ -80,12 +86,31 @@ class Config:
         except KeyError:
             pass
 
+        if self.params['device']['ssh']['create_new'] is False:
+            self.validate_ssh_name('device.ssh.create_new: false')
+            self.validate_ssh_path('device.ssh.create_new: false')
+
     def validate_common(self):
         if self.params['org_id'] is None:
             raise ValueError("must set org_id")
 
         if len(self.params['device']['facility']) < 1:
             raise ValueError("must set at least one facility")
+
+    def validate_ssh_path(self, field):
+        path = self.params['device']['ssh']['path']
+        if path is None:
+            raise ValueError(
+                    f"must set device.ssh.path when setting {field}")
+        if os.path.exists(f"{path}/keys/private.key") is False:
+            raise ValueError(
+                f"device.ssh.path {path} must contain `keys/private.key`")
+
+    def validate_ssh_name(self, field):
+        if self.params['device']['ssh']['name'] is None:
+            raise ValueError(
+                    f"must set device.ssh.name when setting {field}")
+
 
     def configure_test(self):
         if self.params['device']['id'] is not None:
@@ -98,6 +123,10 @@ class Config:
     def configure_device(self):
         if self.params['device']['userdata'] is None:
             self.params['device']['userdata'] = self.default_user_data()
+        if self.params['device']['ssh']['name'] is None:
+            self.params['device']['ssh']['name'] = self.generated_key_name()
+        if self.params['device']['id'] is not None:
+            self.params['device']['ssh']['create_new'] = False
 
     def default_repo_config(self):
         return {
@@ -118,7 +147,11 @@ class Config:
             'skip_dmsetup': False,
             'name': self.default_device_name(),
             'id': None,
-            'ssh_key_name': self.generated_key_name(),
+            'ssh': {
+                'create_new': True,
+                'name': None,
+                'path': None,
+            },
             'userdata': None,
             'plan': 'c3.small.x86',
             'operating_system': 'ubuntu_20_10',

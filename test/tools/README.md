@@ -65,7 +65,7 @@ Nothing will be cleaned up afterwards.
 
 ```bash
 export METAL_AUTH_TOKEN=<your token>
-./test/tools/run.py delete-device --org-id <your org id> --device-id <existing project-id>
+./test/tools/run.py delete-device --org-id <your org id> --device-id <existing device-id>
 ```
 
 This will delete the given device. The project will not be deleted.

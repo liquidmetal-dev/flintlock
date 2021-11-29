@@ -61,11 +61,16 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 
 		cfg.BlockDevices = []BlockDeviceConfig{}
 
+		rootVolumeStatus, volumeStatusFound := vm.Status.Volumes[vm.Spec.RootVolume.ID]
+		if !volumeStatusFound {
+			return errors.NewVolumeNotMounted(vm.Spec.RootVolume.ID)
+		}
+
 		cfg.BlockDevices = append(cfg.BlockDevices, BlockDeviceConfig{
 			ID:           vm.Spec.RootVolume.ID,
 			IsReadOnly:   vm.Spec.RootVolume.IsReadOnly,
 			IsRootDevice: true,
-			PathOnHost:   vm.Spec.RootVolume.MountPoint,
+			PathOnHost:   rootVolumeStatus.Mount.Source,
 			CacheType:    CacheTypeUnsafe,
 		})
 
