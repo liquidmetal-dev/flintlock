@@ -49,7 +49,7 @@ func TestE2E(t *testing.T) {
 
 	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
 	Eventually(func(g Gomega) error {
-		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID) + "/firecracker.pid").To(BeAnExistingFile())
+		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID) + "/firecracker.pid").To(BeAnExistingFile())
 
 		// verify that firecracker has started and that a pid has been saved
 		// and that there is actually a running process
