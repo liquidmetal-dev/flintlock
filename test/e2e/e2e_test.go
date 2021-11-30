@@ -49,9 +49,6 @@ func TestE2E(t *testing.T) {
 
 	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
 	Eventually(func(g Gomega) error {
-		// verify that the socket exists
-		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID) + "/firecracker.sock").To(BeAnExistingFile())
-
 		// verify that firecracker has started and that a pid has been saved
 		// and that there is actually a running process
 		mvmPid1 = u.ReadPID(fmt.Sprintf(fcPath, mvmNS, mvmID))
@@ -70,9 +67,6 @@ func TestE2E(t *testing.T) {
 
 	log.Println("TEST STEP: listing all MicroVMs")
 	Eventually(func(g Gomega) error {
-		// verify that the new socket exists
-		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID) + "/firecracker.sock").To(BeAnExistingFile())
-
 		// verify that firecracker has started and that a pid has been saved
 		// and that there is actually a running process for the new mVM
 		mvmPid2 = u.ReadPID(fmt.Sprintf(fcPath, mvmNS, secondMvmID))
