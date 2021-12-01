@@ -7,9 +7,9 @@ import (
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	"gopkg.in/yaml.v3"
 
+	"github.com/weaveworks/flintlock/client/cloudinit"
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/pkg/cloudinit"
 	"github.com/weaveworks/flintlock/pkg/ptr"
 )
 
