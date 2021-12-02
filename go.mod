@@ -2,7 +2,10 @@ module github.com/weaveworks/flintlock
 
 go 1.17
 
-replace github.com/weaveworks/flintlock/api => ./api
+replace (
+	github.com/weaveworks/flintlock/api => ./api
+	github.com/weaveworks/flintlock/client => ./client
+)
 
 require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
@@ -96,6 +99,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae // indirect
+	github.com/weaveworks/flintlock/client v0.0.0-00010101000000-000000000000 // indirect
 	go.mongodb.org/mongo-driver v1.7.5 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
