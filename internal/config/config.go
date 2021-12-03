@@ -40,4 +40,6 @@ type Config struct {
 	ResyncPeriod time.Duration
 	// MaximumRetry defined how many times we retry if reconciliation failed.
 	MaximumRetry int
+	// DeleteVMTimeout defines the timeout for the delete vm operation.
+	DeleteVMTimeout time.Duration
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
@@ -25,22 +26,26 @@ type Config struct {
 	StateRoot string
 	// RunDetached indicates that the firecracker processes should be run detached (a.k.a daemon) from the parent process.
 	RunDetached bool
+	// DeleteVMTimeout is the timeout to wait for the microvm to be deleted.
+	DeleteVMTimeout time.Duration
 }
 
 // New creates a new instance of the firecracker microvm provider.
 func New(cfg *Config, networkSvc ports.NetworkService, fs afero.Fs) ports.MicroVMService {
 	return &fcProvider{
-		config:     cfg,
-		networkSvc: networkSvc,
-		fs:         fs,
+		config:          cfg,
+		networkSvc:      networkSvc,
+		fs:              fs,
+		deleteVMTimeout: cfg.DeleteVMTimeout,
 	}
 }
 
 type fcProvider struct {
 	config *Config
 
-	networkSvc ports.NetworkService
-	fs         afero.Fs
+	networkSvc      ports.NetworkService
+	fs              afero.Fs
+	deleteVMTimeout time.Duration
 }
 
 // Capabilities returns a list of the capabilities the Firecracker provider supports.
@@ -105,6 +110,14 @@ func (p *fcProvider) Delete(ctx context.Context, id string) error {
 
 	if sigErr := process.SendSignal(pid, syscall.SIGHUP); sigErr != nil {
 		return fmt.Errorf("failed to terminate with SIGHUP: %w", err)
+	}
+
+	ctxTimeout, cancel := context.WithTimeout(ctx, p.deleteVMTimeout)
+	defer cancel()
+
+	// Make sure the microVM is stopped.
+	if err := process.WaitWithContext(ctxTimeout, pid); err != nil {
+		return fmt.Errorf("failed to wait for pid %d: %w", pid, err)
 	}
 
 	logger.Info("deleted microvm")
