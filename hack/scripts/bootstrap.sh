@@ -11,6 +11,7 @@ if [[ $(id -u) != 0 ]]; then
 fi
 
 GO_VERSION="1.17.2"
+FIRECRACKER_VERSION="v0.25.1"
 INSTALL_ROOT="/usr/local"
 
 # install packages
@@ -37,8 +38,9 @@ curl -sL "https://golang.org/dl/go$GO_VERSION.linux-amd64.tar.gz" | tar xz -C "$
   go version
 
 # install firecracker
-wget -O /tmp/firecracker_macvtap.zip https://github.com/weaveworks/flintlock/files/7609728/firecracker_macvtap_forked.zip && \
-    unzip -o /tmp/firecracker_macvtap.zip -d "$INSTALL_ROOT/bin" && \
+wget -O "$INSTALL_ROOT/bin/firecracker" \
+    "https://github.com/weaveworks/firecracker/releases/download/v$FIRECRACKER_VERSION-macvtap/firecracker-v$FIRECRACKER_VERSION-macvtap" && \
+    chmod +x "$INSTALL_ROOT/bin/firecracker" && \
     firecracker --version
 
 # install and setup containerd
