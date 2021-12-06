@@ -48,6 +48,9 @@ const (
 	// ResyncPeriod is the default resync period duration.
 	ResyncPeriod time.Duration = 10 * time.Minute
 
+	// DeleteVMTimeout is the default timeout for deleting a microvm.
+	DeleteVMTimeout time.Duration = 10 * time.Second
+
 	// DataDirPerm is the permissions to use for data folders.
 	DataDirPerm = 0o755
 

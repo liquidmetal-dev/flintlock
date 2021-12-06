@@ -68,6 +68,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 
 	cmd.Flags().StringVar(&cfg.StateRootDir, "state-dir", defaults.StateRootDir, "The directory to use for the as the root for runtime state.")
 	cmd.Flags().DurationVar(&cfg.ResyncPeriod, "resync-period", defaults.ResyncPeriod, "Reconcile the specs to resynchronise them based on this period.")
+	cmd.Flags().DurationVar(&cfg.DeleteVMTimeout, "deleteMicroVM-timeout", defaults.DeleteVMTimeout, "The timeout for deleting a microvm.")
 
 	return cmd, nil
 }
