@@ -54,20 +54,6 @@ func (i IPAddressCIDR) IsIPv4() (bool, error) {
 	return ip.To4() != nil && containsDot, nil
 }
 
-func (i IPAddressCIDR) IsIPv6() (bool, error) {
-	ip, _, err := net.ParseCIDR(string(i))
-	if err != nil {
-		return false, fmt.Errorf("parsing %s as cidr: %w", i, err)
-	}
-
-	// 0:0:0:0:0:ffff:0101:0101 is the ipv6 representation of 1.1.1.1, the net
-	// package can parse and convert to IPv4. Based on Slack messages, we want a
-	// strict validation, they have to spcify an IPv6 CIDR block.
-	containsDot := strings.Contains(string(i), ".")
-
-	return ip.To16() != nil && !containsDot, nil
-}
-
 func (i IPAddressCIDR) IP() (string, error) {
 	if _, _, err := net.ParseCIDR(string(i)); err != nil {
 		return "", fmt.Errorf("parsing %s as cidr: %w", i, err)
