@@ -10,7 +10,6 @@ import (
 	"github.com/weaveworks/flintlock/client/cloudinit"
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/pkg/ptr"
 )
 
 const (
