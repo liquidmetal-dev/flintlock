@@ -1,5 +1,11 @@
 package models
 
+import (
+	"fmt"
+	"net"
+	"strings"
+)
+
 // NetworkInterface represents a network interface for the microvm.
 type NetworkInterface struct {
 	// GuestDeviceName is the name of the network interface to create in the microvm.
@@ -15,8 +21,49 @@ type NetworkInterface struct {
 	GuestMAC string `json:"guest_mac,omitempty" validate:"omitempty,mac"`
 	// Type is the type of host network interface type to create to use by the guest.
 	Type IfaceType `json:"type" validate:"oneof=tap macvtap unsupported"`
-	// Address is an optional IP address to assign to this interface. If not supplied then DHCP will be used.
-	Address string `json:"address,omitempty" validate:"omitempty,cidr"`
+	// StaticAddress is an optional static IP address to assign to this interface.
+	// If not supplied then DHCP will be used.
+	StaticAddress *StaticAddress `json:"staticAddress,omitempty"`
+}
+
+// StaticAddress specifies a static IP address configuration.
+type StaticAddress struct {
+	// Address is the static IP address (IPv4 or IPv6) to assign to this interface.
+	// Must be CIDR notation.
+	Address IPAddressCIDR `json:"address" validate:"cidr"`
+	// Gateway is used to optionally set the default gateway for IPv4 or IPv6.
+	Gateway *IPAddressCIDR `json:"gateway,omitempty" validate:"omitempty,cidr"`
+	// Nameservers allows you to optionally specify nameservers for the interface.
+	Nameservers []string `json:"nameservers" validate:"omitempty,dive,ip"`
+}
+
+// IPAddressCIDR represents a IPv4/IPv6 address in CIDR notation.
+type IPAddressCIDR string
+
+func (i IPAddressCIDR) IsIPv4() (bool, error) {
+	ip, _, err := net.ParseCIDR(string(i))
+	if err != nil {
+		return false, fmt.Errorf("parsing %s as cidr: %w", i, err)
+	}
+
+	// 0:0:0:0:0:ffff:0101:0101 is the ipv6 representation of 1.1.1.1, the net
+	// package can parse and convert to IPv4. Based on Slack messages, we want a
+	// strict validation, they have to spcify an IPv4 CIDR block.
+	containsDot := strings.Contains(string(i), ".")
+
+	return ip.To4() != nil && containsDot, nil
+}
+
+func (i IPAddressCIDR) IP() (string, error) {
+	if _, _, err := net.ParseCIDR(string(i)); err != nil {
+		return "", fmt.Errorf("parsing %s as cidr: %w", i, err)
+	}
+
+	// We don't have to test if we can get IPv6 or IPv4 address with To4 or
+	// To16 because ParseCIDR returns with an error if it's neither of them.
+	slashIndex := strings.Index(string(i), "/")
+
+	return string(i)[:slashIndex], nil
 }
 
 type NetworkInterfaceStatus struct {
