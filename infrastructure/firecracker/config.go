@@ -229,8 +229,8 @@ func configureStaticEthernet(iface *models.NetworkInterface, eth *cloudinit.Ethe
 		}
 	}
 
-	eth.DHCP4 = ptr.Bool(false)
-	eth.DHCP6 = ptr.Bool(false)
+	eth.DHCP4 = firecracker.Bool(false)
+	eth.DHCP6 = firecracker.Bool(false)
 
 	return nil
 }
