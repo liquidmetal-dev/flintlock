@@ -82,8 +82,8 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 	return p.steps, nil
 }
 
-func (p *microvmCreateOrUpdatePlan) Result() interface{} {
-	return nil
+func (p *microvmCreateOrUpdatePlan) Finalise(state models.MicroVMState) {
+	p.vm.Status.State = state
 }
 
 // This is the most important function in the codebase DO NOT REMOVE
@@ -184,9 +184,7 @@ func (p *microvmCreateOrUpdatePlan) ensureStatus() {
 		p.vm.Status.NetworkInterfaces = models.NetworkInterfaceStatuses{}
 	}
 
-	// I'll leave this condition here for safety. If (for some reason) it's
-	// called on a vm that's not pending, leave the status as it is.
-	if p.vm.Status.State == models.PendingState {
-		p.vm.Status.State = models.CreatedState
-	}
+	// If we are going through the create/update steps, then switch to pending first.
+	// When all is done and successful it will be put to created.
+	p.vm.Status.State = models.PendingState
 }

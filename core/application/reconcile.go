@@ -118,23 +118,17 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	localLogger := logger.WithField("vmid", spec.ID.String())
 	localLogger.Info("Starting reconciliation")
 
-	if spec.Status.Retry > a.cfg.MaximumRetry {
-		spec.Status.State = models.FailedState
+	plan := a.plan(spec, localLogger)
 
+	if spec.Status.Retry > a.cfg.MaximumRetry {
 		logger.Error(reachedMaximumRetryError{vmid: spec.ID, retries: spec.Status.Retry})
 
-		if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
-			return fmt.Errorf("saving spec after plan execution: %w", err)
-		}
-
-		return nil
+		return a.saveState(ctx, spec, plan, models.FailedState)
 	}
 
 	if spec.Status.NotBefore > 0 && time.Now().Before(time.Unix(spec.Status.NotBefore, 0)) {
 		return nil
 	}
-
-	plan := a.plan(spec, localLogger)
 
 	execCtx := portsctx.WithPorts(ctx, a.ports)
 
@@ -168,6 +162,12 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 
 	spec.Status.Retry = 0
 	spec.Status.NotBefore = 0
+
+	return a.saveState(ctx, spec, plan, models.CreatedState)
+}
+
+func (a *app) saveState(ctx context.Context, spec *models.MicroVM, plan planner.Plan, state models.MicroVMState) error {
+	plan.Finalise(state)
 
 	if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
 		return fmt.Errorf("saving spec after plan execution: %w", err)
