@@ -123,6 +123,10 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 
 		logger.Error(reachedMaximumRetryError{vmid: spec.ID, retries: spec.Status.Retry})
 
+		if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
+			return fmt.Errorf("saving spec after plan execution: %w", err)
+		}
+
 		return nil
 	}
 
