@@ -1,5 +1,7 @@
 package models
 
+// This state represents the state of the entire Flintlock MVM.
+// The state for the Firecracker MVM itself is represented in ports.MicroVMState.
 type MicroVMState string
 
 const (
