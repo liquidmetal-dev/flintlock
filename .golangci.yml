@@ -59,6 +59,9 @@ issues:
   - source: "https://"
     linters:
     - lll
+  - path: pkg/defaults/
+    linters:
+    - lll
   - path: _test\.go
     linters:
     - goerr113

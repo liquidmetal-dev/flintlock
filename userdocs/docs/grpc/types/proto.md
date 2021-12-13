@@ -7,6 +7,7 @@
     - [ContainerVolumeSource](#flintlock.types.ContainerVolumeSource)
     - [Initrd](#flintlock.types.Initrd)
     - [Kernel](#flintlock.types.Kernel)
+    - [Kernel.CmdlineEntry](#flintlock.types.Kernel.CmdlineEntry)
     - [MicroVM](#flintlock.types.MicroVM)
     - [MicroVMSpec](#flintlock.types.MicroVMSpec)
     - [MicroVMSpec.LabelsEntry](#flintlock.types.MicroVMSpec.LabelsEntry)
@@ -77,9 +78,25 @@ Kernel represents the configuration for a kernel.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | image | [string](#string) |  | Image is the container image to use. |
-| cmdline | [string](#string) |  | Cmdline is the kernel command line args. |
+| cmdline | [Kernel.CmdlineEntry](#flintlock.types.Kernel.CmdlineEntry) | repeated | Cmdline is the additional kernel command line args. Each provider has its own recommended list, they will be used automatically. This field is for additional values. |
 | filename | [string](#string) | optional | Filename is used to specify the name of the kernel file in the Image. |
 | add_network_config | [bool](#bool) |  | AddNetworkConfig if set to true indicates that the network-config kernel argument should be generated. |
+
+
+
+
+
+
+<a name="flintlock.types.Kernel.CmdlineEntry"></a>
+
+### Kernel.CmdlineEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 
 

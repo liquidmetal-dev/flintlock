@@ -91,7 +91,7 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 		MemoryInMb: 2048, //nolint: gomnd
 		Kernel: &types.Kernel{
 			Image:            kernelImage,
-			Cmdline:          "console=ttyS0 reboot=k panic=1 pci=off i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd ds=nocloud-net;s=http://169.254.169.254/latest/",
+			Cmdline:          map[string]string{},
 			Filename:         pointyString("vmlinux"),
 			AddNetworkConfig: true,
 		},

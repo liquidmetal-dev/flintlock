@@ -68,13 +68,15 @@ message MicroVMSpec {
 message Kernel {
   // Image is the container image to use.
   string image = 1;
-  // Cmdline is the kernel command line args.
-  string cmdline = 2;
+  // Cmdline is the additional kernel command line args. Each provider has its
+  // own recommended list, they will be used automatically. This field is for
+  // additional values.
+  map<string, string> cmdline = 2;
   // Filename is used to specify the name of the kernel file
   // in the Image.
   optional string filename = 3;
   // AddNetworkConfig if set to true indicates that the network-config kernel argument should be generated.
-	 bool add_network_config = 4;
+  bool add_network_config = 4;
 }
 
 // Initrd represents the configuration for the initial ramdisk.
