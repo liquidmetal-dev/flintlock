@@ -25,7 +25,7 @@ jobs:
         echo "${new_version}" >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
     - name: Create PR
-      if: ${{ env.NEW_VERSION != "" }}
+      if: ${{ env.NEW_VERSION != '' }}
       uses: peter-evans/create-pull-request@v3
       id: cpr
       with:
