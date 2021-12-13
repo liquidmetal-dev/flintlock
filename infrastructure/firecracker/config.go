@@ -154,7 +154,7 @@ func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkIn
 func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 	network := &cloudinit.Network{
 		Version:  cloudInitNetVersion,
-		Ethernet: map[string]*cloudinit.Ethernet{},
+		Ethernet: map[string]cloudinit.Ethernet{},
 	}
 
 	for i := range vm.Spec.NetworkInterfaces {
@@ -174,9 +174,9 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 		}
 
 		if macAddress != "" {
-			eth.Match.MACAddress = &macAddress
+			eth.Match.MACAddress = macAddress
 		} else {
-			eth.Match.Name = &iface.GuestDeviceName
+			eth.Match.Name = iface.GuestDeviceName
 		}
 
 		if iface.StaticAddress != nil {
@@ -185,7 +185,7 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 			}
 		}
 
-		network.Ethernet[iface.GuestDeviceName] = eth
+		network.Ethernet[iface.GuestDeviceName] = *eth
 	}
 
 	nd, err := yaml.Marshal(network)
@@ -211,14 +211,14 @@ func configureStaticEthernet(iface *models.NetworkInterface, eth *cloudinit.Ethe
 		}
 
 		if isIPv4 {
-			eth.GatewayIPv4 = &ipAddr
+			eth.GatewayIPv4 = ipAddr
 		} else {
-			eth.GatewayIPv6 = &ipAddr
+			eth.GatewayIPv6 = ipAddr
 		}
 	}
 
 	if len(iface.StaticAddress.Nameservers) > 0 {
-		eth.Nameservers = &cloudinit.Nameservers{
+		eth.Nameservers = cloudinit.Nameservers{
 			Addresses: []string{},
 		}
 

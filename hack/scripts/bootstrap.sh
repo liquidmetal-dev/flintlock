@@ -11,7 +11,7 @@ if [[ $(id -u) != 0 ]]; then
 fi
 
 GO_VERSION="1.17.2"
-FIRECRACKER_VERSION="v0.25.1"
+FIRECRACKER_VERSION="v0.25.2"
 INSTALL_ROOT="/usr/local"
 
 # install packages
