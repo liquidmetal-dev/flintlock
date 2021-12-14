@@ -204,6 +204,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 
 				expectedUpdatedSpec := createTestSpec("id1234", "default")
 				expectedUpdatedSpec.Spec.DeletedAt = frozenTime().Unix()
+				expectedUpdatedSpec.Status.State = models.DeletingState
 
 				rm.Save(
 					gomock.AssignableToTypeOf(context.Background()),

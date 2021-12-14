@@ -146,7 +146,8 @@
       "enum": [
         "PENDING",
         "CREATED",
-        "FAILED"
+        "FAILED",
+        "DELETING"
       ],
       "default": "PENDING"
     },
