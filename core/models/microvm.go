@@ -3,9 +3,10 @@ package models
 type MicroVMState string
 
 const (
-	PendingState = "pending"
-	CreatedState = "created"
-	FailedState  = "failed"
+	PendingState  = "pending"
+	CreatedState  = "created"
+	FailedState   = "failed"
+	DeletingState = "deleting"
 )
 
 // MicroVM represents a microvm machine that is created via a provider.

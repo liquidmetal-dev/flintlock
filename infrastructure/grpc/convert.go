@@ -243,6 +243,8 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 		converted.State = types.MicroVMStatus_PENDING
 	case models.FailedState:
 		converted.State = types.MicroVMStatus_FAILED
+	case models.DeletingState:
+		converted.State = types.MicroVMStatus_DELETING
 	}
 
 	converted.Volumes = make(map[string]*types.VolumeStatus, len(mvm.Status.Volumes))
