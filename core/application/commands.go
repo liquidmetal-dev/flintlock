@@ -97,6 +97,7 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 	// Set the timestamp when the VMspec was deleted.
 	foundMvm.Spec.DeletedAt = a.ports.Clock().Unix()
 	foundMvm.Status.Retry = 0
+	foundMvm.Status.State = models.DeletingState
 
 	_, err = a.ports.Repo.Save(ctx, foundMvm)
 	if err != nil {

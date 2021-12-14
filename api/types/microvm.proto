@@ -150,6 +150,7 @@ message MicroVMStatus {
     PENDING = 0;
     CREATED = 1;
     FAILED = 2;
+    DELETING = 3;
   }
 
   // State stores information about the last known state of the vm and the spec.
