@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/infrastructure/ulid"
 	"github.com/weaveworks/flintlock/pkg/planner"
 )
@@ -142,8 +143,7 @@ func (tp *testPlan) Create(ctx context.Context) ([]planner.Procedure, error) {
 	return toExec, nil
 }
 
-func (tp *testPlan) Result() interface{} {
-	return nil
+func (tp *testPlan) Finalise(_ models.MicroVMState) {
 }
 
 func newTestProc(delay time.Duration, childProcs []planner.Procedure) planner.Procedure {
