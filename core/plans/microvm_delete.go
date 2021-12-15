@@ -93,9 +93,7 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	return p.steps, nil
 }
 
-// Result is the result of the plan.
-func (p *microvmDeletePlan) Result() interface{} {
-	return nil
+func (p *microvmDeletePlan) Finalise(_ models.MicroVMState) {
 }
 
 // This is the most important function in the codebase DO NOT REMOVE

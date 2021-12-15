@@ -1,6 +1,10 @@
 package planner
 
-import "context"
+import (
+	"context"
+
+	"github.com/weaveworks/flintlock/core/models"
+)
 
 // NOTE: this is based on this prior work https://gianarb.it/blog/reactive-plan-golang-example
 // which has been adapted for use here.
@@ -13,6 +17,9 @@ type Plan interface {
 	// Create will perform the plan and will return a list of operations/procedures
 	// that need to be run to accomplish the plan
 	Create(ctx context.Context) ([]Procedure, error)
+
+	// Finalise will set final status fields when the Plan is complete
+	Finalise(state models.MicroVMState)
 }
 
 // Procedure represents a procedure/operation that will be carried out
