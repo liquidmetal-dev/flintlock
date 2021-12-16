@@ -26,8 +26,6 @@ type Config struct {
 	ParentIface string
 	// CtrSnapshotterKernel is the name of the containerd snapshotter to use for kernel images.
 	CtrSnapshotterKernel string
-	// CtrSnapshotterVolume is the name of the containerd snapshotter to use for volume (inc initrd) images.
-	CtrSnapshotterVolume string
 	// CtrSocketPath is the path to the containerd socket.
 	CtrSocketPath string
 	// CtrNamespace is the default containerd namespace to use

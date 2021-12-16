@@ -18,6 +18,7 @@ import (
 	"github.com/weaveworks/flintlock/infrastructure/network"
 	"github.com/weaveworks/flintlock/infrastructure/ulid"
 	"github.com/weaveworks/flintlock/internal/config"
+	"github.com/weaveworks/flintlock/pkg/defaults"
 	"time"
 )
 
@@ -72,7 +73,7 @@ func InitializeGRPCServer(app application.App) ports.MicroVMGRPCService {
 func containerdConfig(cfg *config.Config) *containerd.Config {
 	return &containerd.Config{
 		SnapshotterKernel: cfg.CtrSnapshotterKernel,
-		SnapshotterVolume: cfg.CtrSnapshotterVolume,
+		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
 	}
