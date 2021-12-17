@@ -30,12 +30,12 @@ service MicroVM {
   }
   rpc DeleteMicroVM(DeleteMicroVMRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      delete: "/v1alpha1/microvm/{namespace}/{id}"
+      delete: "/v1alpha1/microvm/{uid}"
     };
   }
   rpc GetMicroVM(GetMicroVMRequest) returns (GetMicroVMResponse) {
     option (google.api.http) = {
-      get: "/v1alpha1/microvm/{namespace}/{id}"
+      get: "/v1alpha1/microvm/{uid}"
     };
   }
   rpc ListMicroVMs(ListMicroVMsRequest) returns (ListMicroVMsResponse) {
@@ -56,13 +56,11 @@ message CreateMicroVMResponse {
 }
 
 message DeleteMicroVMRequest {
-  string id = 1;
-  string namespace = 2;
+  string uid = 1;
 }
 
 message GetMicroVMRequest {
-  string id = 1;
-  string namespace = 2;
+  string uid = 1;
 }
 
 message GetMicroVMResponse {

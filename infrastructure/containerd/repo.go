@@ -60,6 +60,7 @@ func (r *containerdRepo) Save(ctx context.Context, microvm *models.MicroVM) (*mo
 	existingSpec, err := r.get(ctx, ports.RepositoryGetOptions{
 		Name:      microvm.ID.Name(),
 		Namespace: microvm.ID.Namespace(),
+		UID:       microvm.ID.UID(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getting vm spec from store: %w", err)
@@ -127,7 +128,7 @@ func (r *containerdRepo) Get(ctx context.Context, options ports.RepositoryGetOpt
 	}
 
 	if spec == nil {
-		return nil, errors.NewSpecNotFound(options.Name, options.Namespace, options.Version)
+		return nil, errors.NewSpecNotFound(options.Name, options.Namespace, options.Version, options.UID)
 	}
 
 	return spec, nil
@@ -224,8 +225,8 @@ func (r *containerdRepo) Delete(ctx context.Context, microvm *models.MicroVM) er
 }
 
 // Exists checks to see if the microvm spec exists in the containerd content store.
-func (r *containerdRepo) Exists(ctx context.Context, name, namespace string) (bool, error) {
-	mu := r.getMutex(name)
+func (r *containerdRepo) Exists(ctx context.Context, vmid models.VMID) (bool, error) {
+	mu := r.getMutex(vmid.Name())
 	mu.RLock()
 	defer mu.RUnlock()
 
@@ -233,10 +234,11 @@ func (r *containerdRepo) Exists(ctx context.Context, name, namespace string) (bo
 
 	digest, err := r.findDigestForSpec(
 		namespaceCtx,
-		ports.RepositoryGetOptions{Name: name, Namespace: namespace},
+		ports.RepositoryGetOptions{Name: vmid.Name(), Namespace: vmid.Namespace(), UID: vmid.UID()},
 	)
 	if err != nil {
-		return false, fmt.Errorf("finding digest for %s/%s: %w", name, namespace, err)
+		return false, fmt.Errorf(
+			"finding digest for %s/%s/%s: %w", vmid.Name(), vmid.Namespace(), vmid.UID(), err)
 	}
 
 	if digest == nil {
@@ -286,9 +288,10 @@ func (r *containerdRepo) findDigestForSpec(ctx context.Context,
 
 	idLabelFilter := labelFilter(NameLabel(), options.Name)
 	nsFilter := labelFilter(NamespaceLabel(), options.Namespace)
+	uidLabelFilter := labelFilter(UIDLabel(), options.UID)
 	versionFilter := labelFilter(VersionLabel(), options.Version)
 
-	combinedFilters := []string{idLabelFilter, nsFilter}
+	combinedFilters := []string{idLabelFilter, nsFilter, uidLabelFilter}
 
 	if options.Version != "" {
 		combinedFilters = append(combinedFilters, versionFilter)
@@ -367,6 +370,7 @@ func getVMLabels(microvm *models.MicroVM) map[string]string {
 		NamespaceLabel(): microvm.ID.Namespace(),
 		TypeLabel():      MicroVMSpecType,
 		VersionLabel():   strconv.Itoa(microvm.Version),
+		UIDLabel():       microvm.ID.UID(),
 	}
 
 	return labels

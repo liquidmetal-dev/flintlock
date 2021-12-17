@@ -20,7 +20,7 @@ func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -54,7 +54,7 @@ func TestDeleteNetworkInterface_emptyStatus(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterfaceStatus{}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -78,7 +78,7 @@ func TestDeleteNetworkInterface_exists(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -120,7 +120,7 @@ func TestDeleteNetworkInterface_exists_errorDeleting(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -162,7 +162,7 @@ func TestDeleteNetworkInterface_IfaceExistsError(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterfaceStatus{HostDeviceName: expectedTapDeviceName}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()

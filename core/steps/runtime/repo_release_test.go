@@ -14,7 +14,7 @@ import (
 )
 
 func testVM() *models.MicroVM {
-	vmid, _ := models.NewVMID("vm", "ns")
+	vmid, _ := models.NewVMID("vm", "ns", "uid")
 	return &models.MicroVM{
 		ID:      *vmid,
 		Version: 1,
@@ -47,7 +47,7 @@ func TestNewRepoRelease(t *testing.T) {
 
 	microVMRepoService.
 		EXPECT().
-		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Exists(ctx, vm.ID).
 		Return(true, nil)
 
 	microVMRepoService.
@@ -80,7 +80,7 @@ func TestNewRepoRelease_doesNotExist(t *testing.T) {
 
 	microVMRepoService.
 		EXPECT().
-		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Exists(ctx, vm.ID).
 		Return(false, nil)
 
 	shouldDo, shouldErr := step.ShouldDo(ctx)
@@ -129,7 +129,7 @@ func TestNewRepoRelease_existsCheckFails(t *testing.T) {
 
 	microVMRepoService.
 		EXPECT().
-		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Exists(ctx, vm.ID).
 		Return(false, errors.New("exists check failed"))
 
 	shouldDo, shouldErr := step.ShouldDo(ctx)
@@ -154,7 +154,7 @@ func TestNewRepoRelease_repoServiceError(t *testing.T) {
 
 	microVMRepoService.
 		EXPECT().
-		Exists(ctx, vm.ID.Name(), vm.ID.Namespace()).
+		Exists(ctx, vm.ID).
 		Return(true, nil)
 
 	microVMRepoService.

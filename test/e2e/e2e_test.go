@@ -57,15 +57,15 @@ func TestE2E(t *testing.T) {
 		g.Expect(u.PidRunning(mvmPid1)).To(BeTrue())
 
 		// get the mVM and check the status
-		res := u.GetMVM(flintlockClient, mvmID, mvmNS)
+		res := u.GetMVM(flintlockClient, *created.Microvm.Uid)
 		g.Expect(res.Microvm.Spec.Id).To(Equal(mvmID))
 		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
 		return nil
 	}, "120s").Should(Succeed())
 
 	log.Println("TEST STEP: creating a second MicroVM")
-	created = u.CreateMVM(flintlockClient, secondMvmID, mvmNS)
-	Expect(created.Microvm.Spec.Id).To(Equal(secondMvmID))
+	createdSecond := u.CreateMVM(flintlockClient, secondMvmID, mvmNS)
+	Expect(createdSecond.Microvm.Id).To(Equal(secondMvmID))
 
 	log.Println("TEST STEP: listing all MicroVMs")
 	Eventually(func(g Gomega) error {
@@ -92,8 +92,8 @@ func TestE2E(t *testing.T) {
 	}
 
 	log.Println("TEST STEP: deleting existing MicroVMs")
-	Expect(u.DeleteMVM(flintlockClient, mvmID, mvmNS)).To(Succeed())
-	Expect(u.DeleteMVM(flintlockClient, secondMvmID, mvmNS)).To(Succeed())
+	Expect(u.DeleteMVM(flintlockClient, *created.Microvm.Uid)).To(Succeed())
+	Expect(u.DeleteMVM(flintlockClient, *createdSecond.Microvm.Uid)).To(Succeed())
 
 	Eventually(func(g Gomega) error {
 		// verify that the vm state dirs have been removed

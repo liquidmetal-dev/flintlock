@@ -6,10 +6,17 @@ import (
 	"github.com/weaveworks/flintlock/api/types"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/ptr"
 )
 
 func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
-	vmid, err := models.NewVMID(spec.Id, spec.Namespace)
+	uid := ""
+
+	if spec.Uid != nil {
+		uid = *spec.Uid
+	}
+
+	vmid, err := models.NewVMID(spec.Id, spec.Namespace, uid)
 	if err != nil {
 		return nil, fmt.Errorf("creating vmid from spec: %w", err)
 	}
@@ -140,6 +147,7 @@ func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 	converted := &types.MicroVMSpec{
 		Id:        mvm.ID.Name(),
 		Namespace: mvm.ID.Namespace(),
+		Uid:       ptr.String(mvm.ID.UID()),
 		// Labels: ,
 		Vcpu:       int32(mvm.Spec.VCPU),
 		MemoryInMb: int32(mvm.Spec.MemoryInMb),

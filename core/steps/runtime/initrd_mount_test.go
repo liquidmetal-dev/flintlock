@@ -15,7 +15,7 @@ import (
 )
 
 func testVMWithInitrd() *models.MicroVM {
-	vmid, _ := models.NewVMID("vm", "ns")
+	vmid, _ := models.NewVMID("vm", "ns", "uid")
 	return &models.MicroVM{
 		ID:      *vmid,
 		Version: 1,

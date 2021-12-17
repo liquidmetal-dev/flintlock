@@ -21,7 +21,7 @@ message MicroVMSpec {
   // If this empty at creation time a ID will be automatically generated.
   string id = 1;
 
-    // Namespace is the name of the namespace the microvm belongs to.
+  // Namespace is the name of the namespace the microvm belongs to.
   string namespace = 2;
 
   // Labels allows you to include extra data for the microvms.
@@ -62,6 +62,10 @@ message MicroVMSpec {
 
   // DeletedAt indicates the time the microvm was marked as deleted.
   google.protobuf.Timestamp deleted_at = 14;
+
+  // UID is a globally unique identifier of the microvm.
+  optional string uid = 15;
+
 }
 
 // Kernel represents the configuration for a kernel.

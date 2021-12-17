@@ -8,28 +8,34 @@ import (
 )
 
 var (
-	errIDRequired        = errors.New("microvm id is required")
 	errNamespaceRequired = errors.New("namespace is required")
+	errUIDRequired       = errors.New("uid is required")
 )
 
 type specAlreadyExistsError struct {
 	name      string
 	namespace string
+	uid       string
 }
 
 // Error returns the error message.
 func (e specAlreadyExistsError) Error() string {
-	return fmt.Sprintf("microvm spec %s/%s already exists", e.namespace, e.name)
+	return fmt.Sprintf("microvm spec %s/%s/%s already exists", e.namespace, e.name, e.uid)
 }
 
 type specNotFoundError struct {
 	name      string
 	namespace string
+	uid       string
 }
 
 // Error returns the error message.
 func (e specNotFoundError) Error() string {
-	return fmt.Sprintf("microvm spec %s/%s not found", e.namespace, e.name)
+	if e.name != "" {
+		return fmt.Sprintf("microvm spec %s/%s/%s not found", e.namespace, e.name, e.uid)
+	}
+
+	return fmt.Sprintf("microvm spec %s not found", e.uid)
 }
 
 type reachedMaximumRetryError struct {

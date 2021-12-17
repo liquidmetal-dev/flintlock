@@ -6,6 +6,8 @@ type MicroVMSpecCreated struct {
 	ID string
 	// Namespace is the namespace of the created microvm.
 	Namespace string
+	// UID is the unique id of the created microvm.
+	UID string
 }
 
 // MicroVMSpecUpdated is an event for when a microvm spec is updated.
@@ -14,6 +16,8 @@ type MicroVMSpecUpdated struct {
 	ID string
 	// Namespace is the namespace of the updated microvm.
 	Namespace string
+	// UID is the unique id of the updated microvm.
+	UID string
 }
 
 // MicroVMSpecDeleted is an event for when a microvm spec is deleted.
@@ -22,4 +26,6 @@ type MicroVMSpecDeleted struct {
 	ID string
 	// Namespace is the namespace of the deleted microvm.
 	Namespace string
+	// UID is the unique id of the deleted microvm.
+	UID string
 }

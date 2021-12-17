@@ -21,6 +21,7 @@ const (
 	testImageKernel    = "docker.io/linuxkit/kernel:5.4.129"
 	testSnapshotter    = "devmapper"
 	testOwnerNamespace = "int_ns"
+	testOwnerUID       = "uid"
 	testOwnerUsageID   = "vol1"
 	testOwnerName      = "imageservice-get-test"
 	testContainerdNS   = "flintlock_test_ctr"

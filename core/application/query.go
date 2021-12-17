@@ -9,27 +9,26 @@ import (
 	"github.com/weaveworks/flintlock/pkg/log"
 )
 
-func (a *app) GetMicroVM(ctx context.Context, id, namespace string) (*models.MicroVM, error) {
+func (a *app) GetMicroVM(ctx context.Context, uid string) (*models.MicroVM, error) {
 	logger := log.GetLogger(ctx).WithField("component", "app")
-	logger.Tracef("querying microvm: %s, with namespace: %s", id, namespace)
+	logger.Tracef("querying microvm: %s", uid)
 
-	if id == "" {
-		return nil, errIDRequired
+	if uid == "" {
+		return nil, errUIDRequired
 	}
 
-	if namespace == "" {
-		return nil, errNamespaceRequired
+	getOptions := ports.RepositoryGetOptions{
+		UID: uid,
 	}
 
-	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{Name: id, Namespace: namespace})
+	foundMvm, err := a.ports.Repo.Get(ctx, getOptions)
 	if err != nil {
-		return nil, fmt.Errorf("error attempting to locate microvm with id: %s, in namespace: %s: %w", id, namespace, err)
+		return nil, fmt.Errorf("error attempting to locate microvm with uid: %s: %w", uid, err)
 	}
 
 	if foundMvm == nil {
 		return nil, specNotFoundError{
-			name:      id,
-			namespace: namespace,
+			uid: uid,
 		}
 	}
 

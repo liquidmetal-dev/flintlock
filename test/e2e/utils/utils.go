@@ -25,20 +25,18 @@ func CreateMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateM
 	return created
 }
 
-func DeleteMVM(client v1alpha1.MicroVMClient, name, ns string) error {
+func DeleteMVM(client v1alpha1.MicroVMClient, uid string) error {
 	deleteReq := v1alpha1.DeleteMicroVMRequest{
-		Id:        name,
-		Namespace: ns,
+		Uid: uid,
 	}
 	_, err := client.DeleteMicroVM(context.Background(), &deleteReq)
 
 	return err
 }
 
-func GetMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.GetMicroVMResponse {
+func GetMVM(client v1alpha1.MicroVMClient, uid string) *v1alpha1.GetMicroVMResponse {
 	getReq := v1alpha1.GetMicroVMRequest{
-		Id:        name,
-		Namespace: ns,
+		Uid: uid,
 	}
 	res, err := client.GetMicroVM(context.Background(), &getReq)
 	g.Expect(err).NotTo(g.HaveOccurred())

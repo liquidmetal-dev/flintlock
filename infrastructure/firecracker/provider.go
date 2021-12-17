@@ -85,13 +85,13 @@ func (p *fcProvider) Delete(ctx context.Context, id string) error {
 
 	pid, pidErr := vmState.PID()
 	if pidErr != nil {
-		return fmt.Errorf("unable to get PID: %w", err)
+		return fmt.Errorf("unable to get PID: %w", pidErr)
 	}
 
 	logger.Infof("sending SIGHUP to %d", pid)
 
 	if sigErr := process.SendSignal(pid, syscall.SIGHUP); sigErr != nil {
-		return fmt.Errorf("failed to terminate with SIGHUP: %w", err)
+		return fmt.Errorf("failed to terminate with SIGHUP: %w", sigErr)
 	}
 
 	ctxTimeout, cancel := context.WithTimeout(ctx, p.deleteVMTimeout)

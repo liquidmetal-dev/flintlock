@@ -8,6 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 
+	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/plans"
 	"github.com/weaveworks/flintlock/core/ports"
 	portsctx "github.com/weaveworks/flintlock/core/ports/context"
@@ -35,20 +36,22 @@ func TestMicroVMDeletePlan(t *testing.T) {
 
 	mList.MicroVMService.
 		EXPECT().
-		State(gomock.Any(), gomock.Eq("namespace/vmid")).
+		State(gomock.Any(), gomock.Eq("namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003")).
 		DoAndReturn(func(_ context.Context, _ string) (ports.MicroVMState, error) {
 			return ports.MicroVMStateRunning, nil
 		}).AnyTimes()
 
+	vmid := models.NewVMIDForce("vmid", "namespace", testUID)
+
 	mList.MicroVMRepository.
 		EXPECT().
-		Exists(gomock.Any(), gomock.Eq("vmid"), gomock.Eq("namespace")).
+		Exists(gomock.Any(), gomock.Eq(*vmid)).
 		Return(true, nil).
 		AnyTimes()
 
 	mList.MicroVMService.
 		EXPECT().
-		Delete(gomock.Any(), gomock.Eq("namespace/vmid")).
+		Delete(gomock.Any(), gomock.Eq("namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003")).
 		Return(nil).
 		Times(1)
 

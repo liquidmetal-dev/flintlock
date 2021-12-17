@@ -80,8 +80,7 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		publishStep := event.NewPublish(
 			defaults.TopicMicroVMEvents,
 			&events.MicroVMSpecDeleted{
-				ID:        p.vm.ID.Name(),
-				Namespace: p.vm.ID.Namespace(),
+				UID: p.vm.ID.UID(),
 			},
 			ports.EventService,
 		)

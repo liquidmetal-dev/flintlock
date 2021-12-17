@@ -13,6 +13,7 @@ import (
 	lgrtest "github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/weaveworks/flintlock/api/events"
+	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/infrastructure/controllers"
 	"github.com/weaveworks/flintlock/infrastructure/mock"
@@ -23,6 +24,7 @@ import (
 var (
 	vmID  = "vm1"
 	vmNS  = "testns"
+	vmUID = "uid"
 	ctrNS = "flintlock_test_controller"
 )
 
@@ -44,7 +46,7 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(nil)
 			},
 		},
 		{
@@ -56,7 +58,7 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(nil)
 			},
 		},
 		{
@@ -68,8 +70,7 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				// uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil)
-				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Times(0)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Times(0)
 			},
 		},
 		{
@@ -82,9 +83,9 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				failed := uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(errors.New("something bad happened"))
+				failed := uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(errors.New("something bad happened"))
 
-				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil).After(failed)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(nil).After(failed)
 			},
 		},
 		{
@@ -97,9 +98,9 @@ func TestMicroVMController(t *testing.T) {
 			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
 				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
 
-				failed := uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(errors.New("something bad happened"))
+				failed := uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(errors.New("something bad happened"))
 
-				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(vmID), gomock.Eq(vmNS)).Return(nil).After(failed)
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(nil).After(failed)
 			},
 		},
 	}
@@ -175,6 +176,7 @@ func createdEvent(name, namespace string) *ports.EventEnvelope {
 		Event: &events.MicroVMSpecCreated{
 			ID:        name,
 			Namespace: namespace,
+			UID:       vmUID,
 		},
 	}
 }
@@ -187,6 +189,7 @@ func updatedEvent(name, namespace string) *ports.EventEnvelope {
 		Event: &events.MicroVMSpecUpdated{
 			ID:        name,
 			Namespace: namespace,
+			UID:       vmUID,
 		},
 	}
 }
@@ -199,6 +202,7 @@ func deletedEvent(name, namespace string) *ports.EventEnvelope {
 		Event: &events.MicroVMSpecDeleted{
 			ID:        name,
 			Namespace: namespace,
+			UID:       vmUID,
 		},
 	}
 }

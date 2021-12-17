@@ -69,7 +69,7 @@
         ]
       }
     },
-    "/v1alpha1/microvm/{namespace}/{id}": {
+    "/v1alpha1/microvm/{uid}": {
       "get": {
         "operationId": "MicroVM_GetMicroVM",
         "responses": {
@@ -88,13 +88,7 @@
         },
         "parameters": [
           {
-            "name": "namespace",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "id",
+            "name": "uid",
             "in": "path",
             "required": true,
             "type": "string"
@@ -122,13 +116,7 @@
         },
         "parameters": [
           {
-            "name": "namespace",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "id",
+            "name": "uid",
             "in": "path",
             "required": true,
             "type": "string"
@@ -333,6 +321,10 @@
           "type": "string",
           "format": "date-time",
           "description": "DeletedAt indicates the time the microvm was marked as deleted."
+        },
+        "uid": {
+          "type": "string",
+          "description": "UID is a globally unique identifier of the microvm."
         }
       },
       "description": "MicroVMSpec represents the specification for a microvm."

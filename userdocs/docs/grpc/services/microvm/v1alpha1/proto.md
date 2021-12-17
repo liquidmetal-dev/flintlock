@@ -82,8 +82,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
-| namespace | [string](#string) |  |  |
+| uid | [string](#string) |  |  |
 
 
 
@@ -98,8 +97,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
-| namespace | [string](#string) |  |  |
+| uid | [string](#string) |  |  |
 
 
 

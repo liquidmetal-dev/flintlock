@@ -24,7 +24,7 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 		SnapshotterVolume: testSnapshotter,
 		Namespace:         testContainerdNS,
 	}, client)
-	exists, err := repo.Exists(ctx, testOwnerName, testOwnerNamespace)
+	exists, err := repo.Exists(ctx, *models.NewVMIDForce(testOwnerName, testOwnerNamespace, testOwnerUID))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(exists).To(BeFalse())
 
@@ -40,13 +40,14 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	Expect(savedVM).NotTo(BeNil())
 	Expect(savedVM.Version).To(Equal(3))
 
-	exists, err = repo.Exists(ctx, testOwnerName, testOwnerNamespace)
+	exists, err = repo.Exists(ctx, *models.NewVMIDForce(testOwnerName, testOwnerNamespace, testOwnerUID))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(exists).To(BeTrue())
 
 	gotVM, err := repo.Get(ctx, ports.RepositoryGetOptions{
 		Name:      testOwnerName,
 		Namespace: testOwnerNamespace,
+		UID:       "uid",
 	})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(gotVM).NotTo(BeNil())
@@ -55,6 +56,7 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	olderVM, err := repo.Get(ctx, ports.RepositoryGetOptions{
 		Name:      testOwnerName,
 		Namespace: testOwnerNamespace,
+		UID:       "uid",
 		Version:   "2",
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -68,7 +70,7 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	err = repo.Delete(ctx, testVm)
 	Expect(err).NotTo(HaveOccurred())
 
-	exists, err = repo.Exists(ctx, testOwnerName, testOwnerNamespace)
+	exists, err = repo.Exists(ctx, *models.NewVMIDForce(testOwnerName, testOwnerNamespace, testOwnerUID))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(exists).To(BeFalse())
 
@@ -110,7 +112,7 @@ func TestMicroVMRepo_Integration_MultipleSave(t *testing.T) {
 }
 
 func makeSpec(name, ns string) *models.MicroVM {
-	vmid, _ := models.NewVMID(name, ns)
+	vmid, _ := models.NewVMID(name, ns, "uid")
 	return &models.MicroVM{
 		ID:      *vmid,
 		Version: 1,

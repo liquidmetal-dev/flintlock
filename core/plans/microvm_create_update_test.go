@@ -31,7 +31,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 
 	mList.MicroVMService.
 		EXPECT().
-		State(gomock.Any(), gomock.Eq("namespace/vmid")).
+		State(gomock.Any(), gomock.Eq("namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003")).
 		DoAndReturn(func(_ context.Context, _ string) (ports.MicroVMState, error) {
 			return ports.MicroVMStatePending, nil
 		}).
@@ -79,7 +79,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 			gomock.Any(),
 			gomock.Eq(&ports.ImageMountSpec{
 				ImageName:    "docker.io/library/ubuntu:myimage",
-				Owner:        "namespace/vmid",
+				Owner:        "namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003",
 				OwnerUsageID: "root",
 				Use:          "volume",
 			}),
@@ -93,7 +93,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 			gomock.Any(),
 			gomock.Eq(&ports.ImageMountSpec{
 				ImageName:    "docker.io/linuxkit/kernel:5.4.129",
-				Owner:        "namespace/vmid",
+				Owner:        "namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003",
 				OwnerUsageID: "kernel",
 				Use:          "kernel",
 			}),
