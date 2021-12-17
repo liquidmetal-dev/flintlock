@@ -18,7 +18,6 @@ const (
 	firecrackerBinFlag    = "firecracker-bin"
 	firecrackerDetachFlag = "firecracker-detach"
 	containerdSocketFlag  = "containerd-socket"
-	volSnapshotterFlag    = "containerd-volume-ss"
 	kernelSnapshotterFlag = "containerd-kernel-ss"
 	containerdNamespace   = "containerd-ns"
 	maximumRetryFlag      = "maximum-retry"
@@ -114,11 +113,6 @@ func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 		kernelSnapshotterFlag,
 		defaults.ContainerdKernelSnapshotter,
 		"The name of the snapshotter to use with containerd for kernel/initrd images.")
-
-	cmd.Flags().StringVar(&cfg.CtrSnapshotterVolume,
-		volSnapshotterFlag,
-		defaults.ContainerdVolumeSnapshotter,
-		"The name of the snapshotter to use with containerd for volume images.")
 
 	cmd.Flags().StringVar(&cfg.CtrNamespace,
 		containerdNamespace,

@@ -99,7 +99,7 @@ def create_device(config_file, org_id, project_id, device_name, userdata):
         f"Creating device {cfg['device']['name']} with config {pretty}")
 
     welder = Welder(token, cfg)
-    ip = welder.create_all()
+    ip = welder.create_all()[0]
 
     key_dir = welder.key_dir
     click.echo(

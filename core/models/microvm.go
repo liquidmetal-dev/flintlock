@@ -1,11 +1,14 @@
 package models
 
+// This state represents the state of the entire Flintlock MVM.
+// The state for the Firecracker MVM itself is represented in ports.MicroVMState.
 type MicroVMState string
 
 const (
-	PendingState = "pending"
-	CreatedState = "created"
-	FailedState  = "failed"
+	PendingState  = "pending"
+	CreatedState  = "created"
+	FailedState   = "failed"
+	DeletingState = "deleting"
 )
 
 // MicroVM represents a microvm machine that is created via a provider.

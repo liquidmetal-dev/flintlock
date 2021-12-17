@@ -29,6 +29,8 @@ type MicroVMService interface {
 	State(ctx context.Context, id string) (MicroVMState, error)
 }
 
+// This state represents the state of the Firecracker MVM process itself
+// The state for the entire Flintlock MVM is represented in models.MicroVMState.
 type MicroVMState string
 
 const (

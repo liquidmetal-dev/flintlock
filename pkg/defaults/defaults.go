@@ -14,7 +14,7 @@ const (
 	// ContainerdSocket is the defaults path for the containerd socket.
 	ContainerdSocket = "/run/containerd/containerd.sock"
 
-	// ContainerdVolumeSnapshotter is the name of the default snapshotter to use for volumes.
+	// ContainerdVolumeSnapshotter is the name of the snapshotter used for volumes.
 	ContainerdVolumeSnapshotter = "devmapper"
 
 	// ContainerdKernelSnapshotter is the name of the default snapshotter to use for kernek/initrd.

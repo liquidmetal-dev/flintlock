@@ -349,6 +349,7 @@ TODO: add CSI |
 | PENDING | 0 |  |
 | CREATED | 1 |  |
 | FAILED | 2 |  |
+| DELETING | 3 |  |
 
 
 
