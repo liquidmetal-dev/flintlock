@@ -13,18 +13,12 @@ type MicroVMService interface {
 	// Capabilities returns a list of the capabilities the provider supports.
 	Capabilities() models.Capabilities
 
-	// CreateVM will create a new microvm.
+	// Create will create a new microvm.
 	Create(ctx context.Context, vm *models.MicroVM) error
-	// DeleteVM will delete a VM and its runtime state.
+	// Delete will delete a VM and its runtime state.
 	Delete(ctx context.Context, id string) error
-	// StartVM will start a created microvm.
+	// Start will start a created microvm.
 	Start(ctx context.Context, vm *models.MicroVM) error
-	// PauseVM will pause a started microvm.
-	Pause(ctx context.Context, id string) error
-	// ResumeVM will resume a paused microvm.
-	Resume(ctx context.Context, id string) error
-	// StopVM will stop a paused or running microvm.
-	Stop(ctx context.Context, id string) error
 	// State returns the state of a microvm.
 	State(ctx context.Context, id string) (MicroVMState, error)
 }
@@ -38,7 +32,6 @@ const (
 	MicroVMStatePending    MicroVMState = "pending"
 	MicroVMStateConfigured MicroVMState = "configured"
 	MicroVMStateRunning    MicroVMState = "running"
-	MicroVMStatePaused     MicroVMState = "paused"
 )
 
 // MicroVMGRPCService is a port for a microvm grpc service.

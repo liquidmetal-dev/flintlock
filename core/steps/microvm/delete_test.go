@@ -78,7 +78,6 @@ func TestNewDeleteStep_StateCheck(t *testing.T) {
 		{State: ports.MicroVMStatePending, ExpectToRun: false},
 		{State: ports.MicroVMStateConfigured, ExpectToRun: true},
 		{State: ports.MicroVMStateRunning, ExpectToRun: true},
-		{State: ports.MicroVMStatePaused, ExpectToRun: true},
 		{State: ports.MicroVMStateUnknown, ExpectToRun: false},
 	}
 

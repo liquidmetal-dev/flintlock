@@ -78,34 +78,6 @@ func (mr *MockMicroVMServiceMockRecorder) Delete(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockMicroVMService)(nil).Delete), arg0, arg1)
 }
 
-// Pause mocks base method.
-func (m *MockMicroVMService) Pause(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pause", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Pause indicates an expected call of Pause.
-func (mr *MockMicroVMServiceMockRecorder) Pause(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pause", reflect.TypeOf((*MockMicroVMService)(nil).Pause), arg0, arg1)
-}
-
-// Resume mocks base method.
-func (m *MockMicroVMService) Resume(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Resume", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Resume indicates an expected call of Resume.
-func (mr *MockMicroVMServiceMockRecorder) Resume(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Resume", reflect.TypeOf((*MockMicroVMService)(nil).Resume), arg0, arg1)
-}
-
 // Start mocks base method.
 func (m *MockMicroVMService) Start(arg0 context.Context, arg1 *models.MicroVM) error {
 	m.ctrl.T.Helper()
