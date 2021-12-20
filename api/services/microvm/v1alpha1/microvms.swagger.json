@@ -138,19 +138,45 @@
           "MicroVM"
         ]
       }
+    },
+    "/v1alpha1/microvm/{namespace}/{id}/status": {
+      "get": {
+        "operationId": "MicroVM_GetMicroVMStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1GetMicroVMStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
     }
   },
   "definitions": {
-    "MicroVMStatusMicroVMState": {
-      "type": "string",
-      "enum": [
-        "PENDING",
-        "CREATED",
-        "FAILED",
-        "DELETING"
-      ],
-      "default": "PENDING"
-    },
     "MountMountType": {
       "type": "string",
       "enum": [
@@ -334,11 +360,24 @@
       },
       "description": "MicroVMSpec represents the specification for a microvm."
     },
+    "typesMicroVMState": {
+      "type": "string",
+      "enum": [
+        "UNKNWON",
+        "PENDING",
+        "CREATED",
+        "RUNNING",
+        "FAILED",
+        "DELETING",
+        "STOPPED"
+      ],
+      "default": "UNKNWON"
+    },
     "typesMicroVMStatus": {
       "type": "object",
       "properties": {
         "state": {
-          "$ref": "#/definitions/MicroVMStatusMicroVMState",
+          "$ref": "#/definitions/typesMicroVMState",
           "description": "State stores information about the last known state of the vm and the spec."
         },
         "volumes": {
@@ -508,6 +547,14 @@
       "properties": {
         "microvm": {
           "$ref": "#/definitions/typesMicroVM"
+        }
+      }
+    },
+    "v1alpha1GetMicroVMStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/typesMicroVMState"
         }
       }
     },

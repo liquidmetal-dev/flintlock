@@ -38,6 +38,11 @@ service MicroVM {
       get: "/v1alpha1/microvm/{namespace}/{id}"
     };
   }
+  rpc GetMicroVMStatus(GetMicroVMStatusRequest) returns (GetMicroVMStatusResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/microvm/{namespace}/{id}/status"
+    };
+  }
   rpc ListMicroVMs(ListMicroVMsRequest) returns (ListMicroVMsResponse) {
     option (google.api.http) = {
       get: "/v1alpha1/microvm/{namespace}"
@@ -67,6 +72,15 @@ message GetMicroVMRequest {
 
 message GetMicroVMResponse {
   flintlock.types.MicroVM microvm = 1;
+}
+
+message GetMicroVMStatusRequest {
+  string id = 1;
+  string namespace = 2;
+}
+
+message GetMicroVMStatusResponse {
+  flintlock.types.MicroVMState status = 1;
 }
 
 message ListMicroVMsRequest {

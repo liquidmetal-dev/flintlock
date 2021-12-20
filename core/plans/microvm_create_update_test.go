@@ -106,7 +106,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 	Expect(createErr).NotTo(HaveOccurred())
 	Expect(steps).To(HaveLen(7))
 
-	Expect(testVM.Status.State).To(Equal(models.MicroVMState(models.PendingState)))
+	//Expect(testVM.Status.State).To(Equal(models.MicroVMState(models.PendingState)))
 
 	for _, step := range steps {
 		should, err := step.ShouldDo(ctx)
@@ -120,33 +120,5 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(extraSteps).To(BeNil())
 		}
-	}
-}
-
-func TestMicroVMPlanFinalise(t *testing.T) {
-	tt := []struct {
-		name  string
-		state models.MicroVMState
-	}{
-		{
-			name:  "finalise with created updates mvm state to created",
-			state: models.CreatedState,
-		},
-		{
-			name:  "finalise with failed updates mvm state to created",
-			state: models.FailedState,
-		},
-	}
-	for _, tc := range tt {
-		RegisterTestingT(t)
-		vm := createTestSpec("vmid", "namespace")
-		plan := plans.MicroVMCreateOrUpdatePlan(&plans.CreateOrUpdatePlanInput{
-			VM:             vm,
-			StateDirectory: "/tmp/path/to/vm",
-		})
-
-		plan.Finalise(tc.state)
-
-		Expect(vm.Status.State).To(Equal(models.MicroVMState(tc.state)))
 	}
 }

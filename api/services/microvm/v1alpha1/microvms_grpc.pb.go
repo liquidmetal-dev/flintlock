@@ -22,6 +22,7 @@ type MicroVMClient interface {
 	CreateMicroVM(ctx context.Context, in *CreateMicroVMRequest, opts ...grpc.CallOption) (*CreateMicroVMResponse, error)
 	DeleteMicroVM(ctx context.Context, in *DeleteMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetMicroVM(ctx context.Context, in *GetMicroVMRequest, opts ...grpc.CallOption) (*GetMicroVMResponse, error)
+	GetMicroVMStatus(ctx context.Context, in *GetMicroVMStatusRequest, opts ...grpc.CallOption) (*GetMicroVMStatusResponse, error)
 	ListMicroVMs(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (*ListMicroVMsResponse, error)
 	ListMicroVMsStream(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (MicroVM_ListMicroVMsStreamClient, error)
 }
@@ -55,6 +56,15 @@ func (c *microVMClient) DeleteMicroVM(ctx context.Context, in *DeleteMicroVMRequ
 func (c *microVMClient) GetMicroVM(ctx context.Context, in *GetMicroVMRequest, opts ...grpc.CallOption) (*GetMicroVMResponse, error) {
 	out := new(GetMicroVMResponse)
 	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/GetMicroVM", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *microVMClient) GetMicroVMStatus(ctx context.Context, in *GetMicroVMStatusRequest, opts ...grpc.CallOption) (*GetMicroVMStatusResponse, error) {
+	out := new(GetMicroVMStatusResponse)
+	err := c.cc.Invoke(ctx, "/microvm.services.api.v1alpha1.MicroVM/GetMicroVMStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +119,7 @@ type MicroVMServer interface {
 	CreateMicroVM(context.Context, *CreateMicroVMRequest) (*CreateMicroVMResponse, error)
 	DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error)
 	GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error)
+	GetMicroVMStatus(context.Context, *GetMicroVMStatusRequest) (*GetMicroVMStatusResponse, error)
 	ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error)
 	ListMicroVMsStream(*ListMicroVMsRequest, MicroVM_ListMicroVMsStreamServer) error
 }
@@ -125,6 +136,9 @@ func (UnimplementedMicroVMServer) DeleteMicroVM(context.Context, *DeleteMicroVMR
 }
 func (UnimplementedMicroVMServer) GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMicroVM not implemented")
+}
+func (UnimplementedMicroVMServer) GetMicroVMStatus(context.Context, *GetMicroVMStatusRequest) (*GetMicroVMStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMicroVMStatus not implemented")
 }
 func (UnimplementedMicroVMServer) ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMicroVMs not implemented")
@@ -198,6 +212,24 @@ func _MicroVM_GetMicroVM_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MicroVM_GetMicroVMStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMicroVMStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MicroVMServer).GetMicroVMStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/microvm.services.api.v1alpha1.MicroVM/GetMicroVMStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MicroVMServer).GetMicroVMStatus(ctx, req.(*GetMicroVMStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MicroVM_ListMicroVMs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListMicroVMsRequest)
 	if err := dec(in); err != nil {
@@ -255,6 +287,10 @@ var MicroVM_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMicroVM",
 			Handler:    _MicroVM_GetMicroVM_Handler,
+		},
+		{
+			MethodName: "GetMicroVMStatus",
+			Handler:    _MicroVM_GetMicroVMStatus_Handler,
 		},
 		{
 			MethodName: "ListMicroVMs",

@@ -236,17 +236,6 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 		Retry: int32(mvm.Status.Retry),
 	}
 
-	switch mvm.Status.State {
-	case models.PendingState:
-		converted.State = types.MicroVMStatus_PENDING
-	case models.CreatedState:
-		converted.State = types.MicroVMStatus_CREATED
-	case models.FailedState:
-		converted.State = types.MicroVMStatus_FAILED
-	case models.DeletingState:
-		converted.State = types.MicroVMStatus_DELETING
-	}
-
 	converted.Volumes = make(map[string]*types.VolumeStatus, len(mvm.Status.Volumes))
 	for volName, volStatus := range mvm.Status.Volumes {
 		converted.Volumes[volName] = convertModelToVolumeStatus(volStatus)
@@ -266,6 +255,27 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 	}
 
 	return converted
+}
+
+func convertModelToMicrovmState(modelState models.Status) types.MicroVMState {
+	switch modelState {
+	case models.StatusCreated:
+		return types.MicroVMState_CREATED
+	case models.StatusStopped:
+		return types.MicroVMState_STOPPED
+	case models.StatusUnknown:
+		return types.MicroVMState_UNKNWON
+	case models.StatusRunning:
+		return types.MicroVMState_RUNNING
+	case models.StatusDeleting:
+		return types.MicroVMState_DELETING
+	case models.StatusPending:
+		return types.MicroVMState_PENDING
+	case models.StatusFailed:
+		return types.MicroVMState_FAILED
+	}
+
+	return types.MicroVMState_UNKNWON
 }
 
 func convertModelToVolumeStatus(volStatus *models.VolumeStatus) *types.VolumeStatus {

@@ -144,15 +144,18 @@ message ContainerVolumeSource {
     string image = 1;
 }
 
+enum MicroVMState {
+    UNKNWON = 0;
+    PENDING = 1;
+    CREATED = 2;
+    RUNNING = 3;
+    FAILED = 4;
+    DELETING = 5;
+    STOPPED = 6;
+}
+
 // MicroVMStatus contains the runtime status of the microvm.
 message MicroVMStatus {
-  enum MicroVMState {
-    PENDING = 0;
-    CREATED = 1;
-    FAILED = 2;
-    DELETING = 3;
-  }
-
   // State stores information about the last known state of the vm and the spec.
   MicroVMState state = 1;
   // Volumes holds the status of the volumes.

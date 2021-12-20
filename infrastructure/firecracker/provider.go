@@ -143,7 +143,9 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 	}
 
 	if !processExists {
-		return ports.MicroVMStatePending, nil
+		logger.Debugf("firecracker process previously existed with pid %d but is now stopped", pid)
+
+		return ports.MicroVMStateStopped, nil
 	}
 
 	return ports.MicroVMStateRunning, nil
