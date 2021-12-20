@@ -84,7 +84,6 @@ func TestNewStartStep_StateCheck(t *testing.T) {
 		{State: ports.MicroVMStatePending, ExpectToRun: true},
 		{State: ports.MicroVMStateConfigured, ExpectToRun: true},
 		{State: ports.MicroVMStateRunning, ExpectToRun: false},
-		{State: ports.MicroVMStatePaused, ExpectToRun: true},
 		{State: ports.MicroVMStateUnknown, ExpectToRun: true},
 	}
 

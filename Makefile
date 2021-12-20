@@ -73,7 +73,7 @@ generate: ## Generate code
 
 .PHONY: generate-go
 generate-go: $(MOCKGEN) ## Generate Go Code
-	go generate ./...
+	go generate ./... -mod=mod
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
 generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI) $(PROTOC_GEN_DOC)

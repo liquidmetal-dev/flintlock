@@ -2,7 +2,6 @@ package firecracker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"syscall"
 	"time"
@@ -15,8 +14,6 @@ import (
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/process"
 )
-
-var errNotImplemeted = errors.New("not implemented")
 
 // Config represents the configuration options for the Firecracker infrastructure.
 type Config struct {
@@ -53,7 +50,7 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 	return models.Capabilities{models.MetadataServiceCapability}
 }
 
-// StartVM will start a created microvm.
+// Start will start a created microvm.
 // With configuration file, we don't really have start.  A separate Start and
 // Create steps is a good idea, but the right now steps are still coupled with
 // MicroVM.
@@ -71,22 +68,7 @@ func (p *fcProvider) Start(ctx context.Context, vm *models.MicroVM) error {
 	return p.Create(ctx, vm)
 }
 
-// Pause will pause a started microvm.
-func (p *fcProvider) Pause(ctx context.Context, id string) error {
-	return errNotImplemeted
-}
-
-// Resume will resume a paused microvm.
-func (p *fcProvider) Resume(ctx context.Context, id string) error {
-	return errNotImplemeted
-}
-
-// Stop will stop a paused or running microvm.
-func (p *fcProvider) Stop(ctx context.Context, id string) error {
-	return errNotImplemeted
-}
-
-// Delete will delete a VM and its runtime state.
+// Stop will stop a running microvm.
 func (p *fcProvider) Delete(ctx context.Context, id string) error {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "firecracker_microvm",
