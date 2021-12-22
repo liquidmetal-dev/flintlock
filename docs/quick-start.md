@@ -134,6 +134,11 @@ sudo virsh net-dhcp-leases default
 
 _RunC is not required; Flintlock uses various containerd services only._
 
+For a quick install, you can run `./hack/scripts/provision.sh containerd --dev`. This
+will install the latest version of containerd, and start it as a systemd service.
+Omit the `--dev` flag if you would like a production-like environment.
+(See [the docs](./hack/scripts/README.md) for more info on running this tool.)
+
 ### Create thinpool
 
 Flintlock relies on ContainerD's devicemapper snapshotter to provide filesystem
@@ -144,7 +149,10 @@ devices for Firecracker microvms. Some configuration is required.
 While in development it is fine to use loop devices in place of a physical volume.
 This will save you having to provide a dedicated disk while testing.
 
-The easy quick-start option is to run the `hack/scripts/devpool.sh` script as root.
+For a quick install, run `./hack/scripts/provision.sh devpool`.
+(See [the docs](./hack/scripts/README.md) for more info on running this tool.)
+
+Alternatively you can run the `hack/scripts/devpool.sh` script as root.
 I know, it's not recommended in general, and I'm happy you think it's not a good
 way to do things, read the comments in the script for details.
 
@@ -162,8 +170,8 @@ Verify with `sudo dmsetup ls` that a device called `dev-thinpool` has been creat
 In production, or if you would rather not use loops, it is recommended to use a
 real disk to back the devicemapper thinpool.
 
-A script to set this up is provided at `hack/scripts/direct_lvm.sh`. It must be
-run as root and given the name of a clean, unpartitioned and unmounted disk
+For a quick install, run `./hack/scripts/provision.sh direct_lvm -d <disk name>`,
+It must be run as root and given the name of a clean, unpartitioned and unmounted disk
 as an argument.
 
 Note: the direct lvm setup will erase the disk you provide.
@@ -181,14 +189,16 @@ sda      8:0    0 447.1G  0 disk
 sdb      8:16   0 447.1G  0 disk        # <---- this one looks good
 
 # run the script to set up direct lvm
-sudo ./hack/scripts/direct_lvm.sh -d sdb
+sudo ./hack/scripts/provision.sh direct_lvm -d sdb
 ```
 
-> Run `sudo ./hack/scripts/direct_lvm.sh -h` too see all options.
+(See [the docs](./hack/scripts/README.md) for more info on running this tool.)
 
 Verify with `sudo dmsetup ls` that a device called `flintlock-thinpool` has been created.
 
 ### Configuration
+
+> You can omit this step if you ran `./hack/scripts/provision.sh containerd` above.
 
 Save this config to `/etc/containerd/config-dev.toml`.
 
@@ -221,6 +231,8 @@ state = "/run/containerd-dev"
 
 ### Start containerd
 
+> You can omit this step if you ran `./hack/scripts/provision.sh containerd` above.
+
 ```bash
 # Just to make sure all the directories are there.
 sudo mkdir -p /var/lib/containerd-dev/snapshotter/devmapper
@@ -251,6 +263,10 @@ alias ctr-dev="sudo ctr --address=/run/containerd-dev/containerd.sock"
 ```
 
 ## Set up Firecracker
+
+For a quick install of the latest tested binary, run `./hack/scripts/provision.sh firecracker`,
+otherwise continue with the manual steps.
+(See [the docs](./hack/scripts/README.md) for more info on running this tool.)
 
 We have to use a custom built firecracker from the macvtap branch
 ([see][discussion-107]).
@@ -287,7 +303,10 @@ sudo ./bin/flintlockd run \
   --parent-iface="${NET_DEVICE}"
 ```
 
-If you're running `flintlockd` from within a Vagrant VM and wish to call the gRPC API from your host machine then you need to run `flintlockd` with the `--grpc-endpoint=0.0.0.0:9090` flag, otherwise the connection will be rejected.
+If you're running `flintlockd` from within a Vagrant VM, or anywhere different
+from where you are using a client to communicate with it, then you need to run
+`flintlockd` with the `--grpc-endpoint=0.0.0.0:9090` flag, otherwise the
+connection will be rejected.
 
 You should see it start successfully with similar output:
 ```
@@ -305,6 +324,11 @@ INFO[0000] Starting workersnum_workers1                  controller=microvm
 
 We recommend using one of the following tools to send requests to the Flintlock server.
 There are both GUI and a CLI option.
+
+### hammertime
+
+[Hammertime](https://github.com/Callisto13/hammertime) is a cli client built
+with the soel purpose of interacting with Flintlock services.
 
 ### grpc-client-cli
 
