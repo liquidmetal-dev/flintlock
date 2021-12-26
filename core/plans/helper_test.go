@@ -53,7 +53,7 @@ func createTestSpec(name, ns string) *models.MicroVM {
 	return &models.MicroVM{
 		ID: *vmid,
 		Status: models.MicroVMStatus{
-			State: models.PendingState,
+			//State: models.PendingState,
 			NetworkInterfaces: models.NetworkInterfaceStatuses{
 				"eth0": &models.NetworkInterfaceStatus{
 					HostDeviceName: "fltap5675122",

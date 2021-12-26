@@ -51,7 +51,7 @@ func TestNewStartStep(t *testing.T) {
 	microVMService.
 		EXPECT().
 		State(ctx, vm.ID.String()).
-		Return(ports.MicroVMStateConfigured, nil)
+		Return(ports.MicroVMStatePending, nil)
 
 	microVMService.
 		EXPECT().
@@ -82,8 +82,8 @@ func TestNewStartStep_StateCheck(t *testing.T) {
 
 	stateTestCases := []stateCheck{
 		{State: ports.MicroVMStatePending, ExpectToRun: true},
-		{State: ports.MicroVMStateConfigured, ExpectToRun: true},
 		{State: ports.MicroVMStateRunning, ExpectToRun: false},
+		{State: ports.MicroVMStateStopped, ExpectToRun: false},
 		{State: ports.MicroVMStateUnknown, ExpectToRun: true},
 	}
 

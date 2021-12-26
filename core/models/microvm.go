@@ -1,14 +1,17 @@
 package models
 
-// This state represents the state of the entire Flintlock MVM.
-// The state for the Firecracker MVM itself is represented in ports.MicroVMState.
-type MicroVMState string
+// Status represents the state of the microvm as a whole.
+// The state for the microvm process itself is represented in ports.MicroVMState.
+type Status string
 
 const (
-	PendingState  = "pending"
-	CreatedState  = "created"
-	FailedState   = "failed"
-	DeletingState = "deleting"
+	StatusUnknown  Status = "unknown"
+	StatusPending  Status = "pending"
+	StatusCreated  Status = "created"
+	StatusRunning  Status = "running"
+	StatusFailed   Status = "failed"
+	StatusDeleting Status = "deleting"
+	StatusStopped  Status = "stopped"
 )
 
 // MicroVM represents a microvm machine that is created via a provider.
@@ -52,8 +55,6 @@ type MicroVMSpec struct {
 
 // MicroVMStatus contains the runtime status of the microvm.
 type MicroVMStatus struct {
-	// State stores information about the last known state of the vm and the spec.
-	State MicroVMState `json:"state"`
 	// Volumes holds the status of the volumes.
 	Volumes VolumeStatuses `json:"volumes"`
 	// KernelMount holds the status of the kernel mount point.
@@ -66,6 +67,8 @@ type MicroVMStatus struct {
 	Retry int `json:"retry"`
 	// NotBefore tells the system to do not reconcile until given timestamp.
 	NotBefore int64 `json:"not_before" validate:"omitempty"`
+	// FailureMessage contains the message for any failures related to the microvm.
+	FailureMessage *string `json:"failureMessage,omitempty"`
 }
 
 // Kernel is the specification of the kernel and its arguments.

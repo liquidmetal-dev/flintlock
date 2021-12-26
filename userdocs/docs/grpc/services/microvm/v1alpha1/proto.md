@@ -10,6 +10,8 @@
     - [DeleteMicroVMRequest](#microvm.services.api.v1alpha1.DeleteMicroVMRequest)
     - [GetMicroVMRequest](#microvm.services.api.v1alpha1.GetMicroVMRequest)
     - [GetMicroVMResponse](#microvm.services.api.v1alpha1.GetMicroVMResponse)
+    - [GetMicroVMStatusRequest](#microvm.services.api.v1alpha1.GetMicroVMStatusRequest)
+    - [GetMicroVMStatusResponse](#microvm.services.api.v1alpha1.GetMicroVMStatusResponse)
     - [ListMessage](#microvm.services.api.v1alpha1.ListMessage)
     - [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest)
     - [ListMicroVMsResponse](#microvm.services.api.v1alpha1.ListMicroVMsResponse)
@@ -121,6 +123,37 @@
 
 
 
+<a name="microvm.services.api.v1alpha1.GetMicroVMStatusRequest"></a>
+
+### GetMicroVMStatusRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="microvm.services.api.v1alpha1.GetMicroVMStatusResponse"></a>
+
+### GetMicroVMStatusResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| status | [flintlock.types.MicroVMState](#flintlock.types.MicroVMState) |  |  |
+
+
+
+
+
+
 <a name="microvm.services.api.v1alpha1.ListMessage"></a>
 
 ### ListMessage
@@ -182,6 +215,7 @@ MicroVM providers a service to create and manage the lifecycle of microvms.
 | CreateMicroVM | [CreateMicroVMRequest](#microvm.services.api.v1alpha1.CreateMicroVMRequest) | [CreateMicroVMResponse](#microvm.services.api.v1alpha1.CreateMicroVMResponse) |  |
 | DeleteMicroVM | [DeleteMicroVMRequest](#microvm.services.api.v1alpha1.DeleteMicroVMRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
 | GetMicroVM | [GetMicroVMRequest](#microvm.services.api.v1alpha1.GetMicroVMRequest) | [GetMicroVMResponse](#microvm.services.api.v1alpha1.GetMicroVMResponse) |  |
+| GetMicroVMStatus | [GetMicroVMStatusRequest](#microvm.services.api.v1alpha1.GetMicroVMStatusRequest) | [GetMicroVMStatusResponse](#microvm.services.api.v1alpha1.GetMicroVMStatusResponse) |  |
 | ListMicroVMs | [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest) | [ListMicroVMsResponse](#microvm.services.api.v1alpha1.ListMicroVMsResponse) |  |
 | ListMicroVMsStream | [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest) | [ListMessage](#microvm.services.api.v1alpha1.ListMessage) stream |  |
 

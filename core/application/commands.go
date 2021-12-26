@@ -53,7 +53,6 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 
 	// Set the timestamp when the VMspec was created.
 	mvm.Spec.CreatedAt = a.ports.Clock().Unix()
-	mvm.Status.State = models.PendingState
 	mvm.Status.Retry = 0
 
 	createdMVM, err := a.ports.Repo.Save(ctx, mvm)
@@ -97,7 +96,6 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 	// Set the timestamp when the VMspec was deleted.
 	foundMvm.Spec.DeletedAt = a.ports.Clock().Unix()
 	foundMvm.Status.Retry = 0
-	foundMvm.Status.State = models.DeletingState
 
 	_, err = a.ports.Repo.Save(ctx, foundMvm)
 	if err != nil {

@@ -138,6 +138,35 @@ func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (
 	return resp, nil
 }
 
+func (s *server) GetMicroVMStatus(ctx context.Context, req *mvmv1.GetMicroVMStatusRequest) (*mvmv1.GetMicroVMStatusResponse, error) {
+	logger := log.GetLogger(ctx)
+
+	if req == nil || req.Id == "" || req.Namespace == "" {
+		logger.Error("invalid get microvm status request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	logger.Infof("getting microvm status %s/%s", req.Namespace, req.Id)
+
+	microvmStatus, err := s.queryUC.GetMicroVMStatus(ctx, req.Id, req.Namespace)
+	if err != nil {
+		logger.Errorf("failed to get microvm status: %s", err)
+
+		return nil, fmt.Errorf("getting microvm status: %w", err)
+	}
+
+	logger.Trace("converting model to response")
+	convertedStatus := convertModelToMicrovmState(microvmStatus)
+
+	resp := &mvmv1.GetMicroVMStatusResponse{
+		Status: convertedStatus,
+	}
+
+	return resp, nil
+}
+
 func (s *server) ListMicroVMs(ctx context.Context,
 	req *mvmv1.ListMicroVMsRequest,
 ) (*mvmv1.ListMicroVMsResponse, error) {

@@ -23,15 +23,20 @@ type MicroVMService interface {
 	State(ctx context.Context, id string) (MicroVMState, error)
 }
 
-// This state represents the state of the Firecracker MVM process itself
-// The state for the entire Flintlock MVM is represented in models.MicroVMState.
+// This state represents the state of the microvm process (i.e. firecracker) itself
+// The status for the entire Flintlock MVM is represented in models.MicroVMStatus.
 type MicroVMState string
 
 const (
-	MicroVMStateUnknown    MicroVMState = "unknown"
-	MicroVMStatePending    MicroVMState = "pending"
-	MicroVMStateConfigured MicroVMState = "configured"
-	MicroVMStateRunning    MicroVMState = "running"
+	// MicroVMStateUnknown indicates that we don't know what the state is.
+	MicroVMStateUnknown MicroVMState = "unknown"
+	// MicroVMStatePending indicates the microvm hasn't been started yet but will be started.
+	MicroVMStatePending MicroVMState = "pending"
+	// MicroVMStateRunning indicates the microvm is running.
+	MicroVMStateRunning MicroVMState = "running"
+	// MicroVMStateStopped is the state for a microvm that has started and is now not running. This could
+	// be because it was gracefully stopped or crashed/failed.
+	MicroVMStateStopped MicroVMState = "stopped"
 )
 
 // MicroVMGRPCService is a port for a microvm grpc service.

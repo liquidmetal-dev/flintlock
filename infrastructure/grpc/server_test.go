@@ -63,8 +63,8 @@ func TestServer_CreateMicroVM(t *testing.T) {
 						ID:      *vmid,
 						Version: 0,
 						Spec:    models.MicroVMSpec{},
-						Status: models.MicroVMStatus{
-							State: models.CreatedState,
+						Status:  models.MicroVMStatus{
+							//State: models.CreatedState,
 						},
 					},
 					nil,
@@ -230,8 +230,8 @@ func TestServer_GetMicroVM(t *testing.T) {
 						ID:      *vmid,
 						Version: 1,
 						Spec:    models.MicroVMSpec{},
-						Status: models.MicroVMStatus{
-							State: models.CreatedState,
+						Status:  models.MicroVMStatus{
+							//State: models.CreatedState,
 						},
 					},
 					nil,
@@ -258,7 +258,7 @@ func TestServer_GetMicroVM(t *testing.T) {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(resp.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
+				Expect(resp.Microvm.Status.State).To(Equal(types.MicroVMState_PENDING))
 			}
 		})
 	}
@@ -308,14 +308,14 @@ func TestServer_ListMicroVMs(t *testing.T) {
 					[]*models.MicroVM{
 						{
 							Version: 1,
-							Status: models.MicroVMStatus{
-								State: models.CreatedState,
+							Status:  models.MicroVMStatus{
+								//State: models.CreatedState,
 							},
 						},
 						{
 							Version: 1,
-							Status: models.MicroVMStatus{
-								State: models.CreatedState,
+							Status:  models.MicroVMStatus{
+								//State: models.CreatedState,
 							},
 						},
 					},
@@ -345,7 +345,7 @@ func TestServer_ListMicroVMs(t *testing.T) {
 				Expect(err).NotTo(HaveOccurred())
 				for _, mvm := range resp.Microvm {
 					Expect(mvm.Version).To(Equal(int32(1)))
-					Expect(mvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
+					Expect(mvm.Status.State).To(Equal(types.MicroVMState_PENDING))
 				}
 			}
 		})
@@ -396,14 +396,14 @@ func TestServer_ListMicroVMsStream(t *testing.T) {
 					[]*models.MicroVM{
 						{
 							Version: 1,
-							Status: models.MicroVMStatus{
-								State: models.CreatedState,
+							Status:  models.MicroVMStatus{
+								//State: models.CreatedState,
 							},
 						},
 						{
 							Version: 1,
-							Status: models.MicroVMStatus{
-								State: models.CreatedState,
+							Status:  models.MicroVMStatus{
+								//State: models.CreatedState,
 							},
 						},
 					},
@@ -438,7 +438,7 @@ func TestServer_ListMicroVMsStream(t *testing.T) {
 				Expect(err).NotTo(HaveOccurred())
 				for msg := range sendChan {
 					Expect(msg.Microvm.Version).To(Equal(int32(1)))
-					Expect(msg.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
+					Expect(msg.Microvm.Status.State).To(Equal(types.MicroVMState_PENDING))
 				}
 			}
 		})

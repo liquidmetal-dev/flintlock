@@ -22,7 +22,7 @@
     - [VolumeSource](#flintlock.types.VolumeSource)
     - [VolumeStatus](#flintlock.types.VolumeStatus)
   
-    - [MicroVMStatus.MicroVMState](#flintlock.types.MicroVMStatus.MicroVMState)
+    - [MicroVMState](#flintlock.types.MicroVMState)
     - [Mount.MountType](#flintlock.types.Mount.MountType)
     - [NetworkInterface.IfaceType](#flintlock.types.NetworkInterface.IfaceType)
   
@@ -171,7 +171,7 @@ MicroVMStatus contains the runtime status of the microvm.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| state | [MicroVMStatus.MicroVMState](#flintlock.types.MicroVMStatus.MicroVMState) |  | State stores information about the last known state of the vm and the spec. |
+| state | [MicroVMState](#flintlock.types.MicroVMState) |  | State stores information about the last known state of the vm and the spec. |
 | volumes | [MicroVMStatus.VolumesEntry](#flintlock.types.MicroVMStatus.VolumesEntry) | repeated | Volumes holds the status of the volumes. |
 | kernel_mount | [Mount](#flintlock.types.Mount) |  | KernelMount holds the status of the kernel mount point. |
 | initrd_mount | [Mount](#flintlock.types.Mount) |  | InitrdMount holds the status of the initrd mount point. |
@@ -339,17 +339,20 @@ TODO: add CSI |
  
 
 
-<a name="flintlock.types.MicroVMStatus.MicroVMState"></a>
+<a name="flintlock.types.MicroVMState"></a>
 
-### MicroVMStatus.MicroVMState
+### MicroVMState
 
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| PENDING | 0 |  |
-| CREATED | 1 |  |
-| FAILED | 2 |  |
-| DELETING | 3 |  |
+| UNKNWON | 0 |  |
+| PENDING | 1 |  |
+| CREATED | 2 |  |
+| RUNNING | 3 |  |
+| FAILED | 4 |  |
+| DELETING | 5 |  |
+| STOPPED | 6 |  |
 
 
 

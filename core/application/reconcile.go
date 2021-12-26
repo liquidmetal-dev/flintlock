@@ -121,9 +121,10 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	plan := a.plan(spec, localLogger)
 
 	if spec.Status.Retry > a.cfg.MaximumRetry {
-		logger.Error(reachedMaximumRetryError{vmid: spec.ID, retries: spec.Status.Retry})
+		err := reachedMaximumRetryError{vmid: spec.ID, retries: spec.Status.Retry}
+		logger.Error(err)
 
-		return a.saveState(ctx, spec, plan, models.FailedState)
+		return a.saveSpecWithError(ctx, spec, plan, err)
 	}
 
 	if spec.Status.NotBefore > 0 && time.Now().Before(time.Unix(spec.Status.NotBefore, 0)) {
@@ -163,15 +164,27 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	spec.Status.Retry = 0
 	spec.Status.NotBefore = 0
 
-	return a.saveState(ctx, spec, plan, models.CreatedState)
+	return a.saveSpec(ctx, spec, plan)
 }
 
-func (a *app) saveState(ctx context.Context, spec *models.MicroVM, plan planner.Plan, state models.MicroVMState) error {
-	plan.Finalise(state)
+func (a *app) saveSpec(ctx context.Context, spec *models.MicroVM, plan planner.Plan) error {
+	if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
+		return fmt.Errorf("saving spec after plan execution: %w", err)
+	}
+
+	return nil
+}
+
+func (a *app) saveSpecWithFailure(ctx context.Context, spec *models.MicroVM, plan planner.Plan, failureMessage string) error {
+	spec.Status.FailureMessage = &failureMessage
 
 	if _, err := a.ports.Repo.Save(ctx, spec); err != nil {
 		return fmt.Errorf("saving spec after plan execution: %w", err)
 	}
 
 	return nil
+}
+
+func (a *app) saveSpecWithError(ctx context.Context, spec *models.MicroVM, plan planner.Plan, err error) error {
+	return a.saveSpecWithFailure(ctx, spec, plan, err.Error())
 }

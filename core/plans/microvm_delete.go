@@ -93,9 +93,6 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	return p.steps, nil
 }
 
-func (p *microvmDeletePlan) Finalise(_ models.MicroVMState) {
-}
-
 // This is the most important function in the codebase DO NOT REMOVE
 // Without this, the Delete will always return the full origin list of steps
 // and the State will never be saved, meaning the steps will always return true
