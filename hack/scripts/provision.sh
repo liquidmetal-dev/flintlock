@@ -698,7 +698,7 @@ cmd_apt() {
 		lvm2 \
 		git \
 		curl \
-		wget
+		wget || die "failed to install apt packages"
 	say "Packages installed"
 }
 
