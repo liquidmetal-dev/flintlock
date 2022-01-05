@@ -46,6 +46,8 @@ message MicroVMSpec {
   repeated Volume additional_volumes = 9;
 
   // Interfaces specifies the network interfaces to be attached to the microvm.
+  // Device names on the guest machine are determines by the order defined in
+  // the list starting from eth1, eth2, ..., ethN.
   repeated NetworkInterface interfaces = 10;
 
   // Metadata allows you to specify data to be added to the metadata service. The key is the name
@@ -91,8 +93,9 @@ message NetworkInterface {
     // TAP represents a network interface that is a tap.
     TAP = 1;
   }
-  // GuestDeviceName is the name of the network interface to create in the microvm.
-  string guest_device_name = 1;
+  // DeviceID is the ID of the interface. There is no relation between the ID
+  // and the name of the iterface device on the quest machine.
+  string device_id = 1;
   // IfaceType specifies the type of network interface to create for use by the guest.
   IfaceType type = 2;
   // GuestMAC allows the specifying of a specifi MAC address to use for the interface. If

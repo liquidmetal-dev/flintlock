@@ -307,7 +307,7 @@
           "items": {
             "$ref": "#/definitions/typesNetworkInterface"
           },
-          "description": "Interfaces specifies the network interfaces to be attached to the microvm."
+          "description": "Interfaces specifies the network interfaces to be attached to the microvm.\nDevice names on the guest machine are determines by the order defined in\nthe list starting from eth1, eth2, ..., ethN."
         },
         "metadata": {
           "type": "object",
@@ -388,9 +388,9 @@
     "typesNetworkInterface": {
       "type": "object",
       "properties": {
-        "guestDeviceName": {
+        "deviceId": {
           "type": "string",
-          "description": "GuestDeviceName is the name of the network interface to create in the microvm."
+          "description": "DeviceID is the ID of the interface. There is no relation between the ID\nand the name of the iterface device on the quest machine."
         },
         "type": {
           "$ref": "#/definitions/NetworkInterfaceIfaceType",

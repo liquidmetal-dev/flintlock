@@ -107,20 +107,6 @@ func (mr *MockMicroVMServiceMockRecorder) State(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "State", reflect.TypeOf((*MockMicroVMService)(nil).State), arg0, arg1)
 }
 
-// Stop mocks base method.
-func (m *MockMicroVMService) Stop(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Stop", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Stop indicates an expected call of Stop.
-func (mr *MockMicroVMServiceMockRecorder) Stop(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockMicroVMService)(nil).Stop), arg0, arg1)
-}
-
 // MockMicroVMRepository is a mock of MicroVMRepository interface.
 type MockMicroVMRepository struct {
 	ctrl     *gomock.Controller
