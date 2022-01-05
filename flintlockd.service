@@ -20,9 +20,11 @@ Requires=containerd.service
 [Service]
 ExecStartPre=which firecracker
 ExecStartPre=which flintlockd
+# The exec start here has placeholders which must be set
+# There will soon be a config file to use instead
 ExecStart=/usr/local/bin/flintlockd run \
         --containerd-socket=/run/containerd/containerd.sock \
-        --grpc-endpoint=0.0.0.0:9090 \
+        --grpc-endpoint=ADDRESS:9090 \
         --verbosity=9 \
         --parent-iface=PARENT_IFACE
 Restart=always
