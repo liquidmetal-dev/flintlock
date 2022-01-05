@@ -39,5 +39,5 @@ device:
   - "fra2"
   - "am6"
   - "ams1"
-  operating_system: "ubuntu_20_10"
+  operating_system: "ubuntu_20_04"
   billing_cycle: "hourly"

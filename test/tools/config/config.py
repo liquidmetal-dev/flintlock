@@ -154,19 +154,18 @@ class Config:
             },
             'userdata': None,
             'plan': 'c3.small.x86',
-            'operating_system': 'ubuntu_20_10',
+            'operating_system': 'ubuntu_20_04',
             'facility': ['am6', 'ams1', 'fr2', 'fra2'],
             'billing_cycle': 'hourly'
         }
 
     def default_user_data(self):
         userdata = ""
-        files = ["hack/scripts/bootstrap.sh", "test/tools/config/userdata.sh"]
+        files = ["test/tools/config/userdata.sh"]
 
-        if self.params['device']['skip_dmsetup'] is False:
-            files.insert(1, "hack/scripts/direct_lvm.sh")
+        if self.params['device']['skip_dmsetup'] is True:
             userdata += ("#!/bin/bash\n"
-                         "export THINPOOL_DISK_NAME=sdb\n"
+                         "export SKIP_DIRECT_LVM=true\n"
                          )
 
         userdata += ("#!/bin/bash\n"
