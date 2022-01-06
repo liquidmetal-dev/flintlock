@@ -63,7 +63,9 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		convertedModel.Spec.NetworkInterfaces = append(convertedModel.Spec.NetworkInterfaces, *convertedNetInt)
 	}
 
-	convertedModel.Spec.NetworkInterfaces = append(convertedModel.Spec.NetworkInterfaces, *newMetadataInterface())
+	ifaces := []models.NetworkInterface{*newMetadataInterface()}
+	ifaces = append(ifaces, convertedModel.Spec.NetworkInterfaces...)
+	convertedModel.Spec.NetworkInterfaces = ifaces
 
 	convertedModel.Spec.Metadata = map[string]string{}
 	for metadataKey, metadataValue := range spec.Metadata {
@@ -75,7 +77,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 
 func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.NetworkInterface {
 	converted := &models.NetworkInterface{
-		GuestDeviceName:       netInt.GuestDeviceName,
+		GuestDeviceName:       netInt.DeviceId,
 		AllowMetadataRequests: false,
 	}
 
@@ -199,8 +201,8 @@ func convertModelToVolumne(modelVolume *models.Volume) *types.Volume {
 
 func convertModelToNetworkInterface(modelNetInt *models.NetworkInterface) *types.NetworkInterface {
 	converted := &types.NetworkInterface{
-		GuestMac:        &modelNetInt.GuestMAC,
-		GuestDeviceName: modelNetInt.GuestDeviceName,
+		GuestMac: &modelNetInt.GuestMAC,
+		DeviceId: modelNetInt.GuestDeviceName,
 		// HostDevice
 	}
 
