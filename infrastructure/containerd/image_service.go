@@ -9,6 +9,7 @@ import (
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/snapshots"
+	"github.com/opencontainers/image-spec/identity"
 	"github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/flintlock/core/models"
@@ -188,7 +189,7 @@ func (im *imageService) snapshotAndMount(ctx context.Context,
 		return nil, fmt.Errorf("getting rootfs content for %s: %w", image.Name(), err)
 	}
 
-	parent := imageContent[0].String()
+	parent := identity.ChainID(imageContent).String()
 
 	snapshotKey := snapshotKey(owner, ownerUsageID)
 	logger.Debugf("creating snapshot %s for image %s with snapshotter %s", snapshotKey, image.Name(), snapshotter)
