@@ -270,8 +270,9 @@ install_firecracker() {
 #
 do_all_flintlock() {
 	local version="$1"
+	local address="$2"
 	install_flintlockd "$version"
-	start_flintlockd_service
+	start_flintlockd_service "$address"
 }
 
 # Fetch and install the flintlockd binary at the specified version
@@ -294,20 +295,38 @@ install_flintlockd() {
 
 # Fetch and start the flintlock systemd service
 start_flintlockd_service() {
+	local address="$1"
+
 	say "Starting flintlockd service"
 
 	service=$(basename "$FLINTLOCKD_SERVICE_FILE")
 	fetch_service_file "$FLINTLOCK_REPO" "$service" "$FLINTLOCKD_SERVICE_FILE"
+	edit_service_file "$address"
+	start_service "$FLINTLOCK_BIN"
 
-	# these are temporary while I sort out a configfile for flintlockd
+	say "Flintlockd running at $address:9090"
+}
+
+# This is a temporary work-around func while I sort out a config file for
+# flintlock
+# Don't look too closely at it, it is not long for this world :p
+edit_service_file() {
+	local address="$1"
+
 	parent=$(ip route show | awk '/default/ {print $5}')
 	sed -i "s/PARENT_IFACE/$parent/" "$FLINTLOCKD_SERVICE_FILE"
 	socket="$CONTAINERD_STATE_DIR/containerd.sock"
 	sed -i "s|\(socket=\).*\(\\)|\1$socket \\\\\2|g" "$FLINTLOCKD_SERVICE_FILE"
 
-	start_service "$FLINTLOCK_BIN"
+	if [[ -z "$address" ]]; then
+		address=$(lookup_address)
+	fi
+	sed -i "s/ADDRESS/$address/" "$FLINTLOCKD_SERVICE_FILE"
+}
 
-	say "Flintlockd running"
+# Returns the internal address of the host
+lookup_address() {
+	ip route show | awk '/scope link/ {print $9}' | grep -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)'
 }
 
 ## CONTAINERD
@@ -416,7 +435,8 @@ do_all_direct_lvm() {
 		disk=$(find_free_disk || die "Could not detect free disk")
 	fi
 
-	local disk_path="/dev/$disk"
+	disk_name=$(basename "$disk")
+	local disk_path="/dev/$disk_name"
 
 	say "Will use $disk_path for direct-lvm thinpool $thinpool"
 	say_warn "All existing data on $disk_path will be overwritten."
@@ -432,7 +452,7 @@ do_all_direct_lvm() {
 }
 
 # Naively find a spare block device which is not in use
-# This is really unsafe as it only looks at lsblk to decide anything
+# This is really unsafe as it only looks at a couple of things to decide anything
 # It is a much better idea to use the --disk flag and pass in something you
 # know will be available
 find_free_disk() {
@@ -626,6 +646,7 @@ create_dev_thinpool() {
 cmd_all() {
 	local skip_apt=false
 	local disk=""
+	local fl_address=""
 	local thinpool="$DEFAULT_THINPOOL"
 	local fc_version="$FIRECRACKER_VERSION"
 	local fl_version="$FLINTLOCK_VERSION"
@@ -647,6 +668,10 @@ cmd_all() {
 		"-t" | "--thinpool")
 			shift
 			thinpool="$1"
+			;;
+		"-a" | "--grpc-address")
+			shift
+			fl_address="$1"
 			;;
 		"-s" | "--skip-apt")
 			skip_apt=true
@@ -685,7 +710,7 @@ cmd_all() {
 
 	install_firecracker "$fc_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
-	do_all_flintlock "$fl_version"
+	do_all_flintlock "$fl_version" "$fl_address"
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Host $(hostname) provisioned"
 }
@@ -759,6 +784,7 @@ cmd_containerd() {
 
 cmd_flintlock() {
 	local version="$FLINTLOCK_VERSION"
+	local address=""
 
 	while [ $# -gt 0 ]; do
 		case "$1" in
@@ -769,6 +795,10 @@ cmd_flintlock() {
 		"-v" | "--version")
 			shift
 			version="$1"
+			;;
+		"-a" | "--grpc-address")
+			shift
+			address="$1"
 			;;
 		"--dev")
 			DEVELOPMENT=true
@@ -781,7 +811,7 @@ cmd_flintlock() {
 	done
 
 	prepare_dirs
-	do_all_flintlock "$version"
+	do_all_flintlock "$version" "$address"
 }
 
 cmd_direct_lvm() {
@@ -871,6 +901,7 @@ cmd_all_help() {
       --skip-apt, -s     Skip installation of apt packages
       --thinpool, -t     Name of thinpool to create (default: flintlock or flintlock-dev)
       --disk, -d         Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
+      --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
       --dev              Set up development environment. Loop thinpools will be created.
 
 EOF
@@ -898,9 +929,10 @@ EOF
 
 cmd_flintlock_help() {
 	cat <<EOF
-  flintlock              Install and start flintlockd service
+  flintlock              Install and start flintlockd service (note: will not succeed without containerd)
     OPTIONS:
       --version, -v      Version to install (default: latest)
+      --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
       --dev              Assumes containerd has been provisioned in a dev environment
 
 EOF

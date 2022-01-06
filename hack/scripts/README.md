@@ -22,7 +22,7 @@ chmod +x provision.sh
 
 Available commands:
 ```
-usage: ./provision.sh <COMMAND> <OPTIONS>
+usage: ./hack/scripts/provision.sh <COMMAND> <OPTIONS>
 
 Script to provision hosts for running flintlock microvms
 
@@ -36,6 +36,7 @@ COMMANDS:
       --skip-apt, -s     Skip installation of apt packages
       --thinpool, -t     Name of thinpool to create (default: flintlock or flintlock-dev)
       --disk, -d         Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
+      --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
       --dev              Set up development environment. Loop thinpools will be created.
 
   apt                    Install all apt packages required by flintlock
@@ -50,9 +51,10 @@ COMMANDS:
       --thinpool, -t     Name of thinpool to include in config toml (default: flintlock-thinpool)
       --dev              Set up development environment. Containerd will keep state under 'dev' tagged paths.
 
-  flintlock              Install and start flintlockd service
+  flintlock              Install and start flintlockd service (note: will not succeed without containerd)
     OPTIONS:
       --version, -v      Version to install (default: latest)
+      --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
       --dev              Assumes containerd has been provisioned in a dev environment
 
   direct_lvm             Set up direct_lvm thinpool
@@ -81,6 +83,10 @@ upon in a production setting as all the data will be wiped from the selected dev
 If you don't want or need to use production-ready thinpools (ie for development
 environments), pass the `--dev` flag. This will provision a loop-backed thinpool,
 therefore no physical device is required.
+
+The provision script will default to binding the service address to the local IPv4 address.
+For development purposes, or if you would prefer to access flintlockd from another
+network, you can set `--grpc-address 0.0.0.0`.
 
 ### Other commands
 
