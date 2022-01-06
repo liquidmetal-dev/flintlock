@@ -259,7 +259,7 @@ type MicroVMSpec struct {
 	// AdditionalVolumes specifies the volumes to be attached to the microvm.
 	AdditionalVolumes []*Volume `protobuf:"bytes,9,rep,name=additional_volumes,json=additionalVolumes,proto3" json:"additional_volumes,omitempty"`
 	// Interfaces specifies the network interfaces to be attached to the microvm.
-	// Device names on the guest machine are determines by the order defined in
+	// Device names on the guest machine are determined by the order defined in
 	// the list starting from eth1, eth2, ..., ethN.
 	Interfaces []*NetworkInterface `protobuf:"bytes,10,rep,name=interfaces,proto3" json:"interfaces,omitempty"`
 	// Metadata allows you to specify data to be added to the metadata service. The key is the name
@@ -545,7 +545,7 @@ type NetworkInterface struct {
 	unknownFields protoimpl.UnknownFields
 
 	// DeviceID is the ID of the interface. There is no relation between the ID
-	// and the name of the iterface device on the quest machine.
+	// and the name of the interface device on the quest machine.
 	DeviceId string `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	// IfaceType specifies the type of network interface to create for use by the guest.
 	Type NetworkInterface_IfaceType `protobuf:"varint,2,opt,name=type,proto3,enum=flintlock.types.NetworkInterface_IfaceType" json:"type,omitempty"`
