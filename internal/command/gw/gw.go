@@ -11,6 +11,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
@@ -84,7 +85,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	mux := runtime.NewServeMux()
 
 	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
 	if err := mvmv1.RegisterMicroVMHandlerFromEndpoint(ctx, mux, cfg.GRPCAPIEndpoint, opts); err != nil {
