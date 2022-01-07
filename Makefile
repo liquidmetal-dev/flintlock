@@ -8,7 +8,7 @@ ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
 
 # Versions
-BUF_VERSION := v0.43.2
+BUF_VERSION := v1.0.0-rc10
 
 # Directories
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
@@ -77,6 +77,7 @@ generate-go: $(MOCKGEN) ## Generate Go Code
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
 generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI) $(PROTOC_GEN_DOC)
+	$(BUF) mod update
 	$(BUF) generate
 
 .PHONY: generate-di ## Generate the dependency injection code

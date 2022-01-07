@@ -1,7 +1,7 @@
 version: v1beta1
 name: buf.build/weaveworks/flintlock
 deps:
-  - buf.build/beta/googleapis
+  - buf.build/googleapis/googleapis
   - buf.build/grpc-ecosystem/grpc-gateway
 build:
   roots:
