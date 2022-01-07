@@ -10,6 +10,9 @@ type UserData struct {
 	FinalMessage    string      `yaml:"final_message,omitempty"`
 	WriteFiles      []WriteFile `yaml:"write_files,omitempty"`
 	RunCommands     []string    `yaml:"runcmd,omitempty"`
+	// BootCommands are commands you want to run early on in the boot process. These should only
+	// be used for commands that are need early on and running them via RunCommands is too late.
+	BootCommands []string `yaml:"bootcmd,omitempty"`
 }
 
 type User struct {
