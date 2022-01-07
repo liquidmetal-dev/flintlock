@@ -463,13 +463,13 @@ func createTestCreateRequest(id, namespace string) *mvm1.CreateMicroVMRequest {
 			},
 			Interfaces: []*types.NetworkInterface{
 				{
-					GuestDeviceName: "eth0",
-					GuestMac:        &mac,
-					Type:            types.NetworkInterface_MACVTAP,
+					DeviceId: "eth0",
+					GuestMac: &mac,
+					Type:     types.NetworkInterface_MACVTAP,
 				},
 				{
-					GuestDeviceName: "eth1",
-					Type:            types.NetworkInterface_TAP,
+					DeviceId: "eth1",
+					Type:     types.NetworkInterface_TAP,
 				},
 			},
 			RootVolume: &types.Volume{
