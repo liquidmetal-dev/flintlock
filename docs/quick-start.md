@@ -8,7 +8,7 @@ and run: mdtoc -inplace docs/quick-start.md
 <!-- toc -->
 - [MacOS Users](#macos-users)
 - [Configure network](#configure-network)
-  - [Install packages and start <code>libvirtd</code>](#install-packages-and-start-)
+  - [Install packages and start <code>libvirtd</code>](#install-packages-and-start-libvirtd)
   - [Create kvm network](#create-kvm-network)
   - [Create and connect tap device](#create-and-connect-tap-device)
 - [Containerd](#containerd)
@@ -20,13 +20,15 @@ and run: mdtoc -inplace docs/quick-start.md
 - [Set up Firecracker](#set-up-firecracker)
 - [Set up and start flintlock](#set-up-and-start-flintlock)
 - [Interacting with the service](#interacting-with-the-service)
+  - [hammertime](#hammertime)
   - [grpc-client-cli](#grpc-client-cli)
     - [Example](#example)
   - [BloomRPC](#bloomrpc)
     - [Import](#import)
     - [Example](#example-1)
+- [Start metrics exporter](#start-metrics-exporter)
 - [Troubleshooting](#troubleshooting)
-  - [flintlockd fails to start with <code>failed to reconcile vmid</code>](#flintlockd-fails-to-start-with-)
+  - [flintlockd fails to start with <code>failed to reconcile vmid</code>](#flintlockd-fails-to-start-with-failed-to-reconcile-vmid)
 <!-- /toc -->
 
 ## MacOS Users
@@ -379,6 +381,26 @@ Click the green `>` in the centre of the screen. The response should come immedi
 
 [grpcurl]: https://github.com/fullstorydev/grpcurl
 [bloomrpc]: https://github.com/uw-labs/bloomrpc
+
+## Start metrics exporter
+
+Flintlock has a metrics exporter called `flintlock-metrics`. It listens on an
+HTTP port and serves Prometheus compatible output.
+
+```
+sudo ./bin/flintlock-metrics serve \
+  --containerd-socket=/run/containerd-dev/containerd.sock \
+  --http-endpoint=0.0.0.0:8000
+```
+
+Available endpoints:
+
+* `/machine/uid/{uid}`: Metrics for a specific MicroVM.
+* `/machine/{namespace}/{name}`: Metrics for all MicroVMs with given name and namespace.
+* `/machine/{namespace}`: Metrics for all MicroVMs under a specific Namespace.
+* `/machine`: Metrics for all MicroVMs from all Namespaces.
+
+For testing/development, there is a minimal docker compose setup under `hack/scripts/monitoring/metrics`.
 
 ## Troubleshooting
 

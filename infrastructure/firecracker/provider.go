@@ -2,12 +2,15 @@ package firecracker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+	tailor "github.com/yitsushi/file-tailor"
 
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -147,4 +150,35 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 	}
 
 	return ports.MicroVMStateRunning, nil
+}
+
+func (p *fcProvider) Metrics(ctx context.Context, vmid models.VMID) (ports.MachineMetrics, error) {
+	machineMetrics := MachineMetrics{
+		Namespace:   vmid.Namespace(),
+		MachineName: vmid.Name(),
+		MachineUID:  vmid.UID(),
+		Data:        Metrics{},
+	}
+
+	vmState := NewState(vmid, p.config.StateRoot, p.fs)
+
+	file, err := os.Open(vmState.MetricsPath())
+	if err != nil {
+		return machineMetrics, fmt.Errorf("unable to open metrics file: %w", err)
+	}
+
+	defer file.Close()
+
+	content, err := tailor.Tail(file, 1)
+	if err != nil {
+		return machineMetrics, fmt.Errorf("unable to read the last line of the metrics file: %w", err)
+	}
+
+	// It can throw an error, but we don't care.
+	// For example the utc_timestamp_ms field is in the root of the metrics JSON,
+	// and it does not follow the map[string]string pattern, but we don't care
+	// about that value.
+	_ = json.Unmarshal(content, &machineMetrics.Data)
+
+	return machineMetrics, nil
 }

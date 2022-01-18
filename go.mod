@@ -41,8 +41,11 @@ require (
 )
 
 require (
+	github.com/gorilla/mux v1.8.0
+	github.com/urfave/cli/v2 v2.3.0
 	github.com/weaveworks/flintlock/api v0.0.0-20211217111250-5f8d70c4a581
 	github.com/weaveworks/flintlock/client v0.0.0-00010101000000-000000000000
+	github.com/yitsushi/file-tailor v1.0.0
 )
 
 require (
@@ -59,6 +62,7 @@ require (
 	github.com/containerd/ttrpc v1.1.0 // indirect
 	github.com/containernetworking/cni v0.8.1 // indirect
 	github.com/containernetworking/plugins v0.9.1 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-openapi/analysis v0.19.10 // indirect
@@ -98,6 +102,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
