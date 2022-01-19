@@ -223,8 +223,11 @@
           "description": "Image is the container image to use."
         },
         "cmdline": {
-          "type": "string",
-          "description": "Cmdline is the kernel command line args."
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Cmdline is the additional kernel command line args. Each provider has its\nown recommended list, they will be used automatically. This field is for\nadditional values."
         },
         "filename": {
           "type": "string",

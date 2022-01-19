@@ -9,7 +9,7 @@
     "memory_in_mb": 2048,
     "kernel": {
       "image": "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
-      "cmdline": "console=ttyS0 reboot=k panic=1 pci=off i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd ds=nocloud-net;s=http://169.254.169.254/latest/",
+      "cmdline": {},
       "filename": "vmlinux",
       "add_network_config": true
     },
