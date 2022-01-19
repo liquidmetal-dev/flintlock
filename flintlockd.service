@@ -1,4 +1,4 @@
-# Copyright The flintlock Authors
+# Copyright The Flintlock Authors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,7 @@ Requires=containerd.service
 [Service]
 ExecStartPre=which firecracker
 ExecStartPre=which flintlockd
-# The exec start here has placeholders which must be set
-# There will soon be a config file to use instead
-ExecStart=/usr/local/bin/flintlockd run \
-        --containerd-socket=/run/containerd/containerd.sock \
-        --grpc-endpoint=ADDRESS:9090 \
-        --verbosity=9 \
-        --parent-iface=PARENT_IFACE
+ExecStart=/usr/local/bin/flintlockd run
 Restart=always
 RestartSec=5
 User=root

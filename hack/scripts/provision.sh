@@ -40,6 +40,7 @@ FLINTLOCK_BIN="flintlockd"
 FLINTLOCK_REPO="weaveworks/flintlock"
 FLINTLOCK_RELEASE_BIN="flintlockd_amd64"
 FLINTLOCKD_SERVICE_FILE="/etc/systemd/system/flintlockd.service"
+FLINTLOCKD_CONFIG_PATH="/etc/opt/flintlockd/config.yaml"
 
 # thinpool
 THINPOOL_PROFILE_PATH="/etc/lvm/profile"
@@ -270,9 +271,21 @@ install_firecracker() {
 #
 do_all_flintlock() {
 	local version="$1"
-	local address="$2"
+	local address="${2%:*}"
+	local parent_iface="$3"
+
 	install_flintlockd "$version"
-	start_flintlockd_service "$address"
+
+	if [[ -z "$address" ]]; then
+		address=$(lookup_address)
+	fi
+	if [[ -z "$parent_iface" ]]; then
+		parent_iface=$(lookup_interface)
+	fi
+	write_flintlockd_config "$address" "$parent_iface"
+
+	start_flintlockd_service
+	say "Flintlockd running at $address:9090"
 }
 
 # Fetch and install the flintlockd binary at the specified version
@@ -293,40 +306,43 @@ install_flintlockd() {
 	say "Flintlockd version $tag successfully installed"
 }
 
+# Write flintlock config to default location
+write_flintlockd_config() {
+	local address="$1"
+	local parent_iface="$2"
+
+	mkdir -p "$(dirname "$FLINTLOCKD_CONFIG_PATH")"
+
+	say "Writing flintlockd config to $FLINTLOCKD_CONFIG_PATH."
+
+	cat <<EOF >"$FLINTLOCKD_CONFIG_PATH"
+---
+containerd-socket: "$CONTAINERD_STATE_DIR/containerd.sock"
+grpc-endpoint: "$address:9090"
+verbosity: 9
+parent-iface: "$parent_iface"
+EOF
+
+	say "Flintlockd config saved"
+}
+
 # Fetch and start the flintlock systemd service
 start_flintlockd_service() {
-	local address="$1"
-
 	say "Starting flintlockd service"
 
 	service=$(basename "$FLINTLOCKD_SERVICE_FILE")
 	fetch_service_file "$FLINTLOCK_REPO" "$service" "$FLINTLOCKD_SERVICE_FILE"
-	edit_service_file "$address"
 	start_service "$FLINTLOCK_BIN"
-
-	say "Flintlockd running at $address:9090"
-}
-
-# This is a temporary work-around func while I sort out a config file for
-# flintlock
-# Don't look too closely at it, it is not long for this world :p
-edit_service_file() {
-	local address="$1"
-
-	parent=$(ip route show | awk '/default/ {print $5}')
-	sed -i "s/PARENT_IFACE/$parent/" "$FLINTLOCKD_SERVICE_FILE"
-	socket="$CONTAINERD_STATE_DIR/containerd.sock"
-	sed -i "s|\(socket=\).*\(\\)|\1$socket \\\\\2|g" "$FLINTLOCKD_SERVICE_FILE"
-
-	if [[ -z "$address" ]]; then
-		address=$(lookup_address)
-	fi
-	sed -i "s/ADDRESS/$address/" "$FLINTLOCKD_SERVICE_FILE"
 }
 
 # Returns the internal address of the host
 lookup_address() {
 	ip route show | awk '/scope link/ {print $9}' | grep -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)'
+}
+
+# Returns the interface of the default route
+lookup_interface() {
+	ip route show | awk '/default/ {print $5}'
 }
 
 ## CONTAINERD
@@ -647,6 +663,7 @@ cmd_all() {
 	local skip_apt=false
 	local disk=""
 	local fl_address=""
+	local fl_iface=""
 	local thinpool="$DEFAULT_THINPOOL"
 	local fc_version="$FIRECRACKER_VERSION"
 	local fl_version="$FLINTLOCK_VERSION"
@@ -672,6 +689,10 @@ cmd_all() {
 		"-a" | "--grpc-address")
 			shift
 			fl_address="$1"
+			;;
+		"-i" | "--parent-iface")
+			shift
+			fl_iface="$1"
 			;;
 		"-s" | "--skip-apt")
 			skip_apt=true
@@ -710,7 +731,7 @@ cmd_all() {
 
 	install_firecracker "$fc_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
-	do_all_flintlock "$fl_version" "$fl_address"
+	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface"
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Host $(hostname) provisioned"
 }
@@ -785,6 +806,7 @@ cmd_containerd() {
 cmd_flintlock() {
 	local version="$FLINTLOCK_VERSION"
 	local address=""
+	local parent_iface=""
 
 	while [ $# -gt 0 ]; do
 		case "$1" in
@@ -800,6 +822,10 @@ cmd_flintlock() {
 			shift
 			address="$1"
 			;;
+		"-i" | "--parent-iface")
+			shift
+			parent_iface="$1"
+			;;
 		"--dev")
 			DEVELOPMENT=true
 			;;
@@ -811,7 +837,7 @@ cmd_flintlock() {
 	done
 
 	prepare_dirs
-	do_all_flintlock "$version" "$address"
+	do_all_flintlock "$version" "$address" "$parent_iface"
 }
 
 cmd_direct_lvm() {
@@ -901,7 +927,8 @@ cmd_all_help() {
       --skip-apt, -s     Skip installation of apt packages
       --thinpool, -t     Name of thinpool to create (default: flintlock or flintlock-dev)
       --disk, -d         Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
-      --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
+      --grpc-address, -a Address on which to start the Flintlock GRPC server (default: local ipv4 address)
+      --parent-iface, -i Interface of the default route of the host
       --dev              Set up development environment. Loop thinpools will be created.
 
 EOF
@@ -933,6 +960,7 @@ cmd_flintlock_help() {
     OPTIONS:
       --version, -v      Version to install (default: latest)
       --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
+      --parent-iface, -i Interface of the default route of the host
       --dev              Assumes containerd has been provisioned in a dev environment
 
 EOF

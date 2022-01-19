@@ -36,7 +36,8 @@ COMMANDS:
       --skip-apt, -s     Skip installation of apt packages
       --thinpool, -t     Name of thinpool to create (default: flintlock or flintlock-dev)
       --disk, -d         Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
-      --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
+      --grpc-address, -a Address on which to start the Flintlock GRPC server (default: local ipv4 address)
+      --parent-iface, -i Interface of the default route of the host
       --dev              Set up development environment. Loop thinpools will be created.
 
   apt                    Install all apt packages required by flintlock
@@ -55,6 +56,7 @@ COMMANDS:
     OPTIONS:
       --version, -v      Version to install (default: latest)
       --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
+      --parent-iface, -i Interface of the default route of the host
       --dev              Assumes containerd has been provisioned in a dev environment
 
   direct_lvm             Set up direct_lvm thinpool
