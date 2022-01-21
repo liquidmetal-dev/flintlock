@@ -68,18 +68,9 @@ func (im *imageService) PullAndMount(ctx context.Context, input *ports.ImageMoun
 		return nil, fmt.Errorf("getting lease for image pulling and mounting: %w", err)
 	}
 
-	var image containerd.Image
-
-	exists, image, err := im.imageExists(leaseCtx, input.ImageName, input.Owner)
+	image, err := im.pullImage(leaseCtx, input.ImageName, input.Owner)
 	if err != nil {
-		return nil, fmt.Errorf("checking if image %s exists for owner %s: %w", input.ImageName, input.Owner, err)
-	}
-
-	if !exists {
-		image, err = im.pullImage(leaseCtx, input.ImageName, input.Owner)
-		if err != nil {
-			return nil, fmt.Errorf("getting image %s for owner %s: %w", input.ImageName, input.Owner, err)
-		}
+		return nil, fmt.Errorf("getting image %s for owner %s: %w", input.ImageName, input.Owner, err)
 	}
 
 	ss := im.getSnapshotter(input.Use)
@@ -94,7 +85,7 @@ func (im *imageService) Exists(ctx context.Context, input *ports.ImageSpec) (boo
 
 	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 
-	exists, _, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
+	exists, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
 	if err != nil {
 		return false, fmt.Errorf("checking image exists: %w", err)
 	}
@@ -109,7 +100,7 @@ func (im *imageService) IsMounted(ctx context.Context, input *ports.ImageMountSp
 
 	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 
-	exists, _, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
+	exists, err := im.imageExists(nsCtx, input.ImageName, input.Owner)
 	if err != nil {
 		return false, fmt.Errorf("checking image exists: %w", err)
 	}
@@ -130,22 +121,21 @@ func (im *imageService) IsMounted(ctx context.Context, input *ports.ImageMountSp
 	return snapshotExists, nil
 }
 
-func (im *imageService) imageExists(ctx context.Context, imageName, owner string) (bool, containerd.Image, error) {
+func (im *imageService) imageExists(ctx context.Context, imageName, owner string) (bool, error) {
 	leaseCtx, err := withOwnerLease(ctx, owner, im.client)
 	if err != nil {
-		return false, nil, fmt.Errorf("getting lease for owner: %w", err)
+		return false, fmt.Errorf("getting lease for owner: %w", err)
 	}
 
-	image, err := im.client.GetImage(leaseCtx, imageName)
-	if err != nil {
+	if _, err := im.client.GetImage(leaseCtx, imageName); err != nil {
 		if errdefs.IsNotFound(err) {
-			return false, nil, nil
+			return false, nil
 		}
 
-		return false, nil, fmt.Errorf("getting image from containerd %s: %w", imageName, err)
+		return false, fmt.Errorf("getting image from containerd %s: %w", imageName, err)
 	}
 
-	return true, image, nil
+	return true, nil
 }
 
 func (im *imageService) pullImage(ctx context.Context, imageName string, owner string) (containerd.Image, error) {
