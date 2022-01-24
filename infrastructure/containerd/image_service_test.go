@@ -141,7 +141,7 @@ func TestImageService_PullAndMount(t *testing.T) {
 		RootFS(gomock.Any()).
 		Return([]digest.Digest{digest.Digest(hash)}, nil)
 	containerdClient.EXPECT().
-		GetImage(gomock.Any(), testImage).
+		Pull(gomock.Any(), testImage).
 		Return(image, nil)
 
 	_, err := client.PullAndMount(ctx, &ports.ImageMountSpec{
@@ -224,46 +224,6 @@ func TestImageService_PullAndMount_failedLeaseOnImageCheck(t *testing.T) {
 	g.Expect(err).To(g.HaveOccurred())
 }
 
-// TestImageService_PullAndMount_failedImageCheck tests what happens when
-// something goes wrong with imageExists (and not Leases).
-func TestImageService_PullAndMount_failedImageCheck(t *testing.T) {
-	g.RegisterTestingT(t)
-
-	mockCtrl := gomock.NewController(t)
-	containerdClient := mock.NewMockClient(mockCtrl)
-	leasesManager := mock.NewMockManager(mockCtrl)
-	svcConfig := containerd.Config{
-		SnapshotterKernel: "native",
-		SnapshotterVolume: "devmapper",
-		SocketPath:        "/something",
-		Namespace:         "unit_test_ns",
-	}
-	ctx := context.Background()
-	client := containerd.NewImageServiceWithClient(&svcConfig, containerdClient)
-
-	leasesManager.EXPECT().
-		List(gomock.Any(), fmt.Sprintf("id==flintlock/%s", testOwner)).
-		Times(2)
-	leasesManager.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		Times(2)
-	containerdClient.EXPECT().
-		LeasesService().
-		Return(leasesManager).
-		Times(2)
-	containerdClient.EXPECT().
-		GetImage(gomock.Any(), testImage).
-		Return(nil, errors.New("nope"))
-
-	_, err := client.PullAndMount(ctx, &ports.ImageMountSpec{
-		ImageName:    testImage,
-		Owner:        testOwner,
-		Use:          models.ImageUseVolume,
-		OwnerUsageID: testOwnerID,
-	})
-	g.Expect(err).To(g.HaveOccurred())
-}
-
 // TestImageService_PullAndMount_failedUnpackCheck tests what happens when
 // something goes wrong with unpack check.
 func TestImageService_PullAndMount_failedUnpackCheck(t *testing.T) {
@@ -299,7 +259,7 @@ func TestImageService_PullAndMount_failedUnpackCheck(t *testing.T) {
 		Return(leasesManager).
 		Times(2)
 	containerdClient.EXPECT().
-		GetImage(gomock.Any(), testImage).
+		Pull(gomock.Any(), testImage).
 		Return(image, nil)
 
 	_, err := client.PullAndMount(ctx, &ports.ImageMountSpec{
@@ -350,7 +310,7 @@ func TestImageService_PullAndMount_failedUnpack(t *testing.T) {
 		Return(leasesManager).
 		Times(2)
 	containerdClient.EXPECT().
-		GetImage(gomock.Any(), testImage).
+		Pull(gomock.Any(), testImage).
 		Return(image, nil)
 
 	_, err := client.PullAndMount(ctx, &ports.ImageMountSpec{
@@ -386,6 +346,9 @@ func TestImageService_PullAndMount_failedRootFS(t *testing.T) {
 	leasesManager.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Times(2)
+	containerdClient.EXPECT().
+		Pull(gomock.Any(), testImage).
+		Return(image, nil)
 	image.EXPECT().
 		Name().
 		Return(testImage).
@@ -403,9 +366,6 @@ func TestImageService_PullAndMount_failedRootFS(t *testing.T) {
 		LeasesService().
 		Return(leasesManager).
 		Times(2)
-	containerdClient.EXPECT().
-		GetImage(gomock.Any(), testImage).
-		Return(image, nil)
 
 	_, err := client.PullAndMount(ctx, &ports.ImageMountSpec{
 		ImageName:    testImage,
@@ -467,7 +427,7 @@ func TestImageService_PullAndMount_failedSnapshotCheck(t *testing.T) {
 		Return(leasesManager).
 		Times(2)
 	containerdClient.EXPECT().
-		GetImage(gomock.Any(), testImage).
+		Pull(gomock.Any(), testImage).
 		Return(image, nil)
 
 	_, err := client.PullAndMount(ctx, &ports.ImageMountSpec{
@@ -537,7 +497,7 @@ func TestImageService_PullAndMount_failedPrepare(t *testing.T) {
 		Return(leasesManager).
 		Times(2)
 	containerdClient.EXPECT().
-		GetImage(gomock.Any(), testImage).
+		Pull(gomock.Any(), testImage).
 		Return(image, nil)
 
 	_, err := client.PullAndMount(ctx, &ports.ImageMountSpec{
