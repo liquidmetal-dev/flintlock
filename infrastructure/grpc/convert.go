@@ -136,7 +136,7 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 	return convertedVol
 }
 
-func convertModelToMicroVM(mvm *models.MicroVM) *types.MicroVMSpec {
+func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 	converted := &types.MicroVMSpec{
 		Id:        mvm.ID.Name(),
 		Namespace: mvm.ID.Namespace(),
