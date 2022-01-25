@@ -36,7 +36,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 
 	uid, err := a.ports.IdentifierService.GenerateRandom()
 	if err != nil {
-		return nil, fmt.Errorf("generating random name for microvm: %w", err)
+		return nil, fmt.Errorf("generating random ID for microvm: %w", err)
 	}
 
 	mvm.ID.SetUID(uid)
