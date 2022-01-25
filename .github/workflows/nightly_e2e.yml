@@ -38,7 +38,7 @@ jobs:
       if: ${{ failure() }}
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
-        message: "An end-to-end test run failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here> and weep."
+        message: "A flintlock integration test run failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here> and weep."
         channel: team-quick-silver
         color: red
         verbose: false
@@ -48,7 +48,7 @@ jobs:
       if: ${{ success() }}
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
-        message: "An end-to-end test run succeeded :party-gopher:"
+        message: "A flintlock integration test run succeeded :party-gopher:"
         channel: team-quick-silver
         color: green
         verbose: false
