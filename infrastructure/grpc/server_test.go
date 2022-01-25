@@ -91,8 +91,8 @@ func TestServer_CreateMicroVM(t *testing.T) {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(resp.Microvm.Id).To(Equal("mvm1"))
-				Expect(resp.Microvm.Namespace).To(Equal("default"))
+				Expect(resp.Microvm.Spec.Id).To(Equal("mvm1"))
+				Expect(resp.Microvm.Spec.Namespace).To(Equal("default"))
 			}
 		})
 	}
