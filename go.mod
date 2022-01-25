@@ -15,7 +15,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.1 // indirect
 	github.com/go-playground/validator/v10 v10.10.0
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
