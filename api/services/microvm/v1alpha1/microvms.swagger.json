@@ -502,7 +502,7 @@
       "type": "object",
       "properties": {
         "microvm": {
-          "$ref": "#/definitions/typesMicroVMSpec"
+          "$ref": "#/definitions/typesMicroVM"
         }
       }
     },

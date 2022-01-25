@@ -45,7 +45,7 @@ func TestE2E(t *testing.T) {
 
 	log.Println("TEST STEP: creating MicroVM")
 	created := u.CreateMVM(flintlockClient, mvmID, mvmNS)
-	Expect(created.Microvm.Id).To(Equal(mvmID))
+	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
 
 	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
 	Eventually(func(g Gomega) error {
@@ -65,7 +65,7 @@ func TestE2E(t *testing.T) {
 
 	log.Println("TEST STEP: creating a second MicroVM")
 	created = u.CreateMVM(flintlockClient, secondMvmID, mvmNS)
-	Expect(created.Microvm.Id).To(Equal(secondMvmID))
+	Expect(created.Microvm.Spec.Id).To(Equal(secondMvmID))
 
 	log.Println("TEST STEP: listing all MicroVMs")
 	Eventually(func(g Gomega) error {
