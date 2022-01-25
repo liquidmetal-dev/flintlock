@@ -46,13 +46,6 @@ func (s *server) CreateMicroVM(
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	/*
-		if req.Microvm.Uid == nil {
-			newUID := uuid.New().String()
-			req.Microvm.Uid = &newUID
-		}
-	*/
-
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)
