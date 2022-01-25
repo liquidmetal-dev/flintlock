@@ -52,7 +52,7 @@ message CreateMicroVMRequest {
 }
 
 message CreateMicroVMResponse {
-  flintlock.types.MicroVMSpec microvm = 1;
+  flintlock.types.MicroVM microvm = 1;
 }
 
 message DeleteMicroVMRequest {
