@@ -16,6 +16,7 @@ const (
 	testTopic     = "test-topic"
 	testVMID      = "testvm1"
 	testNamespace = "testns"
+	testUID       = "testuid"
 )
 
 func TestNewPublish(t *testing.T) {
@@ -26,8 +27,7 @@ func TestNewPublish(t *testing.T) {
 	eventService := mock.NewMockEventService(mockCtrl)
 	ctx := context.Background()
 	evt := &events.MicroVMSpecDeleted{
-		ID:        testVMID,
-		Namespace: testNamespace,
+		UID: testUID,
 	}
 
 	eventService.
@@ -57,8 +57,7 @@ func TestNewPublish_eventServiceFailure(t *testing.T) {
 	eventService := mock.NewMockEventService(mockCtrl)
 	ctx := context.Background()
 	evt := &events.MicroVMSpecDeleted{
-		ID:        testVMID,
-		Namespace: testNamespace,
+		UID: testUID,
 	}
 
 	eventService.

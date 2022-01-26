@@ -10,6 +10,10 @@ import (
 	"github.com/weaveworks/flintlock/infrastructure/mock"
 )
 
+const (
+	testUID = "ae1ce196-6249-11ec-90d6-0242ac120003"
+)
+
 type mockList struct {
 	MicroVMRepository *mock.MockMicroVMRepository
 	EventService      *mock.MockEventService
@@ -47,7 +51,7 @@ func createTestSpec(name, ns string) *models.MicroVM {
 	if name == "" && ns == "" {
 		vmid = &models.VMID{}
 	} else {
-		vmid, _ = models.NewVMID(name, ns)
+		vmid, _ = models.NewVMID(name, ns, testUID)
 	}
 
 	return &models.MicroVM{

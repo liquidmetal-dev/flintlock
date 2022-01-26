@@ -9,6 +9,7 @@ var (
 	ErrSpecRequired            = errors.New("microvm spec is required")
 	ErrVMIDRequired            = errors.New("id for microvm is required")
 	ErrNameRequired            = errors.New("name is required")
+	ErrUIDRequired             = errors.New("uid is required")
 	ErrNamespaceRequired       = errors.New("namespace is required")
 	ErrKernelImageRequired     = errors.New("kernel image is required")
 	ErrVolumeRequired          = errors.New("no volumes specified, at least 1 volume is required")
@@ -90,11 +91,12 @@ func (e NetworkInterfaceStatusMissingError) Error() string {
 	return fmt.Sprintf("status for network interface %s is not found", e.guestIface)
 }
 
-func NewSpecNotFound(name, namespace, version string) error {
+func NewSpecNotFound(name, namespace, version, uid string) error {
 	return specNotFoundError{
 		name:      name,
 		namespace: namespace,
 		version:   version,
+		uid:       uid,
 	}
 }
 
@@ -102,15 +104,16 @@ type specNotFoundError struct {
 	name      string
 	namespace string
 	version   string
+	uid       string
 }
 
 // Error returns the error message.
 func (e specNotFoundError) Error() string {
 	if e.version == "" {
-		return fmt.Sprintf("microvm spec %s/%s not found", e.namespace, e.name)
+		return fmt.Sprintf("microvm spec %s/%s/%s not found", e.namespace, e.name, e.uid)
 	}
 
-	return fmt.Sprintf("microvm spec %s/%s not found with version %s", e.namespace, e.name, e.version)
+	return fmt.Sprintf("microvm spec %s/%s/%s not found with version %s", e.namespace, e.name, e.uid, e.version)
 }
 
 // IsSpecNotFound tests an error to see if its a spec not found error.

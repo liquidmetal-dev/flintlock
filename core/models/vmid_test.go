@@ -9,6 +9,10 @@ import (
 	"github.com/weaveworks/flintlock/core/models"
 )
 
+const (
+	testUID = "344780b0-6249-11ec-90d6-0242ac120003"
+)
+
 func TestVMID_New(t *testing.T) {
 	RegisterTestingT(t)
 
@@ -34,7 +38,7 @@ func TestVMID_New(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			vmid, err := models.NewVMID(tc.vmName, tc.vmNamespace)
+			vmid, err := models.NewVMID(tc.vmName, tc.vmNamespace, testUID)
 
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
@@ -58,7 +62,7 @@ func TestVMID_NewFromString(t *testing.T) {
 	}{
 		{
 			name:         "correct structure",
-			input:        "ns1/test1",
+			input:        "ns1/test1/344780b0-6249-11ec-90d6-0242ac120003",
 			expectError:  false,
 			expectedNS:   "ns1",
 			expectedName: "test1",
@@ -99,7 +103,7 @@ func TestVMID_NewFromString(t *testing.T) {
 func TestVMID_Marshalling(t *testing.T) {
 	RegisterTestingT(t)
 
-	id1, err := models.NewVMID("name", "namespace")
+	id1, err := models.NewVMID("name", "namespace", testUID)
 	Expect(err).ToNot(HaveOccurred())
 
 	data, err := json.Marshal(id1)
@@ -114,7 +118,7 @@ func TestVMID_Marshalling(t *testing.T) {
 func TestVMID_EmbeddedMarshalling(t *testing.T) {
 	RegisterTestingT(t)
 
-	id1, err := models.NewVMID("name", "namespace")
+	id1, err := models.NewVMID("name", "namespace", testUID)
 	Expect(err).ToNot(HaveOccurred())
 
 	s1 := struct {

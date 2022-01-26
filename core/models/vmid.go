@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	numPartsForID = 2
+	numPartsForID = 3
 )
 
 var (
@@ -23,10 +23,11 @@ var (
 type VMID struct {
 	name      string
 	namespace string
+	uid       string
 }
 
-// NewVMID creates a new VMID from a name and namespace.
-func NewVMID(name, namespace string) (*VMID, error) {
+// NewVMID creates a new VMID from a name, namespace and, UID.
+func NewVMID(name, namespace, uid string) (*VMID, error) {
 	if name == "" {
 		return nil, coreerrs.ErrNameRequired
 	}
@@ -38,17 +39,28 @@ func NewVMID(name, namespace string) (*VMID, error) {
 	return &VMID{
 		name:      name,
 		namespace: namespace,
+		uid:       uid,
 	}, nil
+}
+
+// NewVMIDForce creates a new VMID from a name, namespace, and UID, but without
+// any checks. In case we want to create a new UID, but ignore checks.
+func NewVMIDForce(name, namespace, uid string) *VMID {
+	return &VMID{
+		name:      name,
+		namespace: namespace,
+		uid:       uid,
+	}
 }
 
 // NewVMID creates a new VMID from a string.
 func NewVMIDFromString(id string) (*VMID, error) {
-	ns, name, err := splitVMIDFromString(id)
+	ns, name, uid, err := splitVMIDFromString(id)
 	if err != nil {
 		return nil, fmt.Errorf("populating id from string: %w", err)
 	}
 
-	return NewVMID(name, ns)
+	return NewVMID(name, ns, uid)
 }
 
 // Name returns the name part of the VMID.
@@ -61,9 +73,14 @@ func (v *VMID) Namespace() string {
 	return v.namespace
 }
 
+// UID returns the UID part of the VMID.
+func (v *VMID) UID() string {
+	return v.uid
+}
+
 // String returns a string representation of the vmid.
 func (v VMID) String() string {
-	return fmt.Sprintf("%s/%s", v.namespace, v.name)
+	return fmt.Sprintf("%s/%s/%s", v.namespace, v.name, v.uid)
 }
 
 // MarshalText will marshall the vmid to a string representation.
@@ -75,13 +92,14 @@ func (v *VMID) MarshalText() (text []byte, err error) {
 func (v *VMID) UnmarshalText(text []byte) error {
 	id := string(text)
 
-	ns, name, err := splitVMIDFromString(id)
+	ns, name, uid, err := splitVMIDFromString(id)
 	if err != nil {
 		return fmt.Errorf("parsing vmid from string: %w", err)
 	}
 
 	v.name = name
 	v.namespace = ns
+	v.uid = uid
 
 	return nil
 }
@@ -91,19 +109,27 @@ func (v *VMID) IsEmpty() bool {
 	return v.name == "" && v.namespace == ""
 }
 
-func splitVMIDFromString(id string) (namespace string, name string, err error) {
+func (v *VMID) SetUID(uid string) {
+	v.uid = uid
+}
+
+func splitVMIDFromString(id string) (namespace, name, uid string, err error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != numPartsForID {
-		return "", "", coreerrs.IncorrectVMIDFormatError{ActualID: id}
+		return "", "", "", coreerrs.IncorrectVMIDFormatError{ActualID: id}
 	}
 
 	if parts[0] == "" {
-		return "", "", coreerrs.ErrNamespaceRequired
+		return "", "", "", coreerrs.ErrNamespaceRequired
 	}
 
 	if parts[1] == "" {
-		return "", "", coreerrs.ErrNameRequired
+		return "", "", "", coreerrs.ErrNameRequired
 	}
 
-	return parts[0], parts[1], nil
+	if parts[2] == "" {
+		return "", "", "", coreerrs.ErrUIDRequired
+	}
+
+	return parts[0], parts[1], parts[2], nil
 }

@@ -15,10 +15,11 @@ const (
 	namespaceLabelFormat = "%s/ns"
 	typeLabelFormat      = "%s/type"
 	versionLabelFormat   = "%s/version"
+	uidLabelFormat       = "%s/uid"
 )
 
 func contentRefName(microvm *models.MicroVM) string {
-	return fmt.Sprintf("%s/microvm/%s", defaults.Domain, microvm.ID)
+	return fmt.Sprintf("%s/microvm/%s", defaults.Domain, microvm.ID.String())
 }
 
 func labelFilter(name, value string) string {
@@ -43,4 +44,9 @@ func TypeLabel() string {
 // VersionLabel is the name of the containerd content store label to hold version of the content.
 func VersionLabel() string {
 	return fmt.Sprintf(versionLabelFormat, defaults.Domain)
+}
+
+// UIDLabel is the name of the containerd content store label to hold UID of the content.
+func UIDLabel() string {
+	return fmt.Sprintf(uidLabelFormat, defaults.Domain)
 }

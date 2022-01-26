@@ -19,14 +19,15 @@ import (
 
 const backoffBaseInSeconds = 20
 
-func (a *app) ReconcileMicroVM(ctx context.Context, id, namespace string) error {
+func (a *app) ReconcileMicroVM(ctx context.Context, vmid models.VMID) error {
 	logger := log.GetLogger(ctx).WithField("action", "reconcile")
 
-	logger.Debugf("Getting spec for %s/%s", namespace, id)
+	logger.Debugf("Getting spec for %s", vmid.String())
 
 	spec, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
-		Name:      id,
-		Namespace: namespace,
+		Name:      vmid.Name(),
+		Namespace: vmid.Namespace(),
+		UID:       vmid.UID(),
 	})
 	if err != nil {
 		return fmt.Errorf("getting microvm spec for reconcile: %w", err)
@@ -95,21 +96,20 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 		return fmt.Errorf("saving spec failed: %w", err)
 	}
 
-	go func(id, ns string, sleepTime time.Duration) {
+	go func(uid string, sleepTime time.Duration) {
 		time.Sleep(sleepTime)
 
 		err := a.ports.EventService.Publish(
 			context.Background(),
 			defaults.TopicMicroVMEvents,
 			&events.MicroVMSpecUpdated{
-				ID:        id,
-				Namespace: ns,
+				UID: uid,
 			},
 		)
 		if err != nil {
-			logger.Errorf("failed to publish an update event for %s/%s", ns, id)
+			logger.Errorf("failed to publish an update event for %s", uid)
 		}
-	}(spec.ID.Name(), spec.ID.Namespace(), waitTime)
+	}(spec.ID.UID(), waitTime)
 
 	return nil
 }

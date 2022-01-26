@@ -5,6 +5,7 @@ import "github.com/weaveworks/flintlock/core/models"
 const (
 	vmName                    = "testvm"
 	nsName                    = "testns"
+	vmUID                     = "testuid"
 	defaultMACAddress         = "AA:BB:CC:DD:EE:FF"
 	reverseMACAddress         = "FF:EE:DD:CC:BB:AA"
 	expectedTapDeviceName     = "testns_testvm_tap"

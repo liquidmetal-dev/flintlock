@@ -10,6 +10,7 @@ type RepositoryGetOptions struct {
 	Name      string
 	Namespace string
 	Version   string
+	UID       string
 }
 
 // MicroVMRepository is the port definition for a microvm repository.
@@ -24,7 +25,7 @@ type MicroVMRepository interface {
 	// details of microvms will be returned.
 	GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error)
 	// Exists checks to see if the microvm spec exists in the repo.
-	Exists(ctx context.Context, name, namespace string) (bool, error)
+	Exists(ctx context.Context, vmid models.VMID) (bool, error)
 	// ReleaseLease will release the supplied lease.
 	ReleaseLease(ctx context.Context, microvm *models.MicroVM) error
 }

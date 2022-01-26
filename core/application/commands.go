@@ -26,7 +26,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 			return nil, fmt.Errorf("generating random name for microvm: %w", err)
 		}
 
-		vmid, err := models.NewVMID(name, defaults.MicroVMNamespace)
+		vmid, err := models.NewVMID(name, defaults.MicroVMNamespace, "")
 		if err != nil {
 			return nil, fmt.Errorf("creating vmid: %w", err)
 		}
@@ -34,9 +34,17 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		mvm.ID = *vmid
 	}
 
+	uid, err := a.ports.IdentifierService.GenerateRandom()
+	if err != nil {
+		return nil, fmt.Errorf("generating random ID for microvm: %w", err)
+	}
+
+	mvm.ID.SetUID(uid)
+
 	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
 		Name:      mvm.ID.Name(),
 		Namespace: mvm.ID.Namespace(),
+		UID:       mvm.ID.UID(),
 	})
 	if err != nil {
 		if !coreerrs.IsSpecNotFound(err) {
@@ -48,6 +56,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, specAlreadyExistsError{
 			name:      mvm.ID.Name(),
 			namespace: mvm.ID.Namespace(),
+			uid:       mvm.ID.UID(),
 		}
 	}
 
@@ -64,6 +73,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecCreated{
 		ID:        mvm.ID.Name(),
 		Namespace: mvm.ID.Namespace(),
+		UID:       mvm.ID.UID(),
 	}); err != nil {
 		return nil, fmt.Errorf("publishing microvm created event: %w", err)
 	}
@@ -71,17 +81,16 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	return createdMVM, nil
 }
 
-func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
+func (a *app) DeleteMicroVM(ctx context.Context, uid string) error {
 	logger := log.GetLogger(ctx).WithField("component", "app")
 	logger.Trace("deleting microvm")
 
-	if id == "" {
-		return errIDRequired
+	if uid == "" {
+		return errUIDRequired
 	}
 
 	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
-		Name:      id,
-		Namespace: namespace,
+		UID: uid,
 	})
 	if err != nil {
 		return fmt.Errorf("checking to see if spec exists: %w", err)
@@ -89,8 +98,7 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 
 	if foundMvm == nil {
 		return specNotFoundError{
-			name:      id,
-			namespace: namespace,
+			uid: uid,
 		}
 	}
 
@@ -105,8 +113,7 @@ func (a *app) DeleteMicroVM(ctx context.Context, id, namespace string) error {
 	}
 
 	if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecUpdated{
-		ID:        foundMvm.ID.Name(),
-		Namespace: foundMvm.ID.Namespace(),
+		UID: foundMvm.ID.UID(),
 	}); err != nil {
 		return fmt.Errorf("publishing microvm updated event: %w", err)
 	}

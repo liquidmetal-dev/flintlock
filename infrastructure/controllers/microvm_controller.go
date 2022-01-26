@@ -137,7 +137,7 @@ func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 		return true
 	}
 
-	err = r.reconcileUC.ReconcileMicroVM(ctx, vmid.Name(), vmid.Namespace())
+	err = r.reconcileUC.ReconcileMicroVM(ctx, *vmid)
 	if err != nil {
 		logger.Errorf("failed to reconcile vmid %s: %s", vmid, err)
 		r.queue.Enqueue(item)
@@ -149,13 +149,14 @@ func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 }
 
 func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *logrus.Entry) error {
-	var name, namespace string
+	var name, namespace, uid string
 
 	switch eventType := envelope.Event.(type) {
 	case *events.MicroVMSpecCreated:
 		created, _ := envelope.Event.(*events.MicroVMSpecCreated)
 		name = created.ID
 		namespace = created.Namespace
+		uid = created.UID
 	case *events.MicroVMSpecDeleted:
 		// Do not enqueue a deleted vmspec.
 		// We can be smarter than this, but for now it's working
@@ -165,13 +166,14 @@ func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *l
 		updated, _ := envelope.Event.(*events.MicroVMSpecUpdated)
 		name = updated.ID
 		namespace = updated.Namespace
+		uid = updated.UID
 	default:
 		logger.Debugf("unhandled event type (%T) received", eventType)
 
 		return nil
 	}
 
-	vmid, err := models.NewVMID(name, namespace)
+	vmid, err := models.NewVMID(name, namespace, uid)
 	if err != nil {
 		return fmt.Errorf("getting vmid from event data: %w", err)
 	}

@@ -92,16 +92,16 @@ func (s *server) CreateMicroVM(
 func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequest) (*emptypb.Empty, error) {
 	logger := log.GetLogger(ctx)
 
-	if req == nil || req.Id == "" || req.Namespace == "" {
+	if req == nil || req.Uid == "" {
 		logger.Error("invalid delete microvm request")
 
 		//nolint:wrapcheck // don't wrap grpc errors when using the status package
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	logger.Infof("deleting microvm %s/%s", req.Id, req.Namespace)
+	logger.Infof("deleting microvm %s", req.Uid)
 
-	if err := s.commandUC.DeleteMicroVM(ctx, req.Id, req.Namespace); err != nil {
+	if err := s.commandUC.DeleteMicroVM(ctx, req.Uid); err != nil {
 		logger.Errorf("failed to delete microvm: %s", err)
 
 		return nil, fmt.Errorf("deleting microvm: %w", err)
@@ -113,16 +113,16 @@ func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequ
 func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (*mvmv1.GetMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 
-	if req == nil || req.Id == "" || req.Namespace == "" {
+	if req == nil || req.Uid == "" {
 		logger.Error("invalid get microvm request")
 
 		//nolint:wrapcheck // don't wrap grpc errors when using the status package
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	logger.Infof("getting microvm %s/%s", req.Namespace, req.Id)
+	logger.Infof("getting microvm %s", req.Uid)
 
-	foundMicrovm, err := s.queryUC.GetMicroVM(ctx, req.Id, req.Namespace)
+	foundMicrovm, err := s.queryUC.GetMicroVM(ctx, req.Uid)
 	if err != nil {
 		logger.Errorf("failed to get microvm: %s", err)
 

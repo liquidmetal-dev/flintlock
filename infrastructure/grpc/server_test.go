@@ -53,7 +53,7 @@ func TestServer_CreateMicroVM(t *testing.T) {
 			createReq:   createTestCreateRequest("mvm1", "default"),
 			expectError: false,
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
-				vmid, _ := models.NewVMID("mvm1", "default")
+				vmid, _ := models.NewVMID("mvm1", "default", "uid")
 
 				cm.CreateMicroVM(
 					gomock.AssignableToTypeOf(context.Background()),
@@ -112,24 +112,17 @@ func TestServer_DeleteMicroVM(t *testing.T) {
 		},
 		{
 			name:        "missing id should fail with error",
-			deleteReq:   &mvm1.DeleteMicroVMRequest{Id: "", Namespace: "default"},
-			expectError: true,
-			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
-		},
-		{
-			name:        "missing namespace should fail with error",
-			deleteReq:   &mvm1.DeleteMicroVMRequest{Id: "mvm1", Namespace: ""},
+			deleteReq:   &mvm1.DeleteMicroVMRequest{Uid: ""},
 			expectError: true,
 			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
 		},
 		{
 			name:        "error from usecase should fail with error",
-			deleteReq:   &mvm1.DeleteMicroVMRequest{Id: "mvm1", Namespace: "default"},
+			deleteReq:   &mvm1.DeleteMicroVMRequest{Uid: "testuid"},
 			expectError: true,
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
 				cm.DeleteMicroVM(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Not(gomock.Eq("")),
 					gomock.Not(gomock.Eq("")),
 				).Return(
 					errors.New("a random error occurred"),
@@ -138,12 +131,11 @@ func TestServer_DeleteMicroVM(t *testing.T) {
 		},
 		{
 			name:        "valid request and no error from delete microvm usecase should success",
-			deleteReq:   &mvm1.DeleteMicroVMRequest{Id: "mvm1", Namespace: "default"},
+			deleteReq:   &mvm1.DeleteMicroVMRequest{Uid: "testuid"},
 			expectError: false,
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
 				cm.DeleteMicroVM(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Not(gomock.Eq("")),
 					gomock.Not(gomock.Eq("")),
 				).Return(
 					nil,
@@ -189,24 +181,17 @@ func TestServer_GetMicroVM(t *testing.T) {
 		},
 		{
 			name:        "missing id should fail with error",
-			getReq:      &mvm1.GetMicroVMRequest{Id: "", Namespace: "default"},
-			expectError: true,
-			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
-		},
-		{
-			name:        "missing namespace should fail with error",
-			getReq:      &mvm1.GetMicroVMRequest{Id: "mvm1", Namespace: ""},
+			getReq:      &mvm1.GetMicroVMRequest{Uid: ""},
 			expectError: true,
 			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
 		},
 		{
 			name:        "error from usecase should fail with error",
-			getReq:      &mvm1.GetMicroVMRequest{Id: "mvm1", Namespace: "default"},
+			getReq:      &mvm1.GetMicroVMRequest{Uid: "testuid"},
 			expectError: true,
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
 				qm.GetMicroVM(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Not(gomock.Eq("")),
 					gomock.Not(gomock.Eq("")),
 				).Return(
 					nil,
@@ -216,14 +201,13 @@ func TestServer_GetMicroVM(t *testing.T) {
 		},
 		{
 			name:        "valid request with no error should succeed",
-			getReq:      &mvm1.GetMicroVMRequest{Id: "mvm1", Namespace: "default"},
+			getReq:      &mvm1.GetMicroVMRequest{Uid: "testuid"},
 			expectError: false,
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
-				vmid, _ := models.NewVMID("mvm1", "default")
+				vmid, _ := models.NewVMID("mvm1", "default", "testuid")
 
 				qm.GetMicroVM(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Not(gomock.Eq("")),
 					gomock.Not(gomock.Eq("")),
 				).Return(
 					&models.MicroVM{

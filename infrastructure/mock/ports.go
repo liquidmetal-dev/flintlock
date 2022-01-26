@@ -145,18 +145,18 @@ func (mr *MockMicroVMRepositoryMockRecorder) Delete(arg0, arg1 interface{}) *gom
 }
 
 // Exists mocks base method.
-func (m *MockMicroVMRepository) Exists(arg0 context.Context, arg1, arg2 string) (bool, error) {
+func (m *MockMicroVMRepository) Exists(arg0 context.Context, arg1 models.VMID) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Exists", arg0, arg1)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockMicroVMRepositoryMockRecorder) Exists(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockMicroVMRepositoryMockRecorder) Exists(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockMicroVMRepository)(nil).Exists), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockMicroVMRepository)(nil).Exists), arg0, arg1)
 }
 
 // Get mocks base method.
@@ -444,17 +444,17 @@ func (m *MockReconcileMicroVMsUseCase) EXPECT() *MockReconcileMicroVMsUseCaseMoc
 }
 
 // ReconcileMicroVM mocks base method.
-func (m *MockReconcileMicroVMsUseCase) ReconcileMicroVM(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockReconcileMicroVMsUseCase) ReconcileMicroVM(arg0 context.Context, arg1 models.VMID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReconcileMicroVM", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ReconcileMicroVM", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ReconcileMicroVM indicates an expected call of ReconcileMicroVM.
-func (mr *MockReconcileMicroVMsUseCaseMockRecorder) ReconcileMicroVM(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockReconcileMicroVMsUseCaseMockRecorder) ReconcileMicroVM(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileMicroVM", reflect.TypeOf((*MockReconcileMicroVMsUseCase)(nil).ReconcileMicroVM), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileMicroVM", reflect.TypeOf((*MockReconcileMicroVMsUseCase)(nil).ReconcileMicroVM), arg0, arg1)
 }
 
 // ResyncMicroVMs mocks base method.
@@ -592,17 +592,17 @@ func (mr *MockMicroVMCommandUseCasesMockRecorder) CreateMicroVM(arg0, arg1 inter
 }
 
 // DeleteMicroVM mocks base method.
-func (m *MockMicroVMCommandUseCases) DeleteMicroVM(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockMicroVMCommandUseCases) DeleteMicroVM(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteMicroVM", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeleteMicroVM", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteMicroVM indicates an expected call of DeleteMicroVM.
-func (mr *MockMicroVMCommandUseCasesMockRecorder) DeleteMicroVM(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockMicroVMCommandUseCasesMockRecorder) DeleteMicroVM(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMicroVM", reflect.TypeOf((*MockMicroVMCommandUseCases)(nil).DeleteMicroVM), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMicroVM", reflect.TypeOf((*MockMicroVMCommandUseCases)(nil).DeleteMicroVM), arg0, arg1)
 }
 
 // MockMicroVMQueryUseCases is a mock of MicroVMQueryUseCases interface.
@@ -644,16 +644,16 @@ func (mr *MockMicroVMQueryUseCasesMockRecorder) GetAllMicroVM(arg0, arg1 interfa
 }
 
 // GetMicroVM mocks base method.
-func (m *MockMicroVMQueryUseCases) GetMicroVM(arg0 context.Context, arg1, arg2 string) (*models.MicroVM, error) {
+func (m *MockMicroVMQueryUseCases) GetMicroVM(arg0 context.Context, arg1 string) (*models.MicroVM, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMicroVM", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetMicroVM", arg0, arg1)
 	ret0, _ := ret[0].(*models.MicroVM)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMicroVM indicates an expected call of GetMicroVM.
-func (mr *MockMicroVMQueryUseCasesMockRecorder) GetMicroVM(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockMicroVMQueryUseCasesMockRecorder) GetMicroVM(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMicroVM", reflect.TypeOf((*MockMicroVMQueryUseCases)(nil).GetMicroVM), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMicroVM", reflect.TypeOf((*MockMicroVMQueryUseCases)(nil).GetMicroVM), arg0, arg1)
 }

@@ -40,7 +40,7 @@ func (s *repoRelease) ShouldDo(ctx context.Context) (bool, error) {
 		return false, errors.ErrSpecRequired
 	}
 
-	exists, err := s.repo.Exists(ctx, s.vm.ID.Name(), s.vm.ID.Namespace())
+	exists, err := s.repo.Exists(ctx, s.vm.ID)
 	if err != nil {
 		return false, fmt.Errorf("checking if spec exists: %w", err)
 	}

@@ -20,7 +20,7 @@ func TestNewNetworkInterface_everythingIsEmpty(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	var status *models.NetworkInterfaceStatus
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterface{}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -48,7 +48,7 @@ func TestNewNetworkInterface_doesNotExist(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	status := &models.NetworkInterfaceStatus{}
 	iface := &models.NetworkInterface{
 		GuestDeviceName: defaultEthDevice,
@@ -96,7 +96,7 @@ func TestNewNetworkInterface_emptyStatus(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	var status *models.NetworkInterfaceStatus
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice}
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -132,7 +132,7 @@ func TestNewNetworkInterface_existingInterface(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterface{
 		GuestDeviceName:       defaultEthDevice,
 		AllowMetadataRequests: false,
@@ -186,7 +186,7 @@ func TestNewNetworkInterface_missingInterface(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface, status := fullNetworkInterface()
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -232,7 +232,7 @@ func TestNewNetworkInterface_svcError(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface, status := fullNetworkInterface()
 	svc := mock.NewMockNetworkService(mockCtrl)
 	ctx := context.Background()
@@ -261,7 +261,7 @@ func TestNewNetworkInterface_fillChangedStatus(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface, status := fullNetworkInterface()
 	iface.Type = models.IfaceTypeMacvtap
 	svc := mock.NewMockNetworkService(mockCtrl)
@@ -299,7 +299,7 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 
 	g.RegisterTestingT(t)
 
-	vmid, _ := models.NewVMID(vmName, nsName)
+	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	status := &models.NetworkInterfaceStatus{}
 	iface := &models.NetworkInterface{GuestDeviceName: defaultEthDevice, Type: models.IfaceTypeTap}
 	svc := mock.NewMockNetworkService(mockCtrl)
