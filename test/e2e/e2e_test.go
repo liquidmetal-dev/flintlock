@@ -29,7 +29,7 @@ func TestE2E(t *testing.T) {
 		mvmID       = "mvm0"
 		secondMvmID = "mvm1"
 		mvmNS       = "ns0"
-		fcPath      = "/var/lib/flintlock/vm/%s/%s"
+		fcPath      = "/var/lib/flintlock/vm/%s/%s/%s"
 
 		mvmPid1 int
 		mvmPid2 int
@@ -47,13 +47,15 @@ func TestE2E(t *testing.T) {
 	created := u.CreateMVM(flintlockClient, mvmID, mvmNS)
 	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
 
+	firstMicroVMPath := fmt.Sprintf(fcPath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+
 	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
 	Eventually(func(g Gomega) error {
-		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID) + "/firecracker.pid").To(BeAnExistingFile())
+		g.Expect(firstMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
 
 		// verify that firecracker has started and that a pid has been saved
 		// and that there is actually a running process
-		mvmPid1 = u.ReadPID(fmt.Sprintf(fcPath, mvmNS, mvmID))
+		mvmPid1 = u.ReadPID(firstMicroVMPath)
 		g.Expect(u.PidRunning(mvmPid1)).To(BeTrue())
 
 		// get the mVM and check the status
@@ -67,13 +69,15 @@ func TestE2E(t *testing.T) {
 	createdSecond := u.CreateMVM(flintlockClient, secondMvmID, mvmNS)
 	Expect(createdSecond.Microvm.Spec.Id).To(Equal(secondMvmID))
 
+	secondMicroVMPath := fmt.Sprintf(fcPath, mvmNS, secondMvmID, *createdSecond.Microvm.Spec.Uid)
+
 	log.Println("TEST STEP: listing all MicroVMs")
 	Eventually(func(g Gomega) error {
-		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID) + "/firecracker.pid").To(BeAnExistingFile())
+		g.Expect(secondMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
 
 		// verify that firecracker has started and that a pid has been saved
 		// and that there is actually a running process for the new mVM
-		mvmPid2 = u.ReadPID(fmt.Sprintf(fcPath, mvmNS, secondMvmID))
+		mvmPid2 = u.ReadPID(secondMicroVMPath)
 		g.Expect(u.PidRunning(mvmPid2)).To(BeTrue())
 
 		// get both the mVMs and check the statuses
@@ -97,8 +101,8 @@ func TestE2E(t *testing.T) {
 
 	Eventually(func(g Gomega) error {
 		// verify that the vm state dirs have been removed
-		g.Expect(fmt.Sprintf(fcPath, mvmNS, mvmID)).ToNot(BeAnExistingFile())
-		g.Expect(fmt.Sprintf(fcPath, mvmNS, secondMvmID)).ToNot(BeAnExistingFile())
+		g.Expect(firstMicroVMPath).ToNot(BeAnExistingFile())
+		g.Expect(secondMicroVMPath).ToNot(BeAnExistingFile())
 
 		// verify that the firecracker processes are no longer running
 		g.Expect(u.PidRunning(mvmPid1)).To(BeFalse())
