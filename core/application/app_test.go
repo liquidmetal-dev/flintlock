@@ -226,7 +226,9 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(defaults.TopicMicroVMEvents),
 					gomock.Eq(&events.MicroVMSpecUpdated{
-						UID: testUID,
+						ID:        "id1234",
+						Namespace: "default",
+						UID:       testUID,
 					}),
 				)
 			},
