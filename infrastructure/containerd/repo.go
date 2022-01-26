@@ -135,17 +135,14 @@ func (r *containerdRepo) Get(ctx context.Context, options ports.RepositoryGetOpt
 }
 
 // GetAll will get a list of microvm details from the containerd content store.
-// If namespace is an empty string all microvms will be returned from all namespaces.
-func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
+func (r *containerdRepo) GetAll(ctx context.Context, query models.ListMicroVMQuery) ([]*models.MicroVM, error) {
 	namespaceCtx := namespaces.WithNamespace(ctx, r.config.Namespace)
 	store := r.client.ContentStore()
 	filters := []string{labelFilter(TypeLabel(), MicroVMSpecType)}
 	versions := map[string]int{}
 	digests := map[string]*digest.Digest{}
-
-	if namespace != "" {
-		filters = append(filters, labelFilter(NamespaceLabel(), namespace))
-	}
+	filters = append(filters, convertQueryToFilter(query)...)
+	andFilters := strings.Join(filters, ",")
 
 	err := store.Walk(namespaceCtx, func(info content.Info) error {
 		name := info.Labels[NameLabel()]
@@ -165,7 +162,7 @@ func (r *containerdRepo) GetAll(ctx context.Context, namespace string) ([]*model
 		}
 
 		return nil
-	}, filters...)
+	}, andFilters)
 	if err != nil {
 		return nil, fmt.Errorf("walking content store: %w", err)
 	}
@@ -381,4 +378,30 @@ func getVMLabels(microvm *models.MicroVM) map[string]string {
 	}
 
 	return labels
+}
+
+func convertQueryToFilter(query models.ListMicroVMQuery) []string {
+	filters := []string{}
+
+	for key, value := range query {
+		if value == "" {
+			continue
+		}
+
+		if key == "namespace" {
+			filters = append(filters, labelFilter(NamespaceLabel(), value))
+
+			continue
+		}
+
+		if key == "name" {
+			filters = append(filters, labelFilter(NameLabel(), value))
+
+			continue
+		}
+
+		filters = append(filters, labelFilter(key, value))
+	}
+
+	return filters
 }

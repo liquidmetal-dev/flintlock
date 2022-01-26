@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/weaveworks/flintlock/api/types"
+	"github.com/weaveworks/flintlock/pkg/ptr"
 	u "github.com/weaveworks/flintlock/test/e2e/utils"
 )
 
@@ -81,12 +82,19 @@ func TestE2E(t *testing.T) {
 		g.Expect(u.PidRunning(mvmPid2)).To(BeTrue())
 
 		// get both the mVMs and check the statuses
-		res := u.ListMVMs(flintlockClient, mvmNS)
+		res := u.ListMVMs(flintlockClient, mvmNS, nil)
 		g.Expect(res.Microvm).To(HaveLen(2))
 		g.Expect(res.Microvm[0].Spec.Id).To(Equal(mvmID))
 		g.Expect(res.Microvm[0].Status.State).To(Equal(types.MicroVMStatus_CREATED))
 		g.Expect(res.Microvm[1].Spec.Id).To(Equal(secondMvmID))
 		g.Expect(res.Microvm[1].Status.State).To(Equal(types.MicroVMStatus_CREATED))
+
+		// get only the second mVM by name and check the statuses
+		res = u.ListMVMs(flintlockClient, mvmNS, ptr.String(secondMvmID))
+		g.Expect(res.Microvm).To(HaveLen(1))
+		g.Expect(res.Microvm[0].Spec.Id).To(Equal(secondMvmID))
+		g.Expect(res.Microvm[0].Status.State).To(Equal(types.MicroVMStatus_CREATED))
+
 		return nil
 	}, "120s").Should(Succeed())
 
@@ -109,7 +117,7 @@ func TestE2E(t *testing.T) {
 		g.Expect(u.PidRunning(mvmPid2)).To(BeFalse())
 
 		// verify that the mVMs are no longer with us
-		res := u.ListMVMs(flintlockClient, mvmNS)
+		res := u.ListMVMs(flintlockClient, mvmNS, nil)
 		g.Expect(res.Microvm).To(HaveLen(0))
 		return nil
 	}, "120s").Should(Succeed())

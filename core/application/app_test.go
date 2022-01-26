@@ -409,11 +409,18 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 		expect      func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder)
 	}{
 		{
-			name:        "empty namespace should return an error",
+			name:        "empty namespace should not return an error",
 			toGetNS:     "",
-			expectError: true,
+			expectError: false,
 			expectedLen: 0,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.GetAll(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": ""}),
+				).Return(
+					nil,
+					nil,
+				)
 			},
 		},
 		{
@@ -424,7 +431,7 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.GetAll(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("default"),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": "default"}),
 				).Return(
 					nil,
 					errors.New("a random error occurred"),
@@ -439,7 +446,7 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.GetAll(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("default"),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": "default"}),
 				).Return(
 					nil,
 					nil,
@@ -454,7 +461,7 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.GetAll(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("default"),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": "default"}),
 				).Return(
 					[]*models.MicroVM{
 						createTestSpec("id1234", "default"),
@@ -495,7 +502,7 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 
 			ctx := context.Background()
 			app := application.New(&application.Config{}, ports)
-			mvms, err := app.GetAllMicroVM(ctx, tc.toGetNS)
+			mvms, err := app.GetAllMicroVM(ctx, models.ListMicroVMQuery{"namespace": tc.toGetNS})
 
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
