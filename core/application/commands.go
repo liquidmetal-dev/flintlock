@@ -113,7 +113,9 @@ func (a *app) DeleteMicroVM(ctx context.Context, uid string) error {
 	}
 
 	if err := a.ports.EventService.Publish(ctx, defaults.TopicMicroVMEvents, &events.MicroVMSpecUpdated{
-		UID: foundMvm.ID.UID(),
+		ID:        foundMvm.ID.Name(),
+		Namespace: foundMvm.ID.Namespace(),
+		UID:       foundMvm.ID.UID(),
 	}); err != nil {
 		return fmt.Errorf("publishing microvm updated event: %w", err)
 	}

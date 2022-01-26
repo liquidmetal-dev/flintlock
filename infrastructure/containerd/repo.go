@@ -286,15 +286,22 @@ func (r *containerdRepo) findDigestForSpec(ctx context.Context,
 ) (*digest.Digest, error) {
 	var digest *digest.Digest
 
-	idLabelFilter := labelFilter(NameLabel(), options.Name)
-	nsFilter := labelFilter(NamespaceLabel(), options.Namespace)
-	uidLabelFilter := labelFilter(UIDLabel(), options.UID)
-	versionFilter := labelFilter(VersionLabel(), options.Version)
+	combinedFilters := []string{}
 
-	combinedFilters := []string{idLabelFilter, nsFilter, uidLabelFilter}
+	if options.Name != "" {
+		combinedFilters = append(combinedFilters, labelFilter(NameLabel(), options.Name))
+	}
+
+	if options.Namespace != "" {
+		combinedFilters = append(combinedFilters, labelFilter(NamespaceLabel(), options.Namespace))
+	}
+
+	if options.UID != "" {
+		combinedFilters = append(combinedFilters, labelFilter(UIDLabel(), options.UID))
+	}
 
 	if options.Version != "" {
-		combinedFilters = append(combinedFilters, versionFilter)
+		combinedFilters = append(combinedFilters, labelFilter(VersionLabel(), options.Version))
 	}
 
 	allFilters := strings.Join(combinedFilters, ",")
