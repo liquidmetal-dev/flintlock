@@ -141,7 +141,9 @@ func (r *containerdRepo) GetAll(ctx context.Context, query models.ListMicroVMQue
 	filters := []string{labelFilter(TypeLabel(), MicroVMSpecType)}
 	versions := map[string]int{}
 	digests := map[string]*digest.Digest{}
+
 	filters = append(filters, convertQueryToFilter(query)...)
+
 	andFilters := strings.Join(filters, ",")
 
 	err := store.Walk(namespaceCtx, func(info content.Info) error {
