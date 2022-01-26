@@ -147,20 +147,20 @@ func (r *containerdRepo) GetAll(ctx context.Context, query models.ListMicroVMQue
 	andFilters := strings.Join(filters, ",")
 
 	err := store.Walk(namespaceCtx, func(info content.Info) error {
-		name := info.Labels[NameLabel()]
+		key := info.Labels[UIDLabel()]
 		version, err := strconv.Atoi(info.Labels[VersionLabel()])
 		if err != nil {
 			return fmt.Errorf("parsing version number: %w", err)
 		}
 
-		high, ok := versions[name]
+		high, ok := versions[key]
 		if !ok {
 			high = -1
 		}
 
 		if version > high {
-			versions[name] = version
-			digests[name] = &info.Digest
+			versions[key] = version
+			digests[key] = &info.Digest
 		}
 
 		return nil
