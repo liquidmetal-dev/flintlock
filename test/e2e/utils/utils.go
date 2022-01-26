@@ -44,9 +44,10 @@ func GetMVM(client v1alpha1.MicroVMClient, uid string) *v1alpha1.GetMicroVMRespo
 	return res
 }
 
-func ListMVMs(client v1alpha1.MicroVMClient, ns string) *v1alpha1.ListMicroVMsResponse {
+func ListMVMs(client v1alpha1.MicroVMClient, ns string, name *string) *v1alpha1.ListMicroVMsResponse {
 	listReq := v1alpha1.ListMicroVMsRequest{
 		Namespace: ns,
+		Name:      name,
 	}
 	resp, err := client.ListMicroVMs(context.Background(), &listReq)
 	g.Expect(err).NotTo(g.HaveOccurred())

@@ -44,7 +44,7 @@ func (a *app) ResyncMicroVMs(ctx context.Context, namespace string) error {
 	logger.Info("Resyncing specs")
 	logger.Debug("Getting all specs")
 
-	specs, err := a.ports.Repo.GetAll(ctx, namespace)
+	specs, err := a.ports.Repo.GetAll(ctx, models.ListMicroVMQuery{"namespace": namespace})
 	if err != nil {
 		return fmt.Errorf("getting all microvm specs for resync: %w", err)
 	}

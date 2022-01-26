@@ -35,21 +35,17 @@ func (a *app) GetMicroVM(ctx context.Context, uid string) (*models.MicroVM, erro
 	return foundMvm, nil
 }
 
-func (a *app) GetAllMicroVM(ctx context.Context, namespace string) ([]*models.MicroVM, error) {
+func (a *app) GetAllMicroVM(ctx context.Context, query models.ListMicroVMQuery) ([]*models.MicroVM, error) {
 	logger := log.GetLogger(ctx).WithField("component", "app")
-	logger.Trace("querying all microvms in namespace: ", namespace)
+	logger.Tracef("querying all microvms: %v", query)
 
-	if namespace == "" {
-		return nil, errNamespaceRequired
-	}
-
-	foundMvms, err := a.ports.Repo.GetAll(ctx, namespace)
+	foundMvms, err := a.ports.Repo.GetAll(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("error attempting to list microvms in namespace: %s: %w", namespace, err)
+		return nil, fmt.Errorf("error attempting to list microvms: %v: %w", query, err)
 	}
 
 	if foundMvms == nil {
-		logger.Trace("no microvms were found in namespace: ", namespace)
+		logger.Tracef("no microvms were found: %v", query)
 
 		return []*models.MicroVM{}, nil
 	}

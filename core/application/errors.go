@@ -7,10 +7,7 @@ import (
 	"github.com/weaveworks/flintlock/core/models"
 )
 
-var (
-	errNamespaceRequired = errors.New("namespace is required")
-	errUIDRequired       = errors.New("uid is required")
-)
+var errUIDRequired = errors.New("uid is required")
 
 type specAlreadyExistsError struct {
 	name      string

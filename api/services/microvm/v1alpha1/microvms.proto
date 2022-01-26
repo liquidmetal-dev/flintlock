@@ -69,6 +69,7 @@ message GetMicroVMResponse {
 
 message ListMicroVMsRequest {
   string namespace = 1;
+  optional string name = 2;
 }
 
 message ListMicroVMsResponse {

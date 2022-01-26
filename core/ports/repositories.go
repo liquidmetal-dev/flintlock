@@ -23,7 +23,7 @@ type MicroVMRepository interface {
 	Get(ctx context.Context, options RepositoryGetOptions) (*models.MicroVM, error)
 	// GetAll will get a list of microvm details. If namespace is an empty string all
 	// details of microvms will be returned.
-	GetAll(ctx context.Context, namespace string) ([]*models.MicroVM, error)
+	GetAll(ctx context.Context, query models.ListMicroVMQuery) ([]*models.MicroVM, error)
 	// Exists checks to see if the microvm spec exists in the repo.
 	Exists(ctx context.Context, vmid models.VMID) (bool, error)
 	// ReleaseLease will release the supplied lease.

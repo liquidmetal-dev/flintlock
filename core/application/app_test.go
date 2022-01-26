@@ -16,6 +16,7 @@ import (
 	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/infrastructure/mock"
 	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks/flintlock/pkg/ptr"
 )
 
 const (
@@ -39,7 +40,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 		},
 		{
 			name:         "spec with no id or namespace, create id/ns and create",
-			specToCreate: createTestSpec("", ""),
+			specToCreate: createTestSpec("", "", ""),
 			expectError:  false,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				im.GenerateRandom().Return("id1234", nil).Times(1)
@@ -54,7 +55,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					}),
 				).Return(nil, nil)
 
-				expectedCreatedSpec := createTestSpec("id1234", defaults.MicroVMNamespace)
+				expectedCreatedSpec := createTestSpec("id1234", defaults.MicroVMNamespace, testUID)
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
 				expectedCreatedSpec.Status.State = models.PendingState
 
@@ -62,7 +63,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(expectedCreatedSpec),
 				).Return(
-					createTestSpec("id1234", defaults.MicroVMNamespace),
+					createTestSpec("id1234", defaults.MicroVMNamespace, testUID),
 					nil,
 				)
 
@@ -79,7 +80,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 		},
 		{
 			name:         "spec with id or namespace, create",
-			specToCreate: createTestSpec("id1234", "default"),
+			specToCreate: createTestSpec("id1234", "default", testUID),
 			expectError:  false,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				im.GenerateRandom().Return(testUID, nil).Times(1)
@@ -95,7 +96,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					nil,
 				)
 
-				expectedCreatedSpec := createTestSpec("id1234", "default")
+				expectedCreatedSpec := createTestSpec("id1234", "default", testUID)
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
 				expectedCreatedSpec.Status.State = models.PendingState
 
@@ -103,7 +104,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(expectedCreatedSpec),
 				).Return(
-					createTestSpec("id1234", "default"),
+					createTestSpec("id1234", "default", testUID),
 					nil,
 				)
 
@@ -120,7 +121,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 		},
 		{
 			name:         "spec already exists, should fail",
-			specToCreate: createTestSpec("id1234", "default"),
+			specToCreate: createTestSpec("id1234", "default", testUID),
 			expectError:  true,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				im.GenerateRandom().Return(testUID, nil).Times(1)
@@ -132,7 +133,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 						UID:       testUID,
 					}),
 				).Return(
-					createTestSpec("id1234", "default"),
+					createTestSpec("id1234", "default", testUID),
 					nil,
 				)
 			},
@@ -206,11 +207,11 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 						UID: testUID,
 					}),
 				).Return(
-					createTestSpec("id1234", "default"),
+					createTestSpec("id1234", "default", testUID),
 					nil,
 				)
 
-				expectedUpdatedSpec := createTestSpec("id1234", "default")
+				expectedUpdatedSpec := createTestSpec("id1234", "default", testUID)
 				expectedUpdatedSpec.Spec.DeletedAt = frozenTime().Unix()
 				expectedUpdatedSpec.Status.State = models.DeletingState
 
@@ -218,7 +219,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 					gomock.AssignableToTypeOf(context.Background()),
 					gomock.Eq(expectedUpdatedSpec),
 				).Return(
-					createTestSpec("id1234", "default"),
+					createTestSpec("id1234", "default", testUID),
 					nil,
 				)
 
@@ -350,7 +351,7 @@ func TestApp_GetMicroVM(t *testing.T) {
 						UID: testUID,
 					}),
 				).Return(
-					createTestSpec("id1234", "default"),
+					createTestSpec("id1234", "default", testUID),
 					nil,
 				)
 			},
@@ -404,27 +405,37 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 	tt := []struct {
 		name        string
 		toGetNS     string
+		toGetName   *string
 		expectError bool
 		expectedLen int
 		expect      func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder)
 	}{
 		{
-			name:        "empty namespace should return an error",
+			name:        "empty namespace should not return an error",
 			toGetNS:     "",
-			expectError: true,
+			toGetName:   nil,
+			expectError: false,
 			expectedLen: 0,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.GetAll(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": ""}),
+				).Return(
+					nil,
+					nil,
+				)
 			},
 		},
 		{
 			name:        "should return an error when rm.GetAll returns an error",
 			toGetNS:     "default",
+			toGetName:   nil,
 			expectError: true,
 			expectedLen: 0,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.GetAll(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("default"),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": "default"}),
 				).Return(
 					nil,
 					errors.New("a random error occurred"),
@@ -434,12 +445,13 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 		{
 			name:        "no microvms in namespace should return empty slice",
 			toGetNS:     "default",
+			toGetName:   nil,
 			expectError: false,
 			expectedLen: 0,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.GetAll(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("default"),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": "default"}),
 				).Return(
 					nil,
 					nil,
@@ -449,16 +461,39 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 		{
 			name:        "microvms exist in namespace and are returned",
 			toGetNS:     "default",
+			toGetName:   nil,
 			expectError: false,
 			expectedLen: 2,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				rm.GetAll(
 					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq("default"),
+					gomock.Eq(models.ListMicroVMQuery{"namespace": "default"}),
 				).Return(
 					[]*models.MicroVM{
-						createTestSpec("id1234", "default"),
-						createTestSpec("id1235", "default"),
+						createTestSpec("id1234", "default", testUID),
+						createTestSpec("id1235", "default", testUID),
+					},
+					nil,
+				)
+			},
+		},
+		{
+			name:        "microvms exist in namespace with the same name and are returned",
+			toGetNS:     "default",
+			toGetName:   ptr.String("id1234"),
+			expectError: false,
+			expectedLen: 2,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				rm.GetAll(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(models.ListMicroVMQuery{
+						"namespace": "default",
+						"name":      "id1234",
+					}),
+				).Return(
+					[]*models.MicroVM{
+						createTestSpec("id1234", "default", "uid1"),
+						createTestSpec("id1234", "default", "uid2"),
 					},
 					nil,
 				)
@@ -495,7 +530,13 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 
 			ctx := context.Background()
 			app := application.New(&application.Config{}, ports)
-			mvms, err := app.GetAllMicroVM(ctx, tc.toGetNS)
+			query := models.ListMicroVMQuery{"namespace": tc.toGetNS}
+
+			if tc.toGetName != nil {
+				query["name"] = *tc.toGetName
+			}
+
+			mvms, err := app.GetAllMicroVM(ctx, query)
 
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
@@ -514,8 +555,12 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 	}
 }
 
-func createTestSpec(name, ns string) *models.MicroVM {
+func createTestSpec(name, ns, uid string) *models.MicroVM {
 	var vmid *models.VMID
+
+	if uid == "" {
+		uid = testUID
+	}
 
 	if name == "" && ns == "" {
 		vmid = &models.VMID{}

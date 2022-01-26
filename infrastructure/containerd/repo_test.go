@@ -63,7 +63,7 @@ func TestMicroVMRepo_Integration(t *testing.T) {
 	Expect(olderVM).NotTo(BeNil())
 	Expect(olderVM.Version).To(Equal(2))
 
-	all, err := repo.GetAll(ctx, testOwnerNamespace)
+	all, err := repo.GetAll(ctx, models.ListMicroVMQuery{"namespace": testOwnerNamespace})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(all)).To(Equal(1))
 

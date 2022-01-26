@@ -19,7 +19,7 @@ type MicroVMQueryUseCases interface {
 	// GetMicroVM is a use case for getting details of a specific microvm.
 	GetMicroVM(ctx context.Context, vmid string) (*models.MicroVM, error)
 	// GetAllMicroVM is a use case for getting details of all microvms in a given namespace.
-	GetAllMicroVM(ctx context.Context, namespace string) ([]*models.MicroVM, error)
+	GetAllMicroVM(ctx context.Context, query models.ListMicroVMQuery) ([]*models.MicroVM, error)
 }
 
 // ReconcileMicroVMsUseCase is the interface for use cases that are related to reconciling microvms.

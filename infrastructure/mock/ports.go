@@ -175,7 +175,7 @@ func (mr *MockMicroVMRepositoryMockRecorder) Get(arg0, arg1 interface{}) *gomock
 }
 
 // GetAll mocks base method.
-func (m *MockMicroVMRepository) GetAll(arg0 context.Context, arg1 string) ([]*models.MicroVM, error) {
+func (m *MockMicroVMRepository) GetAll(arg0 context.Context, arg1 models.ListMicroVMQuery) ([]*models.MicroVM, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", arg0, arg1)
 	ret0, _ := ret[0].([]*models.MicroVM)
@@ -629,7 +629,7 @@ func (m *MockMicroVMQueryUseCases) EXPECT() *MockMicroVMQueryUseCasesMockRecorde
 }
 
 // GetAllMicroVM mocks base method.
-func (m *MockMicroVMQueryUseCases) GetAllMicroVM(arg0 context.Context, arg1 string) ([]*models.MicroVM, error) {
+func (m *MockMicroVMQueryUseCases) GetAllMicroVM(arg0 context.Context, arg1 models.ListMicroVMQuery) ([]*models.MicroVM, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllMicroVM", arg0, arg1)
 	ret0, _ := ret[0].([]*models.MicroVM)

@@ -12,6 +12,7 @@ import (
 
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
 	"github.com/weaveworks/flintlock/api/types"
+	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
 	"github.com/weaveworks/flintlock/pkg/log"
 	"github.com/weaveworks/flintlock/pkg/validation"
@@ -156,7 +157,13 @@ func (s *server) ListMicroVMs(ctx context.Context,
 
 	logger.Infof("getting all microvms in %s", req.Namespace)
 
-	foundMicrovms, err := s.queryUC.GetAllMicroVM(ctx, req.Namespace)
+	query := models.ListMicroVMQuery{"namespace": req.Namespace}
+
+	if req.Name != nil {
+		query["name"] = *req.Name
+	}
+
+	foundMicrovms, err := s.queryUC.GetAllMicroVM(ctx, query)
 	if err != nil {
 		logger.Errorf("failed to getting all microvm: %s", err)
 
@@ -197,7 +204,10 @@ func (s *server) ListMicroVMsStream(
 
 	logger.Infof("getting all microvms in %s", req.Namespace)
 
-	foundMicrovms, err := s.queryUC.GetAllMicroVM(ctx, req.Namespace)
+	foundMicrovms, err := s.queryUC.GetAllMicroVM(
+		ctx,
+		models.ListMicroVMQuery{"namespace": req.Namespace},
+	)
 	if err != nil {
 		logger.Errorf("failed to getting all microvm: %s", err)
 

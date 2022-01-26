@@ -143,6 +143,7 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | namespace | [string](#string) |  |  |
+| name | [string](#string) | optional |  |
 
 
 
