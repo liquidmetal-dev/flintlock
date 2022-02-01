@@ -76,3 +76,5 @@ jobs:
         files: |
           bin/flintlockd_amd64
           bin/flintlockd_arm64
+          bin/flintlock-metrics_amd64
+          bin/flintlock-metrics_arm64

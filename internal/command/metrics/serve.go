@@ -16,6 +16,8 @@ import (
 	"github.com/weaveworks/flintlock/internal/inject"
 )
 
+type serveFunc func(http.ResponseWriter, *http.Request)
+
 func serveCommand() *cli.Command {
 	cfg := &config.Config{}
 
@@ -43,102 +45,10 @@ func serve(cfg *config.Config) error {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc(
-		"/machine/uid/{uid}",
-		func(response http.ResponseWriter, request *http.Request) {
-			vars := mux.Vars(request)
-
-			vm, err := aports.Repo.Get(context.Background(), ports.RepositoryGetOptions{
-				UID: vars["uid"],
-			})
-			if err != nil {
-				logrus.Error(err.Error())
-				response.WriteHeader(http.StatusInternalServerError)
-
-				return
-			}
-
-			metrics, err := aports.Provider.Metrics(context.Background(), vm.ID)
-			if err != nil {
-				logrus.Error(err.Error())
-				response.WriteHeader(http.StatusInternalServerError)
-
-				return
-			}
-
-			response.WriteHeader(http.StatusOK)
-
-			_, _ = response.Write(metrics.ToPrometheus())
-		},
-	)
-
-	router.HandleFunc(
-		"/machine/{namespace}/{name}",
-		func(response http.ResponseWriter, request *http.Request) {
-			vars := mux.Vars(request)
-
-			mms, err := getAllMachineMetrics(
-				context.Background(),
-				aports,
-				models.ListMicroVMQuery{
-					"namespace": vars["namespace"],
-					"name":      vars["name"],
-				},
-			)
-			if err != nil {
-				response.WriteHeader(http.StatusInternalServerError)
-				_, _ = response.Write([]byte(err.Error()))
-
-				return
-			}
-
-			response.WriteHeader(http.StatusOK)
-
-			for _, mm := range mms {
-				_, _ = response.Write(append(mm.ToPrometheus(), '\n'))
-			}
-		},
-	)
-
-	router.HandleFunc(
-		"/machine/{namespace}",
-		func(response http.ResponseWriter, request *http.Request) {
-			vars := mux.Vars(request)
-
-			mms, err := getAllMachineMetrics(context.Background(), aports, models.ListMicroVMQuery{"namespace": vars["namespace"]})
-			if err != nil {
-				response.WriteHeader(http.StatusInternalServerError)
-				_, _ = response.Write([]byte(err.Error()))
-
-				return
-			}
-
-			response.WriteHeader(http.StatusOK)
-
-			for _, mm := range mms {
-				_, _ = response.Write(append(mm.ToPrometheus(), '\n'))
-			}
-		},
-	)
-
-	router.HandleFunc(
-		"/machine",
-		func(response http.ResponseWriter, request *http.Request) {
-			mms, err := getAllMachineMetrics(context.Background(), aports, models.ListMicroVMQuery{})
-			if err != nil {
-				response.WriteHeader(http.StatusInternalServerError)
-				_, _ = response.Write([]byte(err.Error()))
-
-				return
-			}
-
-			response.WriteHeader(http.StatusOK)
-
-			for _, mm := range mms {
-				_, _ = response.Write(append(mm.ToPrometheus(), '\n'))
-			}
-		},
-	)
+	router.HandleFunc("/machine/uid/{uid}", serveMachineByUID(aports))
+	router.HandleFunc("/machine/{namespace}/{name}", serveMachinesByName(aports))
+	router.HandleFunc("/machine/{namespace}", serveMachinesByNamespace(aports))
+	router.HandleFunc("/machine", serveAllMachines(aports))
 
 	logrus.Infof("Start listening on %s", cfg.HTTPAPIEndpoint)
 
@@ -163,4 +73,97 @@ func getAllMachineMetrics(ctx context.Context, aports *ports.Collection, query m
 	}
 
 	return mms, nil
+}
+
+func serveMachineByUID(aports *ports.Collection) serveFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		vars := mux.Vars(request)
+
+		vm, err := aports.Repo.Get(context.Background(), ports.RepositoryGetOptions{
+			UID: vars["uid"],
+		})
+		if err != nil {
+			logrus.Error(err.Error())
+			response.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+		metrics, err := aports.Provider.Metrics(context.Background(), vm.ID)
+		if err != nil {
+			logrus.Error(err.Error())
+			response.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+		response.WriteHeader(http.StatusOK)
+
+		_, _ = response.Write(metrics.ToPrometheus())
+	}
+}
+
+func serveMachinesByName(aports *ports.Collection) serveFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		vars := mux.Vars(request)
+
+		mms, err := getAllMachineMetrics(
+			context.Background(),
+			aports,
+			models.ListMicroVMQuery{
+				"namespace": vars["namespace"],
+				"name":      vars["name"],
+			},
+		)
+		if err != nil {
+			response.WriteHeader(http.StatusInternalServerError)
+			_, _ = response.Write([]byte(err.Error()))
+
+			return
+		}
+
+		response.WriteHeader(http.StatusOK)
+
+		for _, mm := range mms {
+			_, _ = response.Write(append(mm.ToPrometheus(), '\n'))
+		}
+	}
+}
+
+func serveMachinesByNamespace(aports *ports.Collection) serveFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		vars := mux.Vars(request)
+
+		mms, err := getAllMachineMetrics(context.Background(), aports, models.ListMicroVMQuery{"namespace": vars["namespace"]})
+		if err != nil {
+			response.WriteHeader(http.StatusInternalServerError)
+			_, _ = response.Write([]byte(err.Error()))
+
+			return
+		}
+
+		response.WriteHeader(http.StatusOK)
+
+		for _, mm := range mms {
+			_, _ = response.Write(append(mm.ToPrometheus(), '\n'))
+		}
+	}
+}
+
+func serveAllMachines(aports *ports.Collection) serveFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		mms, err := getAllMachineMetrics(context.Background(), aports, models.ListMicroVMQuery{})
+		if err != nil {
+			response.WriteHeader(http.StatusInternalServerError)
+			_, _ = response.Write([]byte(err.Error()))
+
+			return
+		}
+
+		response.WriteHeader(http.StatusOK)
+
+		for _, mm := range mms {
+			_, _ = response.Write(append(mm.ToPrometheus(), '\n'))
+		}
+	}
 }
