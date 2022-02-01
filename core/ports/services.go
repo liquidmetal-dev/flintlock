@@ -21,11 +21,18 @@ type MicroVMService interface {
 	Start(ctx context.Context, vm *models.MicroVM) error
 	// State returns the state of a microvm.
 	State(ctx context.Context, id string) (MicroVMState, error)
+	// Metrics returns with the metrics of a microvm.
+	Metrics(ctx context.Context, id models.VMID) (MachineMetrics, error)
 }
 
 // This state represents the state of the Firecracker MVM process itself
 // The state for the entire Flintlock MVM is represented in models.MicroVMState.
 type MicroVMState string
+
+// MachineMetrics is a metrics interface for providers.
+type MachineMetrics interface {
+	ToPrometheus() []byte
+}
 
 const (
 	MicroVMStateUnknown    MicroVMState = "unknown"

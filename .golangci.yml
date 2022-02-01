@@ -26,8 +26,6 @@ linters-settings:
     local-prefixes: github.com/weaveworks/flintlock
   govet:
     check-shadowing: true
-  misspell:
-    locale: GB
   nolintlint:
     allow-leading-space: false
     allow-unused: false

@@ -78,6 +78,21 @@ func (mr *MockMicroVMServiceMockRecorder) Delete(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockMicroVMService)(nil).Delete), arg0, arg1)
 }
 
+// Metrics mocks base method.
+func (m *MockMicroVMService) Metrics(arg0 context.Context, arg1 models.VMID) (ports.MachineMetrics, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Metrics", arg0, arg1)
+	ret0, _ := ret[0].(ports.MachineMetrics)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Metrics indicates an expected call of Metrics.
+func (mr *MockMicroVMServiceMockRecorder) Metrics(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metrics", reflect.TypeOf((*MockMicroVMService)(nil).Metrics), arg0, arg1)
+}
+
 // Start mocks base method.
 func (m *MockMicroVMService) Start(arg0 context.Context, arg1 *models.MicroVM) error {
 	m.ctrl.T.Helper()

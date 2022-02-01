@@ -15,6 +15,7 @@ REPO_ROOT := $(shell git rev-parse --show-toplevel)
 BIN_DIR := bin
 OUT_DIR := out
 FLINTLOCKD_CMD := cmd/flintlockd
+FLINTLOCK_METRICS_CMD := cmd/flintlock-metrics
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
@@ -54,13 +55,28 @@ test_image = weaveworks/flintlock-e2e
 ##@ Build
 
 .PHONY: build
-build: $(BIN_DIR) ## Build the binaries
-	go build -o $(BIN_DIR)/flintlockd ./cmd/flintlockd
+build: build-flintlockd build-flintlock-metrics ## Build the binaries
+
+.PHONY: build-flintlockd
+build-flintlockd: $(BIN_DIR) ## Build flintlockd binary
+	go build -o $(BIN_DIR)/flintlockd ./$(FLINTLOCKD_CMD)
+
+.PHONY: build-flintlock-metrics ## Build flintlock-metrics binary
+build-flintlock-metrics: $(BIN_DIR)
+	go build -o $(BIN_DIR)/flintlock-metrics ./$(FLINTLOCK_METRICS_CMD)
 
 .PHONY: build-release
-build-release: $(BIN_DIR) ## Build the release binaries
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlockd_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/flintlockd
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlockd_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./cmd/flintlockd
+build-release: build-release-flintlockd build-release-flintlock-metrics ## Build the release binaries
+
+.PHONY: build-release-flintlockd
+build-release-flintlockd: $(BIN_DIR) ## Build flintlockd release binaries
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlockd_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCKD_CMD)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlockd_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCKD_CMD)
+
+.PHONY: build-release-flintlock-metrics
+build-release-flintlock-metrics: $(BIN_DIR) ## Build flintlock-metrics release binaries
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlock-metrics_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlock-metrics_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
 
 ##@ Generate
 
