@@ -4,6 +4,8 @@ host=localhost
 port=9090
 service="microvm.services.api.v1alpha1.MicroVM"
 method="ListMicroVMs"
+namespace="ns1"
+uid=""
 
 if ! which grpcurl >/dev/null 2>/dev/null; then
   echo "!!! grpcurl is not installed. Please install this awesome tool." >&2
@@ -14,12 +16,25 @@ if ! which grpcurl >/dev/null 2>/dev/null; then
 fi
 
 function help() {
-  echo "${0} [-h HOST] [-p PORT] -s service -m method>"
-  echo "  -H/--host HOST         hostname; default: ${host}"
-  echo "  -p/--port PORT         port; default: ${port}"
-  echo "  -s/--service service   name of the service; default: ${service}"
-  echo "  -m/--method method     name of the method on the service; default: ${method}"
-  echo "  -h/--help              help"
+  cat <<EOH
+${0} [flags] -s service -m method>
+  -H/--host HOST         hostname; default: ${host}
+  -p/--port PORT         port; default: ${port}
+  -s/--service service   name of the service; default: ${service}
+  -m/--method method     name of the method on the service; default: ${method}
+  --uid uid              uuid of the microvm
+  --namespace namespace  namespace to query; default: ${ns1}
+  -h/--help              help
+
+Special:
+ * DeleteMicroVM uses --uid
+ * ListMicroVMs uses --namespace
+
+Examples:
+
+  ${0} -m ListMicroVMs --namespace ns1
+  ${0} -m DeleteMicroVM --uid "microvmuid"
+EOH
 
   exit 0
 }
@@ -47,6 +62,14 @@ while [[ "$#" -gt 0 ]]; do
 
       exit 0
       ;;
+    --namespace)
+      namespace=${2}
+      shift; shift;
+      ;;
+    --uid)
+      uid=${2}
+      shift; shift;
+      ;;
     *)
       echo "Unknown flag: ${1}" >&2
       help
@@ -57,9 +80,24 @@ done
 
 pushd "$(dirname "${0}")" > /dev/null
 
-grpcurl -d @ \
-  -plaintext "${host}:${port}" \
-  "${service}/${method}" \
-  < "payload/${method}.json"
+case "${method}" in
+  "DeleteMicroVM")
+    grpcurl -d "{\"uid\": \"${uid}\"}" \
+      -plaintext "${host}:${port}" \
+      "${service}/${method}"
+    ;;
+  "ListMicroVMs")
+    grpcurl -d "{\"namespace\": \"${namespace}\"}" \
+      -plaintext "${host}:${port}" \
+      "${service}/${method}"
+    ;;
+  *)
+    grpcurl -d @ \
+      -plaintext "${host}:${port}" \
+      "${service}/${method}" \
+      < "payload/${method}.json"
+    ;;
+esac
+
 
 popd > /dev/null
