@@ -74,15 +74,13 @@ func createTestSpec(name, ns string) *models.MicroVM {
 			},
 			NetworkInterfaces: []models.NetworkInterface{
 				{
-					AllowMetadataRequests: true,
-					Type:                  models.IfaceTypeTap,
-					GuestMAC:              "AA:FF:00:00:00:01",
-					GuestDeviceName:       "eth0",
+					Type:            models.IfaceTypeTap,
+					GuestMAC:        "AA:FF:00:00:00:01",
+					GuestDeviceName: "eth0",
 				},
 				{
-					Type:                  models.IfaceTypeTap,
-					AllowMetadataRequests: false,
-					GuestDeviceName:       "eth1",
+					Type:            models.IfaceTypeTap,
+					GuestDeviceName: "eth1",
 				},
 			},
 			RootVolume: models.Volume{

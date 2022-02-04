@@ -15,9 +15,8 @@ const (
 
 func fullNetworkInterface() (*models.NetworkInterface, *models.NetworkInterfaceStatus) {
 	iface := &models.NetworkInterface{
-		GuestDeviceName:       defaultEthDevice,
-		AllowMetadataRequests: true,
-		GuestMAC:              defaultMACAddress,
+		GuestDeviceName: defaultEthDevice,
+		GuestMAC:        defaultMACAddress,
 	}
 	status := &models.NetworkInterfaceStatus{
 		HostDeviceName: expectedTapDeviceName,

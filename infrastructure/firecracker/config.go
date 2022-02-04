@@ -40,7 +40,6 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		cfg.MachineConfig = MachineConfig{
 			MemSizeMib: vm.Spec.MemoryInMb,
 			VcpuCount:  vm.Spec.VCPU,
-			HTEnabled:  false,
 		}
 
 		cfg.NetDevices = []NetworkInterfaceConfig{}
@@ -182,10 +181,9 @@ func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkIn
 	}
 
 	netInt := &NetworkInterfaceConfig{
-		IfaceID:           iface.GuestDeviceName,
-		HostDevName:       hostDevName,
-		GuestMAC:          macAddr,
-		AllowMMDSRequests: iface.AllowMetadataRequests,
+		IfaceID:     iface.GuestDeviceName,
+		HostDevName: hostDevName,
+		GuestMAC:    macAddr,
 	}
 
 	return netInt

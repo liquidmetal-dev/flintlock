@@ -579,13 +579,11 @@ func createTestSpec(name, ns, uid string) *models.MicroVM {
 			},
 			NetworkInterfaces: []models.NetworkInterface{
 				{
-					AllowMetadataRequests: true,
-					GuestMAC:              "AA:FF:00:00:00:01",
-					GuestDeviceName:       "eth0",
+					GuestMAC:        "AA:FF:00:00:00:01",
+					GuestDeviceName: "eth0",
 				},
 				{
-					AllowMetadataRequests: false,
-					GuestDeviceName:       "eth1",
+					GuestDeviceName: "eth1",
 					// TODO:
 				},
 			},

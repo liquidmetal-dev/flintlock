@@ -134,10 +134,9 @@ func TestNewNetworkInterface_existingInterface(t *testing.T) {
 
 	vmid, _ := models.NewVMID(vmName, nsName, vmUID)
 	iface := &models.NetworkInterface{
-		GuestDeviceName:       defaultEthDevice,
-		AllowMetadataRequests: false,
-		GuestMAC:              defaultMACAddress,
-		Type:                  models.IfaceTypeTap,
+		GuestDeviceName: defaultEthDevice,
+		GuestMAC:        defaultMACAddress,
+		Type:            models.IfaceTypeTap,
 	}
 	status := &models.NetworkInterfaceStatus{
 		HostDeviceName: expectedTapDeviceName,

@@ -51,8 +51,6 @@ type MachineConfig struct {
 	VcpuCount int64 `json:"vcpu_count"`
 	// MemSizeMib is the memory size in MiB.
 	MemSizeMib int64 `json:"mem_size_mib"`
-	// HTEnabled enables or disabled hyperthreading.
-	HTEnabled bool `json:"ht_enabled"`
 	// CPUTemplate is a CPU template that it is used to filter the CPU features exposed to the guest.
 	CPUTemplate *string `json:"cpu_template,omitempty"`
 	// TrackDirtyPages enables or disables dirty page tracking. Enabling allows incremental snapshots.
@@ -108,7 +106,8 @@ type NetworkInterfaceConfig struct {
 	// both ARP requests for `169.254.169.254` and TCP segments heading to the
 	// same address are intercepted by the device model, and do not reach
 	// the associated TAP device.
-	AllowMMDSRequests bool `json:"allow_mmds_requests"`
+	// Note: removed with 1.0.0
+	// AllowMMDSRequests bool `json:"allow_mmds_requests"`
 	// RxRateLimiter is the rate limiter for received packages.
 	// RxRateLimiter *RateLimiterConfig `json:"rx_rate_limiter,omitempty"`
 	// TxRateLimiter is the rate limiter for transmitted packages.
