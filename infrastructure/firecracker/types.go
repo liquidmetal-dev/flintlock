@@ -51,8 +51,8 @@ type MachineConfig struct {
 	VcpuCount int64 `json:"vcpu_count"`
 	// MemSizeMib is the memory size in MiB.
 	MemSizeMib int64 `json:"mem_size_mib"`
-	// HTEnabled enables or disabled hyperthreading.
-	HTEnabled bool `json:"ht_enabled"`
+	// SMT enables or disabled hyperthreading.
+	SMT bool `json:"smt"`
 	// CPUTemplate is a CPU template that it is used to filter the CPU features exposed to the guest.
 	CPUTemplate *string `json:"cpu_template,omitempty"`
 	// TrackDirtyPages enables or disables dirty page tracking. Enabling allows incremental snapshots.
@@ -103,12 +103,6 @@ type NetworkInterfaceConfig struct {
 	HostDevName string `json:"host_dev_name"`
 	// GuestMAC is the mac address to use.
 	GuestMAC string `json:"guest_mac,omitempty"`
-	// AllowMMDSRequests is true the device model will reply to HTTP GET
-	// requests sent to the MMDS address via this interface. In this case,
-	// both ARP requests for `169.254.169.254` and TCP segments heading to the
-	// same address are intercepted by the device model, and do not reach
-	// the associated TAP device.
-	AllowMMDSRequests bool `json:"allow_mmds_requests"`
 	// RxRateLimiter is the rate limiter for received packages.
 	// RxRateLimiter *RateLimiterConfig `json:"rx_rate_limiter,omitempty"`
 	// TxRateLimiter is the rate limiter for transmitted packages.
@@ -149,6 +143,10 @@ type MetricsConfig struct {
 type MMDSConfig struct {
 	// IPV4Address is the MMDS IPv4 configured address.
 	IPV4Address *string `json:"ipv4_address,omitempty"`
+	// NetworkInterfaces that has access to the metadata service.
+	NetworkInterfaces []string `json:"network_interfaces"`
+	// Version of the MMDS.
+	Version *string `json:"version,omitempty"`
 }
 
 type VsockDeviceConfig struct {
