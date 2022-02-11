@@ -9,13 +9,17 @@ import (
 	"os/signal"
 	"sync"
 
+	grpc_mw "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
+	"github.com/weaveworks/flintlock/internal/auth"
 	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
 	"github.com/weaveworks/flintlock/internal/config"
 	"github.com/weaveworks/flintlock/internal/inject"
@@ -129,10 +133,26 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	app := inject.InitializeApp(cfg, ports)
 	server := inject.InitializeGRPCServer(app)
 
-	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-	)
+	var opts []grpc.ServerOption
+	if cfg.AuthToken != "" {
+		opts = []grpc.ServerOption{
+			grpc.StreamInterceptor(grpc_mw.ChainStreamServer(
+				grpc_prometheus.StreamServerInterceptor,
+				grpc_auth.StreamServerInterceptor(auth.BasicAuthFunc(cfg.AuthToken)),
+			)),
+			grpc.UnaryInterceptor(grpc_mw.ChainUnaryServer(
+				grpc_prometheus.UnaryServerInterceptor,
+				grpc_auth.UnaryServerInterceptor(auth.BasicAuthFunc(cfg.AuthToken)),
+			)),
+		}
+	} else {
+		opts = []grpc.ServerOption{
+			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+			grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+		}
+	}
+
+	grpcServer := grpc.NewServer(opts...)
 	mvmv1.RegisterMicroVMServer(grpcServer, server)
 	grpc_prometheus.Register(grpcServer)
 	http.Handle("/metrics", promhttp.Handler())

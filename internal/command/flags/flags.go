@@ -21,6 +21,7 @@ const (
 	kernelSnapshotterFlag = "containerd-kernel-ss"
 	containerdNamespace   = "containerd-ns"
 	maximumRetryFlag      = "maximum-retry"
+	authTokenFlag         = "auth-token"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -29,6 +30,11 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		grpcEndpointFlag,
 		defaults.GRPCAPIEndpoint,
 		"The endpoint for the gRPC server to listen on.")
+
+	cmd.Flags().StringVar(&cfg.AuthToken,
+		authTokenFlag,
+		"",
+		"The token to use for very basic token based authentication.")
 }
 
 // AddGWServerFlagsToCommand will add gRPC HTTP gateway flags to the supplied command.

@@ -40,4 +40,6 @@ type Config struct {
 	MaximumRetry int
 	// DeleteVMTimeout defines the timeout for the delete vm operation.
 	DeleteVMTimeout time.Duration
+	// AuthToken is the static token to use for very basic authentication.
+	AuthToken string
 }
