@@ -18,20 +18,13 @@
   "machine-config": {
     "vcpu_count": 2,
     "mem_size_mib": 1024,
-    "smt": false,
+    "ht_enabled": false,
     "track_dirty_pages": false
   },
   "balloon": null,
-  "network-interfaces": [
-    {
-      "iface_id": "mdms1",
-      "host_dev_name": "tap0"
-    }
-  ],
-  "mmds-config": {
-    "network_interfaces": ["mdms1"]
-  },
+  "network-interfaces": [],
   "vsock": null,
   "logger": null,
-  "metrics": null
+  "metrics": null,
+  "mmds-config": null
 }
