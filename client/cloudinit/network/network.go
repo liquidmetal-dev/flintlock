@@ -1,4 +1,4 @@
-package cloudinit
+package network
 
 type Network struct {
 	Version  int                 `yaml:"version"`
