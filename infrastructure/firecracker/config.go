@@ -40,7 +40,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		cfg.MachineConfig = MachineConfig{
 			MemSizeMib: vm.Spec.MemoryInMb,
 			VcpuCount:  vm.Spec.VCPU,
-			SMT:        false,
+			HTEnabled:  false,
 		}
 
 		cfg.NetDevices = []NetworkInterfaceConfig{}
@@ -115,16 +115,6 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			cfg.BootSource.InitrdPath = &initrdPath
 		}
 
-		cfg.Mmds = &MMDSConfig{
-			NetworkInterfaces: []string{},
-		}
-
-		for _, iface := range vm.Spec.NetworkInterfaces {
-			if iface.AllowMetadataRequests {
-				cfg.Mmds.NetworkInterfaces = append(cfg.Mmds.NetworkInterfaces, iface.GuestDeviceName)
-			}
-		}
-
 		return nil
 	}
 }
@@ -192,9 +182,10 @@ func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkIn
 	}
 
 	netInt := &NetworkInterfaceConfig{
-		IfaceID:     iface.GuestDeviceName,
-		HostDevName: hostDevName,
-		GuestMAC:    macAddr,
+		IfaceID:           iface.GuestDeviceName,
+		HostDevName:       hostDevName,
+		GuestMAC:          macAddr,
+		AllowMMDSRequests: iface.AllowMetadataRequests,
 	}
 
 	return netInt
