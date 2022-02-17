@@ -103,8 +103,11 @@ generate-di: $(WIRE)
 ##@ Linting
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) $(BUF) ## Lint
+lint: $(GOLANGCI_LINT)  ## Lint code
 	$(GOLANGCI_LINT) run -v --fast=false
+
+.PHONY: proto-lint
+proto-lint: $(BUF) ## Lint protobuf/frpc
 	$(BUF) lint
 
 ##@ Testing
