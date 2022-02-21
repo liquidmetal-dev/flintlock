@@ -17,7 +17,15 @@ Installation:
 # if you have not
 wget https://raw.githubusercontent.com/weaveworks/flintlock/main/hack/scripts/provision.sh
 chmod +x provision.sh
+
 ./provision.sh --help
+```
+
+To override component versions (default: `latest`):
+```bash
+export FLINTLOCK=
+export FIRECRACKER=
+export CONTAINERD=
 ```
 
 Available commands:
