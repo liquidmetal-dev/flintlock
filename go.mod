@@ -29,7 +29,7 @@ require (
 	github.com/pelletier/go-toml v1.9.4
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/afero v1.8.0
+	github.com/spf13/afero v1.8.1
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
@@ -46,6 +46,7 @@ require (
 	github.com/weaveworks/flintlock/api v0.0.0-20211217111250-5f8d70c4a581
 	github.com/weaveworks/flintlock/client v0.0.0-00010101000000-000000000000
 	github.com/yitsushi/file-tailor v1.0.0
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -117,5 +118,4 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )
