@@ -7,7 +7,7 @@ import (
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	"gopkg.in/yaml.v3"
 
-	"github.com/weaveworks/flintlock/client/cloudinit"
+	cinetwork "github.com/weaveworks/flintlock/client/cloudinit/network"
 	"github.com/weaveworks/flintlock/core/errors"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/internal/config"
@@ -192,9 +192,9 @@ func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkIn
 }
 
 func generateNetworkConfig(vm *models.MicroVM) (string, error) {
-	network := &cloudinit.Network{
+	network := &cinetwork.Network{
 		Version:  cloudInitNetVersion,
-		Ethernet: map[string]cloudinit.Ethernet{},
+		Ethernet: map[string]cinetwork.Ethernet{},
 	}
 
 	for i := range vm.Spec.NetworkInterfaces {
@@ -207,8 +207,8 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 
 		macAddress := getMacAddress(&iface, status)
 
-		eth := &cloudinit.Ethernet{
-			Match: cloudinit.Match{},
+		eth := &cinetwork.Ethernet{
+			Match: cinetwork.Match{},
 			DHCP4: firecracker.Bool(true),
 			DHCP6: firecracker.Bool(true),
 		}
@@ -236,7 +236,7 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 	return base64.StdEncoding.EncodeToString(nd), nil
 }
 
-func configureStaticEthernet(iface *models.NetworkInterface, eth *cloudinit.Ethernet) error {
+func configureStaticEthernet(iface *models.NetworkInterface, eth *cinetwork.Ethernet) error {
 	eth.Addresses = []string{string(iface.StaticAddress.Address)}
 
 	if iface.StaticAddress.Gateway != nil {
@@ -258,7 +258,7 @@ func configureStaticEthernet(iface *models.NetworkInterface, eth *cloudinit.Ethe
 	}
 
 	if len(iface.StaticAddress.Nameservers) > 0 {
-		eth.Nameservers = cloudinit.Nameservers{
+		eth.Nameservers = cinetwork.Nameservers{
 			Addresses: []string{},
 		}
 

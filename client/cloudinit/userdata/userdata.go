@@ -1,4 +1,4 @@
-package cloudinit
+package userdata
 
 type UserData struct {
 	HostName        string      `yaml:"hostname,omitempty"`
