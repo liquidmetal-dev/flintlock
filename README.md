@@ -46,6 +46,17 @@ If you have any questions about, feedback for or problems with flintlock:
 
 Your feedback is always welcome!
 
+## Compatibility
+
+The table below shows you which versions of Firecracker are compatible with Flintlock:
+
+| Flintlock         | Firecracker        |
+| ----------------- | ------------------ |
+| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap |
+|    v0.1.0-alpha.7 | **Do not use**     |
+|    v0.1.0-alpha.8 | <= v0.25.2-macvtap |
+
+> Note: Flintlock currently requires a custom build of Firecracker available [here](https://github.com/weaveworks/firecracker/releases).
 ## License
 
 [MPL-2.0 License][license]
