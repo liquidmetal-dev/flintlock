@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"testing"
 	"time"
@@ -9,8 +10,10 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
+	"sigs.k8s.io/yaml"
 
 	"github.com/weaveworks/flintlock/api/events"
+	"github.com/weaveworks/flintlock/client/cloudinit/instance"
 	"github.com/weaveworks/flintlock/core/application"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/core/ports"
@@ -55,7 +58,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					}),
 				).Return(nil, nil)
 
-				expectedCreatedSpec := createTestSpec("id1234", defaults.MicroVMNamespace, testUID)
+				expectedCreatedSpec := createTestSpecWithMetadata("id1234", defaults.MicroVMNamespace, testUID, createInstanceMetadatadata(t, testUID))
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
 				expectedCreatedSpec.Status.State = models.PendingState
 
@@ -96,7 +99,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 					nil,
 				)
 
-				expectedCreatedSpec := createTestSpec("id1234", "default", testUID)
+				expectedCreatedSpec := createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, testUID))
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
 				expectedCreatedSpec.Status.State = models.PendingState
 
@@ -135,6 +138,47 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				).Return(
 					createTestSpec("id1234", "default", testUID),
 					nil,
+				)
+			},
+		},
+		{
+			name:         "spec with id, namespace and existing instance data create",
+			specToCreate: createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, "abcdef")),
+			expectError:  false,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				im.GenerateRandom().Return(testUID, nil).Times(1)
+				rm.Get(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: "default",
+						UID:       testUID,
+					}),
+				).Return(
+					nil,
+					nil,
+				)
+
+				expectedCreatedSpec := createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, "abcdef"))
+				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
+				expectedCreatedSpec.Status.State = models.PendingState
+
+				rm.Save(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(expectedCreatedSpec),
+				).Return(
+					createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, "abcdef")),
+					nil,
+				)
+
+				em.Publish(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(defaults.TopicMicroVMEvents),
+					gomock.Eq(&events.MicroVMSpecCreated{
+						ID:        "id1234",
+						Namespace: "default",
+						UID:       testUID,
+					}),
 				)
 			},
 		},
@@ -556,6 +600,10 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 }
 
 func createTestSpec(name, ns, uid string) *models.MicroVM {
+	return createTestSpecWithMetadata(name, ns, uid, map[string]string{})
+}
+
+func createTestSpecWithMetadata(name, ns, uid string, metadata map[string]string) *models.MicroVM {
 	var vmid *models.VMID
 
 	if uid == "" {
@@ -600,9 +648,24 @@ func createTestSpec(name, ns, uid string) *models.MicroVM {
 				},
 				Size: 20000,
 			},
+			Metadata:  metadata,
 			CreatedAt: 0,
 			UpdatedAt: 0,
 			DeletedAt: 0,
 		},
+	}
+}
+
+func createInstanceMetadatadata(t *testing.T, instanceID string) map[string]string {
+	RegisterTestingT(t)
+
+	instanceData := instance.New(instance.WithInstanceID(instanceID))
+	data, err := yaml.Marshal(instanceData)
+	Expect(err).NotTo(HaveOccurred())
+
+	instanceDataStr := base64.StdEncoding.EncodeToString(data)
+
+	return map[string]string{
+		"meta-data": instanceDataStr,
 	}
 }

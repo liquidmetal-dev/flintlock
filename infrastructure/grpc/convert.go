@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/weaveworks/flintlock/api/types"
+	"github.com/weaveworks/flintlock/client/cloudinit/instance"
 	"github.com/weaveworks/flintlock/core/models"
 	"github.com/weaveworks/flintlock/pkg/defaults"
 	"github.com/weaveworks/flintlock/pkg/ptr"
@@ -32,6 +33,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 			},
 			VCPU:       int64(spec.Vcpu),
 			MemoryInMb: int64(spec.MemoryInMb),
+			Metadata:   instance.New(),
 		},
 	}
 
