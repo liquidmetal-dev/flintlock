@@ -23,17 +23,16 @@ import (
 )
 
 const (
-	containerdBin         = "containerd"
-	flintlockCmdDir       = "github.com/weaveworks/flintlock/cmd/flintlockd"
-	containerdSocket      = "/run/containerd-e2e/containerd.sock"
-	containerdCfgDir      = "/etc/containerd/config-e2e.toml"
-	containerdCfg         = containerdCfgDir + "/config-e2e.toml"
-	containerdRootDir     = "/var/lib/containerd-e2e"
-	containerdStateDir    = "/run/containerd-e2e"
-	grpcDialTarget        = "127.0.0.1:9090"
-	loopDeviceTag         = "e2e"
-	containerdGrpcAddress = containerdStateDir + "/containerd.sock"
-	devMapperRoot         = containerdRootDir + "/snapshotter/devmapper"
+	containerdBin      = "containerd"
+	flintlockCmdDir    = "github.com/weaveworks/flintlock/cmd/flintlockd"
+	containerdCfgDir   = "/etc/containerd"
+	containerdRootDir  = "/var/lib/containerd-e2e"
+	containerdStateDir = "/run/containerd-e2e"
+	containerdCfg      = containerdCfgDir + "/config-e2e.toml"
+	containerdSocket   = containerdStateDir + "/containerd.sock"
+	devMapperRoot      = containerdRootDir + "/snapshotter/devmapper"
+	grpcDialTarget     = "127.0.0.1:9090"
+	loopDeviceTag      = "e2e"
 )
 
 // Runner holds test runner configuration.
@@ -156,7 +155,7 @@ func (r *Runner) writeContainerdConfig() {
 		"pool_name":       r.params.ThinpoolName,
 		"root_path":       devMapperRoot,
 		"base_image_size": "10GB",
-		"discard_blocks":  "true",
+		"discard_blocks":  true,
 	}
 	pluginTree, err := toml.TreeFromMap(dmplug)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
@@ -166,7 +165,7 @@ func (r *Runner) writeContainerdConfig() {
 		Root:    containerdRootDir,
 		State:   containerdStateDir,
 		GRPC: ccfg.GRPCConfig{
-			Address: containerdGrpcAddress,
+			Address: containerdSocket,
 		},
 		Metrics: ccfg.MetricsConfig{
 			Address: "127.0.0.1:1338",
