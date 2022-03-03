@@ -9,7 +9,7 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
-	github.com/containerd/containerd v1.5.9
+	github.com/containerd/containerd v1.5.10
 	github.com/containerd/typeurl v1.0.2
 	github.com/firecracker-microvm/firecracker-go-sdk v0.22.0
 	github.com/go-openapi/strfmt v0.21.1 // indirect
