@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	"github.com/sirupsen/logrus"
@@ -49,8 +48,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("saving firecracker metadata: %w", err)
 	}
 
-	id := strings.ReplaceAll(vm.ID.String(), "/", "-")
-	args := []string{"--id", id, "--boot-timer", "--no-api"}
+	args := []string{"--id", vm.ID.UID(), "--boot-timer", "--no-api"}
 	args = append(args, "--config-file", vmState.ConfigPath())
 	args = append(args, "--metadata", vmState.MetadataPath())
 
