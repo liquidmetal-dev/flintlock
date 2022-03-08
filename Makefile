@@ -9,11 +9,13 @@ UNAME := $(shell uname -s)
 
 # Versions
 BUF_VERSION := v1.0.0-rc10
+CFSSL_VERSION := 1.6.1
 
 # Directories
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 BIN_DIR := bin
 OUT_DIR := out
+CERTS_DIR := $(OUT_DIR)/certs
 FLINTLOCKD_CMD := cmd/flintlockd
 FLINTLOCK_METRICS_CMD := cmd/flintlock-metrics
 TOOLS_DIR := hack/tools
@@ -35,6 +37,9 @@ $(BIN_DIR):
 $(OUT_DIR):
 	mkdir -p $@
 
+$(CERTS_DIR):
+	mkdir -p $@
+
 # Binaries
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
@@ -46,6 +51,8 @@ PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
 PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
 PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
 WIRE := $(TOOLS_BIN_DIR)/wire
+CFSSL := $(TOOLS_BIN_DIR)/cfssl
+CFSSL_JSON := $(TOOLS_BIN_DIR)/cfssljson
 
 # Useful things
 test_image = weaveworks/flintlock-e2e
@@ -184,10 +191,14 @@ $(PROTO_GEN_GRPC_OAPI): $(TOOLS_DIR)/go.mod
 $(WIRE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/google/wire/cmd/wire
 
+
 BUF_TARGET := buf-Linux-x86_64.tar.gz
+CFSSL_JSON_TARGET := cfssljson_$(CFSSL_VERSION)_linux_amd64
 
 ifeq ($(OS), darwin)
 BUF_TARGET := buf-Darwin-x86_64.tar.gz
+CFSSL_TARGET := cfssl_$(CFSSL_VERSION)_darwin_amd64
+CFSSL_JSON_TARGET := cfssljson_$(CFSSL_VERSION)_darwin_amd64
 endif
 
 BUF_SHARE := $(TOOLS_SHARE_DIR)/buf.tar.gz
@@ -198,6 +209,10 @@ $(BUF): $(TOOLS_BIN_DIR) $(BUF_SHARE)
 	tar xfvz $(TOOLS_SHARE_DIR)/buf.tar.gz  -C $(TOOLS_SHARE_DIR) buf/bin
 	cp $(TOOLS_SHARE_DIR)/buf/bin/* $(TOOLS_BIN_DIR)
 	rm -rf $(TOOLS_SHARE_DIR)/buf
+
+$(CFSSL_JSON): $(TOOLS_BIN_DIR)
+	curl -sL -o $(TOOLS_BIN_DIR)/cfssljson "https://github.com/cloudflare/cfssl/releases/download/v$(CFSSL_VERSION)/$(CFSSL_JSON_TARGET)"
+	chmod +x $(TOOLS_BIN_DIR)/cfssljson
 
 ##@ Docs
 .PHONY: docs-install
@@ -218,6 +233,13 @@ docs-deploy: docs-build
 		DEPLOYMENT_BRANCH=gh-pages \
 		USE_SSH=true \
 		yarn deploy
+
+##@ Development
+
+.PHONY: dev-certs
+dev-certs: $(CERTS_DIR) $(CFSSL) $(CFSSL_JSON)# Generate certificates for development
+	hack/scripts/gen_local_certs.sh all --cfssl $(CFSSL) --cfssljson $(CFSSL_JSON) --output $(CERTS_DIR)
+
 
 ##@ Utility
 
