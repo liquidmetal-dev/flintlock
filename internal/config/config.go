@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"os"
 	"time"
 
 	"github.com/weaveworks/flintlock/pkg/log"
@@ -42,4 +44,55 @@ type Config struct {
 	DeleteVMTimeout time.Duration
 	// AuthToken is the static token to use for very basic authentication.
 	AuthToken string
+	// TLS holds the TLS related configuration.
+	TLS TLSConfig
+}
+
+// TLSConfig holds the configuration for TLS.
+type TLSConfig struct {
+	// Insecure indicates if we should start the server insecurely (i.e. without TLS).
+	Insecure bool
+	// CertFile is the path to the certificate file to use.
+	CertFile string
+	// KeyFile is the path to the certificate key file to use.
+	KeyFile string
+	// ValidateClient indicates if the client certificates should be validated.
+	ValidateClient bool
+	// ClientCAFile is the path to a CA certificate file to use when validating client certificates.
+	ClientCAFile string
+}
+
+// Validate will validate the TLS config.
+func (t TLSConfig) Validate() error {
+	if t.Insecure {
+		if t.KeyFile != "" || t.CertFile != "" {
+			return errNoCertWhenInsecure
+		}
+
+		return nil
+	}
+
+	if t.CertFile == "" {
+		return errCertRequired
+	}
+
+	if t.KeyFile == "" {
+		return errKeyRequired
+	}
+
+	if _, err := os.Stat(t.CertFile); errors.Is(err, os.ErrNotExist) {
+		return newCertMissingError("certificate file", t.CertFile)
+	}
+
+	if _, err := os.Stat(t.KeyFile); errors.Is(err, os.ErrNotExist) {
+		return newCertMissingError("key file", t.KeyFile)
+	}
+
+	if t.ClientCAFile != "" {
+		if _, err := os.Stat(t.ClientCAFile); errors.Is(err, os.ErrNotExist) {
+			return newCertMissingError("client CA file", t.ClientCAFile)
+		}
+	}
+
+	return nil
 }

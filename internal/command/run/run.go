@@ -2,7 +2,10 @@ package run
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -12,10 +15,12 @@ import (
 	grpc_mw "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/spf13/cobra"
+
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 
 	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
@@ -53,6 +58,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	}
 
 	cmdflags.AddGRPCServerFlagsToCommand(cmd, cfg)
+	cmdflags.AddTLSFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddContainerDFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding containerd flags to run command: %w", err)
@@ -125,6 +131,10 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 func serveAPI(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
+	if validErr := cfg.TLS.Validate(); validErr != nil {
+		return fmt.Errorf("validating tls config: %w", validErr)
+	}
+
 	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
 		return fmt.Errorf("initialising ports for application: %w", err)
@@ -150,6 +160,14 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 			grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 		}
+	}
+	if !cfg.TLS.Insecure {
+		creds, err := createTLSCreds(&cfg.TLS)
+
+		if err != nil {
+			return fmt.Errorf("creating tls credentials: %w", err)
+		}
+		opts = append(opts, grpc.Creds(creds))
 	}
 
 	grpcServer := grpc.NewServer(opts...)
@@ -198,4 +216,34 @@ func runControllers(ctx context.Context, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+func createTLSCreds(tlsCfg *config.TLSConfig) (credentials.TransportCredentials, error) {
+	serverCert, err := tls.LoadX509KeyPair(tlsCfg.CertFile, tlsCfg.KeyFile)
+	if err != nil {
+		return nil, fmt.Errorf("reading tls key pair: %w", err)
+	}
+
+	grpcTLS := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		MinVersion:   tls.VersionTLS13,
+	}
+
+	if tlsCfg.ClientCAFile != "" {
+		caCert, err := ioutil.ReadFile(tlsCfg.ClientCAFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading CA cert file %s: %w", tlsCfg.ClientCAFile, err)
+		}
+
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(caCert)
+
+		grpcTLS.ClientCAs = pool
+	}
+
+	if tlsCfg.ValidateClient {
+		grpcTLS.ClientAuth = tls.RequireAndVerifyClientCert
+	}
+
+	return credentials.NewTLS(grpcTLS), nil
 }

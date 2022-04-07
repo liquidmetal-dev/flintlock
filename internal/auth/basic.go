@@ -9,18 +9,21 @@ import (
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 )
 
+type ctxKey string
+
 func BasicAuthFunc(expectedToken string) grpc_auth.AuthFunc {
 	return func(ctx context.Context) (context.Context, error) {
 		token, err := grpc_auth.AuthFromMD(ctx, "Basic")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("authenticating using gRPC metadata: %w", err)
 		}
+
 		if validateErr := validateBasicAuthToken(token, expectedToken); validateErr != nil {
 			return nil, validateErr
 		}
 
-		newCtx := context.WithValue(ctx, "authenticated", "true")
-		newCtx = context.WithValue(newCtx, "auth_method", "basic")
+		newCtx := context.WithValue(ctx, ctxKey("authenticated"), "true")
+		newCtx = context.WithValue(newCtx, ctxKey("auth_method"), "basic")
 
 		return newCtx, nil
 	}
@@ -30,6 +33,7 @@ func validateBasicAuthToken(suppliedToken string, expectedToken string) error {
 	if expectedToken == "" {
 		return errExpectedTokenRequired
 	}
+
 	if suppliedToken == "" {
 		return errEmptyAuthToken
 	}
