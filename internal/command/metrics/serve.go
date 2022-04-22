@@ -10,6 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/command/flags"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/inject"
@@ -31,13 +32,16 @@ func serveCommand() *cli.Command {
 			flags.WithGlobalConfigFlags(),
 		),
 		Action: func(c *cli.Context) error {
-			return serve(cfg)
+			if c.Args().Len() < 1 {
+				return fmt.Errorf("you must supply the microvm provider as an argument. Support providers: %v", microvm.GetProviderNames())
+			}
+			return serve(c.Args().First(), cfg)
 		},
 	}
 }
 
-func serve(cfg *config.Config) error {
-	aports, err := inject.InitializePorts(cfg)
+func serve(providerName string, cfg *config.Config) error {
+	aports, err := inject.InitializePorts(providerName, cfg)
 	if err != nil {
 		return fmt.Errorf("initialising ports for application: %w", err)
 	}

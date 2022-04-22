@@ -1,37 +1,47 @@
 package flags
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/cloudhypervisor"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/firecracker"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 const (
-	grpcEndpointFlag      = "grpc-endpoint"
-	httpEndpointFlag      = "http-endpoint"
-	parentIfaceFlag       = "parent-iface"
-	bridgeNameFlag        = "bridge-name"
-	disableReconcileFlag  = "disable-reconcile"
-	disableAPIFlag        = "disable-api"
-	firecrackerBinFlag    = "firecracker-bin"
-	firecrackerDetachFlag = "firecracker-detach"
-	containerdSocketFlag  = "containerd-socket"
-	kernelSnapshotterFlag = "containerd-kernel-ss"
-	containerdNamespace   = "containerd-ns"
-	maximumRetryFlag      = "maximum-retry"
-	basicAuthTokenFlag    = "basic-auth-token"
-	insecureFlag          = "insecure"
-	tlsCertFlag           = "tls-cert"
-	tlsKeyFlag            = "tls-key"
-	tlsClientValidateFlag = "tls-client-validate"
-	tlsClientCAFlag       = "tls-client-ca"
+	grpcEndpointFlag          = "grpc-endpoint"
+	httpEndpointFlag          = "http-endpoint"
+	parentIfaceFlag           = "parent-iface"
+	bridgeNameFlag            = "bridge-name"
+	disableReconcileFlag      = "disable-reconcile"
+	disableAPIFlag            = "disable-api"
+	firecrackerBinFlag        = "firecracker-bin"
+	firecrackerDetachFlag     = "firecracker-detach"
+	containerdSocketFlag      = "containerd-socket"
+	kernelSnapshotterFlag     = "containerd-kernel-ss"
+	containerdNamespace       = "containerd-ns"
+	maximumRetryFlag          = "maximum-retry"
+	basicAuthTokenFlag        = "basic-auth-token"
+	insecureFlag              = "insecure"
+	tlsCertFlag               = "tls-cert"
+	tlsKeyFlag                = "tls-key"
+	tlsClientValidateFlag     = "tls-client-validate"
+	tlsClientCAFlag           = "tls-client-ca"
+	cloudHypervisorBinFlag    = "cloudhypervisor-bin"
+	cloudHypervisorDetachFlag = "cloudhypervisor-detach"
 )
 
-// AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
-func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
-	cmd.Flags().StringVar(&cfg.GRPCAPIEndpoint,
+var (
+	errUnknownProvider = errors.New("unknown microvm provider name")
+)
+
+// AddGRPCServerPersistentFlags will add gRPC server flags to the supplied command.
+func AddGRPCServerPersistentFlags(cmd *cobra.Command, cfg *config.Config) {
+	cmd.PersistentFlags().StringVar(&cfg.GRPCAPIEndpoint,
 		grpcEndpointFlag,
 		defaults.GRPCAPIEndpoint,
 		"The endpoint for the gRPC server to listen on.")
@@ -52,14 +62,14 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"The timeout for deleting a microvm.")
 }
 
-// AddGWServerFlagsToCommand will add gRPC HTTP gateway flags to the supplied command.
-func AddGWServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
-	cmd.Flags().StringVar(&cfg.GRPCAPIEndpoint,
+// AddGWServerPersistentFlags will add gRPC HTTP gateway flags to the supplied command.
+func AddGWServerPersistentFlags(cmd *cobra.Command, cfg *config.Config) {
+	cmd.PersistentFlags().StringVar(&cfg.GRPCAPIEndpoint,
 		grpcEndpointFlag,
 		defaults.GRPCAPIEndpoint,
 		"The address of the gRPC server to act as a gateway for.")
 
-	cmd.Flags().StringVar(&cfg.HTTPAPIEndpoint,
+	cmd.PersistentFlags().StringVar(&cfg.HTTPAPIEndpoint,
 		httpEndpointFlag,
 		defaults.HTTPAPIEndpoint,
 		"The endpoint for the HTTP proxy to the gRPC service to listen on.")
@@ -101,9 +111,9 @@ func AddTLSFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"Path to the certificate to use when validating client certificates.")
 }
 
-// AddNetworkFlagsToCommand will add various network flags to the command.
-func AddNetworkFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
-	cmd.Flags().StringVar(&cfg.ParentIface,
+// AddNetworkPersistentFlags will add various network flags to the command.
+func AddNetworkPersistentFlags(cmd *cobra.Command, cfg *config.Config) error {
+	cmd.PersistentFlags().StringVar(&cfg.ParentIface,
 		parentIfaceFlag,
 		"",
 		"The parent iface for the network interfaces. Note it could also be a bond")
@@ -117,40 +127,70 @@ func AddNetworkFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 	return nil
 }
 
-// AddHiddenFlagsToCommand will add hidden flags to the supplied command.
-func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
-	cmd.Flags().BoolVar(&cfg.DisableReconcile,
+func AddHiddenPersistentFlags(cmd *cobra.Command, cfg *config.Config) error {
+	cmd.PersistentFlags().BoolVar(&cfg.DisableReconcile,
 		disableReconcileFlag,
 		false,
 		"Set to true to stop the reconciler running")
 
-	cmd.Flags().IntVar(&cfg.MaximumRetry,
+	cmd.PersistentFlags().IntVar(&cfg.MaximumRetry,
 		maximumRetryFlag,
 		defaults.MaximumRetry,
 		"Number of times to retry failed reconciliation")
 
-	cmd.Flags().BoolVar(&cfg.DisableAPI,
+	cmd.PersistentFlags().BoolVar(&cfg.DisableAPI,
 		disableAPIFlag,
 		false,
 		"Set to true to stop the api server running")
 
-	if err := cmd.Flags().MarkHidden(disableReconcileFlag); err != nil {
+	if err := cmd.PersistentFlags().MarkHidden(disableReconcileFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", disableReconcileFlag, err)
 	}
 
-	if err := cmd.Flags().MarkHidden(maximumRetryFlag); err != nil {
+	if err := cmd.PersistentFlags().MarkHidden(maximumRetryFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", maximumRetryFlag, err)
 	}
 
-	if err := cmd.Flags().MarkHidden(disableAPIFlag); err != nil {
+	if err := cmd.PersistentFlags().MarkHidden(disableAPIFlag); err != nil {
 		return fmt.Errorf("setting %s as hidden: %w", disableAPIFlag, err)
 	}
 
 	return nil
 }
 
-// AddFirecrackerFlagsToCommand will add the firecracker provider specific flags to the supplied cobra command.
-func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+// AddContainerDPersistentFlags will add the containerd specific flags to the supplied cobra command.
+func AddContainerDPersistentFlags(cmd *cobra.Command, cfg *config.Config) error {
+	cmd.PersistentFlags().StringVar(&cfg.CtrSocketPath,
+		containerdSocketFlag,
+		defaults.ContainerdSocket,
+		"The path to the containerd socket.")
+
+	cmd.PersistentFlags().StringVar(&cfg.CtrSnapshotterKernel,
+		kernelSnapshotterFlag,
+		defaults.ContainerdKernelSnapshotter,
+		"The name of the snapshotter to use with containerd for kernel/initrd images.")
+
+	cmd.PersistentFlags().StringVar(&cfg.CtrNamespace,
+		containerdNamespace,
+		defaults.ContainerdNamespace,
+		"The name of the containerd namespace to use.")
+
+	return nil
+}
+
+func AddMicrovmServiceFlags(providerName string, cmd *cobra.Command, cfg *config.Config) error {
+	switch providerName {
+	case firecracker.ProviderName:
+		return addFirecrackerFlags(cmd, cfg)
+	case cloudhypervisor.ProviderName:
+		return addCloudHypervisorFlags(cmd, cfg)
+	default:
+		return errUnknownProvider
+	}
+}
+
+// addFirecrackerFlags will add the firecracker provider specific flags to the supplied cobra command.
+func addFirecrackerFlags(cmd *cobra.Command, cfg *config.Config) error {
 	cmd.Flags().StringVar(&cfg.FirecrackerBin,
 		firecrackerBinFlag,
 		defaults.FirecrackerBin,
@@ -159,22 +199,20 @@ func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		firecrackerDetachFlag,
 		defaults.FirecrackerDetach,
 		"If true the child firecracker processes will be detached from the parent flintlock process.")
+
+	return nil
 }
 
-// AddContainerDFlagsToCommand will add the containerd specific flags to the supplied cobra command.
-func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
-	cmd.Flags().StringVar(&cfg.CtrSocketPath,
-		containerdSocketFlag,
-		defaults.ContainerdSocket,
-		"The path to the containerd socket.")
+// addCloudHypervisorFlags will add the Cloud Hypervisor provider specific flags to the supplied cobra command.
+func addCloudHypervisorFlags(cmd *cobra.Command, cfg *config.Config) error {
+	cmd.Flags().StringVar(&cfg.CloudHypervisorBin,
+		cloudHypervisorBinFlag,
+		defaults.CloudHypervisorBin,
+		"The path to the cloud hypervisor binary to use.")
+	cmd.Flags().BoolVar(&cfg.CloudHypervisorDetatch,
+		cloudHypervisorDetachFlag,
+		true,
+		"If true the child cloud hypervisor processes will be detached from the parent flintlock process.")
 
-	cmd.Flags().StringVar(&cfg.CtrSnapshotterKernel,
-		kernelSnapshotterFlag,
-		defaults.ContainerdKernelSnapshotter,
-		"The name of the snapshotter to use with containerd for kernel/initrd images.")
-
-	cmd.Flags().StringVar(&cfg.CtrNamespace,
-		containerdNamespace,
-		defaults.ContainerdNamespace,
-		"The name of the containerd namespace to use.")
+	return nil
 }

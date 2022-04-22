@@ -10,11 +10,17 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+	tailor "github.com/yitsushi/file-tailor"
+
+	cerrs "github.com/weaveworks-liquidmetal/flintlock/core/errors"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/process"
-	tailor "github.com/yitsushi/file-tailor"
+)
+
+const (
+	ProviderName = "firecracker"
 )
 
 // Config represents the configuration options for the Firecracker infrastructure.
@@ -67,7 +73,7 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 // twice on the same thing, now remove them and then add it back and make a
 // separation here, like option B.
 func (p *fcProvider) Start(ctx context.Context, vm *models.MicroVM) error {
-	return p.Create(ctx, vm)
+	return cerrs.NewNotSupported("start")
 }
 
 // Stop will stop a running microvm.

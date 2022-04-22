@@ -4,7 +4,6 @@
 package inject
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/wire"
@@ -14,24 +13,23 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/controllers"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/firecracker"
 	microvmgrpc "github.com/weaveworks-liquidmetal/flintlock/infrastructure/grpc"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/network"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/ulid"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
-func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
+func InitializePorts(microvmProviderName string, cfg *config.Config) (*ports.Collection, error) {
 	wire.Build(containerd.NewEventService,
 		containerd.NewImageService,
 		containerd.NewMicroVMRepo,
 		ulid.New,
-		firecracker.New,
+		microvm.New,
 		network.New,
 		appPorts,
 		containerdConfig,
-		firecrackerConfig,
 		networkConfig,
 		afero.NewOsFs)
 
@@ -45,7 +43,7 @@ func InitializeApp(cfg *config.Config, ports *ports.Collection) application.App 
 }
 
 func InializeController(app application.App, ports *ports.Collection) *controllers.MicroVMController {
-	wire.Build(controllers.New, eventSvcFromScope, reconcileUCFromApp)
+	wire.Build(controllers.New, eventSvcFromScope, reconcileUCFromApp, queryUCFromApp)
 
 	return nil
 }
@@ -62,14 +60,6 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
-	}
-}
-
-func firecrackerConfig(cfg *config.Config) *firecracker.Config {
-	return &firecracker.Config{
-		FirecrackerBin: cfg.FirecrackerBin,
-		RunDetached:    cfg.FirecrackerDetatch,
-		StateRoot:      fmt.Sprintf("%s/vm", cfg.StateRootDir),
 	}
 }
 

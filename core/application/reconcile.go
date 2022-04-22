@@ -35,28 +35,6 @@ func (a *app) ReconcileMicroVM(ctx context.Context, vmid models.VMID) error {
 	return a.reconcile(ctx, spec, logger)
 }
 
-func (a *app) ResyncMicroVMs(ctx context.Context, namespace string) error {
-	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
-		"action":    "resync",
-		"namespace": "ns",
-	})
-	logger.Info("Resyncing specs")
-	logger.Debug("Getting all specs")
-
-	specs, err := a.ports.Repo.GetAll(ctx, models.ListMicroVMQuery{"namespace": namespace})
-	if err != nil {
-		return fmt.Errorf("getting all microvm specs for resync: %w", err)
-	}
-
-	for _, spec := range specs {
-		if err := a.reconcile(ctx, spec, logger); err != nil {
-			return fmt.Errorf("resync reconcile for spec %s: %w", spec.ID, err)
-		}
-	}
-
-	return nil
-}
-
 func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) planner.Plan {
 	l := logger.WithField("stage", "plan")
 	l.Info("Generate plan")

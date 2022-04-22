@@ -17,6 +17,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	MetadataInterfaceName = "mmds"
+)
+
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
 	logger := log.GetLogger(ctx).WithField("component", "app")
 	logger.Trace("creating microvm")
@@ -69,6 +73,12 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	err = a.addInstanceData(mvm, logger)
 	if err != nil {
 		return nil, fmt.Errorf("adding instance data: %w", err)
+	}
+
+	if a.ports.Provider.Capabilities().Has(models.MetadataServiceCapability) {
+		if a.addMetadataInterface(mvm); err != nil {
+			return nil, fmt.Errorf("adding metadata network interface: %w", err)
+		}
 	}
 
 	// Set the timestamp when the VMspec was created.
@@ -168,6 +178,27 @@ func (a *app) addInstanceData(vm *models.MicroVM, logger *logrus.Entry) error {
 	}
 
 	vm.Spec.Metadata[cloudinit.InstanceDataKey] = base64.StdEncoding.EncodeToString(updatedData)
+
+	return nil
+}
+
+func (a *app) addMetadataInterface(mvm *models.MicroVM) error {
+	for i := range mvm.Spec.NetworkInterfaces {
+		netInt := mvm.Spec.NetworkInterfaces[i]
+		if netInt.GuestDeviceName == MetadataInterfaceName {
+			return nil
+		}
+	}
+
+	mvm.Spec.NetworkInterfaces = append(mvm.Spec.NetworkInterfaces, models.NetworkInterface{
+		GuestDeviceName:       MetadataInterfaceName,
+		Type:                  models.IfaceTypeTap,
+		AllowMetadataRequests: true,
+		GuestMAC:              "AA:FF:00:00:00:01",
+		StaticAddress: &models.StaticAddress{
+			Address: "169.254.0.1/16",
+		},
+	})
 
 	return nil
 }
