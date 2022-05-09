@@ -43,7 +43,7 @@ jobs:
 
           To complete work on this Issue:
           - [ ] Update (merge or rebase) the [fork macvtap feature branch](https://github.com/weaveworks/firecracker/tree/feature/macvtap) to the latest upstream release tag ${{ env.NEW_VERSION }}. **Note: Do not update the feature branch to upstream main.**
-          - [ ] Make sure it builds. (See: [doc](https://github.com/weaveworks/flintlock/blob/main/docs/quick-start.md#set-up-firecracker))
+          - [ ] Make sure it builds. (See: [doc](https://github.com/weaveworks-liquidmetal/flintlock/blob/main/docs/quick-start.md#set-up-firecracker))
           - [ ] Push the updated firecracker 'feature/macvtap' fork branch.
           - [ ] Create a new tag on the updated firecracker 'feature/macvtap' fork branch: `git tag -s ${{ env.NEW_VERSION}}-macvtap -m ${{ env.NEW_VERSION }}-macvtap`.
           - [ ] Push the tag to the fork: `git push <remote> ${{ env.NEW_VERSION }}-macvtap` (A new [release](https://github.com/weaveworks/firecracker/releases) will be created.)
@@ -57,7 +57,7 @@ jobs:
       uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
-        message: "There is a new version of Firecracker, complete the todo list here: <https://github.com/weaveworks/flintlock/issues/${{ steps.issue.outputs.issue-number }}|#${{ steps.issue.outputs.issue-number }}>."
+        message: "There is a new version of Firecracker, complete the todo list here: <https://github.com/weaveworks-liquidmetal/flintlock/issues/${{ steps.issue.outputs.issue-number }}|#${{ steps.issue.outputs.issue-number }}>."
         channel: team-quick-silver
         color: green
         verbose: false

@@ -5,8 +5,8 @@ import (
 
 	g "github.com/onsi/gomega"
 
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/infrastructure/network"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/network"
 )
 
 const fancyNewIfaceType models.IfaceType = "rainbow"

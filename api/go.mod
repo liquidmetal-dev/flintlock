@@ -1,4 +1,4 @@
-module github.com/weaveworks/flintlock/api
+module github.com/weaveworks-liquidmetal/flintlock/api
 
 go 1.17
 

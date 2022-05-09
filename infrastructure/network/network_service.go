@@ -9,11 +9,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
-
-	"github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 )
 
 type Config struct {

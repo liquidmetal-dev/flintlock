@@ -12,17 +12,16 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
+	cmdflags "github.com/weaveworks-liquidmetal/flintlock/internal/command/flags"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/inject"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/version"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/flags"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
-	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
-	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
-	"github.com/weaveworks/flintlock/internal/config"
-	"github.com/weaveworks/flintlock/internal/inject"
-	"github.com/weaveworks/flintlock/internal/version"
-	"github.com/weaveworks/flintlock/pkg/defaults"
-	"github.com/weaveworks/flintlock/pkg/flags"
-	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 // NewCommand creates a new cobra command for running flintlock.

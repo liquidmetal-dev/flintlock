@@ -4,8 +4,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/weaveworks/flintlock/internal/command/metrics"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/command/metrics"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	g "github.com/onsi/gomega"
-	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 )
 
 func TestIPAddressCIDR_IsIPv4(t *testing.T) {

@@ -8,12 +8,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/internal/command/flags"
-	"github.com/weaveworks/flintlock/internal/config"
-	"github.com/weaveworks/flintlock/internal/inject"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/command/flags"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/inject"
 )
 
 type serveFunc func(http.ResponseWriter, *http.Request)

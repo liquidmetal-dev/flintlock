@@ -8,9 +8,9 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/flintlock/api/events"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/infrastructure/containerd"
+	"github.com/weaveworks-liquidmetal/flintlock/api/events"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
 )
 
 const (
@@ -113,7 +113,6 @@ func newSubscriber(t *testing.T, rootContext context.Context, data subData) {
 
 	Expect(err).To(BeNil())
 	Expect(recvd).To(HaveLen(data.MaxEvents))
-
 }
 
 func watch(subscriber *testSubscriber, maxEvents int) ([]interface{}, error) {

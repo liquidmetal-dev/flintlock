@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid"
-
-	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 )
 
 func randomSource() *rand.Rand {

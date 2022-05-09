@@ -2,7 +2,7 @@
 BUILD_DATE := $(shell date +%Y-%m-%dT%H:%M:%SZ)
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 VERSION := $(shell git describe --always --match "v*")
-VERSION_PKG := github.com/weaveworks/flintlock/internal/version
+VERSION_PKG := github.com/weaveworks-liquidmetal/flintlock/internal/version
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
@@ -98,13 +98,17 @@ generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_G
 
 .PHONY: generate-di ## Generate the dependency injection code
 generate-di: $(WIRE)
-	$(WIRE) gen github.com/weaveworks/flintlock/internal/inject
+	$(WIRE) gen github.com/weaveworks-liquidmetal/flintlock/internal/inject
 
 ##@ Linting
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT)  ## Lint code
-	$(GOLANGCI_LINT) run -v --fast=false
+	$(GOLANGCI_LINT) run -v --fast=false $(GOLANGCI_LINT_EXTRA_ARGS)
+
+.PHONY: lint-fix
+lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
+	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 .PHONY: proto-lint
 proto-lint: $(BUF) ## Lint protobuf/frpc

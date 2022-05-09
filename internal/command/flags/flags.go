@@ -4,9 +4,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-
-	"github.com/weaveworks/flintlock/internal/config"
-	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 const (

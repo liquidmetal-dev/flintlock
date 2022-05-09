@@ -13,7 +13,7 @@ Before creating a new request for help, please search existing issues to see if 
 If there is a similar feature request please up-vote it and/or add your comments to it instead
 
 For more information on how to request help on flintlock, please refer to our community docs.
-https://github.com/weaveworks/flintlock/blob/main/CONTRIBUTING.md#opening-issues
+https://github.com/weaveworks-liquidmetal/flintlock/blob/main/CONTRIBUTING.md#opening-issues
 -->
 
 **What happened:**

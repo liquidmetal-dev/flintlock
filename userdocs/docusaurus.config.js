@@ -25,13 +25,13 @@ const config = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
-          editUrl: 'https://github.com/weaveworks/flintlock/edit/main/userdocs/',
+          editUrl: 'https://github.com/weaveworks-liquidmetal/flintlock/edit/main/userdocs/',
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
           editUrl:
-            'https://github.com/weaveworks/flintlock/edit/main/userdocs/blog/',
+            'https://github.com/weaveworks-liquidmetal/flintlock/edit/main/userdocs/blog/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -64,7 +64,7 @@ const config = {
           },
           {to: '/blog', label: 'Blog', position: 'left'},
           {
-            href: 'https://github.com/weaveworks/flintlock',
+            href: 'https://github.com/weaveworks-liquidmetal/flintlock',
             label: 'GitHub',
             position: 'right',
           },
@@ -108,7 +108,7 @@ const config = {
               },
               {
                 label: 'GitHub',
-                href: 'https://github.com/weaveworks/flintlock',
+                href: 'https://github.com/weaveworks-liquidmetal/flintlock',
               },
             ],
           },

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	coreerrs "github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/pkg/defaults"
+	coreerrs "github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 const (

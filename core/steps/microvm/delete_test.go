@@ -7,11 +7,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	g "github.com/onsi/gomega"
-	internalerr "github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/core/steps/microvm"
-	"github.com/weaveworks/flintlock/infrastructure/mock"
+	internalerr "github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/core/steps/microvm"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
 )
 
 func testVMToDelete() *models.MicroVM {

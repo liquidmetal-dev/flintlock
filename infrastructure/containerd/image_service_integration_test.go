@@ -11,9 +11,9 @@ import (
 	"github.com/containerd/containerd/snapshots"
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/infrastructure/containerd"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
 )
 
 const (

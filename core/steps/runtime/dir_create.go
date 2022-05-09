@@ -7,9 +7,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
-
-	"github.com/weaveworks/flintlock/pkg/log"
-	"github.com/weaveworks/flintlock/pkg/planner"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
 func NewCreateDirectory(dir string, mode os.FileMode, fs afero.Fs) planner.Procedure {

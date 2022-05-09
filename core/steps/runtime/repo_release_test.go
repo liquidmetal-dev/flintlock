@@ -7,10 +7,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	g "github.com/onsi/gomega"
-	internalerrors "github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/steps/runtime"
-	"github.com/weaveworks/flintlock/infrastructure/mock"
+	internalerrors "github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/steps/runtime"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
 )
 
 func testVM() *models.MicroVM {

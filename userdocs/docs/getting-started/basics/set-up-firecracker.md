@@ -24,4 +24,4 @@ cp build/cargo_target/${toolbox}/debug/{firecracker,jailer} ${TARGET}
 If you don't have to compile it yourself, you can download a pre-built version
 from the [Pre-requisities discussion][discussion-107].
 
-[discussion-107]: https://github.com/weaveworks/flintlock/discussions/107
+[discussion-107]: https://github.com/weaveworks-liquidmetal/flintlock/discussions/107

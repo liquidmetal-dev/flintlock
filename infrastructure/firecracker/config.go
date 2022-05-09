@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
+	cinetwork "github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/network"
+	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"gopkg.in/yaml.v3"
-
-	cinetwork "github.com/weaveworks/flintlock/client/cloudinit/network"
-	"github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/internal/config"
 )
 
 const (

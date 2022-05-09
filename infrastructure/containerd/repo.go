@@ -14,11 +14,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-
-	"github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 )
 
 // NewMicroVMRepo will create a new containerd backed microvm repository with the supplied containerd configuration.
@@ -128,7 +127,11 @@ func (r *containerdRepo) Get(ctx context.Context, options ports.RepositoryGetOpt
 	}
 
 	if spec == nil {
-		return nil, errors.NewSpecNotFound(options.Name, options.Namespace, options.Version, options.UID)
+		return nil, errors.NewSpecNotFound( //nolint: wrapcheck // No need to wrap this error
+			options.Name,
+			options.Namespace,
+			options.Version,
+			options.UID)
 	}
 
 	return spec, nil

@@ -33,10 +33,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 )
 ```
 
@@ -205,4 +205,4 @@ process := exec.Command(options.Command, options.Args...)
 * Spell checker in comments with GB locale. No more `maintanence` or `color`.
 * Some of the rules are hard to keep in mind first.
 
-Discussion: https://github.com/weaveworks/flintlock/discussions/246
+Discussion: https://github.com/weaveworks-liquidmetal/flintlock/discussions/246

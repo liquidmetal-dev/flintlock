@@ -46,4 +46,4 @@ As a result, it is possible to leak resources, when the MicroVM deletion failed
 and we lost track of a network device status from MicroVMSpec. For that reason,
 [Resource cleanup ADR #90][issue-90] priority might be raised to higher priority.
 
-[issue-90]: https://github.com/weaveworks/flintlock/issues/90
+[issue-90]: https://github.com/weaveworks-liquidmetal/flintlock/issues/90

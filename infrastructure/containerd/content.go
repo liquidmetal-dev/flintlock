@@ -3,8 +3,8 @@ package containerd
 import (
 	"fmt"
 
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 const (

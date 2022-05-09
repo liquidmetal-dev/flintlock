@@ -10,16 +10,16 @@ import (
 	"github.com/google/wire"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks/flintlock/core/application"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/infrastructure/containerd"
-	"github.com/weaveworks/flintlock/infrastructure/controllers"
-	"github.com/weaveworks/flintlock/infrastructure/firecracker"
-	microvmgrpc "github.com/weaveworks/flintlock/infrastructure/grpc"
-	"github.com/weaveworks/flintlock/infrastructure/network"
-	"github.com/weaveworks/flintlock/infrastructure/ulid"
-	"github.com/weaveworks/flintlock/internal/config"
-	"github.com/weaveworks/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/core/application"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/controllers"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/firecracker"
+	microvmgrpc "github.com/weaveworks-liquidmetal/flintlock/infrastructure/grpc"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/network"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/ulid"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
