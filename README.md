@@ -3,7 +3,7 @@
 
 [![GitHub](https://img.shields.io/github/license/weaveworks/flintlock)](https://img.shields.io/github/license/weaveworks/flintlock)
 [![codecov](https://codecov.io/gh/weaveworks/flintlock/branch/main/graph/badge.svg?token=ZNPNRDI8Z0)](https://codecov.io/gh/weaveworks/flintlock)
-[![Go Report Card](https://goreportcard.com/badge/github.com/weaveworks/flintlock)](https://goreportcard.com/report/github.com/weaveworks/flintlock)
+[![Go Report Card](https://goreportcard.com/badge/github.com/weaveworks-liquidmetal/flintlock)](https://goreportcard.com/report/github.com/weaveworks-liquidmetal/flintlock)
 
 ## What is flintlock?
 
@@ -64,7 +64,7 @@ The table below shows you which versions of Firecracker are compatible with Flin
 [quickstart]: ./docs/quick-start.md
 [contrib]: ./CONTRIBUTING.md
 [coc]: ./CODE_OF_CONDUCT.md
-[issues]: https://github.com/weaveworks/flintlock/issues
-[milestones]: https://github.com/weaveworks/flintlock/milestones
+[issues]: https://github.com/weaveworks-liquidmetal/flintlock/issues
+[milestones]: https://github.com/weaveworks-liquidmetal/flintlock/milestones
 [adr]: ./docs/adr
 [license]: ./LICENSE

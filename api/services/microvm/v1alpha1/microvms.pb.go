@@ -7,16 +7,17 @@
 package v1alpha1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
-	types "github.com/weaveworks/flintlock/api/types"
+	types "github.com/weaveworks-liquidmetal/flintlock/api/types"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	_ "google.golang.org/protobuf/types/known/fieldmaskpb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -556,22 +557,25 @@ func file_services_microvm_v1alpha1_microvms_proto_rawDescGZIP() []byte {
 	return file_services_microvm_v1alpha1_microvms_proto_rawDescData
 }
 
-var file_services_microvm_v1alpha1_microvms_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_services_microvm_v1alpha1_microvms_proto_goTypes = []interface{}{
-	(*CreateMicroVMRequest)(nil),  // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest
-	(*CreateMicroVMResponse)(nil), // 1: microvm.services.api.v1alpha1.CreateMicroVMResponse
-	(*DeleteMicroVMRequest)(nil),  // 2: microvm.services.api.v1alpha1.DeleteMicroVMRequest
-	(*GetMicroVMRequest)(nil),     // 3: microvm.services.api.v1alpha1.GetMicroVMRequest
-	(*GetMicroVMResponse)(nil),    // 4: microvm.services.api.v1alpha1.GetMicroVMResponse
-	(*ListMicroVMsRequest)(nil),   // 5: microvm.services.api.v1alpha1.ListMicroVMsRequest
-	(*ListMicroVMsResponse)(nil),  // 6: microvm.services.api.v1alpha1.ListMicroVMsResponse
-	(*ListMessage)(nil),           // 7: microvm.services.api.v1alpha1.ListMessage
-	nil,                           // 8: microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry
-	(*types.MicroVMSpec)(nil),     // 9: flintlock.types.MicroVMSpec
-	(*types.MicroVM)(nil),         // 10: flintlock.types.MicroVM
-	(*anypb.Any)(nil),             // 11: google.protobuf.Any
-	(*emptypb.Empty)(nil),         // 12: google.protobuf.Empty
-}
+var (
+	file_services_microvm_v1alpha1_microvms_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+	file_services_microvm_v1alpha1_microvms_proto_goTypes  = []interface{}{
+		(*CreateMicroVMRequest)(nil),  // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest
+		(*CreateMicroVMResponse)(nil), // 1: microvm.services.api.v1alpha1.CreateMicroVMResponse
+		(*DeleteMicroVMRequest)(nil),  // 2: microvm.services.api.v1alpha1.DeleteMicroVMRequest
+		(*GetMicroVMRequest)(nil),     // 3: microvm.services.api.v1alpha1.GetMicroVMRequest
+		(*GetMicroVMResponse)(nil),    // 4: microvm.services.api.v1alpha1.GetMicroVMResponse
+		(*ListMicroVMsRequest)(nil),   // 5: microvm.services.api.v1alpha1.ListMicroVMsRequest
+		(*ListMicroVMsResponse)(nil),  // 6: microvm.services.api.v1alpha1.ListMicroVMsResponse
+		(*ListMessage)(nil),           // 7: microvm.services.api.v1alpha1.ListMessage
+		nil,                           // 8: microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry
+		(*types.MicroVMSpec)(nil),     // 9: flintlock.types.MicroVMSpec
+		(*types.MicroVM)(nil),         // 10: flintlock.types.MicroVM
+		(*anypb.Any)(nil),             // 11: google.protobuf.Any
+		(*emptypb.Empty)(nil),         // 12: google.protobuf.Empty
+	}
+)
+
 var file_services_microvm_v1alpha1_microvms_proto_depIdxs = []int32{
 	9,  // 0: microvm.services.api.v1alpha1.CreateMicroVMRequest.microvm:type_name -> flintlock.types.MicroVMSpec
 	8,  // 1: microvm.services.api.v1alpha1.CreateMicroVMRequest.metadata:type_name -> microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry

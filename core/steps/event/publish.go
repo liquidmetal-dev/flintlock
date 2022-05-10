@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/pkg/log"
-	"github.com/weaveworks/flintlock/pkg/planner"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
 func NewPublish(topic string, event interface{}, eventSvc ports.EventService) planner.Procedure {

@@ -11,8 +11,8 @@ import (
 
 	g "github.com/onsi/gomega"
 
-	"github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
-	"github.com/weaveworks/flintlock/api/types"
+	"github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
+	"github.com/weaveworks-liquidmetal/flintlock/api/types"
 )
 
 func CreateMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateMicroVMResponse {

@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 )
 
 func newMetadataInterface() *models.NetworkInterface {

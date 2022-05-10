@@ -9,10 +9,10 @@ import (
 	"github.com/golang/mock/gomock"
 	g "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/infrastructure/containerd"
-	"github.com/weaveworks/flintlock/infrastructure/mock"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
 )
 
 const (

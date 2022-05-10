@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/weaveworks/flintlock/api/types"
-	"github.com/weaveworks/flintlock/pkg/ptr"
-	u "github.com/weaveworks/flintlock/test/e2e/utils"
+	"github.com/weaveworks-liquidmetal/flintlock/api/types"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/ptr"
+	u "github.com/weaveworks-liquidmetal/flintlock/test/e2e/utils"
 )
 
 var params *u.Params

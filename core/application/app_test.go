@@ -12,14 +12,14 @@ import (
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 
-	"github.com/weaveworks/flintlock/api/events"
-	"github.com/weaveworks/flintlock/client/cloudinit/instance"
-	"github.com/weaveworks/flintlock/core/application"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/infrastructure/mock"
-	"github.com/weaveworks/flintlock/pkg/defaults"
-	"github.com/weaveworks/flintlock/pkg/ptr"
+	"github.com/weaveworks-liquidmetal/flintlock/api/events"
+	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/instance"
+	"github.com/weaveworks-liquidmetal/flintlock/core/application"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/ptr"
 )
 
 const (

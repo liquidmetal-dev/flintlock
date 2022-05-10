@@ -1,4 +1,4 @@
-module github.com/weaveworks/flintlock/hack/tools
+module github.com/weaveworks-liquidmetal/flintlock/hack/tools
 
 go 1.17
 

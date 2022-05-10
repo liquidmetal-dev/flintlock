@@ -1,6 +1,6 @@
 package network_test
 
-import "github.com/weaveworks/flintlock/core/models"
+import "github.com/weaveworks-liquidmetal/flintlock/core/models"
 
 const (
 	vmName                    = "testvm"

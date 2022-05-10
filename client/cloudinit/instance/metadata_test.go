@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks/flintlock/client/cloudinit/instance"
+	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/instance"
 )
 
 const (

@@ -1,7 +1,7 @@
 package application
 
 import (
-	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 )
 
 // App is the interface for the core application. In the future this could be split

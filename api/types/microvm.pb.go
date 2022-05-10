@@ -7,11 +7,12 @@
 package types
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -797,7 +798,7 @@ type VolumeSource struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Container is used to specify a source of a volume as a OCI container.
-	ContainerSource *string `protobuf:"bytes,1,opt,name=container_source,json=containerSource,proto3,oneof" json:"container_source,omitempty"` //TODO: add CSI
+	ContainerSource *string `protobuf:"bytes,1,opt,name=container_source,json=containerSource,proto3,oneof" json:"container_source,omitempty"` // TODO: add CSI
 }
 
 func (x *VolumeSource) Reset() {
@@ -1376,32 +1377,35 @@ func file_types_microvm_proto_rawDescGZIP() []byte {
 	return file_types_microvm_proto_rawDescData
 }
 
-var file_types_microvm_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_types_microvm_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
-var file_types_microvm_proto_goTypes = []interface{}{
-	(NetworkInterface_IfaceType)(0), // 0: flintlock.types.NetworkInterface.IfaceType
-	(MicroVMStatus_MicroVMState)(0), // 1: flintlock.types.MicroVMStatus.MicroVMState
-	(Mount_MountType)(0),            // 2: flintlock.types.Mount.MountType
-	(*MicroVM)(nil),                 // 3: flintlock.types.MicroVM
-	(*MicroVMSpec)(nil),             // 4: flintlock.types.MicroVMSpec
-	(*Kernel)(nil),                  // 5: flintlock.types.Kernel
-	(*Initrd)(nil),                  // 6: flintlock.types.Initrd
-	(*NetworkInterface)(nil),        // 7: flintlock.types.NetworkInterface
-	(*StaticAddress)(nil),           // 8: flintlock.types.StaticAddress
-	(*Volume)(nil),                  // 9: flintlock.types.Volume
-	(*VolumeSource)(nil),            // 10: flintlock.types.VolumeSource
-	(*ContainerVolumeSource)(nil),   // 11: flintlock.types.ContainerVolumeSource
-	(*MicroVMStatus)(nil),           // 12: flintlock.types.MicroVMStatus
-	(*VolumeStatus)(nil),            // 13: flintlock.types.VolumeStatus
-	(*Mount)(nil),                   // 14: flintlock.types.Mount
-	(*NetworkInterfaceStatus)(nil),  // 15: flintlock.types.NetworkInterfaceStatus
-	nil,                             // 16: flintlock.types.MicroVMSpec.LabelsEntry
-	nil,                             // 17: flintlock.types.MicroVMSpec.MetadataEntry
-	nil,                             // 18: flintlock.types.Kernel.CmdlineEntry
-	nil,                             // 19: flintlock.types.MicroVMStatus.VolumesEntry
-	nil,                             // 20: flintlock.types.MicroVMStatus.NetworkInterfacesEntry
-	(*timestamppb.Timestamp)(nil),   // 21: google.protobuf.Timestamp
-}
+var (
+	file_types_microvm_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+	file_types_microvm_proto_msgTypes  = make([]protoimpl.MessageInfo, 18)
+	file_types_microvm_proto_goTypes   = []interface{}{
+		(NetworkInterface_IfaceType)(0), // 0: flintlock.types.NetworkInterface.IfaceType
+		(MicroVMStatus_MicroVMState)(0), // 1: flintlock.types.MicroVMStatus.MicroVMState
+		(Mount_MountType)(0),            // 2: flintlock.types.Mount.MountType
+		(*MicroVM)(nil),                 // 3: flintlock.types.MicroVM
+		(*MicroVMSpec)(nil),             // 4: flintlock.types.MicroVMSpec
+		(*Kernel)(nil),                  // 5: flintlock.types.Kernel
+		(*Initrd)(nil),                  // 6: flintlock.types.Initrd
+		(*NetworkInterface)(nil),        // 7: flintlock.types.NetworkInterface
+		(*StaticAddress)(nil),           // 8: flintlock.types.StaticAddress
+		(*Volume)(nil),                  // 9: flintlock.types.Volume
+		(*VolumeSource)(nil),            // 10: flintlock.types.VolumeSource
+		(*ContainerVolumeSource)(nil),   // 11: flintlock.types.ContainerVolumeSource
+		(*MicroVMStatus)(nil),           // 12: flintlock.types.MicroVMStatus
+		(*VolumeStatus)(nil),            // 13: flintlock.types.VolumeStatus
+		(*Mount)(nil),                   // 14: flintlock.types.Mount
+		(*NetworkInterfaceStatus)(nil),  // 15: flintlock.types.NetworkInterfaceStatus
+		nil,                             // 16: flintlock.types.MicroVMSpec.LabelsEntry
+		nil,                             // 17: flintlock.types.MicroVMSpec.MetadataEntry
+		nil,                             // 18: flintlock.types.Kernel.CmdlineEntry
+		nil,                             // 19: flintlock.types.MicroVMStatus.VolumesEntry
+		nil,                             // 20: flintlock.types.MicroVMStatus.NetworkInterfacesEntry
+		(*timestamppb.Timestamp)(nil),   // 21: google.protobuf.Timestamp
+	}
+)
+
 var file_types_microvm_proto_depIdxs = []int32{
 	4,  // 0: flintlock.types.MicroVM.spec:type_name -> flintlock.types.MicroVMSpec
 	12, // 1: flintlock.types.MicroVM.status:type_name -> flintlock.types.MicroVMStatus

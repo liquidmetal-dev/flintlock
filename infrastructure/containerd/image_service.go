@@ -11,10 +11,9 @@ import (
 	"github.com/containerd/containerd/snapshots"
 	"github.com/opencontainers/image-spec/identity"
 	"github.com/sirupsen/logrus"
-
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 )
 
 // NewImageService will create a new image service based on containerd with the supplied config.

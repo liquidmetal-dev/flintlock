@@ -80,11 +80,11 @@ Here is a non-exhaustive list of ways you can help out:
 
 1. Help out others in the [community slack channel][slack-channel], or in some [discussions][discussions]. :sos:
 
-1. Chime in on [bugs](https://github.com/weaveworks/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Fbug+), [feature requests](https://github.com/weaveworks/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Ffeature) and asks for [help][discussions]. :thought_balloon:
+1. Chime in on [bugs](https://github.com/weaveworks-liquidmetal/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Fbug+), [feature requests](https://github.com/weaveworks-liquidmetal/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Ffeature) and asks for [help][discussions]. :thought_balloon:
 
-1. Dig into some [`needs-investigation`](https://github.com/weaveworks/flintlock/labels/needs-investigation) or [`help wanted`](https://github.com/weaveworks/flintlock/labels/help-wanted) :detective:
+1. Dig into some [`needs-investigation`](https://github.com/weaveworks-liquidmetal/flintlock/labels/needs-investigation) or [`help wanted`](https://github.com/weaveworks-liquidmetal/flintlock/labels/help-wanted) :detective:
 
-1. Get involved in some [PR reviews](https://github.com/weaveworks/flintlock/pulls). :nerd_face:
+1. Get involved in some [PR reviews](https://github.com/weaveworks-liquidmetal/flintlock/pulls). :nerd_face:
 
 # Opening Issues
 
@@ -219,7 +219,7 @@ If you are not here to report a bug, ask for help or request some new behaviour,
 is the section for you. We have curated a set of issues for anyone who simply
 wants to build up their open-source cred :muscle:.
 
-- Issues labelled [`good first issue`](https://github.com/weaveworks/flintlock/labels/good%20first%20issue)
+- Issues labelled [`good first issue`](https://github.com/weaveworks-liquidmetal/flintlock/labels/good%20first%20issue)
   should be accessible to folks new to the repo, as well as to open source in general.
 
   These issues should present a low/non-existent barrier to entry with a thorough description,
@@ -235,7 +235,7 @@ wants to build up their open-source cred :muscle:.
 
   See more on [asking for help](#asking-for-help) below!
 
-- [`help wanted` issues](https://github.com/weaveworks/flintlock/labels/help%20wanted)
+- [`help wanted` issues](https://github.com/weaveworks-liquidmetal/flintlock/labels/help%20wanted)
   are for those a little more familiar with the code base, but should still be accessible enough
   to newcomers.
 
@@ -281,7 +281,7 @@ highlights some tools you can use to interact with the service.
 
 This project is written in Go. To be able to contribute you will need:
 
-1. A working Go installation of Go 1.17. You can check the
+1. A working Go installation of go 1.17. You can check the
 [official installation guide](https://golang.org/doc/install).
 
 2. Make sure that `$(go env GOPATH)/bin` is in your shell's `PATH`. You can do so by
@@ -358,7 +358,7 @@ and the E2E tests you can get to work :tada: .
 
 1. Make sure your commits are [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
 
-1. **All code contributions must be submitted with unit tests**. See [this package](https://github.com/weaveworks/flintlock/tree/main/core/steps/microvm)
+1. **All code contributions must be submitted with unit tests**. See [this package](https://github.com/weaveworks-liquidmetal/flintlock/tree/main/core/steps/microvm)
   package for a good example of tests.
 
 1. For extra special bonus points, if you see any tests missing from the area you are
@@ -470,7 +470,7 @@ the body of the commit should describe the _why_ and _how_.
 If you encountered any weirdness along the way, this is a good place
 to note what you discovered and how you solved it.
 
-An example of a stellar commit message can be found [here](https://github.com/weaveworks/flintlock/commit/7a30dd99dc7c05827ba11050505c476799bb2932).
+An example of a stellar commit message can be found [here](https://github.com/weaveworks-liquidmetal/flintlock/commit/7a30dd99dc7c05827ba11050505c476799bb2932).
 
 The format can be described more formally as follows:
 
@@ -497,7 +497,7 @@ The core team regularly processes incoming issues. There may be some delay over 
 
 Every issue will be assigned a `priority/<x>` label. The levels of priorities are:
 
-- [`critical-urgent`](https://github.com/weaveworks/flintlock/labels/priority%2Fcritical-urgent): These are time sensitive issues which should be picked up immediately.
+- [`critical-urgent`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fcritical-urgent): These are time sensitive issues which should be picked up immediately.
   If an issue labelled `critical` is not assigned or being actively worked on,
   someone is expected to drop what they're doing immediately to work on it.
   This usually means the core team, but community members are welcome to claim
@@ -506,13 +506,13 @@ Every issue will be assigned a `priority/<x>` label. The levels of priorities ar
   they will be paired with a core team-member to manage the tracking, communication and release of any fix
   as well as to assume responsibility of all progess._
 
-- [`important-soon`](https://github.com/weaveworks/flintlock/labels/priority%2Fimportant-soon): Must be assigned as soon as capacity becomes available.
+- [`important-soon`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fimportant-soon): Must be assigned as soon as capacity becomes available.
   Ideally something should be delivered in time for the next release.
 
-- [`important-longterm`](https://github.com/weaveworks/flintlock/labels/priority%2Fimportant-longterm): Important over the long term, but may not be currently
+- [`important-longterm`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fimportant-longterm): Important over the long term, but may not be currently
   staffed and/or may require multiple releases to complete.
 
-- [`backlog`](https://github.com/weaveworks/flintlock/labels/priority%2Fbacklog): There appears to be general agreement that this would be good to have,
+- [`backlog`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fbacklog): There appears to be general agreement that this would be good to have,
   but we may not have anyone available to work on it right now or in the immediate future.
   PRs are still very welcome, although it might take a while to get them reviewed if
   reviewers are fully occupied with higher priority issues, for example immediately before a release.
@@ -521,11 +521,11 @@ These priority categories have been inspired by [the Kubernetes contributing gui
 
 Other labels include:
 
-- [`adr-required`](https://github.com/weaveworks/flintlock/labels/adr-required):
+- [`adr-required`](https://github.com/weaveworks-liquidmetal/flintlock/labels/adr-required):
   Indicates that the issue or PR contains a decision that needs to be documented in a [ADR](#adrs-architectural-decision-records) _before_
   it can be worked on.
 
-- [`needs-investigation`](https://github.com/weaveworks/flintlock/labels/needs-investigation):  There is currently insufficient information to either categorize properly,
+- [`needs-investigation`](https://github.com/weaveworks-liquidmetal/flintlock/labels/needs-investigation):  There is currently insufficient information to either categorize properly,
   or to understand and implement a solution. This could be because the issue opener did
   not provide enough relevant information, or because more in-depth research is required
   before work can begin.
@@ -579,5 +579,5 @@ Contributors are also welcome to backfill ADRs if they are found to be missing.
 [user-docs]: https://docs.flintlock.dev/
 [slack-channel]: https://weave-community.slack.com/archives/C02KARWGR7S
 [quick-start]: ./docs/quick-start.md
-[discussions]: https://github.com/weaveworks/flintlock/discussions
+[discussions]: https://github.com/weaveworks-liquidmetal/flintlock/discussions
 [adr-template]: ./docs/adr/0000-template.md

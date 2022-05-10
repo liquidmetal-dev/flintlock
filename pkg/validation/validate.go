@@ -7,8 +7,7 @@ import (
 
 	"github.com/containerd/containerd/reference"
 	playgroundValidator "github.com/go-playground/validator/v10"
-
-	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 )
 
 type Validator interface {

@@ -6,16 +6,15 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"github.com/weaveworks-liquidmetal/flintlock/api/events"
+	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit"
+	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/instance"
+	coreerrs "github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 	"sigs.k8s.io/yaml"
-
-	"github.com/weaveworks/flintlock/api/events"
-	"github.com/weaveworks/flintlock/client/cloudinit"
-	"github.com/weaveworks/flintlock/client/cloudinit/instance"
-	coreerrs "github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/pkg/defaults"
-	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/weaveworks/flintlock/infrastructure/firecracker"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/firecracker"
 )
 
 func TestUnmarshallWithFCSample(t *testing.T) {

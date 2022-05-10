@@ -10,15 +10,14 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/spf13/cobra"
+	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
+	cmdflags "github.com/weaveworks-liquidmetal/flintlock/internal/command/flags"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/weaveworks-liquidmetal/flintlock/internal/version"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/flags"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
-	cmdflags "github.com/weaveworks/flintlock/internal/command/flags"
-	"github.com/weaveworks/flintlock/internal/config"
-	"github.com/weaveworks/flintlock/internal/version"
-	"github.com/weaveworks/flintlock/pkg/flags"
-	"github.com/weaveworks/flintlock/pkg/log"
 )
 
 // NewCommand creates a new cobra command for running the gRPC HTTP gateway.

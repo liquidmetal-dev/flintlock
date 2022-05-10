@@ -8,26 +8,26 @@ import (
 	"time"
 
 	g "github.com/onsi/gomega"
-	"github.com/weaveworks/flintlock/pkg/process"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/process"
 )
 
 func TestSendSignal(t *testing.T) {
 	g.RegisterTestingT(t)
 
-	//create a new process
+	// create a new process
 	p := exec.Command("sleep", "10")
 
-	//start the process
+	// start the process
 	err := p.Start()
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	err = process.SendSignal(p.Process.Pid, os.Kill)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
-	//release the pid
+	// release the pid
 	p.Wait()
 
-	//check if process exists
+	// check if process exists
 	exists, err := process.Exists(p.Process.Pid)
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(exists).To(g.BeFalse())
@@ -60,7 +60,7 @@ func TestWaitWithContext(t *testing.T) {
 			err := p.Start()
 			g.Expect(err).NotTo(g.HaveOccurred())
 
-			//wait on the process
+			// wait on the process
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(tc.timeout)*time.Second)
 			defer cancel()
 
@@ -69,7 +69,7 @@ func TestWaitWithContext(t *testing.T) {
 			err = process.WaitWithContext(ctx, p.Process.Pid)
 			g.Expect(err).NotTo(g.HaveOccurred())
 
-			//check if process exists
+			// check if process exists
 			exists, err := process.Exists(p.Process.Pid)
 			g.Expect(err).NotTo(g.HaveOccurred())
 			g.Expect(exists).To(g.BeFalse())

@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	. "github.com/onsi/gomega"
-	"github.com/weaveworks/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 )
 
 func TestValidation_Valid(t *testing.T) {

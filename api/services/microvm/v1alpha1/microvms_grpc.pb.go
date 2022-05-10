@@ -4,6 +4,7 @@ package v1alpha1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -114,21 +115,24 @@ type MicroVMServer interface {
 }
 
 // UnimplementedMicroVMServer should be embedded to have forward compatible implementations.
-type UnimplementedMicroVMServer struct {
-}
+type UnimplementedMicroVMServer struct{}
 
 func (UnimplementedMicroVMServer) CreateMicroVM(context.Context, *CreateMicroVMRequest) (*CreateMicroVMResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateMicroVM not implemented")
 }
+
 func (UnimplementedMicroVMServer) DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMicroVM not implemented")
 }
+
 func (UnimplementedMicroVMServer) GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMicroVM not implemented")
 }
+
 func (UnimplementedMicroVMServer) ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMicroVMs not implemented")
 }
+
 func (UnimplementedMicroVMServer) ListMicroVMsStream(*ListMicroVMsRequest, MicroVM_ListMicroVMsStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListMicroVMsStream not implemented")
 }

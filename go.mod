@@ -1,10 +1,10 @@
-module github.com/weaveworks/flintlock
+module github.com/weaveworks-liquidmetal/flintlock
 
 go 1.17
 
 replace (
-	github.com/weaveworks/flintlock/api => ./api
-	github.com/weaveworks/flintlock/client => ./client
+	github.com/weaveworks-liquidmetal/flintlock/api => ./api
+	github.com/weaveworks-liquidmetal/flintlock/client => ./client
 )
 
 require (
@@ -43,8 +43,8 @@ require (
 require (
 	github.com/gorilla/mux v1.8.0
 	github.com/urfave/cli/v2 v2.3.0
-	github.com/weaveworks/flintlock/api v0.0.0-20211217111250-5f8d70c4a581
-	github.com/weaveworks/flintlock/client v0.0.0-00010101000000-000000000000
+	github.com/weaveworks-liquidmetal/flintlock/api v0.0.0-20211217111250-5f8d70c4a581
+	github.com/weaveworks-liquidmetal/flintlock/client v0.0.0-00010101000000-000000000000
 	github.com/yitsushi/file-tailor v1.0.0
 	sigs.k8s.io/yaml v1.3.0
 )

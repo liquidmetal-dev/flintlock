@@ -12,13 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 	lgrtest "github.com/sirupsen/logrus/hooks/test"
 
-	"github.com/weaveworks/flintlock/api/events"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/infrastructure/controllers"
-	"github.com/weaveworks/flintlock/infrastructure/mock"
-	"github.com/weaveworks/flintlock/pkg/defaults"
-	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/api/events"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/controllers"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 )
 
 var (

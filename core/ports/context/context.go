@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 )
 
 type portsCtxKeyType string

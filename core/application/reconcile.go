@@ -6,15 +6,14 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/weaveworks/flintlock/api/events"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/plans"
-	"github.com/weaveworks/flintlock/core/ports"
-	portsctx "github.com/weaveworks/flintlock/core/ports/context"
-	"github.com/weaveworks/flintlock/pkg/defaults"
-	"github.com/weaveworks/flintlock/pkg/log"
-	"github.com/weaveworks/flintlock/pkg/planner"
+	"github.com/weaveworks-liquidmetal/flintlock/api/events"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/plans"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	portsctx "github.com/weaveworks-liquidmetal/flintlock/core/ports/context"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
 const backoffBaseInSeconds = 20

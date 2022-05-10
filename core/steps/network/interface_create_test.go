@@ -6,11 +6,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	g "github.com/onsi/gomega"
-	"github.com/weaveworks/flintlock/core/errors"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/core/steps/network"
-	"github.com/weaveworks/flintlock/infrastructure/mock"
+	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/core/steps/network"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
 )
 
 func TestNewNetworkInterface_everythingIsEmpty(t *testing.T) {

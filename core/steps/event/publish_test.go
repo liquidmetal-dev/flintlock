@@ -7,9 +7,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	g "github.com/onsi/gomega"
-	"github.com/weaveworks/flintlock/api/events"
-	"github.com/weaveworks/flintlock/core/steps/event"
-	"github.com/weaveworks/flintlock/infrastructure/mock"
+	"github.com/weaveworks-liquidmetal/flintlock/api/events"
+	"github.com/weaveworks-liquidmetal/flintlock/core/steps/event"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
 )
 
 const (

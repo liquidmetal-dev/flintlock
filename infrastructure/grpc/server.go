@@ -6,16 +6,15 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
+	"github.com/weaveworks-liquidmetal/flintlock/api/types"
+	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/validation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
-
-	mvmv1 "github.com/weaveworks/flintlock/api/services/microvm/v1alpha1"
-	"github.com/weaveworks/flintlock/api/types"
-	"github.com/weaveworks/flintlock/core/models"
-	"github.com/weaveworks/flintlock/core/ports"
-	"github.com/weaveworks/flintlock/pkg/log"
-	"github.com/weaveworks/flintlock/pkg/validation"
 )
 
 // NewServer creates a new server instance.

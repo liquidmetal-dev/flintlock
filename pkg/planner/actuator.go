@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/weaveworks/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 )
 
 // Actuator will execute the given plan.

@@ -3,7 +3,7 @@ package network_test
 import (
 	"strings"
 
-	"github.com/weaveworks/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 )
 
 type hostDeviceNameMatcher struct{}
