@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.1
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.2
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/oklog/ulid v1.3.1
 	github.com/onsi/ginkgo v1.16.5
