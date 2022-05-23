@@ -8,6 +8,8 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -29,10 +31,10 @@ jobs:
       uses: imjohnbo/issue-bot@v3
       id: issue
       with:
-        assignees: "Callisto13, yitsushi, jmickey, richardcase"
         title: 'Bump firecracker version to ${{ env.NEW_VERSION }}'
         pinned: false
-        close-previous: false
+        close-previous: true
+        assignees: "Callisto13, richardcase"
         rotate-assignees: true
         body: |-
           This is an automatically generated Issue to release a new version of
