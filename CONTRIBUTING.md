@@ -358,8 +358,9 @@ and the E2E tests you can get to work :tada: .
 
 1. Make sure your commits are [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
 
-1. **All code contributions must be submitted with unit tests**. See [this package](https://github.com/weaveworks-liquidmetal/flintlock/tree/main/core/steps/microvm)
-  package for a good example of tests.
+1. **All code contributions must be submitted with unit tests**. Read [this ADR](https://github.com/weaveworks-liquidmetal/flintlock/discussions/284)
+  for our guide on what counts as appropriate testing.
+  See [this package](https://github.com/weaveworks-liquidmetal/flintlock/tree/main/core/steps/microvm) package for a good example of tests.
 
 1. For extra special bonus points, if you see any tests missing from the area you are
   working on, please add them! It will be much appreciated :heart: .
