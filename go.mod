@@ -1,6 +1,6 @@
 module github.com/weaveworks-liquidmetal/flintlock
 
-go 1.17
+go 1.18
 
 replace (
 	github.com/weaveworks-liquidmetal/flintlock/api => ./api
