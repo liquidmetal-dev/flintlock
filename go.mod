@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.2
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.3
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/oklog/ulid v1.3.1
 	github.com/onsi/ginkgo v1.16.5
@@ -37,7 +37,7 @@ require (
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.0
-	gopkg.in/yaml.v3 v3.0.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
