@@ -8,7 +8,7 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'weaveworks' }}
+    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'weaveworks-liquidmetal' }}
     env:
       PROJECT_NAME: "flintlock_nightly_e2e"
     name: e2e tests
