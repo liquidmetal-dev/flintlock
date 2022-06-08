@@ -1,4 +1,5 @@
 run:
+    go: "1.18"
     timeout: 10m
     tests: false
     allow-parallel-runners: true
@@ -10,9 +11,9 @@ linters-settings:
     lines: 110
     statements: 60
   staticcheck:
-    go: "1.17"
+    go: "1.18"
   stylecheck:
-    go: "1.17"
+    go: "1.18"
   cyclop:
     max-complexity: 15
     skip-tests: true
@@ -85,6 +86,10 @@ issues:
     linters:
     - goerr113
     - gomnd
+  # remove this once https://github.com/golangci/golangci-lint/issues/2649 is closed
+  - path: /
+    linters:
+    - typecheck
 
 linters:
   enable-all: true
