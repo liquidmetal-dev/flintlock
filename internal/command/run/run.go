@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"sync"
 
+	grpc_mw "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -17,7 +19,7 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/inject"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/version"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/auth"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/flags"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 	"google.golang.org/grpc"
@@ -48,14 +50,9 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	}
 
 	cmdflags.AddGRPCServerFlagsToCommand(cmd, cfg)
-
-	if err := cmdflags.AddContainerDFlagsToCommand(cmd, cfg); err != nil {
-		return nil, fmt.Errorf("adding containerd flags to run command: %w", err)
-	}
-
-	if err := cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg); err != nil {
-		return nil, fmt.Errorf("adding firecracker flags to run command: %w", err)
-	}
+	cmdflags.AddAuthFlagsToCommand(cmd, cfg)
+	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
+	cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)
@@ -64,10 +61,6 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	if err := cmdflags.AddHiddenFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding hidden flags to run command: %w", err)
 	}
-
-	cmd.Flags().StringVar(&cfg.StateRootDir, "state-dir", defaults.StateRootDir, "The directory to use for the as the root for runtime state.")
-	cmd.Flags().DurationVar(&cfg.ResyncPeriod, "resync-period", defaults.ResyncPeriod, "Reconcile the specs to resynchronise them based on this period.")
-	cmd.Flags().DurationVar(&cfg.DeleteVMTimeout, "deleteMicroVM-timeout", defaults.DeleteVMTimeout, "The timeout for deleting a microvm.")
 
 	return cmd, nil
 }
@@ -127,11 +120,8 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 
 	app := inject.InitializeApp(cfg, ports)
 	server := inject.InitializeGRPCServer(app)
+	grpcServer := grpc.NewServer(withOpts(ctx, cfg.BasicAuthToken)...)
 
-	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-	)
 	mvmv1.RegisterMicroVMServer(grpcServer, server)
 	grpc_prometheus.Register(grpcServer)
 	http.Handle("/metrics", promhttp.Handler())
@@ -177,4 +167,30 @@ func runControllers(ctx context.Context, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+func withOpts(ctx context.Context, authToken string) []grpc.ServerOption {
+	logger := log.GetLogger(ctx)
+
+	if authToken != "" {
+		logger.Info("basic authentication is enabled")
+
+		return []grpc.ServerOption{
+			grpc.StreamInterceptor(grpc_mw.ChainStreamServer(
+				grpc_prometheus.StreamServerInterceptor,
+				grpc_auth.StreamServerInterceptor(auth.BasicAuthFunc(authToken)),
+			)),
+			grpc.UnaryInterceptor(grpc_mw.ChainUnaryServer(
+				grpc_prometheus.UnaryServerInterceptor,
+				grpc_auth.UnaryServerInterceptor(auth.BasicAuthFunc(authToken)),
+			)),
+		}
+	}
+
+	logger.Warn("authentication is DISABLED")
+
+	return []grpc.ServerOption{
+		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+	}
 }

@@ -20,6 +20,7 @@ const (
 	kernelSnapshotterFlag = "containerd-kernel-ss"
 	containerdNamespace   = "containerd-ns"
 	maximumRetryFlag      = "maximum-retry"
+	basicAuthTokenFlag    = "basic-auth-token"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -28,6 +29,21 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		grpcEndpointFlag,
 		defaults.GRPCAPIEndpoint,
 		"The endpoint for the gRPC server to listen on.")
+
+	cmd.Flags().StringVar(&cfg.StateRootDir,
+		"state-dir",
+		defaults.StateRootDir,
+		"The directory to use for the as the root for runtime state.")
+
+	cmd.Flags().DurationVar(&cfg.ResyncPeriod,
+		"resync-period",
+		defaults.ResyncPeriod,
+		"Reconcile the specs to resynchronise them based on this period.")
+
+	cmd.Flags().DurationVar(&cfg.DeleteVMTimeout,
+		"deleteMicroVM-timeout",
+		defaults.DeleteVMTimeout,
+		"The timeout for deleting a microvm.")
 }
 
 // AddGWServerFlagsToCommand will add gRPC HTTP gateway flags to the supplied command.
@@ -43,6 +59,15 @@ func AddGWServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"The endpoint for the HTTP proxy to the gRPC service to listen on.")
 }
 
+// AddAuthFlagsToCommand will add various auth method flags to the command.
+func AddAuthFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().StringVar(&cfg.BasicAuthToken,
+		basicAuthTokenFlag,
+		"",
+		"The token to use for very basic token based authentication.")
+}
+
+// AddNetworkFlagsToCommand will add various network flags to the command.
 func AddNetworkFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 	cmd.Flags().StringVar(&cfg.ParentIface,
 		parentIfaceFlag,
@@ -56,6 +81,7 @@ func AddNetworkFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 	return nil
 }
 
+// AddHiddenFlagsToCommand will add hidden flags to the supplied command.
 func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 	cmd.Flags().BoolVar(&cfg.DisableReconcile,
 		disableReconcileFlag,
@@ -88,7 +114,7 @@ func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 }
 
 // AddFirecrackerFlagsToCommand will add the firecracker provider specific flags to the supplied cobra command.
-func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
+func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.FirecrackerBin,
 		firecrackerBinFlag,
 		defaults.FirecrackerBin,
@@ -97,12 +123,10 @@ func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error 
 		firecrackerDetachFlag,
 		defaults.FirecrackerDetach,
 		"If true the child firecracker processes will be detached from the parent flintlock process.")
-
-	return nil
 }
 
 // AddContainerDFlagsToCommand will add the containerd specific flags to the supplied cobra command.
-func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
+func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.CtrSocketPath,
 		containerdSocketFlag,
 		defaults.ContainerdSocket,
@@ -117,6 +141,4 @@ func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 		containerdNamespace,
 		defaults.ContainerdNamespace,
 		"The name of the containerd namespace to use.")
-
-	return nil
 }
