@@ -42,6 +42,7 @@ require (
 
 require (
 	github.com/gorilla/mux v1.8.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/urfave/cli/v2 v2.8.1
 	github.com/weaveworks-liquidmetal/flintlock/api v0.0.0-20211217111250-5f8d70c4a581
 	github.com/weaveworks-liquidmetal/flintlock/client v0.0.0-00010101000000-000000000000
