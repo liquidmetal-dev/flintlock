@@ -8,7 +8,7 @@ ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
 
 # Versions
-BUF_VERSION := v1.0.0-rc10
+BUF_VERSION := v1.5.0
 
 # Directories
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
