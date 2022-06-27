@@ -29,6 +29,12 @@ func TestServer_CreateMicroVM(t *testing.T) {
 			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
 		},
 		{
+			name:        "nil spec should fail with error",
+			createReq:   &mvm1.CreateMicroVMRequest{},
+			expectError: true,
+			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
+		},
+		{
 			name:        "missing id should fail with error",
 			createReq:   createTestCreateRequest("", ""),
 			expectError: true,
@@ -459,7 +465,6 @@ func createTestCreateRequest(id, namespace string) *mvm1.CreateMicroVMRequest {
 			RootVolume: &types.Volume{
 				Id:         "root",
 				IsReadOnly: false,
-				MountPoint: "/",
 				Source: &types.VolumeSource{
 					ContainerSource: &containerSource,
 				},

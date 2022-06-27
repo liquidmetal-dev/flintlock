@@ -50,7 +50,7 @@ func TestValidation_Invalid(t *testing.T) {
 	}{
 		{
 			name:      "nil spec should fail validation with 5 errors",
-			numErrors: 7,
+			numErrors: 6,
 			vmspec:    models.MicroVM{},
 		},
 		{
@@ -70,7 +70,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			name:      "should fail validation when there is no root volume",
-			numErrors: 2,
+			numErrors: 1,
 			vmspec:    invalidVolumes,
 		},
 	}
@@ -114,11 +114,11 @@ var basicMicroVM = models.MicroVM{
 			Filename: "vmlinux",
 		},
 		RootVolume: models.Volume{
-			MountPoint: "/",
+			ID: "my_root",
 		},
 		AdditionalVolumes: models.Volumes{
 			{
-				MountPoint: "/mnt/vol1",
+				ID: "my-extra",
 			},
 		},
 	},

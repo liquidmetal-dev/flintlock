@@ -21,6 +21,11 @@ const (
 	containerdNamespace   = "containerd-ns"
 	maximumRetryFlag      = "maximum-retry"
 	basicAuthTokenFlag    = "basic-auth-token"
+	insecureFlag          = "insecure"
+	tlsCertFlag           = "tls-cert"
+	tlsKeyFlag            = "tls-key"
+	tlsClientValidateFlag = "tls-client-validate"
+	tlsClientCAFlag       = "tls-client-ca"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -65,6 +70,34 @@ func AddAuthFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		basicAuthTokenFlag,
 		"",
 		"The token to use for very basic token based authentication.")
+}
+
+// AddTLSFlagsToCommand will add TLS-related flags to the given command.
+func AddTLSFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().BoolVar(&cfg.TLS.Insecure,
+		insecureFlag,
+		false,
+		"Run the gRPC server insecurely (i.e. without TLS). Not recommended.")
+
+	cmd.Flags().StringVar(&cfg.TLS.CertFile,
+		tlsCertFlag,
+		"",
+		"Path to the certificate to use for TLS.")
+
+	cmd.Flags().StringVar(&cfg.TLS.KeyFile,
+		tlsKeyFlag,
+		"",
+		"Path to the key to use for TLS.")
+
+	cmd.Flags().BoolVar(&cfg.TLS.ValidateClient,
+		tlsClientValidateFlag,
+		false,
+		"Validate the certificates of clients calling the gRPC server.")
+
+	cmd.Flags().StringVar(&cfg.TLS.ClientCAFile,
+		tlsClientCAFlag,
+		"",
+		"Path to the certificate to use when validating client certificates.")
 }
 
 // AddNetworkFlagsToCommand will add various network flags to the command.
