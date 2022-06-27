@@ -125,12 +125,11 @@ message StaticAddress {
 
 // Volume represents the configuration for a volume to be attached to a microvm.
 message Volume {
+  reserved 3;
   // ID is the uinique identifier of the volume.
   string id = 1;
   // IsReadOnly specifies that the volume is to be mounted readonly.
   bool is_read_only = 2;
-  // MountPoint is the mount point for the volume in the microvm.
-  string mount_point = 3;
   // Source is where the volume will be sourced from.
   VolumeSource source = 4;
   // PartitionID is the uuid of the boot partition.

@@ -88,7 +88,6 @@ func createTestSpec(name, ns string) *models.MicroVM {
 			RootVolume: models.Volume{
 				ID:         "root",
 				IsReadOnly: false,
-				MountPoint: "/",
 				Source: models.VolumeSource{
 					Container: &models.ContainerVolumeSource{
 						Image: "docker.io/library/ubuntu:myimage",

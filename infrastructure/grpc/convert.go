@@ -122,7 +122,6 @@ func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.Netw
 func convertVolumeToModel(volume *types.Volume) *models.Volume {
 	convertedVol := &models.Volume{
 		ID:         volume.Id,
-		MountPoint: volume.MountPoint,
 		IsReadOnly: volume.IsReadOnly,
 	}
 
@@ -194,7 +193,6 @@ func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 func convertModelToVolumne(modelVolume *models.Volume) *types.Volume {
 	convertedVol := &types.Volume{
 		Id:          modelVolume.ID,
-		MountPoint:  modelVolume.MountPoint,
 		IsReadOnly:  modelVolume.IsReadOnly,
 		PartitionId: &modelVolume.PartitionID,
 		SizeInMb:    &modelVolume.Size,

@@ -21,7 +21,6 @@
       {
         "id": "root",
         "is_read_only": false,
-        "mount_point": "/",
         "source": {
           "container_source": "docker.io/richardcase/ubuntu-bionic-test:cloudimage_v0.0.1"
         }
