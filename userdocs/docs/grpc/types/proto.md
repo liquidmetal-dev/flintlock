@@ -311,7 +311,6 @@ Volume represents the configuration for a volume to be attached to a microvm.
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  | ID is the uinique identifier of the volume. |
 | is_read_only | [bool](#bool) |  | IsReadOnly specifies that the volume is to be mounted readonly. |
-| mount_point | [string](#string) |  | MountPoint is the mount point for the volume in the microvm. |
 | source | [VolumeSource](#flintlock.types.VolumeSource) |  | Source is where the volume will be sourced from. |
 | partition_id | [string](#string) | optional | PartitionID is the uuid of the boot partition. |
 | size_in_mb | [int32](#int32) | optional | Size is the size to resize this volume to.

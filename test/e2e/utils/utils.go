@@ -101,7 +101,6 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 		RootVolume: &types.Volume{
 			Id:         "root",
 			IsReadOnly: true,
-			MountPoint: "/",
 			Source: &types.VolumeSource{
 				ContainerSource: pointyString(cloudImage),
 			},

@@ -465,7 +465,6 @@ func createTestCreateRequest(id, namespace string) *mvm1.CreateMicroVMRequest {
 			RootVolume: &types.Volume{
 				Id:         "root",
 				IsReadOnly: false,
-				MountPoint: "/",
 				Source: &types.VolumeSource{
 					ContainerSource: &containerSource,
 				},

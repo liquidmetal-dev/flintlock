@@ -640,7 +640,6 @@ func createTestSpecWithMetadata(name, ns, uid string, metadata map[string]string
 			RootVolume: models.Volume{
 				ID:         "root",
 				IsReadOnly: false,
-				MountPoint: "/",
 				Source: models.VolumeSource{
 					Container: &models.ContainerVolumeSource{
 						Image: "docker.io/library/ubuntu:groovy",
