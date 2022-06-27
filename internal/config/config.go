@@ -42,4 +42,20 @@ type Config struct {
 	DeleteVMTimeout time.Duration
 	// BasicAuthToken is the static token to use for very basic authentication.
 	BasicAuthToken string
+	// TLS holds the TLS related configuration.
+	TLS TLSConfig
+}
+
+// TLSConfig holds the configuration for TLS.
+type TLSConfig struct {
+	// Insecure indicates if we should start the server insecurely (i.e. without TLS).
+	Insecure bool
+	// CertFile is the path to the certificate file to use.
+	CertFile string
+	// KeyFile is the path to the certificate key file to use.
+	KeyFile string
+	// ValidateClient indicates if the client certificates should be validated.
+	ValidateClient bool
+	// ClientCAFile is the path to a CA certificate file to use when validating client certificates.
+	ClientCAFile string
 }

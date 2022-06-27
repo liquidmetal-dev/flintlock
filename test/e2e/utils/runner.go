@@ -209,7 +209,9 @@ func (r *Runner) startFlintlockd() {
 	flCmd := exec.Command(r.flintlockdBin, "run",
 		"--containerd-socket", containerdSocket,
 		"--parent-iface", parentIface,
-		"--verbosity", r.params.FlintlockdLogLevel)
+		"--verbosity", r.params.FlintlockdLogLevel,
+		"--insecure",
+	)
 	flSess, err := gexec.Start(flCmd, gk.GinkgoWriter, gk.GinkgoWriter)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 

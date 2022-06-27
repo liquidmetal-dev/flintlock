@@ -23,7 +23,7 @@ ${0} [flags] -s service -m method>
   -s/--service service   name of the service; default: ${service}
   -m/--method method     name of the method on the service; default: ${method}
   --uid uid              uuid of the microvm
-  --namespace namespace  namespace to query; default: ${ns1}
+  --namespace namespace  namespace to query; default: ${namespace}
   -h/--help              help
 
 Special:

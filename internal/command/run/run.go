@@ -51,6 +51,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 
 	cmdflags.AddGRPCServerFlagsToCommand(cmd, cfg)
 	cmdflags.AddAuthFlagsToCommand(cmd, cfg)
+	cmdflags.AddTLSFlagsToCommand(cmd, cfg)
 	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
 	cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg)
 
@@ -113,6 +114,10 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 func serveAPI(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
+	if err := cfg.TLS.Validate(); err != nil {
+		return fmt.Errorf("validating tls config: %w", err)
+	}
+
 	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
 		return fmt.Errorf("initialising ports for application: %w", err)
@@ -120,7 +125,13 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 
 	app := inject.InitializeApp(cfg, ports)
 	server := inject.InitializeGRPCServer(app)
-	grpcServer := grpc.NewServer(withOpts(ctx, cfg.BasicAuthToken)...)
+
+	serverOpts, err := generateOpts(ctx, cfg)
+	if err != nil {
+		return err
+	}
+
+	grpcServer := grpc.NewServer(serverOpts...)
 
 	mvmv1.RegisterMicroVMServer(grpcServer, server)
 	grpc_prometheus.Register(grpcServer)
@@ -169,28 +180,43 @@ func runControllers(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func withOpts(ctx context.Context, authToken string) []grpc.ServerOption {
+func generateOpts(ctx context.Context, cfg *config.Config) ([]grpc.ServerOption, error) {
 	logger := log.GetLogger(ctx)
 
-	if authToken != "" {
-		logger.Info("basic authentication is enabled")
-
-		return []grpc.ServerOption{
-			grpc.StreamInterceptor(grpc_mw.ChainStreamServer(
-				grpc_prometheus.StreamServerInterceptor,
-				grpc_auth.StreamServerInterceptor(auth.BasicAuthFunc(authToken)),
-			)),
-			grpc.UnaryInterceptor(grpc_mw.ChainUnaryServer(
-				grpc_prometheus.UnaryServerInterceptor,
-				grpc_auth.UnaryServerInterceptor(auth.BasicAuthFunc(authToken)),
-			)),
-		}
-	}
-
-	logger.Warn("authentication is DISABLED")
-
-	return []grpc.ServerOption{
+	opts := []grpc.ServerOption{
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 	}
+
+	if cfg.BasicAuthToken != "" {
+		logger.Info("basic authentication is enabled")
+
+		opts = []grpc.ServerOption{
+			grpc.StreamInterceptor(grpc_mw.ChainStreamServer(
+				grpc_prometheus.StreamServerInterceptor,
+				grpc_auth.StreamServerInterceptor(auth.BasicAuthFunc(cfg.BasicAuthToken)),
+			)),
+			grpc.UnaryInterceptor(grpc_mw.ChainUnaryServer(
+				grpc_prometheus.UnaryServerInterceptor,
+				grpc_auth.UnaryServerInterceptor(auth.BasicAuthFunc(cfg.BasicAuthToken)),
+			)),
+		}
+	} else {
+		logger.Warn("basic authentication is DISABLED")
+	}
+
+	if !cfg.TLS.Insecure {
+		logger.Info("TLS is enabled")
+
+		creds, err := auth.LoadTLSForGRPC(&cfg.TLS)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, grpc.Creds(creds))
+	} else {
+		logger.Warn("TLS is DISABLED")
+	}
+
+	return opts, nil
 }

@@ -302,7 +302,8 @@ NET_DEVICE=$(ip route show | awk '/default/ {print $5}')
 
 sudo ./bin/flintlockd run \
   --containerd-socket=/run/containerd-dev/containerd.sock \
-  --parent-iface="${NET_DEVICE}"
+  --parent-iface="${NET_DEVICE}" \
+  --insecure
 ```
 
 If you're running `flintlockd` from within a Vagrant VM, or anywhere different
@@ -330,7 +331,7 @@ There are both GUI and a CLI option.
 ### hammertime
 
 [Hammertime](https://github.com/Callisto13/hammertime) is a cli client built
-with the soel purpose of interacting with Flintlock services.
+with the sole purpose of interacting with Flintlock services.
 
 ### grpc-client-cli
 
