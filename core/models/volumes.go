@@ -6,8 +6,6 @@ type Volume struct {
 	ID string `json:"id"`
 	// IsReadOnly specifies that the volume is to be mounted readonly.
 	IsReadOnly bool `json:"is_read_only,omitempty"`
-	// MountPoint is the mount point for the volume in the microvm.
-	MountPoint string `json:"mount_point" validate:"required,startswith=/"`
 	// Source is where the volume will be sourced from.
 	Source VolumeSource `json:"source"`
 	// PartitionID is the uuid of the boot partition.

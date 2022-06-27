@@ -26,7 +26,6 @@ func testVMWithMount() *models.MicroVM {
 			RootVolume: models.Volume{
 				ID:         "rootVolume",
 				IsReadOnly: true,
-				MountPoint: "/",
 				Source: models.VolumeSource{
 					Container: &models.ContainerVolumeSource{
 						Image: "myimage:tag",
@@ -38,7 +37,6 @@ func testVMWithMount() *models.MicroVM {
 				models.Volume{
 					ID:         "homeVolume",
 					IsReadOnly: false,
-					MountPoint: "/home",
 					Source: models.VolumeSource{
 						Container: &models.ContainerVolumeSource{
 							Image: "myhomeimage:tag",
