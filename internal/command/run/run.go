@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -41,6 +42,10 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 				version.BuildDate,
 				version.CommitHash,
 			)
+
+			if cfg.ParentIface == "" && cfg.BridgeName == "" {
+				return errors.New("You must supply at least one of parent interface, bridge name")
+			}
 
 			return nil
 		},

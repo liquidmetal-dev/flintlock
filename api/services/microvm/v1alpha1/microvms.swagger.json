@@ -404,6 +404,10 @@
         "address": {
           "$ref": "#/definitions/typesStaticAddress",
           "description": "Address is an optional static IP address to manually assign to this interface. \nIf not supplied then DHCP will be used."
+        },
+        "overrides": {
+          "$ref": "#/definitions/typesNetworkOverrides",
+          "description": "Overrides is optional overrides applicable for network configuration."
         }
       }
     },
@@ -424,6 +428,16 @@
           "description": "MACAddress is the MAC address of the host interface."
         }
       }
+    },
+    "typesNetworkOverrides": {
+      "type": "object",
+      "properties": {
+        "bridgeName": {
+          "type": "string",
+          "description": "BridgeName is the name of the Linux bridge to attach TAP devices to. This overrides\nany value set at the overall flintlock level."
+        }
+      },
+      "description": "NetworkOverrides represents override values for a network interface."
     },
     "typesStaticAddress": {
       "type": "object",

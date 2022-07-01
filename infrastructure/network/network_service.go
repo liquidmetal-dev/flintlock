@@ -17,16 +17,19 @@ import (
 
 type Config struct {
 	ParentDeviceName string
+	BridgeName       string
 }
 
 func New(cfg *Config) ports.NetworkService {
 	return &networkService{
 		parentDeviceName: cfg.ParentDeviceName,
+		bridgeName:       cfg.BridgeName,
 	}
 }
 
 type networkService struct {
 	parentDeviceName string
+	bridgeName       string
 }
 
 // IfaceCreate will create the network interface.
@@ -47,14 +50,20 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 		err        error
 	)
 
-	if input.Type == models.IfaceTypeMacvtap {
-		if n.parentDeviceName == "" {
-			return nil, errors.ErrParentIfaceRequired
+	parentDeviceName := n.getParentIfaceName(input)
+	if parentDeviceName == "" {
+		if input.Type == models.IfaceTypeMacvtap {
+			return nil, errors.ErrParentIfaceRequiredForMacvtap
 		}
+		if input.Type == models.IfaceTypeTap && input.Attach {
+			return nil, errors.ErrParentIfaceRequiredForAttachingTap
+		}
+	}
 
-		parentLink, err = netlink.LinkByName(n.parentDeviceName)
+	if parentDeviceName != "" {
+		parentLink, err = netlink.LinkByName(parentDeviceName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lookup parent network interface %q: %w", n.parentDeviceName, err)
+			return nil, fmt.Errorf("failed to lookup parent network interface %q: %w", parentDeviceName, err)
 		}
 	}
 
@@ -112,6 +121,14 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 	}
 
 	logger.Debugf("created interface with mac %s", macIf.Attrs().HardwareAddr.String())
+
+	if input.Type == models.IfaceTypeTap && input.Attach {
+		if err := netlink.LinkSetMaster(macIf, parentLink); err != nil {
+			return nil, fmt.Errorf("setting master for %s to %s: %w", macIf.Attrs().Name, parentLink.Attrs().Name, err)
+		}
+
+		logger.Debugf("added interface %s to bridge %s", macIf.Attrs().Name, parentLink.Attrs().Name)
+	}
 
 	return &ports.IfaceDetails{
 		DeviceName: input.DeviceName,
@@ -208,4 +225,16 @@ func (n *networkService) getIface(name string) (bool, netlink.Link, error) {
 	}
 
 	return true, link, nil
+}
+
+func (n *networkService) getParentIfaceName(input ports.IfaceCreateInput) string {
+	if input.Type == models.IfaceTypeMacvtap {
+		return n.parentDeviceName
+	}
+
+	if input.BridgeName != "" {
+		return input.BridgeName
+	}
+
+	return n.bridgeName
 }

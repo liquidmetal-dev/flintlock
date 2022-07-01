@@ -108,6 +108,9 @@ func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.Netw
 			converted.StaticAddress.Nameservers = append(converted.StaticAddress.Nameservers, nameserver)
 		}
 	}
+	if netInt.Overrides != nil {
+		converted.BridgeName = *netInt.Overrides.BridgeName
+	}
 
 	switch netInt.Type {
 	case types.NetworkInterface_MACVTAP:

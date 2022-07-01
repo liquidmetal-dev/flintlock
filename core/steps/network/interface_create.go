@@ -109,6 +109,12 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 		DeviceName: deviceName,
 		Type:       s.iface.Type,
 		MAC:        s.iface.GuestMAC,
+		Attach:     true,
+		BridgeName: s.iface.BridgeName,
+	}
+
+	if s.iface.Type == models.IfaceTypeTap && s.iface.AllowMetadataRequests {
+		input.Attach = false
 	}
 
 	output, err := s.svc.IfaceCreate(ctx, *input)

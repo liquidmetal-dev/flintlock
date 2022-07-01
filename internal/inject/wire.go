@@ -76,6 +76,7 @@ func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 func networkConfig(cfg *config.Config) *network.Config {
 	return &network.Config{
 		ParentDeviceName: cfg.ParentIface,
+		BridgeName:       cfg.BridgeName,
 	}
 }
 

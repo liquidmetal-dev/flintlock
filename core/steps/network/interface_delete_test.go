@@ -169,7 +169,7 @@ func TestDeleteNetworkInterface_IfaceExistsError(t *testing.T) {
 
 	svc.EXPECT().
 		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
-		Return(false, errors.ErrParentIfaceRequired).
+		Return(false, errors.ErrParentIfaceRequiredForAttachingTap).
 		Times(2)
 
 	step := network.DeleteNetworkInterface(vmid, iface, svc)
@@ -179,7 +179,7 @@ func TestDeleteNetworkInterface_IfaceExistsError(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeFalse())
 
 	_, err = step.Do(ctx)
-	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequired))
+	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequiredForAttachingTap))
 
 	verifyErr := step.Verify(ctx)
 	g.Expect(verifyErr).To(g.BeNil())
