@@ -24,6 +24,8 @@ type Config struct {
 	StateRootDir string
 	// ParentIface is the name of the network interface to use for the parent in macvtap interfaces.
 	ParentIface string
+	// BridgeName is the name of the Linux bridge to attach tap devices to be default.
+	BridgeName string
 	// CtrSnapshotterKernel is the name of the containerd snapshotter to use for kernel images.
 	CtrSnapshotterKernel string
 	// CtrSocketPath is the path to the containerd socket.

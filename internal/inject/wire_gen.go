@@ -8,8 +8,6 @@ package inject
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/spf13/afero"
 	"github.com/weaveworks-liquidmetal/flintlock/core/application"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
@@ -21,6 +19,7 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/ulid"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"time"
 )
 
 // Injectors from wire.go:
@@ -91,6 +90,7 @@ func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 func networkConfig(cfg *config.Config) *network.Config {
 	return &network.Config{
 		ParentDeviceName: cfg.ParentIface,
+		BridgeName:       cfg.BridgeName,
 	}
 }
 

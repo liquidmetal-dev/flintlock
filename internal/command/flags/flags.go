@@ -12,6 +12,7 @@ const (
 	grpcEndpointFlag      = "grpc-endpoint"
 	httpEndpointFlag      = "http-endpoint"
 	parentIfaceFlag       = "parent-iface"
+	bridgeNameFlag        = "bridge-name"
 	disableReconcileFlag  = "disable-reconcile"
 	disableAPIFlag        = "disable-api"
 	firecrackerBinFlag    = "firecracker-bin"
@@ -107,9 +108,11 @@ func AddNetworkFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 		"",
 		"The parent iface for the network interfaces. Note it could also be a bond")
 
-	if err := cmd.MarkFlagRequired(parentIfaceFlag); err != nil {
-		return fmt.Errorf("setting %s as required: %w", parentIfaceFlag, err)
-	}
+	cmd.Flags().StringVar(
+		&cfg.BridgeName,
+		bridgeNameFlag,
+		"",
+		"The name of the Linux bridge to attach tap devices to by default")
 
 	return nil
 }

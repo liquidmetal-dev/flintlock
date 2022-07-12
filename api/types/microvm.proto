@@ -110,6 +110,9 @@ message NetworkInterface {
   // Address is an optional static IP address to manually assign to this interface. 
   // If not supplied then DHCP will be used.
   optional StaticAddress address = 5;
+  // Overrides is optional overrides applicable for network configuration.
+  optional NetworkOverrides overrides = 6;
+
 }
 
 // StaticAddress represents a static IPv4 or IPv6 address.
@@ -200,4 +203,11 @@ message NetworkInterfaceStatus {
   int32 index = 2;
   // MACAddress is the MAC address of the host interface.
   string mac_address = 3;
+}
+
+// NetworkOverrides represents override values for a network interface.
+message NetworkOverrides {
+  // BridgeName is the name of the Linux bridge to attach TAP devices to. This overrides
+  // any value set at the overall flintlock level.
+  optional string bridge_name = 1;
 }

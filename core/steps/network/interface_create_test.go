@@ -211,6 +211,7 @@ func TestNewNetworkInterface_missingInterface(t *testing.T) {
 		IfaceCreate(gomock.Eq(ctx), gomock.Eq(ports.IfaceCreateInput{
 			DeviceName: expectedTapDeviceName,
 			MAC:        defaultMACAddress,
+			Attach:     true,
 		})).
 		Return(&ports.IfaceDetails{
 			DeviceName: expectedTapDeviceName,
@@ -239,7 +240,7 @@ func TestNewNetworkInterface_svcError(t *testing.T) {
 
 	svc.EXPECT().
 		IfaceExists(gomock.Eq(ctx), gomock.Eq(expectedTapDeviceName)).
-		Return(false, errors.ErrParentIfaceRequired).
+		Return(false, errors.ErrParentIfaceRequiredForAttachingTap).
 		Times(2)
 
 	step := network.NewNetworkInterface(vmid, iface, status, svc)
@@ -249,7 +250,7 @@ func TestNewNetworkInterface_svcError(t *testing.T) {
 	g.Expect(shouldDo).To(g.BeFalse())
 
 	_, err = step.Do(ctx)
-	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequired))
+	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequiredForAttachingTap))
 
 	verifyErr := step.Verify(ctx)
 	g.Expect(verifyErr).To(g.BeNil())
@@ -322,11 +323,11 @@ func TestNewNetworkInterface_createError(t *testing.T) {
 
 	svc.EXPECT().
 		IfaceCreate(gomock.Eq(ctx), &ifaceCreateInputMatcher{}).
-		Return(nil, errors.ErrParentIfaceRequired).
+		Return(nil, errors.ErrParentIfaceRequiredForAttachingTap).
 		Times(1)
 
 	_, err = step.Do(ctx)
-	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequired))
+	g.Expect(err).To(g.MatchError(errors.ErrParentIfaceRequiredForAttachingTap))
 
 	verifyErr := step.Verify(ctx)
 	g.Expect(verifyErr).To(g.BeNil())
