@@ -8,7 +8,6 @@ set -o pipefail
 DEFAULT_CA_CN="Liquid Metal Dev CA"
 DEFAULT_HOST_NAME="$(hostname)"
 DEFAULT_CLIENT_CN_NAME="Liquid Metal Client 1"
-DEFAULT_CF_SSL_BINARY
 
 ## HELPER FUNCS
 #
