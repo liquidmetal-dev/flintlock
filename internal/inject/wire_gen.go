@@ -23,7 +23,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitializePorts(microvmProviderName string, cfg *config.Config) (*ports.Collection, error) {
+func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	config2 := containerdConfig(cfg)
 	microVMRepository, err := containerd.NewMicroVMRepo(config2)
 	if err != nil {
@@ -32,7 +32,7 @@ func InitializePorts(microvmProviderName string, cfg *config.Config) (*ports.Col
 	config3 := networkConfig(cfg)
 	networkService := network.New(config3)
 	fs := afero.NewOsFs()
-	microVMService, err := microvm.New(microvmProviderName, cfg, networkService, fs)
+	v, err := microvm.NewFromConfig(cfg, networkService, fs)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func InitializePorts(microvmProviderName string, cfg *config.Config) (*ports.Col
 	if err != nil {
 		return nil, err
 	}
-	collection := appPorts(microVMRepository, microVMService, eventService, idService, networkService, imageService, fs)
+	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs)
 	return collection, nil
 }
 
@@ -90,15 +90,16 @@ func networkConfig(cfg *config.Config) *network.Config {
 
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
-		RootStateDir: cfg.StateRootDir,
-		MaximumRetry: cfg.MaximumRetry,
+		RootStateDir:    cfg.StateRootDir,
+		MaximumRetry:    cfg.MaximumRetry,
+		DefaultProvider: cfg.DefaultVMProvider,
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
-		Provider:          prov,
+		MicrovmProviders:  providers,
 		EventService:      es,
 		IdentifierService: is,
 		NetworkService:    ns,

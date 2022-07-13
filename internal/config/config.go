@@ -50,6 +50,8 @@ type Config struct {
 	BasicAuthToken string
 	// TLS holds the TLS related configuration.
 	TLS TLSConfig
+	// DefaultVMProvider specifies the name of the microvm provider to use by default.
+	DefaultVMProvider string
 }
 
 // TLSConfig holds the configuration for TLS.

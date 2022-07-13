@@ -21,13 +21,13 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
-func InitializePorts(microvmProviderName string, cfg *config.Config) (*ports.Collection, error) {
+func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	wire.Build(containerd.NewEventService,
 		containerd.NewImageService,
 		containerd.NewMicroVMRepo,
 		ulid.New,
-		microvm.New,
 		network.New,
+		microvm.NewFromConfig,
 		appPorts,
 		containerdConfig,
 		networkConfig,
@@ -72,15 +72,16 @@ func networkConfig(cfg *config.Config) *network.Config {
 
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
-		RootStateDir: cfg.StateRootDir,
-		MaximumRetry: cfg.MaximumRetry,
+		RootStateDir:    cfg.StateRootDir,
+		MaximumRetry:    cfg.MaximumRetry,
+		DefaultProvider: cfg.DefaultVMProvider,
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
-		Provider:          prov,
+		MicrovmProviders:  providers,
 		EventService:      es,
 		IdentifierService: is,
 		NetworkService:    ns,

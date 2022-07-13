@@ -29,6 +29,25 @@ func New(name string, cfg *config.Config, networkSvc ports.NetworkService, fs af
 	}
 }
 
+// NewFromConfig will create instances of the vm providers based on the config.
+func NewFromConfig(cfg *config.Config, networkSvc ports.NetworkService, fs afero.Fs) (map[string]ports.MicroVMService, error) {
+	providers := map[string]ports.MicroVMService{}
+
+	//TODO: handle this better, disable flags????
+	if cfg.CloudHypervisorBin != "" {
+		providers[cloudhypervisor.ProviderName] = cloudhypervisor.New(cloudHypervisorConfig(cfg), networkSvc, fs)
+	}
+	if cfg.FirecrackerBin != "" {
+		providers[firecracker.ProviderName] = firecracker.New(firecrackerConfig(cfg), networkSvc, fs)
+	}
+
+	if len(providers) == 0 {
+		return nil, errors.New("you must enable at least 1 microvm provider")
+	}
+
+	return providers, nil
+}
+
 func GetProviderNames() []string {
 	return []string{
 		firecracker.ProviderName,

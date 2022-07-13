@@ -8,7 +8,7 @@ import (
 
 type Collection struct {
 	Repo              MicroVMRepository
-	Provider          MicroVMService
+	MicrovmProviders  map[string]MicroVMService
 	EventService      EventService
 	IdentifierService IDService
 	NetworkService    NetworkService

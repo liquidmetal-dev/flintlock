@@ -15,19 +15,18 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
 	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/cloudhypervisor"
 	cmdflags "github.com/weaveworks-liquidmetal/flintlock/internal/command/flags"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/inject"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/version"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/auth"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/flags"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // NewCommand creates a new cobra command for running flintlock.
@@ -35,7 +34,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Start running the flintlock API",
-		PersistentPreRunE: func(c *cobra.Command, _ []string) error {
+		PreRunE: func(c *cobra.Command, _ []string) error {
 			flags.BindCommandToViper(c)
 
 			logger := log.GetLogger(c.Context())
@@ -50,65 +49,45 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 				return errors.New("You must supply at least one of parent interface, bridge name")
 			}
 
+			providerFound := false
+			for _, supportedProvider := range microvm.GetProviderNames() {
+				if supportedProvider == cfg.DefaultVMProvider {
+					providerFound = true
+					break
+				}
+			}
+			if !providerFound {
+				return fmt.Errorf("The provided default provider name %s isn't a supported provider", cfg.DefaultVMProvider)
+			}
+
 			return nil
 		},
 		RunE: func(c *cobra.Command, _ []string) error {
-			return c.Help()
+			return runServer(c.Context(), cfg)
 		},
 	}
 
-	//TODO: how should we handle these
+	cmdflags.AddGRPCServerFlagsToCommand(cmd, cfg)
 	cmdflags.AddAuthFlagsToCommand(cmd, cfg)
 	cmdflags.AddTLSFlagsToCommand(cmd, cfg)
+	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
+	cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg)
+	cmdflags.AddCloudHypervisorFlagsToCommand(cmd, cfg)
 
-	// Add persistent flags
-	cmdflags.AddGRPCServerPersistentFlags(cmd, cfg)
+	cmd.Flags().StringVar(&cfg.DefaultVMProvider, "default-provider", cloudhypervisor.ProviderName, "The name of the microvm provider to use by default if not supplied in the create request.")
 
-	if err := cmdflags.AddContainerDPersistentFlags(cmd, cfg); err != nil {
-		return nil, fmt.Errorf("adding containerd flags to run command: %w", err)
-	}
-
-	if err := cmdflags.AddNetworkPersistentFlags(cmd, cfg); err != nil {
+	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)
 	}
 
-	if err := cmdflags.AddHiddenPersistentFlags(cmd, cfg); err != nil {
+	if err := cmdflags.AddHiddenFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding hidden flags to run command: %w", err)
 	}
 
-	cmd.PersistentFlags().StringVar(&cfg.StateRootDir, "state-dir", defaults.StateRootDir, "The directory to use for the as the root for runtime state.")
-	cmd.PersistentFlags().DurationVar(&cfg.ResyncPeriod, "resync-period", defaults.ResyncPeriod, "Reconcile the specs to resynchronise them based on this period.")
-	cmd.PersistentFlags().DurationVar(&cfg.DeleteVMTimeout, "deleteMicroVM-timeout", defaults.DeleteVMTimeout, "The timeout for deleting a microvm.")
-
-	for _, providerName := range microvm.GetProviderNames() {
-		providerCmd, err := createProviderCommand(providerName, cfg)
-		if err != nil {
-			return nil, fmt.Errorf("creating command for %s provider: %w", providerName, err)
-		}
-
-		cmd.AddCommand(providerCmd)
-	}
-
 	return cmd, nil
 }
 
-func createProviderCommand(name string, cfg *config.Config) (*cobra.Command, error) {
-	cmd := &cobra.Command{
-		Use:   name,
-		Short: fmt.Sprintf("Start running the flintlock API with %s", name),
-		RunE: func(c *cobra.Command, _ []string) error {
-			return runServer(c.Context(), name, cfg)
-		},
-	}
-
-	if err := cmdflags.AddMicrovmServiceFlags(name, cmd, cfg); err != nil {
-		return nil, fmt.Errorf("adding microvm service flags to run command: %w", err)
-	}
-
-	return cmd, nil
-}
-
-func runServer(ctx context.Context, providerName string, cfg *config.Config) error {
+func runServer(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 	logger.Info("flintlockd grpc api server starting")
 
@@ -124,7 +103,7 @@ func runServer(ctx context.Context, providerName string, cfg *config.Config) err
 		go func() {
 			defer wg.Done()
 
-			if err := serveAPI(ctx, providerName, cfg); err != nil {
+			if err := serveAPI(ctx, cfg); err != nil {
 				logger.Errorf("failed serving api: %v", err)
 			}
 		}()
@@ -136,7 +115,7 @@ func runServer(ctx context.Context, providerName string, cfg *config.Config) err
 		go func() {
 			defer wg.Done()
 
-			if err := runControllers(ctx, providerName, cfg); err != nil {
+			if err := runControllers(ctx, cfg); err != nil {
 				logger.Errorf("failed running controllers: %v", err)
 			}
 		}()
@@ -153,14 +132,14 @@ func runServer(ctx context.Context, providerName string, cfg *config.Config) err
 	return nil
 }
 
-func serveAPI(ctx context.Context, providerName string, cfg *config.Config) error {
+func serveAPI(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
 	if err := cfg.TLS.Validate(); err != nil {
 		return fmt.Errorf("validating tls config: %w", err)
 	}
 
-	ports, err := inject.InitializePorts(providerName, cfg)
+	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
 		return fmt.Errorf("initialising ports for application: %w", err)
 	}
@@ -202,10 +181,10 @@ func serveAPI(ctx context.Context, providerName string, cfg *config.Config) erro
 	return nil
 }
 
-func runControllers(ctx context.Context, providerName string, cfg *config.Config) error {
+func runControllers(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx)
 
-	ports, err := inject.InitializePorts(providerName, cfg)
+	ports, err := inject.InitializePorts(cfg)
 	if err != nil {
 		return fmt.Errorf("initialising ports for controller: %w", err)
 	}

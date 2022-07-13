@@ -37,6 +37,10 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		},
 	}
 
+	if spec.Provider != nil && *spec.Provider != "" {
+		convertedModel.Spec.Provider = *spec.Provider
+	}
+
 	if convertedModel.Spec.VCPU == 0 {
 		convertedModel.Spec.VCPU = defaults.VCPU
 	}

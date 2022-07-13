@@ -43,7 +43,7 @@ func NewCommand(cfg *config.Config) *cobra.Command {
 		},
 	}
 
-	cmdflags.AddGWServerPersistentFlags(cmd, cfg)
+	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
 
 	return cmd
 }
