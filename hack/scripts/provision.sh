@@ -196,15 +196,6 @@ latest_release_tag() {
 	echo "$url"
 }
 
-# Returns the tag associated with a "latest" pre-release (pre-releases do not show
-# up in the API as used in the above latest_release_tag func)
-latest_pre_release_tag() {
-	local repo_name="$1"
-	tag=$(git ls-remote --tags --sort="v:refname" "https://github.com/$repo_name" |
-		tail -n 1 | sed 's/.*\///; s/\^{}//')
-	echo "$tag"
-}
-
 # Install the untarred binary attached to a release to /usr/local/bin
 install_release_bin() {
 	local download_url="$1"
@@ -295,7 +286,7 @@ install_flintlockd() {
 	say "Installing flintlockd version $tag to $INSTALL_PATH"
 
 	if [[ "$tag" == "$DEFAULT_VERSION" ]]; then
-		tag=$(latest_pre_release_tag "$FLINTLOCK_REPO")
+		tag=$(latest_release_tag "$FLINTLOCK_REPO")
 	fi
 
 	url=$(build_download_url "$FLINTLOCK_REPO" "$tag" "$FLINTLOCK_RELEASE_BIN")
