@@ -52,11 +52,18 @@ The table below shows you which versions of Firecracker are compatible with Flin
 
 | Flintlock         | Firecracker        |
 | ----------------- | ------------------ |
+| <= v0.1.0         | <= v0.25.2-macvtap |
 | <= v0.1.0-alpha.6 | <= v0.25.2-macvtap |
 |    v0.1.0-alpha.7 | **Do not use**     |
 |    v0.1.0-alpha.8 | <= v0.25.2-macvtap |
 
-> Note: Flintlock currently requires a custom build of Firecracker available [here](https://github.com/weaveworks/firecracker/releases).
+> Note: Flintlock currently requires a custom build of Firecracker available [here][fc-fork].
+
+> Note: Due to upstream development issues, Flintlock in future will only support
+Firecracker [`v0.25.2-macvtap`][fc-fork]. We will not maintain any versions beyond this.
+In future releases of Flintlock, Cloud Hypervisor will be the default and recommended
+MicroVM driver.
+
 ## License
 
 [MPL-2.0 License][license]
@@ -68,3 +75,4 @@ The table below shows you which versions of Firecracker are compatible with Flin
 [milestones]: https://github.com/weaveworks-liquidmetal/flintlock/milestones
 [adr]: ./docs/adr
 [license]: ./LICENSE
+[fc-fork]: https://github.com/weaveworks/firecracker/releases
