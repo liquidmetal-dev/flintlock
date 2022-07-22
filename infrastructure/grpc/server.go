@@ -2,16 +2,13 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/go-playground/validator/v10"
 	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
 	"github.com/weaveworks-liquidmetal/flintlock/api/types"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/validation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -22,14 +19,12 @@ func NewServer(commandUC ports.MicroVMCommandUseCases, queryUC ports.MicroVMQuer
 	return &server{
 		commandUC: commandUC,
 		queryUC:   queryUC,
-		validator: validation.NewValidator(),
 	}
 }
 
 type server struct {
 	commandUC ports.MicroVMCommandUseCases
 	queryUC   ports.MicroVMQueryUseCases
-	validator validation.Validator
 }
 
 func (s *server) CreateMicroVM(
@@ -51,24 +46,7 @@ func (s *server) CreateMicroVM(
 		return nil, fmt.Errorf("converting request: %w", err)
 	}
 
-	logger.Trace("validating model")
-
-	var valErrors validator.ValidationErrors
-
-	if err = s.validator.ValidateStruct(modelSpec); err != nil {
-		if errors.As(err, &valErrors) {
-			return nil, status.Errorf(
-				codes.InvalidArgument,
-				"an error occurred when attempting to validate the request: %v",
-				err,
-			)
-		}
-
-		return nil, status.Errorf(codes.Internal, "an error occurred: %v", err)
-	}
-
 	logger.Infof("creating microvm %s", modelSpec.ID)
-
 	createdModel, err := s.commandUC.CreateMicroVM(ctx, modelSpec)
 	if err != nil {
 		logger.Errorf("failed to create microvm: %s", err)

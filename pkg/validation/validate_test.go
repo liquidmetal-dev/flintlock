@@ -49,8 +49,8 @@ func TestValidation_Invalid(t *testing.T) {
 		vmspec    models.MicroVM
 	}{
 		{
-			name:      "nil spec should fail validation with 5 errors",
-			numErrors: 6,
+			name:      "nil spec should fail validation with 8 errors",
+			numErrors: 8,
 			vmspec:    models.MicroVM{},
 		},
 		{
@@ -70,7 +70,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			name:      "should fail validation when there is no root volume",
-			numErrors: 1,
+			numErrors: 3,
 			vmspec:    invalidVolumes,
 		},
 	}
@@ -110,15 +110,25 @@ var basicMicroVM = models.MicroVM{
 		},
 		CreatedAt: time.Now().Add(-100 * time.Second).Unix(),
 		Kernel: models.Kernel{
-			Image:    "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
+			Image:    "docker.io/someone/ubuntu-bionic-kernel:0.0.11",
 			Filename: "vmlinux",
 		},
 		RootVolume: models.Volume{
 			ID: "my_root",
+			Source: models.VolumeSource{
+				Container: &models.ContainerVolumeSource{
+					Image: "docker.io/someone/ubuntu-base:20.04",
+				},
+			},
 		},
 		AdditionalVolumes: models.Volumes{
 			{
 				ID: "my-extra",
+				Source: models.VolumeSource{
+					HostPath: &models.HostPathVolumeSource{
+						Path: "/host/vm/1234/data.img",
+					},
+				},
 			},
 		},
 	},

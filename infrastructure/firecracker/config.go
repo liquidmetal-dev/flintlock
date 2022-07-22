@@ -30,7 +30,7 @@ func CreateConfig(opts ...ConfigOption) (*VmmConfig, error) {
 	return cfg, nil
 }
 
-func WithMicroVM(vm *models.MicroVM) ConfigOption {
+func WithMicroVM(vm *models.MicroVM, useMMDSForCI bool) ConfigOption {
 	return func(cfg *VmmConfig) error {
 		if vm == nil {
 			return errors.ErrSpecRequired
@@ -39,9 +39,10 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		cfg.MachineConfig = MachineConfig{
 			MemSizeMib: vm.Spec.MemoryInMb,
 			VcpuCount:  vm.Spec.VCPU,
-			HTEnabled:  false,
+			SMT:        true,
 		}
 
+		mmdsNetDevices := []string{}
 		cfg.NetDevices = []NetworkInterfaceConfig{}
 
 		for i := range vm.Spec.NetworkInterfaces {
@@ -54,6 +55,15 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 
 			fcInt := createNetworkIface(&iface, status)
 			cfg.NetDevices = append(cfg.NetDevices, *fcInt)
+			if iface.AllowMetadataRequests {
+				mmdsNetDevices = append(mmdsNetDevices, fcInt.IfaceID)
+			}
+		}
+		cfg.Mmds = &MMDSConfig{
+			Version: MMDSVersion1,
+		}
+		if len(mmdsNetDevices) > 0 {
+			cfg.Mmds.NetworkInterfaces = mmdsNetDevices
 		}
 
 		cfg.BlockDevices = []BlockDeviceConfig{}
@@ -69,6 +79,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			IsRootDevice: true,
 			PathOnHost:   rootVolumeStatus.Mount.Source,
 			CacheType:    CacheTypeUnsafe,
+			//FileEngineType: FileEngineTypeSync,
 		})
 
 		for _, vol := range vm.Spec.AdditionalVolumes {
@@ -88,7 +99,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			})
 		}
 
-		kernelCmdLine := DefaultKernelCmdLine()
+		kernelCmdLine := DefaultKernelCmdLine(useMMDSForCI)
 
 		for key, value := range vm.Spec.Kernel.CmdLine {
 			kernelCmdLine.Set(key, value)
@@ -138,8 +149,8 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 //
 // Read more:
 // https://www.kernel.org/doc/html/v5.15/admin-guide/kernel-parameters.html
-func DefaultKernelCmdLine() config.KernelCmdLine {
-	return config.KernelCmdLine{
+func DefaultKernelCmdLine(useMMDSForCI bool) config.KernelCmdLine {
+	cmdLine := config.KernelCmdLine{
 		"console":       "ttyS0",
 		"reboot":        "k",
 		"panic":         "1",
@@ -148,8 +159,12 @@ func DefaultKernelCmdLine() config.KernelCmdLine {
 		"i8042.nomux":   "",
 		"i8042.nopnp":   "",
 		"i8042.dumbkbd": "",
-		"ds":            "nocloud-net;s=http://169.254.169.254/latest/",
 	}
+	if useMMDSForCI {
+		cmdLine["ds"] = "nocloud-net;s=http://169.254.169.254/latest/"
+	}
+
+	return cmdLine
 }
 
 func WithState(vmState State) ConfigOption {
@@ -181,10 +196,9 @@ func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkIn
 	}
 
 	netInt := &NetworkInterfaceConfig{
-		IfaceID:           iface.GuestDeviceName,
-		HostDevName:       hostDevName,
-		GuestMAC:          macAddr,
-		AllowMMDSRequests: iface.AllowMetadataRequests,
+		IfaceID:     iface.GuestDeviceName,
+		HostDevName: hostDevName,
+		GuestMAC:    macAddr,
 	}
 
 	return netInt

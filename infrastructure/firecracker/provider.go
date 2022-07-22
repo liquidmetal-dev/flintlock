@@ -27,6 +27,8 @@ type Config struct {
 	RunDetached bool
 	// DeleteVMTimeout is the timeout to wait for the microvm to be deleted.
 	DeleteVMTimeout time.Duration
+	// CloudInitFromMMDS if true will setup cloud-init to run from the MMDS instead of a volume.
+	CloudInitFromMMDS bool
 }
 
 // New creates a new instance of the firecracker microvm provider.

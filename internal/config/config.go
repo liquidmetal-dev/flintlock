@@ -20,6 +20,8 @@ type Config struct {
 	FirecrackerBin string
 	// FirecrackerDetatch indicates if the child firecracker processes should be detached from their parent.
 	FirecrackerDetatch bool
+	// FirecrackerCloudInitFromMMDS if true will setup cloud-init to run from the MMDS instead of a volume.
+	FirecrackerCloudInitFromMMDS bool
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
 	// ParentIface is the name of the network interface to use for the parent in macvtap interfaces.

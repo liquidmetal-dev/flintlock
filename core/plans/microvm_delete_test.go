@@ -81,19 +81,6 @@ func TestMicroVMDeletePlan(t *testing.T) {
 	steps, createErr := plan.Create(ctx)
 
 	Expect(createErr).NotTo(HaveOccurred())
-	Expect(steps).To(HaveLen(4))
-
-	for _, step := range steps {
-		should, err := step.ShouldDo(ctx)
-
-		Expect(err).NotTo(HaveOccurred())
-		Expect(should).To(BeTrue())
-
-		if should {
-			extraSteps, err := step.Do(ctx)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(extraSteps).To(BeNil())
-		}
-	}
+	Expect(steps).To(HaveLen(5))
+	executeSteps(ctx, steps)
 }

@@ -21,6 +21,7 @@ type mockList struct {
 	MicroVMService    *mock.MockMicroVMService
 	NetworkService    *mock.MockNetworkService
 	ImageService      *mock.MockImageService
+	DiskService       *mock.MockDiskService
 }
 
 func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
@@ -31,6 +32,7 @@ func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
 		MicroVMService:    mock.NewMockMicroVMService(mockCtrl),
 		NetworkService:    mock.NewMockNetworkService(mockCtrl),
 		ImageService:      mock.NewMockImageService(mockCtrl),
+		DiskService:       mock.NewMockDiskService(mockCtrl),
 	}
 
 	return mList, &ports.Collection{
@@ -42,6 +44,7 @@ func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
 		ImageService:      mList.ImageService,
 		FileSystem:        afero.NewMemMapFs(),
 		Clock:             time.Now,
+		DiskService:       mList.DiskService,
 	}
 }
 
@@ -93,7 +96,6 @@ func createTestSpec(name, ns string) *models.MicroVM {
 						Image: "docker.io/library/ubuntu:myimage",
 					},
 				},
-				Size: 20000,
 			},
 			CreatedAt: 1,
 			UpdatedAt: 0,

@@ -234,6 +234,23 @@
       },
       "description": "Kernel represents the configuration for a kernel."
     },
+    "typesMetadata": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Items allows you to specify data items that present the metadata. The key is the name\nof the metadata item and the value is the base64 encoded contents of the metadata."
+        },
+        "addVolume": {
+          "type": "boolean",
+          "description": "AddVolume is set to true will add the metadata items to a volume and attach it as the second\ndisk (vdb). Defaults to false."
+        }
+      },
+      "description": "Metadata represents the metadata for the microvm."
+    },
     "typesMicroVM": {
       "type": "object",
       "properties": {
@@ -307,11 +324,8 @@
           "description": "Interfaces specifies the network interfaces to be attached to the microvm.\nDevice names on the guest machine are determined by the order defined in\nthe list starting from eth1, eth2, ..., ethN."
         },
         "metadata": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Metadata allows you to specify data to be added to the metadata service. The key is the name\nof the metadata item and the value is the base64 encoded contents of the metadata."
+          "$ref": "#/definitions/typesMetadata",
+          "description": "Metadata allows you to specify metadata for the microvm."
         },
         "createdAt": {
           "type": "string",
@@ -474,15 +488,6 @@
         "source": {
           "$ref": "#/definitions/typesVolumeSource",
           "description": "Source is where the volume will be sourced from."
-        },
-        "partitionId": {
-          "type": "string",
-          "description": "PartitionID is the uuid of the boot partition."
-        },
-        "sizeInMb": {
-          "type": "integer",
-          "format": "int32",
-          "description": "Size is the size to resize this volume to."
         }
       },
       "description": "Volume represents the configuration for a volume to be attached to a microvm."

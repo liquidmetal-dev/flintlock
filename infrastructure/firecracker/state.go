@@ -31,13 +31,18 @@ type State interface {
 	SetConfig(cfg *VmmConfig) error
 
 	MetadataPath() string
+	CloudInitImage() string
+	AdditionalMetadata() string
+
 	Metadata() (Metadata, error)
 	SetMetadata(meta *Metadata) error
+
+	SocketPath() string
 }
 
 func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
 	return &fsState{
-		stateRoot: fmt.Sprintf("%s/%s", stateDir, vmid.String()),
+		stateRoot: stateDir,
 		fs:        fs,
 	}
 }
@@ -73,6 +78,10 @@ func (s *fsState) StdoutPath() string {
 
 func (s *fsState) StderrPath() string {
 	return fmt.Sprintf("%s/firecracker.stderr", s.stateRoot)
+}
+
+func (s *fsState) SocketPath() string {
+	return fmt.Sprintf("%s/firecracker.sock", s.stateRoot)
 }
 
 func (s *fsState) SetPid(pid int) error {
@@ -140,6 +149,14 @@ func (s *fsState) Metadata() (Metadata, error) {
 
 func (s *fsState) MetadataPath() string {
 	return fmt.Sprintf("%s/metadata.json", s.stateRoot)
+}
+
+func (s *fsState) CloudInitImage() string {
+	return fmt.Sprintf("%s/cloud-init.img", s.stateRoot)
+}
+
+func (s *fsState) AdditionalMetadata() string {
+	return fmt.Sprintf("%s/data.img", s.stateRoot)
 }
 
 func (s *fsState) pidReadFromFile(pidFile string) (int, error) {

@@ -30,10 +30,11 @@ func TestApp_CreateMicroVM(t *testing.T) {
 	frozenTime := time.Now
 
 	testCases := []struct {
-		name         string
-		specToCreate *models.MicroVM
-		expectError  bool
-		expect       func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder)
+		name                 string
+		specToCreate         *models.MicroVM
+		expectError          bool
+		expectErrorToContain string
+		expect               func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder)
 	}{
 		{
 			name:        "nil spec, should fail",
@@ -182,6 +183,22 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				)
 			},
 		},
+		{
+			name:                 "spec with additional volume but no volume source, should fail",
+			specToCreate:         createTestSpecWithAdditionalVolume("id1234", "default", testUID, "addvol", "", ""),
+			expectError:          true,
+			expectErrorToContain: "volumeSourceRequired",
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
+		{
+			name:                 "spec with additional volume with container & hostpath source, should fail",
+			specToCreate:         createTestSpecWithAdditionalVolume("id1234", "default", testUID, "addvol", "docker.io/someone/somedata:latest", "/host/mydata.img"),
+			expectError:          true,
+			expectErrorToContain: "volumeSourceOnlyOne",
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -217,6 +234,9 @@ func TestApp_CreateMicroVM(t *testing.T) {
 
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
+				if tc.expectErrorToContain != "" {
+					Expect(err.Error()).To(ContainSubstring(tc.expectErrorToContain))
+				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -630,11 +650,12 @@ func createTestSpecWithMetadata(name, ns, uid string, metadata map[string]string
 					AllowMetadataRequests: true,
 					GuestMAC:              "AA:FF:00:00:00:01",
 					GuestDeviceName:       "eth0",
+					Type:                  models.IfaceTypeTap,
 				},
 				{
 					AllowMetadataRequests: false,
 					GuestDeviceName:       "eth1",
-					// TODO:
+					Type:                  models.IfaceTypeMacvtap,
 				},
 			},
 			RootVolume: models.Volume{
@@ -645,14 +666,39 @@ func createTestSpecWithMetadata(name, ns, uid string, metadata map[string]string
 						Image: "docker.io/library/ubuntu:groovy",
 					},
 				},
-				Size: 20000,
 			},
-			Metadata:  metadata,
+			Metadata: models.Metadata{
+				Items: metadata,
+			},
 			CreatedAt: 0,
 			UpdatedAt: 0,
 			DeletedAt: 0,
 		},
 	}
+}
+
+func createTestSpecWithAdditionalVolume(name, ns, uid, volName, volContainerSource, volHostPathSource string) *models.MicroVM {
+	mvm := createTestSpecWithMetadata(name, ns, uid, map[string]string{})
+	vol := models.Volume{
+		ID:         volName,
+		IsReadOnly: true,
+		Source:     models.VolumeSource{},
+	}
+	if volContainerSource != "" {
+		vol.Source.Container = &models.ContainerVolumeSource{
+			Image: models.ContainerImage(volContainerSource),
+		}
+	}
+	if volHostPathSource != "" {
+		vol.Source.HostPath = &models.HostPathVolumeSource{
+			Path: volHostPathSource,
+		}
+	}
+	mvm.Spec.AdditionalVolumes = models.Volumes{
+		vol,
+	}
+
+	return mvm
 }
 
 func createInstanceMetadatadata(t *testing.T, instanceID string) map[string]string {

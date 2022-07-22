@@ -72,7 +72,7 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, fmt.Errorf("adding network steps: %w", err)
 	}
 
-	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.stateDir, ports.FileSystem)); err != nil {
+	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.vm.Status.RuntimeStateDir, ports.FileSystem)); err != nil {
 		return nil, fmt.Errorf("adding root dir step: %w", err)
 	}
 

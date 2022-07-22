@@ -31,7 +31,6 @@ func testVMWithMount() *models.MicroVM {
 						Image: "myimage:tag",
 					},
 				},
-				Size: 20,
 			},
 			AdditionalVolumes: models.Volumes{
 				models.Volume{
@@ -42,7 +41,6 @@ func testVMWithMount() *models.MicroVM {
 							Image: "myhomeimage:tag",
 						},
 					},
-					Size: 50,
 				},
 			},
 			VCPU:       1,

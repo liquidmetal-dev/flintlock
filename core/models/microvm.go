@@ -38,10 +38,9 @@ type MicroVMSpec struct {
 	// RootVolume specified the root volume to be attached to the machine.
 	RootVolume Volume `json:"root_volume" validate:"required"`
 	// AdditionalVolumes specifies the volumes to be attached to the machine.
-	AdditionalVolumes Volumes `json:"additional_volumes"`
-	// Metadata allows you to specify data to be added to the metadata service. The key is the name
-	// of the metadata item and the value is the base64 encoded contents of the metadata.
-	Metadata map[string]string `json:"metadata"`
+	AdditionalVolumes Volumes `json:"additional_volumes" validate:"dive"`
+	// Metadata allows you to specify metadata for the microvm..
+	Metadata Metadata `json:"metadata"`
 	// CreatedAt indicates the time the microvm was created at.
 	CreatedAt int64 `json:"created_at" validate:"omitempty,datetimeInPast"`
 	// UpdatedAt indicates the time the microvm was last updated.
@@ -66,6 +65,8 @@ type MicroVMStatus struct {
 	Retry int `json:"retry"`
 	// NotBefore tells the system to do not reconcile until given timestamp.
 	NotBefore int64 `json:"not_before" validate:"omitempty"`
+	// RuntimeStateDir stores the directory on the host where the microvms runtime state is stored.
+	RuntimeStateDir string `json:"runtime_state_dir,omitempty"`
 }
 
 type Initrd struct {
@@ -80,3 +81,13 @@ type ContainerImage string
 
 // ListMicroVMQuery is a key-value map to query microvms.
 type ListMicroVMQuery map[string]string
+
+type Metadata struct {
+	// Items allows you to specify data items that are metadata about the microvm. The key is the name
+	// of the metadata item and the value is the base64 encoded contents of the metadata. This can be used
+	// for things like cloud-init or for instance data.
+	Items map[string]string `json:"items"`
+	// AddVolume is set to true will add the metadata items to a volume and attach it as the second
+	// disk (vdb). Defaults to false.
+	AddVolume bool `json:"add_volume"`
+}

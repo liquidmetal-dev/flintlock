@@ -6,7 +6,7 @@ import (
 
 func newMetadataInterface() *models.NetworkInterface {
 	return &models.NetworkInterface{
-		GuestDeviceName:       "mmds",
+		GuestDeviceName:       "eth0",
 		Type:                  models.IfaceTypeTap,
 		AllowMetadataRequests: true,
 		GuestMAC:              "AA:FF:00:00:00:01",

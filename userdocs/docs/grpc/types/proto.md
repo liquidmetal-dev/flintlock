@@ -8,10 +8,11 @@
     - [Initrd](#flintlock.types.Initrd)
     - [Kernel](#flintlock.types.Kernel)
     - [Kernel.CmdlineEntry](#flintlock.types.Kernel.CmdlineEntry)
+    - [Metadata](#flintlock.types.Metadata)
+    - [Metadata.ItemsEntry](#flintlock.types.Metadata.ItemsEntry)
     - [MicroVM](#flintlock.types.MicroVM)
     - [MicroVMSpec](#flintlock.types.MicroVMSpec)
     - [MicroVMSpec.LabelsEntry](#flintlock.types.MicroVMSpec.LabelsEntry)
-    - [MicroVMSpec.MetadataEntry](#flintlock.types.MicroVMSpec.MetadataEntry)
     - [MicroVMStatus](#flintlock.types.MicroVMStatus)
     - [MicroVMStatus.NetworkInterfacesEntry](#flintlock.types.MicroVMStatus.NetworkInterfacesEntry)
     - [MicroVMStatus.VolumesEntry](#flintlock.types.MicroVMStatus.VolumesEntry)
@@ -104,6 +105,38 @@ Kernel represents the configuration for a kernel.
 
 
 
+<a name="flintlock.types.Metadata"></a>
+
+### Metadata
+Metadata represents the metadata for the microvm.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| items | [Metadata.ItemsEntry](#flintlock.types.Metadata.ItemsEntry) | repeated | Items allows you to specify data items that present the metadata. The key is the name of the metadata item and the value is the base64 encoded contents of the metadata. |
+| add_volume | [bool](#bool) | optional | AddVolume is set to true will add the metadata items to a volume and attach it as the second disk (vdb). Defaults to false. |
+
+
+
+
+
+
+<a name="flintlock.types.Metadata.ItemsEntry"></a>
+
+### Metadata.ItemsEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="flintlock.types.MicroVM"></a>
 
 ### MicroVM
@@ -139,7 +172,7 @@ MicroVMSpec represents the specification for a microvm.
 | root_volume | [Volume](#flintlock.types.Volume) |  | RootVolume specifies the root volume mount for the MicroVM. |
 | additional_volumes | [Volume](#flintlock.types.Volume) | repeated | AdditionalVolumes specifies the volumes to be attached to the microvm. |
 | interfaces | [NetworkInterface](#flintlock.types.NetworkInterface) | repeated | Interfaces specifies the network interfaces to be attached to the microvm. Device names on the guest machine are determined by the order defined in the list starting from eth1, eth2, ..., ethN. |
-| metadata | [MicroVMSpec.MetadataEntry](#flintlock.types.MicroVMSpec.MetadataEntry) | repeated | Metadata allows you to specify data to be added to the metadata service. The key is the name of the metadata item and the value is the base64 encoded contents of the metadata. |
+| metadata | [Metadata](#flintlock.types.Metadata) |  | Metadata allows you to specify metadata for the microvm. |
 | created_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | CreatedAt indicates the time the microvm was created at. |
 | updated_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | UpdatedAt indicates the time the microvm was last updated. |
 | deleted_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | DeletedAt indicates the time the microvm was marked as deleted. |
@@ -153,22 +186,6 @@ MicroVMSpec represents the specification for a microvm.
 <a name="flintlock.types.MicroVMSpec.LabelsEntry"></a>
 
 ### MicroVMSpec.LabelsEntry
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| key | [string](#string) |  |  |
-| value | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="flintlock.types.MicroVMSpec.MetadataEntry"></a>
-
-### MicroVMSpec.MetadataEntry
 
 
 
@@ -328,9 +345,7 @@ Volume represents the configuration for a volume to be attached to a microvm.
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  | ID is the uinique identifier of the volume. |
 | is_read_only | [bool](#bool) |  | IsReadOnly specifies that the volume is to be mounted readonly. |
-| source | [VolumeSource](#flintlock.types.VolumeSource) |  | Source is where the volume will be sourced from. |
-| partition_id | [string](#string) | optional | PartitionID is the uuid of the boot partition. |
-| size_in_mb | [int32](#int32) | optional | Size is the size to resize this volume to.
+| source | [VolumeSource](#flintlock.types.VolumeSource) |  | Source is where the volume will be sourced from.
 
 TODO: add rate limiting |
 

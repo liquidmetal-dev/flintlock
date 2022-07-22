@@ -25,6 +25,7 @@ type app struct {
 }
 
 type Config struct {
-	RootStateDir string
-	MaximumRetry int
+	UseCloudInitVolume bool
+	RootStateDir       string
+	MaximumRetry       int
 }

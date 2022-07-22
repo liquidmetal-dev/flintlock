@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/weaveworks-liquidmetal/flintlock/api/types"
-	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/instance"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/ptr"
@@ -33,7 +32,10 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 			},
 			VCPU:       int64(spec.Vcpu),
 			MemoryInMb: int64(spec.MemoryInMb),
-			Metadata:   instance.New(),
+			Metadata: models.Metadata{
+				Items:     map[string]string{},
+				AddVolume: false,
+			},
 		},
 	}
 
@@ -76,9 +78,13 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 	ifaces = append(ifaces, convertedModel.Spec.NetworkInterfaces...)
 	convertedModel.Spec.NetworkInterfaces = ifaces
 
-	convertedModel.Spec.Metadata = map[string]string{}
-	for metadataKey, metadataValue := range spec.Metadata {
-		convertedModel.Spec.Metadata[metadataKey] = metadataValue
+	if spec.Metadata != nil {
+		for metadataKey, metadataValue := range spec.Metadata.Items {
+			convertedModel.Spec.Metadata.Items[metadataKey] = metadataValue
+		}
+		if spec.Metadata.AddVolume != nil {
+			convertedModel.Spec.Metadata.AddVolume = *spec.Metadata.AddVolume
+		}
 	}
 
 	return convertedModel, nil
@@ -126,14 +132,6 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 	convertedVol := &models.Volume{
 		ID:         volume.Id,
 		IsReadOnly: volume.IsReadOnly,
-	}
-
-	if volume.PartitionId != nil {
-		convertedVol.PartitionID = *volume.PartitionId
-	}
-
-	if volume.SizeInMb != nil {
-		convertedVol.Size = *volume.SizeInMb
 	}
 
 	if volume.Source != nil {
@@ -184,10 +182,13 @@ func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 		converted.AdditionalVolumes = append(converted.AdditionalVolumes, convertedVol)
 	}
 
-	converted.Metadata = map[string]string{}
+	converted.Metadata = &types.Metadata{
+		Items:     map[string]string{},
+		AddVolume: ptr.Bool(mvm.Spec.Metadata.AddVolume),
+	}
 
-	for metadataKey, metadataValue := range mvm.Spec.Metadata {
-		converted.Metadata[metadataKey] = metadataValue
+	for metadataKey, metadataValue := range mvm.Spec.Metadata.Items {
+		converted.Metadata.Items[metadataKey] = metadataValue
 	}
 
 	return converted
@@ -195,10 +196,8 @@ func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 
 func convertModelToVolumne(modelVolume *models.Volume) *types.Volume {
 	convertedVol := &types.Volume{
-		Id:          modelVolume.ID,
-		IsReadOnly:  modelVolume.IsReadOnly,
-		PartitionId: &modelVolume.PartitionID,
-		SizeInMb:    &modelVolume.Size,
+		Id:         modelVolume.ID,
+		IsReadOnly: modelVolume.IsReadOnly,
 	}
 
 	if modelVolume.Source.Container != nil {

@@ -9,25 +9,26 @@ import (
 )
 
 const (
-	grpcEndpointFlag      = "grpc-endpoint"
-	httpEndpointFlag      = "http-endpoint"
-	parentIfaceFlag       = "parent-iface"
-	bridgeNameFlag        = "bridge-name"
-	disableReconcileFlag  = "disable-reconcile"
-	disableAPIFlag        = "disable-api"
-	firecrackerBinFlag    = "firecracker-bin"
-	firecrackerDetachFlag = "firecracker-detach"
-	containerdSocketFlag  = "containerd-socket"
-	kernelSnapshotterFlag = "containerd-kernel-ss"
-	containerdNamespace   = "containerd-ns"
-	maximumRetryFlag      = "maximum-retry"
-	basicAuthTokenFlag    = "basic-auth-token"
-	insecureFlag          = "insecure"
-	tlsCertFlag           = "tls-cert"
-	tlsKeyFlag            = "tls-key"
-	tlsClientValidateFlag = "tls-client-validate"
-	tlsClientCAFlag       = "tls-client-ca"
-	debugEndpointFlag     = "debug-endpoint"
+	grpcEndpointFlag             = "grpc-endpoint"
+	httpEndpointFlag             = "http-endpoint"
+	parentIfaceFlag              = "parent-iface"
+	bridgeNameFlag               = "bridge-name"
+	disableReconcileFlag         = "disable-reconcile"
+	disableAPIFlag               = "disable-api"
+	firecrackerBinFlag           = "firecracker-bin"
+	firecrackerDetachFlag        = "firecracker-detach"
+	firecrackerCloudInitFromMMDS = "firecracker-ci-mmds"
+	containerdSocketFlag         = "containerd-socket"
+	kernelSnapshotterFlag        = "containerd-kernel-ss"
+	containerdNamespace          = "containerd-ns"
+	maximumRetryFlag             = "maximum-retry"
+	basicAuthTokenFlag           = "basic-auth-token"
+	insecureFlag                 = "insecure"
+	tlsCertFlag                  = "tls-cert"
+	tlsKeyFlag                   = "tls-key"
+	tlsClientValidateFlag        = "tls-client-validate"
+	tlsClientCAFlag              = "tls-client-ca"
+	debugEndpointFlag            = "debug-endpoint"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -160,6 +161,10 @@ func AddFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		firecrackerDetachFlag,
 		defaults.FirecrackerDetach,
 		"If true the child firecracker processes will be detached from the parent flintlock process.")
+	cmd.Flags().BoolVar(&cfg.FirecrackerCloudInitFromMMDS,
+		firecrackerCloudInitFromMMDS,
+		false,
+		"Setup cloud-init to run from MMDS.")
 }
 
 // AddContainerDFlagsToCommand will add the containerd specific flags to the supplied cobra command.

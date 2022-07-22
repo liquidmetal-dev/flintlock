@@ -72,8 +72,9 @@ func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) planner.Plan {
 	}
 
 	input := &plans.CreateOrUpdatePlanInput{
-		StateDirectory: a.cfg.RootStateDir,
-		VM:             spec,
+		StateDirectory:     a.cfg.RootStateDir,
+		CloudinitViaVolume: a.cfg.UseCloudInitVolume,
+		VM:                 spec,
 	}
 
 	return plans.MicroVMCreateOrUpdatePlan(input)

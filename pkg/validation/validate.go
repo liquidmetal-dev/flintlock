@@ -26,6 +26,7 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("datetimeInPast", customTimestampValidator, false)
 	_ = validator.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
+	validator.RegisterStructValidation(customVolumeSourceValidator, models.VolumeSource{})
 
 	return &validate{
 		validator: validator,
@@ -75,5 +76,17 @@ func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.Stru
 		structLevel.ReportError(spec.RootVolume, "root_volume", "RootVolume", "volumeOrInitrdRequired", "")
 
 		return
+	}
+}
+
+func customVolumeSourceValidator(structLevel playgroundValidator.StructLevel) {
+	src, _ := structLevel.Current().Interface().(models.VolumeSource)
+	if src.Container == nil && src.HostPath == nil {
+		structLevel.ReportError(src.Container, "volume", "Volume", "volumeSourceRequired", "")
+		structLevel.ReportError(src.HostPath, "volume", "Volume", "volumeSourceRequired", "")
+	}
+	if src.Container != nil && src.HostPath != nil {
+		structLevel.ReportError(src.Container, "volume", "Volume", "volumeSourceOnlyOne", "")
+		structLevel.ReportError(src.HostPath, "volume", "Volume", "volumeSourceOnlyOne", "")
 	}
 }

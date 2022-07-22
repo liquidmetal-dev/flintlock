@@ -14,15 +14,22 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/validation"
 	"sigs.k8s.io/yaml"
 )
 
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
 	logger := log.GetLogger(ctx).WithField("component", "app")
-	logger.Trace("creating microvm")
+	logger.Debug("creating microvm")
 
 	if mvm == nil {
 		return nil, coreerrs.ErrSpecRequired
+	}
+
+	logger.Trace("validating model")
+	validator := validation.NewValidator()
+	if validErr := validator.ValidateStruct(mvm); validErr != nil {
+		return nil, fmt.Errorf("an error occurred when attempting to validate microvm spec: %w", validErr)
 	}
 
 	if mvm.ID.IsEmpty() {
@@ -137,7 +144,7 @@ func (a *app) DeleteMicroVM(ctx context.Context, uid string) error {
 func (a *app) addInstanceData(vm *models.MicroVM, logger *logrus.Entry) error {
 	instanceData := instance.New()
 
-	meta := vm.Spec.Metadata[cloudinit.InstanceDataKey]
+	meta := vm.Spec.Metadata.Items[cloudinit.InstanceDataKey]
 	if meta != "" {
 		logger.Info("Instance metadata exists")
 
@@ -167,7 +174,7 @@ func (a *app) addInstanceData(vm *models.MicroVM, logger *logrus.Entry) error {
 		return fmt.Errorf("marshalling updated instance data: %w", err)
 	}
 
-	vm.Spec.Metadata[cloudinit.InstanceDataKey] = base64.StdEncoding.EncodeToString(updatedData)
+	vm.Spec.Metadata.Items[cloudinit.InstanceDataKey] = base64.StdEncoding.EncodeToString(updatedData)
 
 	return nil
 }

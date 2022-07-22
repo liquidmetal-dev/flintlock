@@ -15,6 +15,7 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/controllers"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/firecracker"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/godisk"
 	microvmgrpc "github.com/weaveworks-liquidmetal/flintlock/infrastructure/grpc"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/network"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/ulid"
@@ -29,6 +30,7 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 		ulid.New,
 		firecracker.New,
 		network.New,
+		godisk.New,
 		appPorts,
 		containerdConfig,
 		firecrackerConfig,
@@ -67,9 +69,10 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 
 func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 	return &firecracker.Config{
-		FirecrackerBin: cfg.FirecrackerBin,
-		RunDetached:    cfg.FirecrackerDetatch,
-		StateRoot:      fmt.Sprintf("%s/vm", cfg.StateRootDir),
+		FirecrackerBin:    cfg.FirecrackerBin,
+		RunDetached:       cfg.FirecrackerDetatch,
+		StateRoot:         fmt.Sprintf("%s/vm", cfg.StateRootDir),
+		CloudInitFromMMDS: cfg.FirecrackerCloudInitFromMMDS,
 	}
 }
 
@@ -82,12 +85,13 @@ func networkConfig(cfg *config.Config) *network.Config {
 
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
-		RootStateDir: cfg.StateRootDir,
-		MaximumRetry: cfg.MaximumRetry,
+		RootStateDir:       cfg.StateRootDir,
+		MaximumRetry:       cfg.MaximumRetry,
+		UseCloudInitVolume: !cfg.FirecrackerCloudInitFromMMDS,
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
 		Provider:          prov,
@@ -95,6 +99,7 @@ func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.
 		IdentifierService: is,
 		NetworkService:    ns,
 		ImageService:      ims,
+		DiskService:       ds,
 		FileSystem:        fs,
 		Clock:             time.Now,
 	}

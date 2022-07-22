@@ -23,7 +23,7 @@ type NetworkInterface struct {
 	Type IfaceType `json:"type" validate:"oneof=tap macvtap unsupported"`
 	// StaticAddress is an optional static IP address to assign to this interface.
 	// If not supplied then DHCP will be used.
-	StaticAddress *StaticAddress `json:"staticAddrss,omitempty"`
+	StaticAddress *StaticAddress `json:"staticAddress,omitempty"`
 	// BridgeName is the name of the Linux bridge to attach the TAP device to.
 	BridgeName string `json:"branch_name,omitempty"`
 }

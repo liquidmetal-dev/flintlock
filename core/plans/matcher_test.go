@@ -80,3 +80,63 @@ func randomDeviceNameCheck(name string) bool {
 
 	return rightPrefix && length >= 12 && length <= 13
 }
+
+type diskCreateInputMatcher struct {
+	Expected *ports.DiskCreateInput
+}
+
+// Matches returns whether name is a match.
+func (a *diskCreateInputMatcher) Matches(value interface{}) bool {
+	input, ok := value.(ports.DiskCreateInput)
+	if !ok {
+		return false
+	}
+
+	if input.Path != a.Expected.Path {
+		return false
+	}
+	if input.Size != a.Expected.Size {
+		return false
+	}
+	if input.Type != a.Expected.Type {
+		return false
+	}
+	if input.VolumeName != a.Expected.VolumeName {
+		return false
+	}
+
+	if len(input.Files) != len(a.Expected.Files) {
+		return false
+	}
+
+	if input.Files == nil && a.Expected.Files == nil {
+		return true
+	}
+
+	actualFiles := map[string]string{}
+	for _, file := range input.Files {
+		actualFiles[file.Path] = file.ContentBase64
+	}
+
+	expectedFiles := map[string]string{}
+	for _, file := range a.Expected.Files {
+		expectedFiles[file.Path] = file.ContentBase64
+	}
+
+	for fileName, contents := range expectedFiles {
+		actualFileContents, ok := actualFiles[fileName]
+		if !ok {
+			return false
+		}
+		if contents != actualFileContents {
+			return false
+		}
+	}
+
+	return true
+}
+
+// String describes what the matcher matches.
+func (a *diskCreateInputMatcher) String() string {
+	return "Test DiskCreateInput matches"
+}

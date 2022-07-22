@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	portsctx "github.com/weaveworks-liquidmetal/flintlock/core/ports/context"
+	"github.com/weaveworks-liquidmetal/flintlock/core/steps/metadata"
 	"github.com/weaveworks-liquidmetal/flintlock/core/steps/microvm"
 	"github.com/weaveworks-liquidmetal/flintlock/core/steps/network"
 	"github.com/weaveworks-liquidmetal/flintlock/core/steps/runtime"
@@ -16,21 +18,24 @@ import (
 )
 
 type CreateOrUpdatePlanInput struct {
-	StateDirectory string
-	VM             *models.MicroVM
+	StateDirectory     string
+	CloudinitViaVolume bool
+	VM                 *models.MicroVM
 }
 
 func MicroVMCreateOrUpdatePlan(input *CreateOrUpdatePlanInput) planner.Plan {
 	return &microvmCreateOrUpdatePlan{
-		vm:       input.VM,
-		stateDir: input.StateDirectory,
-		steps:    []planner.Procedure{},
+		vm:                 input.VM,
+		stateDir:           input.StateDirectory,
+		cloudInitViaVolume: input.CloudinitViaVolume,
+		steps:              []planner.Procedure{},
 	}
 }
 
 type microvmCreateOrUpdatePlan struct {
-	vm       *models.MicroVM
-	stateDir string
+	vm                 *models.MicroVM
+	stateDir           string
+	cloudInitViaVolume bool
 
 	steps []planner.Procedure
 }
@@ -57,6 +62,45 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 
 	if err := p.addStep(ctx, runtime.NewCreateDirectory(p.stateDir, defaults.DataDirPerm, ports.FileSystem)); err != nil {
 		return nil, fmt.Errorf("adding root dir step: %w", err)
+	}
+
+	// Microvm runtime state dir
+	if err := p.addStep(ctx, microvm.NewStateDirStep(p.stateDir, p.vm, ports.FileSystem)); err != nil {
+		return nil, fmt.Errorf("adding microvm runtime state directory step: %w", err)
+	}
+
+	// Add metadata as volume
+	if p.vm.Spec.Metadata.AddVolume {
+		if err := p.addStep(ctx, metadata.NewDiskAttachStep(metadata.DiskAttachInput{
+			VM:                p.vm,
+			DiskSvc:           ports.DiskService,
+			FS:                ports.FileSystem,
+			MetadataFilter:    metadata.NotCloudInitFilter,
+			VolumeFileName:    "data.img",
+			VolumeName:        "data",
+			VolumeSize:        "8Mb",
+			VolumeInsertFirst: true,
+			CloudInitAttach:   true,
+		})); err != nil {
+			return nil, fmt.Errorf("adding metadata data volume step: %w", err)
+		}
+	}
+
+	// Cloud-init volume
+	if p.cloudInitViaVolume {
+		if err := p.addStep(ctx, metadata.NewDiskAttachStep(metadata.DiskAttachInput{
+			VM:                p.vm,
+			DiskSvc:           ports.DiskService,
+			FS:                ports.FileSystem,
+			MetadataFilter:    metadata.CloudInitFilter,
+			VolumeFileName:    "cloudinit.img",
+			VolumeName:        cloudinit.VolumeName,
+			VolumeSize:        "8Mb",
+			VolumeInsertFirst: false,
+			CloudInitAttach:   false,
+		})); err != nil {
+			return nil, fmt.Errorf("adding metadata cloud-init disk attach step: %w", err)
+		}
 	}
 
 	// Images
