@@ -147,7 +147,7 @@ func (s *server) ListMicroVMs(ctx context.Context,
 ) (*mvmv1.ListMicroVMsResponse, error) {
 	logger := log.GetLogger(ctx)
 
-	if req == nil || req.Namespace == "" {
+	if req == nil {
 		logger.Error("invalid get microvm request")
 
 		//nolint:wrapcheck // don't wrap grpc errors when using the status package

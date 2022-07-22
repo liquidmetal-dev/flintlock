@@ -267,10 +267,31 @@ func TestServer_ListMicroVMs(t *testing.T) {
 			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
 		},
 		{
-			name:        "missing namespace should fail with error",
+			name:        "missing namespace should not fail with error",
 			listReq:     &mvm1.ListMicroVMsRequest{Namespace: ""},
-			expectError: true,
-			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
+			expectError: false,
+			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
+				qm.GetAllMicroVM(gomock.AssignableToTypeOf(
+					context.Background()),
+					gomock.Not(gomock.Eq("")),
+				).Return(
+					[]*models.MicroVM{
+						{
+							Version: 1,
+							Status: models.MicroVMStatus{
+								State: models.CreatedState,
+							},
+						},
+						{
+							Version: 1,
+							Status: models.MicroVMStatus{
+								State: models.CreatedState,
+							},
+						},
+					},
+					nil,
+				)
+			},
 		},
 		{
 			name:        "error from usecase should fail with error",
