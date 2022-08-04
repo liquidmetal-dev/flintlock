@@ -15,18 +15,14 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
-func NewDiskMountStep(vm *models.MicroVM, device, mountPoint string) planner.Procedure {
+func NewDiskMountStep(vm *models.MicroVM) planner.Procedure {
 	return &diskMountStep{
-		vm:         vm,
-		device:     device,
-		mountPoint: mountPoint,
+		vm: vm,
 	}
 }
 
 type diskMountStep struct {
-	vm         *models.MicroVM
-	device     string
-	mountPoint string
+	vm *models.MicroVM
 }
 
 // Name is the name of the procedure/operation.
@@ -36,24 +32,20 @@ func (s *diskMountStep) Name() string {
 
 func (s *diskMountStep) ShouldDo(ctx context.Context) (bool, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
-		"step":        s.Name(),
-		"device":      s.device,
-		"mount_point": s.mountPoint,
+		"step": s.Name(),
 	})
 	logger.Debug("checking if procedure should be run")
 
-	return !(s.device == "" || s.mountPoint == ""), nil
+	return true, nil
 
 }
 
 // Do will perform the operation/procedure.
 func (s *diskMountStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
-		"step":        s.Name(),
-		"device":      s.device,
-		"mount_point": s.mountPoint,
+		"step": s.Name(),
 	})
-	logger.Debug("running step to mount disk via cloud-init")
+	logger.Debug("running step to mount additional disks via cloud-init")
 
 	vendorData := &userdata.UserData{}
 	vendorDataRaw, ok := s.vm.Spec.Metadata.Items[cloudinit.VendorDataKey]
@@ -67,11 +59,21 @@ func (s *diskMountStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 		}
 	}
 
-	vendorData.Mounts = []userdata.Mount{
-		{
-			s.device,
-			s.mountPoint,
-		},
+	startingCode := int('b')
+	for i, vol := range s.vm.Spec.AdditionalVolumes {
+		if !vol.MountUsingCloudInit {
+			continue
+		}
+
+		device := fmt.Sprintf("vd%c", rune(startingCode+i)) // Device number is always +1 as we have the root volume first
+		mountPoint := fmt.Sprintf("/mnt/%s", vol.ID)
+
+		if !vendorData.HasDeviceMount(device) {
+			vendorData.Mounts = append(vendorData.Mounts, userdata.Mount{
+				device,
+				mountPoint,
+			})
+		}
 	}
 	vendorData.MountDefaultFields = userdata.Mount{"None", "None", "auto", "defaults,nofail", "0", "2"}
 
@@ -80,6 +82,10 @@ func (s *diskMountStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 		return nil, fmt.Errorf("marshalling vendor-data to yaml: %w", err)
 	}
 	dataWithHeader := append([]byte("## template: jinja\n#cloud-config\n\n"), data...)
+
+	if s.vm.Spec.Metadata.Items == nil {
+		s.vm.Spec.Metadata.Items = map[string]string{}
+	}
 	s.vm.Spec.Metadata.Items[cloudinit.VendorDataKey] = base64.StdEncoding.EncodeToString(dataWithHeader)
 
 	return nil, nil

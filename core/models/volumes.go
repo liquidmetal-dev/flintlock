@@ -8,6 +8,8 @@ type Volume struct {
 	IsReadOnly bool `json:"is_read_only,omitempty"`
 	// Source is where the volume will be sourced from.
 	Source VolumeSource `json:"source" validate:"required"`
+	// MountUsingCloudInit if true will configure cloudinit to mount the volume.
+	MountUsingCloudInit bool `json:"mount_using_cloudinit,omitempty"`
 }
 
 // Volumes represents a collection of volumes.

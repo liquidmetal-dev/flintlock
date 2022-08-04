@@ -36,7 +36,7 @@ func (s *createStep) ShouldDo(ctx context.Context) (bool, error) {
 	})
 	logger.Debug("checking if procedure should be run")
 
-	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
+	state, err := s.vmSvc.State(ctx, s.vm)
 	if err != nil {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}

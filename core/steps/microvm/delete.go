@@ -30,7 +30,7 @@ func (s *deleteStep) Name() string {
 }
 
 func (s *deleteStep) ShouldDo(ctx context.Context) (bool, error) {
-	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
+	state, err := s.vmSvc.State(ctx, s.vm)
 	if err != nil {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
@@ -52,8 +52,7 @@ func (s *deleteStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	})
 	logger.Debug("deleting microvm")
 
-	id := s.vm.ID.String()
-	if err := s.vmSvc.Delete(ctx, id); err != nil {
+	if err := s.vmSvc.Delete(ctx, s.vm); err != nil {
 		return nil, fmt.Errorf("deleting microvm: %w", err)
 	}
 

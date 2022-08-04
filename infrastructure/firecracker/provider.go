@@ -73,19 +73,14 @@ func (p *fcProvider) Start(ctx context.Context, vm *models.MicroVM) error {
 }
 
 // Stop will stop a running microvm.
-func (p *fcProvider) Delete(ctx context.Context, id string) error {
+func (p *fcProvider) Delete(ctx context.Context, vm *models.MicroVM) error {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "firecracker_microvm",
-		"vmid":    id,
+		"vmid":    vm.ID,
 	})
 	logger.Info("deleting microvm")
 
-	vmid, err := models.NewVMIDFromString(id)
-	if err != nil {
-		return fmt.Errorf("parsing vmid: %w", err)
-	}
-
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(vm.Status.RuntimeStateDir, p.fs)
 
 	pid, pidErr := vmState.PID()
 	if pidErr != nil {
@@ -112,19 +107,14 @@ func (p *fcProvider) Delete(ctx context.Context, id string) error {
 }
 
 // State returns the state of a Firecracker microvm.
-func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, error) {
+func (p *fcProvider) State(ctx context.Context, vm *models.MicroVM) (ports.MicroVMState, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "firecracker_microvm",
-		"vmid":    id,
+		"vmid":    vm.ID,
 	})
 	logger.Info("checking state of microvm")
 
-	vmid, err := models.NewVMIDFromString(id)
-	if err != nil {
-		return ports.MicroVMStateUnknown, fmt.Errorf("parsing vmid: %w", err)
-	}
-
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(vm.Status.RuntimeStateDir, p.fs)
 	pidPath := vmState.PIDPath()
 
 	exists, err := afero.Exists(p.fs, pidPath)
@@ -153,15 +143,15 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 	return ports.MicroVMStateRunning, nil
 }
 
-func (p *fcProvider) Metrics(ctx context.Context, vmid models.VMID) (ports.MachineMetrics, error) {
+func (p *fcProvider) Metrics(ctx context.Context, vm *models.MicroVM) (ports.MachineMetrics, error) {
 	machineMetrics := MachineMetrics{
-		Namespace:   vmid.Namespace(),
-		MachineName: vmid.Name(),
-		MachineUID:  vmid.UID(),
+		Namespace:   vm.ID.Namespace(),
+		MachineName: vm.ID.Name(),
+		MachineUID:  vm.ID.UID(),
 		Data:        Metrics{},
 	}
 
-	vmState := NewState(vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(p.config.StateRoot, p.fs)
 
 	file, err := os.Open(vmState.MetricsPath())
 	if err != nil {

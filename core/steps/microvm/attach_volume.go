@@ -2,6 +2,7 @@ package microvm
 
 import (
 	"context"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
@@ -9,22 +10,22 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
-func NewAttachVolumeStep(vm *models.MicroVM, path, name string, insertFirst, readonly bool) planner.Procedure {
+func NewAttachVolumeStep(vm *models.MicroVM, path, name string, readonly, cloudinitMount bool) planner.Procedure {
 	return &attachVolumeStep{
-		vm:          vm,
-		path:        path,
-		name:        name,
-		insertFirst: insertFirst,
-		readonly:    readonly,
+		vm:             vm,
+		path:           path,
+		name:           name,
+		readonly:       readonly,
+		cloudInitMount: cloudinitMount,
 	}
 }
 
 type attachVolumeStep struct {
-	vm          *models.MicroVM
-	path        string
-	name        string
-	insertFirst bool
-	readonly    bool
+	vm             *models.MicroVM
+	path           string
+	name           string
+	cloudInitMount bool
+	readonly       bool
 }
 
 // Name is the name of the procedure/operation.
@@ -40,13 +41,9 @@ func (s *attachVolumeStep) ShouldDo(ctx context.Context) (bool, error) {
 	})
 	logger.Debug("checking if procedure should be run")
 
-	for _, volume := range s.vm.Spec.AdditionalVolumes {
-		if volume.ID == s.name {
-			return false, nil
-		}
-	}
+	existingVol := s.vm.Spec.AdditionalVolumes.GetByID(s.name)
 
-	return true, nil
+	return existingVol == nil, nil
 }
 
 // Do will perform the operation/procedure.
@@ -62,21 +59,23 @@ func (s *attachVolumeStep) Do(ctx context.Context) ([]planner.Procedure, error) 
 		s.vm.Spec.AdditionalVolumes = models.Volumes{}
 	}
 
+	if existingVol := s.vm.Spec.AdditionalVolumes.GetByID(s.name); existingVol != nil {
+		return nil, nil
+	}
+
+	path := strings.ReplaceAll(s.path, "${RUNTIME_STATEDIR}", s.vm.Status.RuntimeStateDir)
+
 	vol := models.Volume{
 		ID:         s.name,
 		IsReadOnly: s.readonly,
 		Source: models.VolumeSource{
 			HostPath: &models.HostPathVolumeSource{
-				Path: s.path,
+				Path: path,
 			},
 		},
+		MountUsingCloudInit: s.cloudInitMount,
 	}
-
-	if s.insertFirst {
-		s.vm.Spec.AdditionalVolumes = append([]models.Volume{vol}, s.vm.Spec.AdditionalVolumes...)
-	} else {
-		s.vm.Spec.AdditionalVolumes = append(s.vm.Spec.AdditionalVolumes, vol)
-	}
+	s.vm.Spec.AdditionalVolumes = append(s.vm.Spec.AdditionalVolumes, vol)
 
 	if s.vm.Status.Volumes == nil {
 		s.vm.Status.Volumes = models.VolumeStatuses{}
@@ -85,7 +84,7 @@ func (s *attachVolumeStep) Do(ctx context.Context) ([]planner.Procedure, error) 
 	s.vm.Status.Volumes[vol.ID] = &models.VolumeStatus{
 		Mount: models.Mount{
 			Type:   models.MountTypeHostPath,
-			Source: s.path,
+			Source: path,
 		},
 	}
 

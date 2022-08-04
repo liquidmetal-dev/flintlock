@@ -8,7 +8,7 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	portsctx "github.com/weaveworks-liquidmetal/flintlock/core/ports/context"
-	"github.com/weaveworks-liquidmetal/flintlock/core/steps/metadata"
+	cisteps "github.com/weaveworks-liquidmetal/flintlock/core/steps/cloudinit"
 	"github.com/weaveworks-liquidmetal/flintlock/core/steps/microvm"
 	"github.com/weaveworks-liquidmetal/flintlock/core/steps/network"
 	"github.com/weaveworks-liquidmetal/flintlock/core/steps/runtime"
@@ -69,38 +69,19 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding microvm runtime state directory step: %w", err)
 	}
 
-	// Add metadata as volume
-	if p.vm.Spec.Metadata.AddVolume {
-		if err := p.addStep(ctx, metadata.NewDiskAttachStep(metadata.DiskAttachInput{
-			VM:                p.vm,
-			DiskSvc:           ports.DiskService,
-			FS:                ports.FileSystem,
-			MetadataFilter:    metadata.NotCloudInitFilter,
-			VolumeFileName:    "data.img",
-			VolumeName:        "data",
-			VolumeSize:        "8Mb",
-			VolumeInsertFirst: true,
-			CloudInitAttach:   true,
-		})); err != nil {
-			return nil, fmt.Errorf("adding metadata data volume step: %w", err)
-		}
+	// Add additional disk for metadata / cloudinit to vm spec
+	if err := p.addAdditionVolumeSteps(ctx, p.vm); err != nil {
+		return nil, fmt.Errorf("adding additional volumes: %w", err)
 	}
 
-	// Cloud-init volume
-	if p.cloudInitViaVolume {
-		if err := p.addStep(ctx, metadata.NewDiskAttachStep(metadata.DiskAttachInput{
-			VM:                p.vm,
-			DiskSvc:           ports.DiskService,
-			FS:                ports.FileSystem,
-			MetadataFilter:    metadata.CloudInitFilter,
-			VolumeFileName:    "cloudinit.img",
-			VolumeName:        cloudinit.VolumeName,
-			VolumeSize:        "8Mb",
-			VolumeInsertFirst: false,
-			CloudInitAttach:   false,
-		})); err != nil {
-			return nil, fmt.Errorf("adding metadata cloud-init disk attach step: %w", err)
-		}
+	// Add cloud-init vendor to mount additional volumes
+	if err := p.addStep(ctx, cisteps.NewDiskMountStep(p.vm)); err != nil {
+		return nil, fmt.Errorf("adding disk mount step: %w", err)
+	}
+
+	//TODO: create disks for metadata / cloudinit if needed
+	if err := p.addCreateDiskSteps(ctx, p.vm, ports); err != nil {
+		return nil, fmt.Errorf("adding additional volumes: %w", err)
 	}
 
 	// Images
@@ -198,6 +179,71 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 	return nil
 }
 
+func (p *microvmCreateOrUpdatePlan) addAdditionVolumeSteps(ctx context.Context,
+	vm *models.MicroVM,
+) error {
+
+	if p.vm.Spec.Metadata.AddVolume {
+		imagePath := fmt.Sprintf("${RUNTIME_STATEDIR}/%s.img", dataVolumeName)
+		if err := p.addStep(ctx, microvm.NewAttachVolumeStep(
+			vm,
+			imagePath,
+			dataVolumeName,
+			true,
+			true,
+		)); err != nil {
+			return fmt.Errorf("adding attach volume step for metadata disk: %w", err)
+		}
+	}
+	if p.cloudInitViaVolume {
+		imagePath := fmt.Sprintf("${RUNTIME_STATEDIR}/%s.img", cloudinit.VolumeName)
+		if err := p.addStep(ctx, microvm.NewAttachVolumeStep(
+			vm,
+			imagePath,
+			cloudinit.VolumeName,
+			true,
+			false,
+		)); err != nil {
+			return fmt.Errorf("adding attach volume step for cloud-init disk: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (p *microvmCreateOrUpdatePlan) addCreateDiskSteps(ctx context.Context,
+	vm *models.MicroVM,
+	portsCol *ports.Collection,
+) error {
+
+	if p.vm.Spec.Metadata.AddVolume {
+		if err := p.addStep(ctx, microvm.NewCreateVolumeDiskStep(&microvm.CreateVolumeDiskStepInput{
+			VM:          p.vm,
+			DiskSvc:     portsCol.DiskService,
+			FS:          portsCol.FileSystem,
+			VolumeID:    dataVolumeName,
+			VolumeSize:  "8Mb",
+			ContentFunc: diskContentFunc(p.vm, false),
+		})); err != nil {
+			return fmt.Errorf("adding disk create steps for metadata volume: %w", err)
+		}
+	}
+	if p.cloudInitViaVolume {
+		if err := p.addStep(ctx, microvm.NewCreateVolumeDiskStep(&microvm.CreateVolumeDiskStepInput{
+			VM:          p.vm,
+			DiskSvc:     portsCol.DiskService,
+			FS:          portsCol.FileSystem,
+			VolumeID:    cloudinit.VolumeName,
+			VolumeSize:  "8Mb",
+			ContentFunc: diskContentFunc(p.vm, true),
+		})); err != nil {
+			return fmt.Errorf("adding disk create steps for cloud-init volume: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func (p *microvmCreateOrUpdatePlan) addNetworkSteps(ctx context.Context,
 	vm *models.MicroVM,
 	networkSvc ports.NetworkService,
@@ -231,4 +277,34 @@ func (p *microvmCreateOrUpdatePlan) ensureStatus() {
 	// If we are going through the create/update steps, then switch to pending first.
 	// When all is done and successful it will be put to created.
 	p.vm.Status.State = models.PendingState
+}
+
+func diskContentFunc(vm *models.MicroVM, cloudInitVolume bool) microvm.GetContentFunc {
+	return func() map[string]string {
+		content := map[string]string{}
+
+		for k, v := range vm.Spec.Metadata.Items {
+			isCloudInit := isCloudInitMetadata(k)
+			if cloudInitVolume == isCloudInit {
+				content[k] = v
+			}
+		}
+
+		return content
+	}
+}
+
+func isCloudInitMetadata(keyName string) bool {
+	switch keyName {
+	case cloudinit.InstanceDataKey:
+		return true
+	case cloudinit.NetworkConfigDataKey:
+		return true
+	case cloudinit.UserdataKey:
+		return true
+	case cloudinit.VendorDataKey:
+		return true
+	default:
+		return false
+	}
 }

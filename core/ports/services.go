@@ -16,13 +16,13 @@ type MicroVMService interface {
 	// Create will create a new microvm.
 	Create(ctx context.Context, vm *models.MicroVM) error
 	// Delete will delete a VM and its runtime state.
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, vm *models.MicroVM) error
 	// Start will start a created microvm.
 	Start(ctx context.Context, vm *models.MicroVM) error
 	// State returns the state of a microvm.
-	State(ctx context.Context, id string) (MicroVMState, error)
+	State(ctx context.Context, vm *models.MicroVM) (MicroVMState, error)
 	// Metrics returns with the metrics of a microvm.
-	Metrics(ctx context.Context, id models.VMID) (MachineMetrics, error)
+	Metrics(ctx context.Context, vm *models.MicroVM) (MachineMetrics, error)
 }
 
 // This state represents the state of the Firecracker MVM process itself

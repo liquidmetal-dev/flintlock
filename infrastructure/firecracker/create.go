@@ -24,7 +24,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	})
 	logger.Debug("creating microvm")
 
-	vmState := NewState(vm.ID, vm.Status.RuntimeStateDir, p.fs)
+	vmState := NewState(vm.Status.RuntimeStateDir, p.fs)
 
 	if err := p.ensureState(vmState); err != nil {
 		return fmt.Errorf("ensuring state dir: %w", err)
@@ -131,31 +131,3 @@ func (p *fcProvider) ensureState(vmState State) error {
 
 	return nil
 }
-
-// func (p *fcProvider) updateVendorData(vm *models.MicroVM) error {
-// 	vendorData := &userdata.UserData{}
-// 	vendorDataRaw, ok := vm.Spec.Metadata.Items[cloudinit.VendorDataKey]
-// 	if ok {
-// 		data, err := base64.RawStdEncoding.DecodeString(vendorDataRaw)
-// 		if err != nil {
-// 			return fmt.Errorf("deconding vendor data: %w", err)
-// 		}
-// 		if marshalErr := yaml.Unmarshal(data, vendorData); marshalErr != nil {
-// 			return fmt.Errorf("unmarshalling vendordata yaml: %w", err)
-// 		}
-// 	}
-
-// 	vendorData.Mounts = []userdata.Mount{
-// 		userdata.Mount{"vdb2", "/opt/data"},
-// 	}
-// 	vendorData.MountDefaultFields = userdata.Mount{"None", "None", "auto", "defaults,nofail", "0", "2"}
-
-// 	data, err := yaml.Marshal(vendorData)
-// 	if err != nil {
-// 		return fmt.Errorf("marshalling vendor data to yaml: %w", err)
-// 	}
-// 	dataWithHeader := append([]byte("## template: jinja\n#cloud-config\n\n"), data...)
-// 	vm.Spec.Metadata.Items[cloudinit.VendorDataKey] = base64.StdEncoding.EncodeToString(dataWithHeader)
-
-// 	return nil
-// }

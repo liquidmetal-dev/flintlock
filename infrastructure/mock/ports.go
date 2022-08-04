@@ -65,7 +65,7 @@ func (mr *MockMicroVMServiceMockRecorder) Create(arg0, arg1 interface{}) *gomock
 }
 
 // Delete mocks base method.
-func (m *MockMicroVMService) Delete(arg0 context.Context, arg1 string) error {
+func (m *MockMicroVMService) Delete(arg0 context.Context, arg1 *models.MicroVM) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -79,7 +79,7 @@ func (mr *MockMicroVMServiceMockRecorder) Delete(arg0, arg1 interface{}) *gomock
 }
 
 // Metrics mocks base method.
-func (m *MockMicroVMService) Metrics(arg0 context.Context, arg1 models.VMID) (ports.MachineMetrics, error) {
+func (m *MockMicroVMService) Metrics(arg0 context.Context, arg1 *models.MicroVM) (ports.MachineMetrics, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Metrics", arg0, arg1)
 	ret0, _ := ret[0].(ports.MachineMetrics)
@@ -108,7 +108,7 @@ func (mr *MockMicroVMServiceMockRecorder) Start(arg0, arg1 interface{}) *gomock.
 }
 
 // State mocks base method.
-func (m *MockMicroVMService) State(arg0 context.Context, arg1 string) (ports.MicroVMState, error) {
+func (m *MockMicroVMService) State(arg0 context.Context, arg1 *models.MicroVM) (ports.MicroVMState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "State", arg0, arg1)
 	ret0, _ := ret[0].(ports.MicroVMState)

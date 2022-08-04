@@ -106,7 +106,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 	steps, createErr := plan.Create(ctx)
 
 	Expect(createErr).NotTo(HaveOccurred())
-	Expect(steps).To(HaveLen(8))
+	Expect(steps).To(HaveLen(9))
 
 	Expect(testVM.Status.State).To(Equal(models.MicroVMState(models.PendingState)))
 	executeSteps(ctx, steps)
@@ -212,9 +212,9 @@ func TestMicroVMCreateOrUpdatePlanWithExtraVolumes(t *testing.T) {
 		gomock.Any(),
 		&diskCreateInputMatcher{
 			Expected: &ports.DiskCreateInput{
-				Path:       "/tmp/path/to/vm/vm/namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003/data.img",
+				Path:       "/tmp/path/to/vm/vm/namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003/fldata.img",
 				Size:       "8Mb",
-				VolumeName: "data",
+				VolumeName: "fldata",
 				Type:       ports.DiskTypeFat32,
 				Files: []ports.DiskFile{
 					{
@@ -228,14 +228,14 @@ func TestMicroVMCreateOrUpdatePlanWithExtraVolumes(t *testing.T) {
 		gomock.Any(),
 		&diskCreateInputMatcher{
 			Expected: &ports.DiskCreateInput{
-				Path:       "/tmp/path/to/vm/vm/namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003/cloudinit.img",
+				Path:       "/tmp/path/to/vm/vm/namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003/cidata.img",
 				Size:       "8Mb",
 				VolumeName: "cidata",
 				Type:       ports.DiskTypeFat32,
 				Files: []ports.DiskFile{
 					{
 						Path:          "/vendor-data",
-						ContentBase64: "IyMgdGVtcGxhdGU6IGppbmphCiNjbG91ZC1jb25maWcKCm1vdW50czoKLSAtIHZkYjIKICAtIC9vcHQvZGF0YQptb3VudF9kZWZhdWx0X2ZpZWxkczogW05vbmUsIE5vbmUsIGF1dG8sICdkZWZhdWx0cyxub2ZhaWwnLCAiMCIsICIyIl0K",
+						ContentBase64: "IyMgdGVtcGxhdGU6IGppbmphCiNjbG91ZC1jb25maWcKCm1vdW50czoKLSAtIHZkYjEKICAtIC9tbnQvZmxkYXRhCm1vdW50X2RlZmF1bHRfZmllbGRzOiBbTm9uZSwgTm9uZSwgYXV0bywgJ2RlZmF1bHRzLG5vZmFpbCcsICIwIiwgIjIiXQo=",
 					},
 					{
 						Path:          "/meta-data",
@@ -247,7 +247,7 @@ func TestMicroVMCreateOrUpdatePlanWithExtraVolumes(t *testing.T) {
 	steps, createErr := plan.Create(ctx)
 
 	Expect(createErr).NotTo(HaveOccurred())
-	Expect(steps).To(HaveLen(10))
+	Expect(steps).To(HaveLen(13))
 
 	Expect(testVM.Status.State).To(Equal(models.MicroVMState(models.PendingState)))
 	executeSteps(ctx, steps)

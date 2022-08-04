@@ -43,7 +43,7 @@ func (s *startStep) ShouldDo(ctx context.Context) (bool, error) {
 	})
 	logger.Debug("checking if procedure should be run")
 
-	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
+	state, err := s.vmSvc.State(ctx, s.vm)
 	if err != nil {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
@@ -79,7 +79,7 @@ func (s *startStep) Verify(ctx context.Context) error {
 	time.Sleep(time.Duration(s.bootWaitTimeSeconds) * time.Second)
 	logger.Debug("verify microvm is started")
 
-	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
+	state, err := s.vmSvc.State(ctx, s.vm)
 	if err != nil {
 		return fmt.Errorf("checking if microvm is running: %w", err)
 	}

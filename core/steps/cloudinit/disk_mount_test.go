@@ -18,7 +18,7 @@ func TestDiskMount_HappyPath(t *testing.T) {
 
 	ctx := context.Background()
 	vm := createMicrovm()
-	step := cloudinit.NewDiskMountStep(vm, "vdb2", "/opt/data")
+	step := cloudinit.NewDiskMountStep(vm)
 
 	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).NotTo(g.HaveOccurred())
@@ -40,12 +40,17 @@ func TestDiskMount_HappyPath(t *testing.T) {
 	vendorData := &userdata.UserData{}
 	err = yaml.Unmarshal(data, vendorData)
 	g.Expect(err).NotTo(g.HaveOccurred())
-	g.Expect(vendorData.Mounts).To(g.HaveLen(1))
+	g.Expect(vendorData.Mounts).To(g.HaveLen(2))
 
 	mount := vendorData.Mounts[0]
 	g.Expect(mount).To(g.HaveLen(2))
-	g.Expect(mount[0]).To(g.Equal("vdb2"))
-	g.Expect(mount[1]).To(g.Equal("/opt/data"))
+	g.Expect(mount[0]).To(g.Equal("vdb1"))
+	g.Expect(mount[1]).To(g.Equal("/mnt/vol1"))
+
+	mount = vendorData.Mounts[1]
+	g.Expect(mount).To(g.HaveLen(2))
+	g.Expect(mount[0]).To(g.Equal("vdb3"))
+	g.Expect(mount[1]).To(g.Equal("/mnt/vol3"))
 }
 
 func TestDiskMount_ShouldNotDo(t *testing.T) {
@@ -53,18 +58,26 @@ func TestDiskMount_ShouldNotDo(t *testing.T) {
 
 	ctx := context.Background()
 	vm := createMicrovm()
+	vm.Spec.AdditionalVolumes = nil
 
-	step := cloudinit.NewDiskMountStep(vm, "", "/opt/data")
+	step := cloudinit.NewDiskMountStep(vm)
 	shouldDo, err := step.ShouldDo(ctx)
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(shouldDo).To(g.BeFalse())
 
-	step = cloudinit.NewDiskMountStep(vm, "vdb2", "")
-	shouldDo, err = step.ShouldDo(ctx)
-	g.Expect(err).NotTo(g.HaveOccurred())
-	g.Expect(shouldDo).To(g.BeFalse())
-
-	step = cloudinit.NewDiskMountStep(vm, "", "")
+	vm.Spec.AdditionalVolumes = models.Volumes{
+		models.Volume{
+			ID:         "vol2",
+			IsReadOnly: true,
+			Source: models.VolumeSource{
+				HostPath: &models.HostPathVolumeSource{
+					Path: "/host/vol2.img",
+				},
+			},
+			MountUsingCloudInit: false,
+		},
+	}
+	step = cloudinit.NewDiskMountStep(vm)
 	shouldDo, err = step.ShouldDo(ctx)
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(shouldDo).To(g.BeFalse())
@@ -76,9 +89,37 @@ func createMicrovm() *models.MicroVM {
 		ID:      *vmid,
 		Version: 1,
 		Spec: models.MicroVMSpec{
-			Metadata: models.Metadata{
-				Items:     map[string]string{},
-				AddVolume: false,
+			AdditionalVolumes: models.Volumes{
+				models.Volume{
+					ID:         "vol1",
+					IsReadOnly: true,
+					Source: models.VolumeSource{
+						HostPath: &models.HostPathVolumeSource{
+							Path: "/host/vol1.img",
+						},
+					},
+					MountUsingCloudInit: true,
+				},
+				models.Volume{
+					ID:         "vol2",
+					IsReadOnly: true,
+					Source: models.VolumeSource{
+						HostPath: &models.HostPathVolumeSource{
+							Path: "/host/vol2.img",
+						},
+					},
+					MountUsingCloudInit: false,
+				},
+				models.Volume{
+					ID:         "vol3",
+					IsReadOnly: true,
+					Source: models.VolumeSource{
+						HostPath: &models.HostPathVolumeSource{
+							Path: "/host/vol3.img",
+						},
+					},
+					MountUsingCloudInit: true,
+				},
 			},
 		},
 	}

@@ -17,6 +17,20 @@ type UserData struct {
 	MountDefaultFields Mount    `yaml:"mount_default_fields,omitempty,flow""`
 }
 
+func (u *UserData) HasDeviceMount(deviceName string) bool {
+	if len(u.Mounts) == 0 {
+		return false
+	}
+
+	for _, mount := range u.Mounts {
+		if mount[0] == deviceName {
+			return true
+		}
+	}
+
+	return false
+}
+
 type Mount []string
 
 type User struct {

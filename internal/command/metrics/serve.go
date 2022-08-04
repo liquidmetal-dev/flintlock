@@ -63,7 +63,7 @@ func getAllMachineMetrics(ctx context.Context, aports *ports.Collection, query m
 	}
 
 	for _, machine := range machines {
-		metrics, err := aports.Provider.Metrics(ctx, machine.ID)
+		metrics, err := aports.Provider.Metrics(ctx, machine)
 		if err != nil {
 			return mms, err
 		}
@@ -88,7 +88,7 @@ func serveMachineByUID(aports *ports.Collection) serveFunc {
 			return
 		}
 
-		metrics, err := aports.Provider.Metrics(context.Background(), vm.ID)
+		metrics, err := aports.Provider.Metrics(context.Background(), vm)
 		if err != nil {
 			logrus.Error(err.Error())
 			response.WriteHeader(http.StatusInternalServerError)

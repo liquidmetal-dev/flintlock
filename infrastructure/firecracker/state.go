@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/spf13/afero"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
@@ -40,7 +39,7 @@ type State interface {
 	SocketPath() string
 }
 
-func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
+func NewState(stateDir string, fs afero.Fs) State {
 	return &fsState{
 		stateRoot: stateDir,
 		fs:        fs,
