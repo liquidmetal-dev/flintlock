@@ -11,6 +11,7 @@ import (
 	containerd "github.com/containerd/containerd"
 	content "github.com/containerd/containerd/content"
 	images "github.com/containerd/containerd/images"
+	platforms "github.com/containerd/containerd/platforms"
 	gomock "github.com/golang/mock/gomock"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -123,6 +124,20 @@ func (m *MockImage) Name() string {
 func (mr *MockImageMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockImage)(nil).Name))
+}
+
+// Platform mocks base method.
+func (m *MockImage) Platform() platforms.MatchComparer {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Platform")
+	ret0, _ := ret[0].(platforms.MatchComparer)
+	return ret0
+}
+
+// Platform indicates an expected call of Platform.
+func (mr *MockImageMockRecorder) Platform() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Platform", reflect.TypeOf((*MockImage)(nil).Platform))
 }
 
 // RootFS mocks base method.
