@@ -7,7 +7,7 @@ if [[ $(id -u) != 0 ]]; then
 	exit 1
 fi
 
-GO_VERSION="1.17.2"
+GO_VERSION="1.18.5"
 INSTALL_ROOT="/usr/local"
 
 # install packages
@@ -55,16 +55,20 @@ fi
 ./flintlock/hack/scripts/provision.sh firecracker --version v0.25.2-macvtap
 
 # install and setup containerd
-curl -sL https://api.github.com/repos/containerd/containerd/releases/latest 2>/dev/null |
-	jq -r '.assets[] | select(.browser_download_url | test("containerd-\\d.\\d.\\d-linux-amd64.tar.gz$")) | .browser_download_url' |
-	xargs curl -sL | tar xz -C "$INSTALL_ROOT" && containerd --version && ctr --version
+# curl -sL https://api.github.com/repos/containerd/containerd/releases/latest 2>/dev/null |
+# 	jq -r '.assets[] | select(.browser_download_url | test("containerd-\\d.\\d.\\d-linux-amd64.tar.gz$")) | .browser_download_url' |
+# 	xargs curl -sL | tar xz -C "$INSTALL_ROOT" && containerd --version && ctr --version
+
+# Pinning to container 1.6.6 for a moment while we deal with a change which came
+# in with 1.6.7
+curl -sL https://github.com/containerd/containerd/releases/download/v1.6.6/containerd-1.6.6-linux-amd64.tar.gz | tar xz -C "$INSTALL_ROOT" && containerd --version && ctr --version
 
 # install grpcurl
-go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest &&
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && \
 	grpcurl --version
 
 # install hammertime
-go install github.com/Callisto13/hammertime/releases@latest &&
+go install github.com/warehouse-13/hammertime/releases@latest && \
 	hammertime
 
 touch /flintlock_ready

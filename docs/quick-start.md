@@ -273,23 +273,10 @@ otherwise continue with the manual steps.
 We have to use a custom built firecracker from the macvtap branch
 ([see][discussion-107]).
 
-```bash
-git clone https://github.com/firecracker-microvm/firecracker.git
-git fetch origin feature/macvtap
-git checkout -b feature/macvtap origin/feature/macvtap
-# This will build it in a docker container, no rust installation required.
-tools/devtool build
+You can get the release from [here][firecracker-release] note that flintlock <= `v1.2.0` requires
+firecracker `v0.25.2-macvtap`.
 
-# Any directories on $PATH.
-TARGET=~/local/bin
-toolbox=$(uname -m)-unknown-linux-musl
-
-cp build/cargo_target/${toolbox}/debug/{firecracker,jailer} ${TARGET}
-```
-
-If you don't have to compile it yourself, you can download a pre-built version
-from the [Pre-requisities discussion][discussion-107].
-
+[firecracker-release]: https://github.com/weaveworks/firecracker/releases
 [discussion-107]: https://github.com/weaveworks-liquidmetal/flintlock/discussions/107
 
 ## Set up and start flintlock
