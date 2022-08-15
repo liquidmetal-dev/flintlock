@@ -49,7 +49,7 @@ require (
 require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/urfave/cli/v2 v2.11.1
+	github.com/urfave/cli/v2 v2.11.2
 	github.com/weaveworks-liquidmetal/flintlock/api v0.0.0-00010101000000-000000000000
 	github.com/weaveworks-liquidmetal/flintlock/client v0.0.0-00010101000000-000000000000
 	github.com/yitsushi/file-tailor v1.0.0
