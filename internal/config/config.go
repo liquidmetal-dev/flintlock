@@ -14,7 +14,7 @@ type Config struct {
 	Logging log.Config
 	// GRPCEndpoint is the endpoint for the gRPC server.
 	GRPCAPIEndpoint string
-	// HTTPAPIEndpoint is the endpoint for the HTTP proxy for the gRPC service..
+	// HTTPAPIEndpoint is the endpoint for the HTTP proxy for the gRPC service
 	HTTPAPIEndpoint string
 	// FirecrackerBin is the firecracker binary to use.
 	FirecrackerBin string
@@ -46,6 +46,8 @@ type Config struct {
 	BasicAuthToken string
 	// TLS holds the TLS related configuration.
 	TLS TLSConfig
+	// DebugEndpoint is the endpoint for the debug web server. An empty string means disable the debug endpoint.
+	DebugEndpoint string
 }
 
 // TLSConfig holds the configuration for TLS.
