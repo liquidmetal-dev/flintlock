@@ -27,6 +27,7 @@ const (
 	tlsKeyFlag            = "tls-key"
 	tlsClientValidateFlag = "tls-client-validate"
 	tlsClientCAFlag       = "tls-client-ca"
+	debugEndpointFlag     = "debug-endpoint"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -177,4 +178,11 @@ func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		containerdNamespace,
 		defaults.ContainerdNamespace,
 		"The name of the containerd namespace to use.")
+}
+
+func AddDebugFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().StringVar(&cfg.DebugEndpoint,
+		debugEndpointFlag,
+		"",
+		"The endpoint for the debug web server to listen on. It must include a port (e.g. localhost:10500).  An empty string means disable the debug endpoint.")
 }
