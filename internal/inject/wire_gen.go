@@ -14,6 +14,7 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/controllers"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/firecracker"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/godisk"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/grpc"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/network"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/ulid"
@@ -44,7 +45,8 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-	collection := appPorts(microVMRepository, microVMService, eventService, idService, networkService, imageService, fs)
+	diskService := godisk.New(fs)
+	collection := appPorts(microVMRepository, microVMService, eventService, idService, networkService, imageService, fs, diskService)
 	return collection, nil
 }
 
@@ -101,7 +103,7 @@ func appConfig(cfg *config.Config) *application.Config {
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
 		Provider:          prov,
@@ -111,6 +113,7 @@ func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.
 		ImageService:      ims,
 		FileSystem:        fs,
 		Clock:             time.Now,
+		DiskService:       ds,
 	}
 }
 
