@@ -50,19 +50,15 @@ Your feedback is always welcome!
 
 The table below shows you which versions of Firecracker are compatible with Flintlock:
 
-| Flintlock         | Firecracker        |
-| ----------------- | ------------------ |
-| <= v0.1.0         | <= v0.25.2-macvtap |
-| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap |
-|    v0.1.0-alpha.7 | **Do not use**     |
-|    v0.1.0-alpha.8 | <= v0.25.2-macvtap |
+| Flintlock         | Firecracker                      |
+| ----------------- | -------------------------------- |
+|    v0.3.0         | Official v1.0+ or v1.0.0-macvtap |
+| <= v0.2.0         | <= v0.25.2-macvtap               |
+| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap               |
+|    v0.1.0-alpha.7 | **Do not use**                   |
+|    v0.1.0-alpha.8 | <= v0.25.2-macvtap               |
 
-> Note: Flintlock currently requires a custom build of Firecracker available [here][fc-fork].
-
-> Note: Due to upstream development issues, Flintlock in future will only support
-Firecracker [`v0.25.2-macvtap`][fc-fork]. We will not maintain any versions beyond this.
-In future releases of Flintlock, Cloud Hypervisor will be the default and recommended
-MicroVM driver.
+> Note: Flintlock currently requires a custom build of Firecracker if you plan to use macvtap available [here][fc-fork].
 
 ## License
 
