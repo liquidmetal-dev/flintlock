@@ -52,7 +52,7 @@ if [[ -z "$SKIP_DIRECT_LVM" ]]; then
 fi
 
 # install latest firecracker
-./flintlock/hack/scripts/provision.sh firecracker --version v0.25.2-macvtap
+./flintlock/hack/scripts/provision.sh firecracker
 
 # install and setup containerd
 # curl -sL https://api.github.com/repos/containerd/containerd/releases/latest 2>/dev/null |
