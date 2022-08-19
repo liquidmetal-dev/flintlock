@@ -14,15 +14,26 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/weaveworks-liquidmetal/flintlock/pkg/validation"
 	"sigs.k8s.io/yaml"
+)
+
+const (
+	MetadataInterfaceName = "mmds"
 )
 
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
 	logger := log.GetLogger(ctx).WithField("component", "app")
-	logger.Trace("creating microvm")
+	logger.Debug("creating microvm")
 
 	if mvm == nil {
 		return nil, coreerrs.ErrSpecRequired
+	}
+
+	logger.Trace("validating model")
+	validator := validation.NewValidator()
+	if validErr := validator.ValidateStruct(mvm); validErr != nil {
+		return nil, fmt.Errorf("an error occurred when attempting to validate microvm spec: %w", validErr)
 	}
 
 	if mvm.ID.IsEmpty() {
@@ -70,6 +81,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	if err != nil {
 		return nil, fmt.Errorf("adding instance data: %w", err)
 	}
+	a.addMetadataInterface(mvm)
 
 	// Set the timestamp when the VMspec was created.
 	mvm.Spec.CreatedAt = a.ports.Clock().Unix()
@@ -170,4 +182,25 @@ func (a *app) addInstanceData(vm *models.MicroVM, logger *logrus.Entry) error {
 	vm.Spec.Metadata[cloudinit.InstanceDataKey] = base64.StdEncoding.EncodeToString(updatedData)
 
 	return nil
+}
+
+func (a *app) addMetadataInterface(mvm *models.MicroVM) {
+	for i := range mvm.Spec.NetworkInterfaces {
+		netInt := mvm.Spec.NetworkInterfaces[i]
+		if netInt.GuestDeviceName == MetadataInterfaceName {
+			return
+		}
+	}
+
+	mvm.Spec.NetworkInterfaces = append(mvm.Spec.NetworkInterfaces, models.NetworkInterface{
+		GuestDeviceName:       MetadataInterfaceName,
+		Type:                  models.IfaceTypeTap,
+		AllowMetadataRequests: true,
+		GuestMAC:              "AA:FF:00:00:00:01",
+		StaticAddress: &models.StaticAddress{
+			Address: "169.254.0.1/16",
+		},
+	})
+
+	return
 }
