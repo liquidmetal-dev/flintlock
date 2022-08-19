@@ -3,7 +3,6 @@ package firecracker
 import (
 	"encoding/base64"
 	"fmt"
-
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	cinetwork "github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/network"
 	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
@@ -59,8 +58,10 @@ func WithMicroVM(vm *models.MicroVM, useMMDSForCI bool) ConfigOption {
 				mmdsNetDevices = append(mmdsNetDevices, fcInt.IfaceID)
 			}
 		}
+		mmdsAddr := "169.254.169.250"
 		cfg.Mmds = &MMDSConfig{
-			Version: MMDSVersion1,
+			Version:     MMDSVersion1,
+			IPV4Address: &mmdsAddr,
 		}
 		if len(mmdsNetDevices) > 0 {
 			cfg.Mmds.NetworkInterfaces = mmdsNetDevices

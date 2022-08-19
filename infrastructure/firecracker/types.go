@@ -26,7 +26,7 @@ type VmmConfig struct {
 	// Metrics is the metrics configuration.
 	Metrics *MetricsConfig `json:"metrics,omitempty"`
 	// Mmds is the configuration for the metadata service
-	Mmds *MMDSConfig `json:"MmdsConfig,omitempty"`
+	Mmds *MMDSConfig `json:"mmds-config,omitempty"`
 	// NetDevices is the configuration for the microvm network devices.
 	NetDevices []NetworkInterfaceConfig `json:"network-interfaces"`
 	// VsockDevice is the configuration for the vsock device.
