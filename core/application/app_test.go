@@ -629,12 +629,13 @@ func createTestSpecWithMetadata(name, ns, uid string, metadata map[string]string
 				{
 					AllowMetadataRequests: true,
 					GuestMAC:              "AA:FF:00:00:00:01",
-					GuestDeviceName:       "eth0",
+					GuestDeviceName:       "mmds",
+					Type:                  models.IfaceTypeTap,
 				},
 				{
 					AllowMetadataRequests: false,
 					GuestDeviceName:       "eth1",
-					// TODO:
+					Type:                  models.IfaceTypeMacvtap,
 				},
 			},
 			RootVolume: models.Volume{

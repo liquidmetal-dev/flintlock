@@ -72,10 +72,6 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		convertedModel.Spec.NetworkInterfaces = append(convertedModel.Spec.NetworkInterfaces, *convertedNetInt)
 	}
 
-	ifaces := []models.NetworkInterface{*newMetadataInterface()}
-	ifaces = append(ifaces, convertedModel.Spec.NetworkInterfaces...)
-	convertedModel.Spec.NetworkInterfaces = ifaces
-
 	convertedModel.Spec.Metadata = map[string]string{}
 	for metadataKey, metadataValue := range spec.Metadata {
 		convertedModel.Spec.Metadata[metadataKey] = metadataValue
