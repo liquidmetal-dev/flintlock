@@ -9,6 +9,9 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
+
+	_ "net/http/pprof"
 
 	grpc_mw "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
@@ -59,6 +62,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddTLSFlagsToCommand(cmd, cfg)
 	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
 	cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg)
+	cmdflags.AddDebugFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)
@@ -80,6 +84,18 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 	wg := &sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(log.WithLogger(ctx, logger))
+
+	if cfg.DebugEndpoint != "" {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			if err := runPProf(ctx, cfg); err != nil {
+				logger.Errorf("failed serving api: %v", err)
+			}
+		}()
+	}
 
 	if !cfg.DisableAPI {
 		wg.Add(1)
@@ -224,4 +240,34 @@ func generateOpts(ctx context.Context, cfg *config.Config) ([]grpc.ServerOption,
 	}
 
 	return opts, nil
+}
+
+func runPProf(ctx context.Context, cfg *config.Config) error {
+	logger := log.GetLogger(ctx)
+	logger.Warnf("Debug endpoint is ENABLED at %s", cfg.DebugEndpoint)
+
+	srv := &http.Server{
+		Addr:    cfg.DebugEndpoint,
+		Handler: http.DefaultServeMux,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatalf("starting debug endpoint: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	logger.Debug("Exiting")
+
+	shutDownCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer func() {
+		cancel()
+	}()
+
+	if err := srv.Shutdown(shutDownCtx); err != nil {
+		logger.Warnf("Debug server shutdown failed:%+v", err)
+	}
+
+	return nil
 }
