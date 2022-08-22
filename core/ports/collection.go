@@ -13,6 +13,7 @@ type Collection struct {
 	IdentifierService IDService
 	NetworkService    NetworkService
 	ImageService      ImageService
+	DiskService       DiskService
 	FileSystem        afero.Fs
 	Clock             func() time.Time
 }
