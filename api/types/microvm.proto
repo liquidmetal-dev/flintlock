@@ -66,6 +66,9 @@ message MicroVMSpec {
   // UID is a globally unique identifier of the microvm.
   optional string uid = 15;
 
+  // Provider allows you to specify the name of the microvm provider to use. If this isn't supplied
+  // then the default provider will be used.
+  optional string provider = 16;
 }
 
 // Kernel represents the configuration for a kernel.

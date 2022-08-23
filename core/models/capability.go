@@ -6,7 +6,11 @@ type Capability string
 const (
 	// MetadataServiceCapability is a capability that indicates the microvm provider
 	// has a metadata service.
-	MetadataServiceCapability = "metadata-service"
+	MetadataServiceCapability Capability = "metadata-service"
+
+	// StartCapability is a capability that the microvm provider must be started separately from creation.
+	// If a provider doesn't have this capability then its assumed the microvm will be started at creation.
+	StartCapability Capability = "start"
 )
 
 // Capabilities represents a list of capabilities.

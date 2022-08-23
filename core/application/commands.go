@@ -50,6 +50,14 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		mvm.ID = *vmid
 	}
 
+	if mvm.Spec.Provider == "" {
+		mvm.Spec.Provider = a.cfg.DefaultProvider
+	}
+	provider, ok := a.ports.MicrovmProviders[mvm.Spec.Provider]
+	if !ok {
+		return nil, fmt.Errorf("microvm provider %s isn't available", mvm.Spec.Provider)
+	}
+
 	uid, err := a.ports.IdentifierService.GenerateRandom()
 	if err != nil {
 		return nil, fmt.Errorf("generating random ID for microvm: %w", err)
@@ -81,7 +89,9 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	if err != nil {
 		return nil, fmt.Errorf("adding instance data: %w", err)
 	}
-	a.addMetadataInterface(mvm)
+	if provider.Capabilities().Has(models.MetadataServiceCapability) {
+		a.addMetadataInterface(mvm)
+	}
 
 	// Set the timestamp when the VMspec was created.
 	mvm.Spec.CreatedAt = a.ports.Clock().Unix()

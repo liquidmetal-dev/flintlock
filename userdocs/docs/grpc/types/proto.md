@@ -144,6 +144,7 @@ MicroVMSpec represents the specification for a microvm.
 | updated_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | UpdatedAt indicates the time the microvm was last updated. |
 | deleted_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | DeletedAt indicates the time the microvm was marked as deleted. |
 | uid | [string](#string) | optional | UID is a globally unique identifier of the microvm. |
+| provider | [string](#string) | optional | Provider allows you to specify the name of the microvm provider to use. If this isn&#39;t supplied then the default provider will be used. |
 
 
 

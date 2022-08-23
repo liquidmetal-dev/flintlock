@@ -10,11 +10,17 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+	cerrs "github.com/weaveworks-liquidmetal/flintlock/core/errors"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/shared"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/process"
 	tailor "github.com/yitsushi/file-tailor"
+)
+
+const (
+	ProviderName = "firecracker"
 )
 
 // Config represents the configuration options for the Firecracker infrastructure.
@@ -58,8 +64,9 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 // MicroVM.
 //
 // The two options are:
-//  A) Merge Create and Start steps in global scope.
-//  B) Let Start to just call Create.
+//
+//	A) Merge Create and Start steps in global scope.
+//	B) Let Start to just call Create.
 //
 // Without heavy refactoring, option A seems more logical and let us keep the
 // separate Create and Start steps.  If we merge them togther, we may face
@@ -67,7 +74,7 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 // twice on the same thing, now remove them and then add it back and make a
 // separation here, like option B.
 func (p *fcProvider) Start(ctx context.Context, vm *models.MicroVM) error {
-	return p.Create(ctx, vm)
+	return cerrs.NewNotSupported("start")
 }
 
 // Stop will stop a running microvm.
@@ -152,11 +159,11 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 }
 
 func (p *fcProvider) Metrics(ctx context.Context, vmid models.VMID) (ports.MachineMetrics, error) {
-	machineMetrics := MachineMetrics{
+	machineMetrics := shared.MachineMetrics{
 		Namespace:   vmid.Namespace(),
 		MachineName: vmid.Name(),
 		MachineUID:  vmid.UID(),
-		Data:        Metrics{},
+		Data:        shared.Metrics{},
 	}
 
 	vmState := NewState(vmid, p.config.StateRoot, p.fs)

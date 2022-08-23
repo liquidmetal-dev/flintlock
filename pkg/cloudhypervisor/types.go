@@ -346,3 +346,6 @@ type VsockConfig struct {
 type VMCoreDumpData struct {
 	DestinationURL string `json:"destination_url"`
 }
+
+// VmCounters is the perf counters exposed from the VM.
+type VmCounters map[string]map[string]int64

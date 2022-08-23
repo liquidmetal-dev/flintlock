@@ -25,6 +25,8 @@ type MicroVM struct {
 
 // MicroVMSpec represents the specification of a microvm machine.
 type MicroVMSpec struct {
+	// Provider specifies the name of the microvm provider to use.
+	Provider string `json:"provider"`
 	// Kernel specifies the kernel and its argments to use.
 	Kernel Kernel `json:"kernel" validate:"omitempty"`
 	// Initrd is an optional initial ramdisk to use.

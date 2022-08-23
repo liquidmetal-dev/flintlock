@@ -7,18 +7,21 @@
 
 ## What is flintlock?
 
-Flintlock is a service for creating and managing the lifecycle of microVMs on a host machine. Initially we will be supporting [Firecracker](https://firecracker-microvm.github.io/).
+Flintlock is a service for creating and managing the lifecycle of microVMs on a host machine. We support [Firecracker](https://firecracker-microvm.github.io/) and [Cloud Hypervisor](https://www.cloudhypervisor.org/) (experimental).
 
-The primary use case for flintlock is to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of [Liquid Metal](https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal) and will ultimately be driven by Cluster API Provider Microvm (coming soon).
+The original use case for flintlock was to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of [Liquid Metal](https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal) and can be orchestrated by [Cluster API Provider Microvm](https://github.com/weaveworks-liquidmetal/cluster-api-provider-microvm).
+
+However, its useful for many other use cases where lightweight virtualization is required (e.g. isolated workloads, pipelines).
 
 ## Features
 
 Using API requests (via gRPC or HTTP):
 
-- Create and delete microVMs using Firecracker
+- Create and delete microVMs
 - Manage the lifecycle of microVMs (i.e. start, stop, pause)
 - Configure microVM metadata via cloud-init, ignition etc
 - Use OCI images for microVM volumes, kernel and initrd
+- Expose microVM metrics for collection by Prometheus
 - (coming soon) Use CNI to configure the network for the microVMs
 
 ## Documentation
@@ -50,13 +53,14 @@ Your feedback is always welcome!
 
 The table below shows you which versions of Firecracker are compatible with Flintlock:
 
-| Flintlock         | Firecracker                      |
-| ----------------- | -------------------------------- |
-|    v0.3.0         | Official v1.0+ or v1.0.0-macvtap |
-| <= v0.2.0         | <= v0.25.2-macvtap               |
-| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap               |
-|    v0.1.0-alpha.7 | **Do not use**                   |
-|    v0.1.0-alpha.8 | <= v0.25.2-macvtap               |
+| Flintlock         | Firecracker                      | Cloud Hypervisor  |
+| ----------------- | -------------------------------- | ----------------- |
+|    v0.4.0         | Official v1.0+ or v1.0.0-macvtap | v26.0             |
+|    v0.3.0         | Official v1.0+ or v1.0.0-macvtap | **Not Supported** |
+| <= v0.2.0         | <= v0.25.2-macvtap               | **Not Supported** |
+| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap               | **Not Supported** |
+|    v0.1.0-alpha.7 | **Do not use**                   | **Not Supported** |
+|    v0.1.0-alpha.8 | <= v0.25.2-macvtap               | **Not Supported** |
 
 > Note: Flintlock currently requires a custom build of Firecracker if you plan to use macvtap available [here][fc-fork].
 

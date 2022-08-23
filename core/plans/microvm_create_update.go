@@ -48,6 +48,11 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, portsctx.ErrPortsMissing
 	}
 
+	provider, ok := ports.MicrovmProviders[p.vm.Spec.Provider]
+	if !ok {
+		return nil, fmt.Errorf("microvm provider %s isn't available", p.vm.Spec.Provider)
+	}
+
 	if p.vm.Spec.DeletedAt != 0 {
 		return []planner.Procedure{}, nil
 	}
@@ -70,13 +75,15 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 	}
 
 	// MicroVM provider create
-	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, ports.Provider)); err != nil {
+	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, provider)); err != nil {
 		return nil, fmt.Errorf("adding microvm create step: %w", err)
 	}
 
 	// MicroVM provider start
-	if err := p.addStep(ctx, microvm.NewStartStep(p.vm, ports.Provider, microVMBootTime)); err != nil {
-		return nil, fmt.Errorf("adding microvm start step: %w", err)
+	if provider.Capabilities().Has(models.StartCapability) {
+		if err := p.addStep(ctx, microvm.NewStartStep(p.vm, provider, microVMBootTime)); err != nil {
+			return nil, fmt.Errorf("adding microvm start step: %w", err)
+		}
 	}
 
 	return p.steps, nil

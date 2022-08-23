@@ -123,3 +123,25 @@ func IsSpecNotFound(err error) bool {
 
 	return errors.As(err, e)
 }
+
+func NewNotSupported(featureName string) error {
+	return notSupportedError{
+		unsupported: featureName,
+	}
+}
+
+type notSupportedError struct {
+	unsupported string
+}
+
+// Error returns the error message.
+func (e notSupportedError) Error() string {
+	return fmt.Sprintf("%s is not supported", e.unsupported)
+}
+
+// IsNotSupported tests an error to see if its a not supported error.
+func IsNotSupported(err error) bool {
+	e := &notSupportedError{}
+
+	return errors.As(err, e)
+}

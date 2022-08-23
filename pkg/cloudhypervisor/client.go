@@ -15,6 +15,7 @@ const (
 	PathVmmShutdown = "vmm.shutdown"
 
 	PathVmInfo           = "vm.info"
+	PathVmCounters       = "vm.counters"
 	PathVmCreate         = "vm.create"
 	PathVmDelete         = "vm.delete"
 	PathVmBoot           = "vm.boot"
@@ -48,6 +49,8 @@ type Client interface {
 	VmmShutdown(ctx context.Context) error
 	// Info returns general information about the cloud-hypervisor Virtual Machine (VM) instance.
 	Info(ctx context.Context) (*VmInfo, error)
+	// Counters gets the counters from the VM.
+	Counters(ctx context.Context) (*VmCounters, error)
 	// Create will create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
 	Create(ctx context.Context, config *VmConfig) error
 	// Delete will delete the cloud-hypervisor Virtual Machine (VM) instance.
@@ -138,6 +141,21 @@ func (c *client) Info(ctx context.Context) (*VmInfo, error) {
 		Fetch(ctx); err != nil {
 		return nil, err
 	}
+	return data, nil
+}
+
+// Counters gets the counters from the VM.
+func (c *client) Counters(ctx context.Context) (*VmCounters, error) {
+	data := &VmCounters{}
+
+	if err := c.builder.
+		Clone().
+		Path(PathVmCounters).
+		ToJSON(data).
+		Fetch(ctx); err != nil {
+		return nil, err
+	}
+
 	return data, nil
 }
 

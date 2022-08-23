@@ -47,6 +47,9 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			expectError:  false,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				im.GenerateRandom().Return("id1234", nil).Times(1)
+
+				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability})
+
 				im.GenerateRandom().Return(testUID, nil).Times(1)
 
 				rm.Get(
@@ -59,6 +62,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				).Return(nil, nil)
 
 				expectedCreatedSpec := createTestSpecWithMetadata("id1234", defaults.MicroVMNamespace, testUID, createInstanceMetadatadata(t, testUID))
+				expectedCreatedSpec.Spec.Provider = "mock"
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
 				expectedCreatedSpec.Status.State = models.PendingState
 
@@ -86,6 +90,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			specToCreate: createTestSpec("id1234", "default", testUID),
 			expectError:  false,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability})
 				im.GenerateRandom().Return(testUID, nil).Times(1)
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
@@ -100,6 +105,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				)
 
 				expectedCreatedSpec := createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, testUID))
+				expectedCreatedSpec.Spec.Provider = "mock"
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
 				expectedCreatedSpec.Status.State = models.PendingState
 
@@ -146,6 +152,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			specToCreate: createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, "abcdef")),
 			expectError:  false,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability})
 				im.GenerateRandom().Return(testUID, nil).Times(1)
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
@@ -160,6 +167,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				)
 
 				expectedCreatedSpec := createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, "abcdef"))
+				expectedCreatedSpec.Spec.Provider = "mock"
 				expectedCreatedSpec.Spec.CreatedAt = frozenTime().Unix()
 				expectedCreatedSpec.Status.State = models.PendingState
 
@@ -199,8 +207,10 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			is := mock.NewMockImageService(mockCtrl)
 			fs := afero.NewMemMapFs()
 			ports := &ports.Collection{
-				Repo:              rm,
-				Provider:          pm,
+				Repo: rm,
+				MicrovmProviders: map[string]ports.MicroVMService{
+					"mock": pm,
+				},
 				EventService:      em,
 				IdentifierService: im,
 				NetworkService:    ns,
@@ -212,7 +222,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
 
 			ctx := context.Background()
-			app := application.New(&application.Config{}, ports)
+			app := application.New(&application.Config{DefaultProvider: "mock"}, ports)
 			_, err := app.CreateMicroVM(ctx, tc.specToCreate)
 
 			if tc.expectError {
@@ -311,8 +321,10 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 			is := mock.NewMockImageService(mockCtrl)
 			fs := afero.NewMemMapFs()
 			ports := &ports.Collection{
-				Repo:              rm,
-				Provider:          pm,
+				Repo: rm,
+				MicrovmProviders: map[string]ports.MicroVMService{
+					"mock": pm,
+				},
 				EventService:      em,
 				IdentifierService: im,
 				NetworkService:    ns,
@@ -324,7 +336,7 @@ func TestApp_DeleteMicroVM(t *testing.T) {
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
 
 			ctx := context.Background()
-			app := application.New(&application.Config{}, ports)
+			app := application.New(&application.Config{DefaultProvider: "mock"}, ports)
 			err := app.DeleteMicroVM(ctx, tc.toDeleteUID)
 
 			if tc.expectError {
@@ -417,8 +429,10 @@ func TestApp_GetMicroVM(t *testing.T) {
 			is := mock.NewMockImageService(mockCtrl)
 			fs := afero.NewMemMapFs()
 			ports := &ports.Collection{
-				Repo:              rm,
-				Provider:          pm,
+				Repo: rm,
+				MicrovmProviders: map[string]ports.MicroVMService{
+					"mock": pm,
+				},
 				EventService:      em,
 				IdentifierService: im,
 				NetworkService:    ns,
@@ -430,7 +444,7 @@ func TestApp_GetMicroVM(t *testing.T) {
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
 
 			ctx := context.Background()
-			app := application.New(&application.Config{}, ports)
+			app := application.New(&application.Config{DefaultProvider: "mock"}, ports)
 			mvm, err := app.GetMicroVM(ctx, tc.toGetUID)
 
 			if tc.expectError {
@@ -560,8 +574,10 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 			is := mock.NewMockImageService(mockCtrl)
 			fs := afero.NewMemMapFs()
 			ports := &ports.Collection{
-				Repo:              rm,
-				Provider:          pm,
+				Repo: rm,
+				MicrovmProviders: map[string]ports.MicroVMService{
+					"mock": pm,
+				},
 				EventService:      em,
 				IdentifierService: im,
 				NetworkService:    ns,
@@ -573,7 +589,7 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 			tc.expect(rm.EXPECT(), em.EXPECT(), im.EXPECT(), pm.EXPECT())
 
 			ctx := context.Background()
-			app := application.New(&application.Config{}, ports)
+			app := application.New(&application.Config{DefaultProvider: "mock"}, ports)
 			query := models.ListMicroVMQuery{"namespace": tc.toGetNS}
 
 			if tc.toGetName != nil {
