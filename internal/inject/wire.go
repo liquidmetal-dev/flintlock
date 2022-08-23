@@ -47,7 +47,7 @@ func InitializeApp(cfg *config.Config, ports *ports.Collection) application.App 
 }
 
 func InializeController(app application.App, ports *ports.Collection) *controllers.MicroVMController {
-	wire.Build(controllers.New, eventSvcFromScope, reconcileUCFromApp)
+	wire.Build(controllers.New, eventSvcFromScope, reconcileUCFromApp, queryUCFromApp)
 
 	return nil
 }
