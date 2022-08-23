@@ -59,7 +59,8 @@ func InitializeApp(cfg *config.Config, ports2 *ports.Collection) application.App
 func InializeController(app application.App, ports2 *ports.Collection) *controllers.MicroVMController {
 	eventService := eventSvcFromScope(ports2)
 	reconcileMicroVMsUseCase := reconcileUCFromApp(app)
-	microVMController := controllers.New(eventService, reconcileMicroVMsUseCase)
+	microVMQueryUseCases := queryUCFromApp(app)
+	microVMController := controllers.New(eventService, reconcileMicroVMsUseCase, microVMQueryUseCases)
 	return microVMController
 }
 

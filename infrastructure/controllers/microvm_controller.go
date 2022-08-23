@@ -16,10 +16,11 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/queue"
 )
 
-func New(eventSvc ports.EventService, reconcileUC ports.ReconcileMicroVMsUseCase) *MicroVMController {
+func New(eventSvc ports.EventService, reconcileUC ports.ReconcileMicroVMsUseCase, queryUC ports.MicroVMQueryUseCases) *MicroVMController {
 	return &MicroVMController{
 		eventSvc:    eventSvc,
 		reconcileUC: reconcileUC,
+		queryUC:     queryUC,
 		queue:       queue.NewSimpleSyncQueue(),
 	}
 }
@@ -27,6 +28,7 @@ func New(eventSvc ports.EventService, reconcileUC ports.ReconcileMicroVMsUseCase
 type MicroVMController struct {
 	eventSvc    ports.EventService
 	reconcileUC ports.ReconcileMicroVMsUseCase
+	queryUC     ports.MicroVMQueryUseCases
 
 	queue queue.Queue
 }
@@ -186,11 +188,17 @@ func (r *MicroVMController) handleEvent(envelope *ports.EventEnvelope, logger *l
 func (r *MicroVMController) resyncSpecs(ctx context.Context, logger *logrus.Entry) error {
 	logger.Info("resyncing microvm specs")
 
-	err := r.reconcileUC.ResyncMicroVMs(ctx, "")
-	if err != nil {
-		logger.Errorf("failed to resync microvms: %s", err)
+	specs, err := r.queryUC.GetAllMicroVM(ctx, models.ListMicroVMQuery{
+		"Namespace": "",
+	})
 
-		return fmt.Errorf("resyncing microvms: %w", err)
+	if err != nil {
+		return fmt.Errorf("getting all microvm specs for resync: %w", err)
+	}
+
+	for _, spec := range specs {
+		logger.Debugf("enqueing vmid %s for resync", spec.ID)
+		r.queue.Enqueue(spec.ID.String())
 	}
 
 	return nil
