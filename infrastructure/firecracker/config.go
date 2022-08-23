@@ -217,9 +217,10 @@ func generateNetworkConfig(vm *models.MicroVM) (string, error) {
 		macAddress := getMacAddress(&iface, status)
 
 		eth := &cinetwork.Ethernet{
-			Match: cinetwork.Match{},
-			DHCP4: firecracker.Bool(true),
-			DHCP6: firecracker.Bool(true),
+			Match:          cinetwork.Match{},
+			DHCP4:          firecracker.Bool(true),
+			DHCP6:          firecracker.Bool(true),
+			DHCPIdentifier: firecracker.String(cinetwork.DhcpIdentifierMac),
 		}
 
 		if macAddress != "" {
