@@ -120,13 +120,14 @@ func TestMicroVMController(t *testing.T) {
 
 			em := mock.NewMockEventService(mockCtrl)
 			uc := mock.NewMockReconcileMicroVMsUseCase(mockCtrl)
+			quc := mock.NewMockMicroVMQueryUseCases(mockCtrl)
 
 			evtCh := make(chan *ports.EventEnvelope)
 			evtErrCh := make(chan error, 1)
 
 			tc.expect(em.EXPECT(), uc.EXPECT(), evtCh, evtErrCh)
 
-			controller := controllers.New(em, uc)
+			controller := controllers.New(em, uc, quc)
 
 			ctrlWG := sync.WaitGroup{}
 			ctrlWG.Add(1)
