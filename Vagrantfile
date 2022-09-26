@@ -83,8 +83,12 @@ EOF
     SHELL
   end
 
-  config.vm.provision "configure-thinpool", type: "shell",
-    run: "once", path: "./hack/scripts/devpool.sh"
+  config.vm.provision "configure-thinpool", type: "shell", run: "once" do |sh|
+    sh.inline = <<~SHELL
+    curl -fsSL "https://raw.githubusercontent.com/weaveworks-liquidmetal/flintlock/main/hack/scripts/devpool.sh" -o /tmp/devpool.sh
+    chmod +x /tmp/devpool.sh && /tmp/devpool.sh
+    SHELL
+  end
 
   config.vm.provision "configure-containerd", type: "shell", run: "once" do |sh|
     sh.inline = <<~SHELL
@@ -96,7 +100,7 @@ EOF
       mkdir -p /var/lib/containerd-dev/snapshotter/devmapper
       mkdir -p /run/containerd-dev/
 
-      cp /home/vagrant/flintlock/hack/scripts/example-config.toml /etc/containerd/config.toml
+      curl -fsSL "https://raw.githubusercontent.com/weaveworks-liquidmetal/flintlock/main/hack/scripts/example-config.toml" -o /etc/containerd/config.toml
 
       systemctl restart containerd
     SHELL
