@@ -268,16 +268,16 @@ do_all_flintlock() {
 
 	install_flintlockd "$version"
 
-	if [[ -z "$address" ]]; then
-		address=$(lookup_address)
-	fi
 	if [[ -z "$parent_iface" ]]; then
 		parent_iface=$(lookup_interface)
+	fi
+	if [[ -z "$address" ]]; then
+		address=$(lookup_address "$parent_iface")
 	fi
 	write_flintlockd_config "$address" "$parent_iface" "$insecure"
 
 	start_flintlockd_service
-	say "Flintlockd running at $address:9090"
+	say "Flintlockd running at $address:9090 via interface $parent_iface"
 }
 
 # Fetch and install the flintlockd binary at the specified version
@@ -329,14 +329,16 @@ start_flintlockd_service() {
 	start_service "$FLINTLOCK_BIN"
 }
 
-# Returns the internal address of the host
-lookup_address() {
-	ip route show | awk '/scope link/ {print $9}' | grep -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)'
-}
-
 # Returns the interface of the default route
 lookup_interface() {
-	ip route show | awk '/default/ {print $5}'
+	ip route show | awk '/default/ {print $5}' | head -n 1
+}
+
+# Returns the internal address of the host associated with the given interface
+lookup_address() {
+	local interface="$1"
+
+	ip route show | awk -v i="$interface" '$0 ~ i {print $9}' | grep -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)'
 }
 
 ## CONTAINERD
