@@ -18,6 +18,7 @@ DEFAULT_BRANCH="main"
 CONTAINERD_CONFIG_PATH=""
 CONTAINERD_ROOT_DIR=""
 CONTAINERD_STATE_DIR=""
+CONTAINERD_SERVICE_FILE=""
 DEVMAPPER_DIR=""
 DEVPOOL_METADATA=""
 DEVPOOL_DATA=""
@@ -32,7 +33,6 @@ FIRECRACKER_REPO="weaveworks/firecracker"
 CONTAINERD_VERSION="${CONTAINERD:=$DEFAULT_VERSION}"
 CONTAINERD_BIN="containerd"
 CONTAINERD_REPO="containerd/containerd"
-CONTAINERD_SERVICE_FILE="/etc/systemd/system/containerd.service"
 
 # flintlock
 FLINTLOCK_VERSION="${FLINTLOCK:=$DEFAULT_VERSION}"
@@ -179,6 +179,7 @@ build_containerd_paths() {
 	CONTAINERD_CONFIG_PATH="/etc/containerd/config$tag.toml"
 	CONTAINERD_ROOT_DIR="/var/lib/containerd$tag"
 	CONTAINERD_STATE_DIR="/run/containerd$tag"
+	CONTAINERD_SERVICE_FILE="/etc/systemd/system/containerd$tag.service"
 	DEVMAPPER_DIR="$CONTAINERD_ROOT_DIR/snapshotter/devmapper"
 	DEVPOOL_METADATA="$DEVMAPPER_DIR/metadata"
 	DEVPOOL_DATA="$DEVMAPPER_DIR/data"
@@ -264,7 +265,8 @@ do_all_flintlock() {
 	local version="$1"
 	local address="${2%:*}"
 	local parent_iface="$3"
-	local insecure="$4"
+	local bridge_name="$4"
+	local insecure="$5"
 
 	install_flintlockd "$version"
 
@@ -274,7 +276,7 @@ do_all_flintlock() {
 	if [[ -z "$address" ]]; then
 		address=$(lookup_address "$parent_iface")
 	fi
-	write_flintlockd_config "$address" "$parent_iface" "$insecure"
+	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure"
 
 	start_flintlockd_service
 	say "Flintlockd running at $address:9090 via interface $parent_iface"
@@ -302,7 +304,8 @@ install_flintlockd() {
 write_flintlockd_config() {
 	local address="$1"
 	local parent_iface="$2"
-	local insecure="$3"
+	local bridge_name="$3"
+	local insecure="$4"
 
 	mkdir -p "$(dirname "$FLINTLOCKD_CONFIG_PATH")"
 
@@ -313,16 +316,25 @@ write_flintlockd_config() {
 containerd-socket: "$CONTAINERD_STATE_DIR/containerd.sock"
 grpc-endpoint: "$address:9090"
 verbosity: 9
-parent-iface: "$parent_iface"
 insecure: $insecure
 EOF
+
+	if [[ -n "$bridge_name" ]]; then
+	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+bridge-name: "$bridge_name"
+EOF
+	else
+	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+parent-iface: "$parent_iface"
+EOF
+	fi
 
 	say "Flintlockd config saved"
 }
 
 # Fetch and start the flintlock systemd service
 start_flintlockd_service() {
-	say "Starting flintlockd service"
+	say "Starting flintlockd service with $FLINTLOCKD_SERVICE_FILE"
 
 	service=$(basename "$FLINTLOCKD_SERVICE_FILE")
 	fetch_service_file "$FLINTLOCK_REPO" "$service" "$FLINTLOCKD_SERVICE_FILE"
@@ -417,9 +429,9 @@ EOF
 
 # Start the containerd systemd service
 start_containerd_service() {
-	say "Starting containerd service"
+	say "Starting containerd service with $CONTAINERD_SERVICE_FILE"
 
-	service=$(basename "$CONTAINERD_SERVICE_FILE")
+	service="$CONTAINERD_BIN.service"
 	fetch_service_file "$CONTAINERD_REPO" "$service" "$CONTAINERD_SERVICE_FILE"
 
 	sed -i "s|ExecStart=.*|& --config $CONTAINERD_CONFIG_PATH|" "$CONTAINERD_SERVICE_FILE"
@@ -660,6 +672,7 @@ cmd_all() {
 	local disk=""
 	local fl_address=""
 	local fl_iface=""
+	local bridge_name=""
 	local insecure=false
 	local thinpool="$DEFAULT_THINPOOL"
 	local fc_version="$FIRECRACKER_VERSION"
@@ -690,6 +703,10 @@ cmd_all() {
 		"-i" | "--parent-iface")
 			shift
 			fl_iface="$1"
+			;;
+		"-b" | "--bridge")
+			shift
+			bridge_name="$1"
 			;;
 		"-s" | "--skip-apt")
 			skip_apt=true
@@ -731,7 +748,7 @@ cmd_all() {
 
 	install_firecracker "$fc_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
-	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$insecure"
+	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure"
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Host $(hostname) provisioned"
 }
@@ -791,6 +808,7 @@ cmd_containerd() {
 			;;
 		"--dev")
 			DEVELOPMENT=true
+			thinpool="$DEFAULT_DEV_THINPOOL"
 			;;
 		*)
 			die "Unknown argument: $1. Please use --help for help."
@@ -807,6 +825,7 @@ cmd_flintlock() {
 	local version="$FLINTLOCK_VERSION"
 	local address=""
 	local parent_iface=""
+	local bridge_name=""
 	local insecure=false
 
 	while [ $# -gt 0 ]; do
@@ -827,6 +846,10 @@ cmd_flintlock() {
 			shift
 			parent_iface="$1"
 			;;
+		"-b" | "--bridge")
+			shift
+			bridge_name="$1"
+			;;
 		"-k" | "--insecure")
 			insecure=true
 			;;
@@ -841,7 +864,7 @@ cmd_flintlock() {
 	done
 
 	prepare_dirs
-	do_all_flintlock "$version" "$address" "$parent_iface" "$insecure"
+	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure"
 }
 
 cmd_direct_lvm() {
@@ -933,6 +956,7 @@ cmd_all_help() {
       --disk, -d         Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
       --grpc-address, -a Address on which to start the Flintlock GRPC server (default: local ipv4 address)
       --parent-iface, -i Interface of the default route of the host
+      --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Set up development environment. Loop thinpools will be created.
 
@@ -966,6 +990,7 @@ cmd_flintlock_help() {
       --version, -v      Version to install (default: latest)
       --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
       --parent-iface, -i Interface of the default route of the host
+      --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Assumes containerd has been provisioned in a dev environment
 
