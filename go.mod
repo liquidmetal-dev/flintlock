@@ -49,7 +49,7 @@ require (
 require (
 	github.com/carlmjohnson/requests v0.22.3
 	github.com/diskfs/go-diskfs v1.2.0
-	github.com/docker/go-units v0.4.0
+	github.com/docker/go-units v0.5.0
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/urfave/cli/v2 v2.16.3
