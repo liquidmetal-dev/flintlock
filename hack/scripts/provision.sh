@@ -13,6 +13,7 @@ OPT_UNATTENDED=false
 DEVELOPMENT=false
 DEFAULT_VERSION="latest"
 DEFAULT_BRANCH="main"
+ARCH=amd64
 
 # paths to be set later, put here to be explicit
 CONTAINERD_CONFIG_PATH=""
@@ -26,7 +27,6 @@ DEVPOOL_DATA=""
 # firecracker
 FIRECRACKER_VERSION="${FIRECRACKER:=$DEFAULT_VERSION}"
 FIRECRACKER_BIN="firecracker"
-FIRECRACKER_RELEASE_BIN="firecracker"
 FIRECRACKER_REPO="weaveworks/firecracker"
 
 # containerd
@@ -38,7 +38,6 @@ CONTAINERD_REPO="containerd/containerd"
 FLINTLOCK_VERSION="${FLINTLOCK:=$DEFAULT_VERSION}"
 FLINTLOCK_BIN="flintlockd"
 FLINTLOCK_REPO="weaveworks/flintlock"
-FLINTLOCK_RELEASE_BIN="flintlockd_amd64"
 FLINTLOCKD_SERVICE_FILE="/etc/systemd/system/flintlockd.service"
 FLINTLOCKD_CONFIG_PATH="/etc/opt/flintlockd/config.yaml"
 
@@ -150,7 +149,9 @@ build_release_url() {
 # If/when we need to support others, we can ammend
 build_containerd_release_bin_name() {
 	local tag=${1//v/} # remove the 'v' from arg $1
-	echo "containerd-$tag-linux-amd64.tar.gz"
+	local arch="$2"
+
+	echo "containerd-$tag-linux-$arch.tar.gz"
 }
 
 # Returns the desired binary download url for a repo, tag and binary
@@ -188,6 +189,24 @@ build_containerd_paths() {
 ## DOER FUNCS
 #
 #
+# Checks user input for valid architecture and sets the global value for pulling
+# correct binaries.
+set_arch() {
+	# shellcheck disable=SC2155
+	local arch=$(uname -m)
+
+	case $arch in
+		x86_64|amd64)
+			ARCH=amd64
+			;;
+		aarch64|arm64)
+			ARCH=arm64
+			;;
+		*)
+			die "Unknown arch or arch not supported: $arch."
+	esac
+}
+
 # Returns the tag associated with a "latest" release
 latest_release_tag() {
 	# shellcheck disable=SC2155
@@ -243,19 +262,34 @@ start_service() {
 # Fetch and install the firecracker binary
 install_firecracker() {
 	local tag="$1"
+
 	say "Installing firecracker version $tag to $INSTALL_PATH"
 
 	if [[ "$tag" == "$DEFAULT_VERSION" ]]; then
 		tag=$(latest_release_tag "$FIRECRACKER_REPO")
 	fi
 
-	url=$(build_download_url "$FIRECRACKER_REPO" "$tag" "$FIRECRACKER_RELEASE_BIN")
+	bin_name="${FIRECRACKER_BIN}_${ARCH}"
+
+	# older firecracker macvtap releases had binaries with different names
+	if is_older_version "$tag"; then
+		bin_name="$FIRECRACKER_BIN"
+	fi
+
+	url=$(build_download_url "$FIRECRACKER_REPO" "$tag" "$bin_name")
 	install_release_bin "$url" "$FIRECRACKER_BIN" || die "could not install firecracker"
 
 	"$FIRECRACKER_BIN" --version &>/dev/null
 	ok_or_die "firecracker version $tag not installed"
 
 	say "Firecracker version $tag successfully installed"
+}
+
+is_older_version() {
+	local tag="$1"
+	local cutoff="v1.1.1-macvtap"
+
+	[[ "$tag" == $(printf "%s\n%s" "$tag" "$cutoff" | sort -V | head -n 1) && "$tag" != "$cutoff" ]]
 }
 
 ## FLINTLOCK
@@ -285,13 +319,14 @@ do_all_flintlock() {
 # Fetch and install the flintlockd binary at the specified version
 install_flintlockd() {
 	local tag="$1"
+
 	say "Installing flintlockd version $tag to $INSTALL_PATH"
 
 	if [[ "$tag" == "$DEFAULT_VERSION" ]]; then
 		tag=$(latest_release_tag "$FLINTLOCK_REPO")
 	fi
 
-	url=$(build_download_url "$FLINTLOCK_REPO" "$tag" "$FLINTLOCK_RELEASE_BIN")
+	url=$(build_download_url "$FLINTLOCK_REPO" "$tag" "${FLINTLOCK_BIN}_${ARCH}")
 	install_release_bin "$url" "$FLINTLOCK_BIN"
 
 	"$FLINTLOCK_BIN" version &>/dev/null
@@ -359,6 +394,7 @@ lookup_address() {
 do_all_containerd() {
 	local version="$1"
 	local thinpool="$2"
+
 	install_containerd "$version"
 	write_containerd_config "$thinpool"
 	start_containerd_service
@@ -367,13 +403,14 @@ do_all_containerd() {
 # Fetch and install the containerd binary
 install_containerd() {
 	local tag="$1"
+
 	say "Installing containerd version $tag to $INSTALL_PATH"
 
 	if [[ "$version" == "$DEFAULT_VERSION" ]]; then
 		tag=$(latest_release_tag "$CONTAINERD_REPO")
 	fi
 
-	bin=$(build_containerd_release_bin_name "$tag")
+	bin=$(build_containerd_release_bin_name "$tag" "$ARCH")
 	url=$(build_download_url "$CONTAINERD_REPO" "$tag" "$bin")
 	install_release_tar "$url" "$(dirname $INSTALL_PATH)" || die "could not install containerd"
 
@@ -728,6 +765,9 @@ cmd_all() {
 	say "The following subcommands will be performed:" \
 		"apt, firecracker, containerd, flintlock, direct_lvm|devpool"
 
+	set_arch
+	say "Will install binaries for architecture: $ARCH"
+
 	ensure_kvm
 
 	if [[ "$skip_apt" == false ]]; then
@@ -785,6 +825,7 @@ cmd_firecracker() {
 		shift
 	done
 
+	set_arch
 	install_firecracker "$version"
 }
 
@@ -817,6 +858,7 @@ cmd_containerd() {
 		shift
 	done
 
+	set_arch
 	prepare_dirs
 	do_all_containerd "$version" "$thinpool"
 }
@@ -863,6 +905,7 @@ cmd_flintlock() {
 		shift
 	done
 
+	set_arch
 	prepare_dirs
 	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure"
 }
