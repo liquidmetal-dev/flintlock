@@ -33,6 +33,7 @@ FIRECRACKER_REPO="weaveworks/firecracker"
 CONTAINERD_VERSION="${CONTAINERD:=$DEFAULT_VERSION}"
 CONTAINERD_BIN="containerd"
 CONTAINERD_REPO="containerd/containerd"
+CONTAINERD_SYSTEMD_SVC=""
 
 # flintlock
 FLINTLOCK_VERSION="${FLINTLOCK:=$DEFAULT_VERSION}"
@@ -181,6 +182,7 @@ build_containerd_paths() {
 	CONTAINERD_ROOT_DIR="/var/lib/containerd$tag"
 	CONTAINERD_STATE_DIR="/run/containerd$tag"
 	CONTAINERD_SERVICE_FILE="/etc/systemd/system/containerd$tag.service"
+	CONTAINERD_SYSTEMD_SVC="containerd$tag.service"
 	DEVMAPPER_DIR="$CONTAINERD_ROOT_DIR/snapshotter/devmapper"
 	DEVPOOL_METADATA="$DEVMAPPER_DIR/metadata"
 	DEVPOOL_DATA="$DEVMAPPER_DIR/data"
@@ -473,7 +475,7 @@ start_containerd_service() {
 
 	sed -i "s|ExecStart=.*|& --config $CONTAINERD_CONFIG_PATH|" "$CONTAINERD_SERVICE_FILE"
 
-	start_service "$CONTAINERD_BIN"
+	start_service "$CONTAINERD_SYSTEMD_SVC"
 
 	say "Containerd running"
 }
