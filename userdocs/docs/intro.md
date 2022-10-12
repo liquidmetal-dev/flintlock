@@ -30,11 +30,13 @@ Using API requests (via gRPC or HTTP):
 ## Documentation
 
 :::info
-Flintlock is only compatible with Linux. We recommend that
-non-linux users provision a [Linux VM][vagrant] in which to work.
+Flintlock is only compatible with Linux. To make it work on a different environment
+we recommend using the provided `Vagrantfile` located in this repository.
+For more detailed steps read further [here][set-up-using-osx].
 :::
 
 See our [getting started with flintlock][getting-started] guide.
 
 [vagrant]: ./getting-started/extras/use-vagrant
 [getting-started]: ./getting-started/basics/configuring-network
+[set-up-using-osx]: ./getting-started/basics/set-up-using-osx
