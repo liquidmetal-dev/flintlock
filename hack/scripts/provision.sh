@@ -198,14 +198,15 @@ set_arch() {
 	local arch=$(uname -m)
 
 	case $arch in
-		x86_64|amd64)
-			ARCH=amd64
-			;;
-		aarch64|arm64)
-			ARCH=arm64
-			;;
-		*)
-			die "Unknown arch or arch not supported: $arch."
+	x86_64 | amd64)
+		ARCH=amd64
+		;;
+	aarch64 | arm64)
+		ARCH=arm64
+		;;
+	*)
+		die "Unknown arch or arch not supported: $arch."
+		;;
 	esac
 }
 
@@ -303,6 +304,7 @@ do_all_flintlock() {
 	local parent_iface="$3"
 	local bridge_name="$4"
 	local insecure="$5"
+	local auth_file="$6"
 
 	install_flintlockd "$version"
 
@@ -312,7 +314,7 @@ do_all_flintlock() {
 	if [[ -z "$address" ]]; then
 		address=$(lookup_address "$parent_iface")
 	fi
-	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure"
+	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure" "$auth_file"
 
 	start_flintlockd_service
 	say "Flintlockd running at $address:9090 via interface $parent_iface"
@@ -343,6 +345,7 @@ write_flintlockd_config() {
 	local parent_iface="$2"
 	local bridge_name="$3"
 	local insecure="$4"
+	local auth_file="$5"
 
 	mkdir -p "$(dirname "$FLINTLOCKD_CONFIG_PATH")"
 
@@ -357,13 +360,34 @@ insecure: $insecure
 EOF
 
 	if [[ -n "$bridge_name" ]]; then
-	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+		cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
 bridge-name: "$bridge_name"
 EOF
 	else
-	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+		cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
 parent-iface: "$parent_iface"
 EOF
+	fi
+
+	if [[ -n "$auth_file" ]]; then
+		say "using auth file: $auth_file"
+		# shellcheck source=auth_file
+		# shellcheck disable=SC1091
+		. "${auth_file}"
+		if [[ -n "$basic_auth_token" ]]; then
+			cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+basic-auth-token: "$basic_auth_token"
+EOF
+		fi
+		if [[ -n "$tls_cert" ]]; then
+			# shellcheck disable=SC2154
+			cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+tls-cert: "$tls_cert"
+tls-key: "$tls_key"
+tls-client-validate: "$tls_client_validate"
+tls-client-ca: "$tls_client_ca"
+EOF
+		fi
 	fi
 
 	say "Flintlockd config saved"
@@ -717,6 +741,7 @@ cmd_all() {
 	local fc_version="$FIRECRACKER_VERSION"
 	local fl_version="$FLINTLOCK_VERSION"
 	local ctrd_version="$CONTAINERD_VERSION"
+	local auth_file=""
 
 	while [ $# -gt 0 ]; do
 		case "$1" in
@@ -756,6 +781,10 @@ cmd_all() {
 		"--dev")
 			DEVELOPMENT=true
 			;;
+		"-f" | "--auth-file")
+			shift
+			auth_file="$1"
+			;;
 		*)
 			die "Unknown argument: $1. Please use --help for help."
 			;;
@@ -790,7 +819,7 @@ cmd_all() {
 
 	install_firecracker "$fc_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
-	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure"
+	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure" "$auth_file"
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Host $(hostname) provisioned"
 }
@@ -871,6 +900,7 @@ cmd_flintlock() {
 	local parent_iface=""
 	local bridge_name=""
 	local insecure=false
+	local auth_file=""
 
 	while [ $# -gt 0 ]; do
 		case "$1" in
@@ -897,6 +927,10 @@ cmd_flintlock() {
 		"-k" | "--insecure")
 			insecure=true
 			;;
+		"-f" | "--auth_file")
+			shift
+			auth_file="$1"
+			;;
 		"--dev")
 			DEVELOPMENT=true
 			;;
@@ -909,7 +943,7 @@ cmd_flintlock() {
 
 	set_arch
 	prepare_dirs
-	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure"
+	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure" "$auth_file"
 }
 
 cmd_direct_lvm() {
@@ -1004,6 +1038,7 @@ cmd_all_help() {
       --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Set up development environment. Loop thinpools will be created.
+      --auth-file, -f    Provide a configuration file to set up authentication for flintlock such as, token or TLS (the file should follow shell syntax)
 
 EOF
 }
@@ -1038,6 +1073,7 @@ cmd_flintlock_help() {
       --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Assumes containerd has been provisioned in a dev environment
+      --auth-file, -f    Provide a configuration file to set up authentication for flintlock such as, token or TLS (the file should follow shell syntax)
 
 EOF
 }
