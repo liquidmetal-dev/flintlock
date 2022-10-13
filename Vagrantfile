@@ -22,9 +22,10 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder "./", "/home/vagrant/flintlock"
 
   config.vm.network "forwarded_port", guest: 9090, host: 9090
+  config.vm.network "public_network"
 
   cpus = 2
-  memory = 4096
+  memory = 8192
   config.vm.provider :virtualbox do |v|
     # Enable nested virtualisation in VBox
     v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
@@ -57,8 +58,7 @@ Vagrant.configure("2") do |config|
         git \
         gcc \
         curl \
-        unzip \
-        containerd
+        unzip
     SHELL
   end
 
@@ -83,29 +83,6 @@ EOF
     SHELL
   end
 
-  config.vm.provision "configure-thinpool", type: "shell", run: "once" do |sh|
-    sh.inline = <<~SHELL
-    curl -fsSL "https://raw.githubusercontent.com/weaveworks-liquidmetal/flintlock/main/hack/scripts/devpool.sh" -o /tmp/devpool.sh
-    chmod +x /tmp/devpool.sh && /tmp/devpool.sh
-    SHELL
-  end
-
-  config.vm.provision "configure-containerd", type: "shell", run: "once" do |sh|
-    sh.inline = <<~SHELL
-      #!/usr/bin/env bash
-      set -eux -o pipefail
-
-      # ensure directories exist
-      mkdir -p /etc/containerd
-      mkdir -p /var/lib/containerd-dev/snapshotter/devmapper
-      mkdir -p /run/containerd-dev/
-
-      curl -fsSL "https://raw.githubusercontent.com/weaveworks-liquidmetal/flintlock/main/hack/scripts/example-config.toml" -o /etc/containerd/config.toml
-
-      systemctl restart containerd
-    SHELL
-  end
-
   config.vm.provision "install-kvm", type: "shell", run: "once" do |sh|
     sh.inline = <<~SHELL
       #!/usr/bin/env bash
@@ -116,12 +93,4 @@ EOF
       setfacl -m u:${USER}:rw /dev/kvm
     SHELL
   end
-
-  config.vm.provision "install-firecracker", type: "shell", run: "once" do |sh|
-    sh.inline = <<~SHELL
-      curl -fsSL "https://github.com/weaveworks/reignite/files/7278467/firecracker_macvtap.zip" -o /tmp/firecracker-macvtap.zip
-      unzip -u /tmp/firecracker-macvtap.zip -d /usr/local/bin
-    SHELL
-  end
-
 end
