@@ -351,32 +351,39 @@ write_flintlockd_config() {
 
 	say "Writing flintlockd config to $FLINTLOCKD_CONFIG_PATH."
 
-	cat <<EOF >"$FLINTLOCKD_CONFIG_PATH"
----
-containerd-socket: "$CONTAINERD_STATE_DIR/containerd.sock"
-grpc-endpoint: "$address:9090"
-verbosity: 9
-insecure: $insecure
-EOF
+	declare -A settings
+	settings["containerd-socket"]="$CONTAINERD_STATE_DIR/containerd.sock"
+	settings["grpc-endpoint"]="$address:9090"
+	settings["verbosity"]="9"
+	settings["insecure"]="$insecure"
 
 	if [[ -n "$bridge_name" ]]; then
-		cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
-bridge-name: "$bridge_name"
-EOF
+		settings["bridge-name"]="$bridge_name"
 	else
-		cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
-parent-iface: "$parent_iface"
-EOF
+		settings["parent-iface"]="$parent_iface"
 	fi
 
 	if [[ -n "$config_file" ]]; then
 		say "merging provided config file with the created one"
-        content=$(cat "${config_file}")
-        # shellcheck disable=SC2154
-        cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+		while IFS= read -r line; do
+			key=$(echo "$line" | awk 'BEGIN { FS = ":" } ; { print $1 }')
+			value=$(echo "$line" | awk 'BEGIN { FS = ":" } ; { print $2 }' | tr -d ' ')
+			settings[$key]="$value"
+		done <"$config_file"
+	fi
+
+	local content = ''
+	for key in ${!settings[@]}; do
+		# note that there is a line-break in this string
+		# that is important to keep the settings file valid.
+		content+="${key}: ${settings[${key}]}
+"
+	done
+
+	cat <<EOF >"$FLINTLOCKD_CONFIG_PATH"
+---
 $content
 EOF
-    fi
 
 	say "Flintlockd config saved"
 }
