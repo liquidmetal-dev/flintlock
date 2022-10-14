@@ -769,7 +769,7 @@ cmd_all() {
 		"--dev")
 			DEVELOPMENT=true
 			;;
-		"-f" | "--flintlock_config_file")
+		"-f" | "--flintlock-config-file")
 			shift
 			flintlock_config_file="$1"
 			;;
@@ -915,7 +915,7 @@ cmd_flintlock() {
 		"-k" | "--insecure")
 			insecure=true
 			;;
-		"-f" | "--config_file")
+		"-f" | "--config-file")
 			shift
 			config_file="$1"
 			;;
@@ -1026,7 +1026,7 @@ cmd_all_help() {
       --bridge, -b                Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k              Start flintlockd without basic auth or certs
       --dev                       Set up development environment. Loop thinpools will be created.
-      --flintlock_config_file, -f Provide a configuration file to set up authentication for flintlock such as, token or TLS
+      --flintlock-config-file, -f Provide a configuration file to set up authentication for flintlock such as, token or TLS
 
 EOF
 }
