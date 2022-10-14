@@ -13,11 +13,13 @@ OPT_UNATTENDED=false
 DEVELOPMENT=false
 DEFAULT_VERSION="latest"
 DEFAULT_BRANCH="main"
+ARCH=amd64
 
 # paths to be set later, put here to be explicit
 CONTAINERD_CONFIG_PATH=""
 CONTAINERD_ROOT_DIR=""
 CONTAINERD_STATE_DIR=""
+CONTAINERD_SERVICE_FILE=""
 DEVMAPPER_DIR=""
 DEVPOOL_METADATA=""
 DEVPOOL_DATA=""
@@ -25,20 +27,18 @@ DEVPOOL_DATA=""
 # firecracker
 FIRECRACKER_VERSION="${FIRECRACKER:=$DEFAULT_VERSION}"
 FIRECRACKER_BIN="firecracker"
-FIRECRACKER_RELEASE_BIN="firecracker"
 FIRECRACKER_REPO="weaveworks/firecracker"
 
 # containerd
 CONTAINERD_VERSION="${CONTAINERD:=$DEFAULT_VERSION}"
 CONTAINERD_BIN="containerd"
 CONTAINERD_REPO="containerd/containerd"
-CONTAINERD_SERVICE_FILE="/etc/systemd/system/containerd.service"
+CONTAINERD_SYSTEMD_SVC=""
 
 # flintlock
 FLINTLOCK_VERSION="${FLINTLOCK:=$DEFAULT_VERSION}"
 FLINTLOCK_BIN="flintlockd"
 FLINTLOCK_REPO="weaveworks/flintlock"
-FLINTLOCK_RELEASE_BIN="flintlockd_amd64"
 FLINTLOCKD_SERVICE_FILE="/etc/systemd/system/flintlockd.service"
 FLINTLOCKD_CONFIG_PATH="/etc/opt/flintlockd/config.yaml"
 
@@ -150,7 +150,9 @@ build_release_url() {
 # If/when we need to support others, we can ammend
 build_containerd_release_bin_name() {
 	local tag=${1//v/} # remove the 'v' from arg $1
-	echo "containerd-$tag-linux-amd64.tar.gz"
+	local arch="$2"
+
+	echo "containerd-$tag-linux-$arch.tar.gz"
 }
 
 # Returns the desired binary download url for a repo, tag and binary
@@ -179,6 +181,8 @@ build_containerd_paths() {
 	CONTAINERD_CONFIG_PATH="/etc/containerd/config$tag.toml"
 	CONTAINERD_ROOT_DIR="/var/lib/containerd$tag"
 	CONTAINERD_STATE_DIR="/run/containerd$tag"
+	CONTAINERD_SERVICE_FILE="/etc/systemd/system/containerd$tag.service"
+	CONTAINERD_SYSTEMD_SVC="containerd$tag.service"
 	DEVMAPPER_DIR="$CONTAINERD_ROOT_DIR/snapshotter/devmapper"
 	DEVPOOL_METADATA="$DEVMAPPER_DIR/metadata"
 	DEVPOOL_DATA="$DEVMAPPER_DIR/data"
@@ -187,6 +191,24 @@ build_containerd_paths() {
 ## DOER FUNCS
 #
 #
+# Checks user input for valid architecture and sets the global value for pulling
+# correct binaries.
+set_arch() {
+	# shellcheck disable=SC2155
+	local arch=$(uname -m)
+
+	case $arch in
+		x86_64|amd64)
+			ARCH=amd64
+			;;
+		aarch64|arm64)
+			ARCH=arm64
+			;;
+		*)
+			die "Unknown arch or arch not supported: $arch."
+	esac
+}
+
 # Returns the tag associated with a "latest" release
 latest_release_tag() {
 	# shellcheck disable=SC2155
@@ -242,19 +264,34 @@ start_service() {
 # Fetch and install the firecracker binary
 install_firecracker() {
 	local tag="$1"
+
 	say "Installing firecracker version $tag to $INSTALL_PATH"
 
 	if [[ "$tag" == "$DEFAULT_VERSION" ]]; then
 		tag=$(latest_release_tag "$FIRECRACKER_REPO")
 	fi
 
-	url=$(build_download_url "$FIRECRACKER_REPO" "$tag" "$FIRECRACKER_RELEASE_BIN")
+	bin_name="${FIRECRACKER_BIN}_${ARCH}"
+
+	# older firecracker macvtap releases had binaries with different names
+	if is_older_version "$tag"; then
+		bin_name="$FIRECRACKER_BIN"
+	fi
+
+	url=$(build_download_url "$FIRECRACKER_REPO" "$tag" "$bin_name")
 	install_release_bin "$url" "$FIRECRACKER_BIN" || die "could not install firecracker"
 
 	"$FIRECRACKER_BIN" --version &>/dev/null
 	ok_or_die "firecracker version $tag not installed"
 
 	say "Firecracker version $tag successfully installed"
+}
+
+is_older_version() {
+	local tag="$1"
+	local cutoff="v1.1.1-macvtap"
+
+	[[ "$tag" == $(printf "%s\n%s" "$tag" "$cutoff" | sort -V | head -n 1) && "$tag" != "$cutoff" ]]
 }
 
 ## FLINTLOCK
@@ -264,7 +301,8 @@ do_all_flintlock() {
 	local version="$1"
 	local address="${2%:*}"
 	local parent_iface="$3"
-	local insecure="$4"
+	local bridge_name="$4"
+	local insecure="$5"
 
 	install_flintlockd "$version"
 
@@ -274,7 +312,7 @@ do_all_flintlock() {
 	if [[ -z "$address" ]]; then
 		address=$(lookup_address "$parent_iface")
 	fi
-	write_flintlockd_config "$address" "$parent_iface" "$insecure"
+	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure"
 
 	start_flintlockd_service
 	say "Flintlockd running at $address:9090 via interface $parent_iface"
@@ -283,13 +321,14 @@ do_all_flintlock() {
 # Fetch and install the flintlockd binary at the specified version
 install_flintlockd() {
 	local tag="$1"
+
 	say "Installing flintlockd version $tag to $INSTALL_PATH"
 
 	if [[ "$tag" == "$DEFAULT_VERSION" ]]; then
 		tag=$(latest_release_tag "$FLINTLOCK_REPO")
 	fi
 
-	url=$(build_download_url "$FLINTLOCK_REPO" "$tag" "$FLINTLOCK_RELEASE_BIN")
+	url=$(build_download_url "$FLINTLOCK_REPO" "$tag" "${FLINTLOCK_BIN}_${ARCH}")
 	install_release_bin "$url" "$FLINTLOCK_BIN"
 
 	"$FLINTLOCK_BIN" version &>/dev/null
@@ -302,7 +341,8 @@ install_flintlockd() {
 write_flintlockd_config() {
 	local address="$1"
 	local parent_iface="$2"
-	local insecure="$3"
+	local bridge_name="$3"
+	local insecure="$4"
 
 	mkdir -p "$(dirname "$FLINTLOCKD_CONFIG_PATH")"
 
@@ -313,16 +353,25 @@ write_flintlockd_config() {
 containerd-socket: "$CONTAINERD_STATE_DIR/containerd.sock"
 grpc-endpoint: "$address:9090"
 verbosity: 9
-parent-iface: "$parent_iface"
 insecure: $insecure
 EOF
+
+	if [[ -n "$bridge_name" ]]; then
+	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+bridge-name: "$bridge_name"
+EOF
+	else
+	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
+parent-iface: "$parent_iface"
+EOF
+	fi
 
 	say "Flintlockd config saved"
 }
 
 # Fetch and start the flintlock systemd service
 start_flintlockd_service() {
-	say "Starting flintlockd service"
+	say "Starting flintlockd service with $FLINTLOCKD_SERVICE_FILE"
 
 	service=$(basename "$FLINTLOCKD_SERVICE_FILE")
 	fetch_service_file "$FLINTLOCK_REPO" "$service" "$FLINTLOCKD_SERVICE_FILE"
@@ -347,6 +396,7 @@ lookup_address() {
 do_all_containerd() {
 	local version="$1"
 	local thinpool="$2"
+
 	install_containerd "$version"
 	write_containerd_config "$thinpool"
 	start_containerd_service
@@ -355,13 +405,14 @@ do_all_containerd() {
 # Fetch and install the containerd binary
 install_containerd() {
 	local tag="$1"
+
 	say "Installing containerd version $tag to $INSTALL_PATH"
 
 	if [[ "$version" == "$DEFAULT_VERSION" ]]; then
 		tag=$(latest_release_tag "$CONTAINERD_REPO")
 	fi
 
-	bin=$(build_containerd_release_bin_name "$tag")
+	bin=$(build_containerd_release_bin_name "$tag" "$ARCH")
 	url=$(build_download_url "$CONTAINERD_REPO" "$tag" "$bin")
 	install_release_tar "$url" "$(dirname $INSTALL_PATH)" || die "could not install containerd"
 
@@ -417,14 +468,14 @@ EOF
 
 # Start the containerd systemd service
 start_containerd_service() {
-	say "Starting containerd service"
+	say "Starting containerd service with $CONTAINERD_SERVICE_FILE"
 
-	service=$(basename "$CONTAINERD_SERVICE_FILE")
+	service="$CONTAINERD_BIN.service"
 	fetch_service_file "$CONTAINERD_REPO" "$service" "$CONTAINERD_SERVICE_FILE"
 
 	sed -i "s|ExecStart=.*|& --config $CONTAINERD_CONFIG_PATH|" "$CONTAINERD_SERVICE_FILE"
 
-	start_service "$CONTAINERD_BIN"
+	start_service "$CONTAINERD_SYSTEMD_SVC"
 
 	say "Containerd running"
 }
@@ -660,6 +711,7 @@ cmd_all() {
 	local disk=""
 	local fl_address=""
 	local fl_iface=""
+	local bridge_name=""
 	local insecure=false
 	local thinpool="$DEFAULT_THINPOOL"
 	local fc_version="$FIRECRACKER_VERSION"
@@ -691,6 +743,10 @@ cmd_all() {
 			shift
 			fl_iface="$1"
 			;;
+		"-b" | "--bridge")
+			shift
+			bridge_name="$1"
+			;;
 		"-s" | "--skip-apt")
 			skip_apt=true
 			;;
@@ -710,6 +766,9 @@ cmd_all() {
 	say "$(date -u +'%F %H:%M:%S %Z'): Provisioning host $(hostname)"
 	say "The following subcommands will be performed:" \
 		"apt, firecracker, containerd, flintlock, direct_lvm|devpool"
+
+	set_arch
+	say "Will install binaries for architecture: $ARCH"
 
 	ensure_kvm
 
@@ -731,7 +790,7 @@ cmd_all() {
 
 	install_firecracker "$fc_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
-	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$insecure"
+	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure"
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Host $(hostname) provisioned"
 }
@@ -768,6 +827,7 @@ cmd_firecracker() {
 		shift
 	done
 
+	set_arch
 	install_firecracker "$version"
 }
 
@@ -791,6 +851,7 @@ cmd_containerd() {
 			;;
 		"--dev")
 			DEVELOPMENT=true
+			thinpool="$DEFAULT_DEV_THINPOOL"
 			;;
 		*)
 			die "Unknown argument: $1. Please use --help for help."
@@ -799,6 +860,7 @@ cmd_containerd() {
 		shift
 	done
 
+	set_arch
 	prepare_dirs
 	do_all_containerd "$version" "$thinpool"
 }
@@ -807,6 +869,7 @@ cmd_flintlock() {
 	local version="$FLINTLOCK_VERSION"
 	local address=""
 	local parent_iface=""
+	local bridge_name=""
 	local insecure=false
 
 	while [ $# -gt 0 ]; do
@@ -827,6 +890,10 @@ cmd_flintlock() {
 			shift
 			parent_iface="$1"
 			;;
+		"-b" | "--bridge")
+			shift
+			bridge_name="$1"
+			;;
 		"-k" | "--insecure")
 			insecure=true
 			;;
@@ -840,8 +907,9 @@ cmd_flintlock() {
 		shift
 	done
 
+	set_arch
 	prepare_dirs
-	do_all_flintlock "$version" "$address" "$parent_iface" "$insecure"
+	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure"
 }
 
 cmd_direct_lvm() {
@@ -933,6 +1001,7 @@ cmd_all_help() {
       --disk, -d         Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
       --grpc-address, -a Address on which to start the Flintlock GRPC server (default: local ipv4 address)
       --parent-iface, -i Interface of the default route of the host
+      --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Set up development environment. Loop thinpools will be created.
 
@@ -966,6 +1035,7 @@ cmd_flintlock_help() {
       --version, -v      Version to install (default: latest)
       --grpc-address, -a Address on which to start the GRPC server (default: local ipv4 address)
       --parent-iface, -i Interface of the default route of the host
+      --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Assumes containerd has been provisioned in a dev environment
 
