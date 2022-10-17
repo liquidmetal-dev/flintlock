@@ -36,7 +36,7 @@ require (
 	github.com/prometheus/client_golang v1.13.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/afero v1.9.2
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.13.0
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
@@ -96,7 +96,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mailru/easyjson v0.7.1 // indirect
