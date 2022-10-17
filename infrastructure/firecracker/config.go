@@ -3,6 +3,7 @@ package firecracker
 import (
 	"encoding/base64"
 	"fmt"
+	"runtime"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	cinetwork "github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/network"
@@ -39,7 +40,7 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		cfg.MachineConfig = MachineConfig{
 			MemSizeMib: vm.Spec.MemoryInMb,
 			VcpuCount:  vm.Spec.VCPU,
-			SMT:        true,
+			SMT:        runtime.GOARCH == "amd64",
 		}
 
 		mmdsNetDevices := []string{}
