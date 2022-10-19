@@ -375,6 +375,10 @@ start_flintlockd_service() {
 
 	service=$(basename "$FLINTLOCKD_SERVICE_FILE")
 	fetch_service_file "$FLINTLOCK_REPO" "$service" "$FLINTLOCKD_SERVICE_FILE"
+
+	containerd_service=$(basename "$CONTAINERD_SERVICE_FILE")
+	sed -i "s|\(Requires=\)\(.*\)|\1$containerd_service|" "$FLINTLOCKD_SERVICE_FILE"
+
 	start_service "$FLINTLOCK_BIN"
 }
 
