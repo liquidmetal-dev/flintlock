@@ -372,7 +372,7 @@ write_flintlockd_config() {
 		done <"$config_file"
 	fi
 
-	local content = ''
+	local content=''
 	for key in ${!settings[@]}; do
 		# note that there is a line-break in this string
 		# that is important to keep the settings file valid.
