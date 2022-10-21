@@ -1033,7 +1033,7 @@ cmd_all_help() {
       --bridge, -b                Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k              Start flintlockd without basic auth or certs
       --dev                       Set up development environment. Loop thinpools will be created.
-      --flintlock-config-file, -f Provide a configuration file to set up authentication for flintlock such as, token or TLS
+      --flintlock-config-file, -f Path to a valid flintlockd configuration file with overriding config
 
 EOF
 }
@@ -1068,7 +1068,7 @@ cmd_flintlock_help() {
       --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Assumes containerd has been provisioned in a dev environment
-      --config-file, -f  Provide a configuration file to set up authentication for flintlock such as, token or TLS (the file should follow shell syntax)
+      --config-file, -f  Path to a valid flintlockd configuration file with overriding config
 
 EOF
 }
