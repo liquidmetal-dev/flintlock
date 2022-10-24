@@ -364,7 +364,7 @@ write_flintlockd_config() {
 	fi
 
 	if [[ -n "$config_file" ]]; then
-		say "merging provided config file with the created one"
+		say "Merging provided flintlockd config file with auto-generated options"
 		while IFS= read -r line; do
 			if [[ $line != *":"* ]]; then
 				continue
