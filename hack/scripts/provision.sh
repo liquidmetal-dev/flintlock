@@ -366,6 +366,9 @@ write_flintlockd_config() {
 	if [[ -n "$config_file" ]]; then
 		say "merging provided config file with the created one"
 		while IFS= read -r line; do
+			if [[ $line != *":"* ]]; then
+				continue
+			fi
 			key=$(echo "$line" | awk 'BEGIN { FS = ":" } ; { print $1 }')
 			value=$(echo "$line" | awk 'BEGIN { FS = ":" } ; { print $2 }' | tr -d ' ')
 			settings[$key]="$value"
