@@ -79,8 +79,8 @@ func PidRunning(pid int) bool {
 
 func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 	var (
-		kernelImage = "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11"
-		cloudImage  = "docker.io/richardcase/ubuntu-bionic-test:cloudimage_v0.0.1"
+		kernelImage = "ghcr.io/weaveworks-liquidmetal/flintlock-kernel:5.10.77"
+		cloudImage  = "ghcr.io/weaveworks-liquidmetal/capmvm-kubernetes:1.21.8"
 	)
 
 	return &types.MicroVMSpec{
