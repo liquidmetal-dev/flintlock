@@ -198,14 +198,15 @@ set_arch() {
 	local arch=$(uname -m)
 
 	case $arch in
-		x86_64|amd64)
-			ARCH=amd64
-			;;
-		aarch64|arm64)
-			ARCH=arm64
-			;;
-		*)
-			die "Unknown arch or arch not supported: $arch."
+	x86_64 | amd64)
+		ARCH=amd64
+		;;
+	aarch64 | arm64)
+		ARCH=arm64
+		;;
+	*)
+		die "Unknown arch or arch not supported: $arch."
+		;;
 	esac
 }
 
@@ -303,6 +304,7 @@ do_all_flintlock() {
 	local parent_iface="$3"
 	local bridge_name="$4"
 	local insecure="$5"
+	local config_file="$6"
 
 	install_flintlockd "$version"
 
@@ -312,7 +314,7 @@ do_all_flintlock() {
 	if [[ -z "$address" ]]; then
 		address=$(lookup_address "$parent_iface")
 	fi
-	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure"
+	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure" "$config_file"
 
 	start_flintlockd_service
 	say "Flintlockd running at $address:9090 via interface $parent_iface"
@@ -343,28 +345,48 @@ write_flintlockd_config() {
 	local parent_iface="$2"
 	local bridge_name="$3"
 	local insecure="$4"
+	local config_file="$5"
 
 	mkdir -p "$(dirname "$FLINTLOCKD_CONFIG_PATH")"
 
 	say "Writing flintlockd config to $FLINTLOCKD_CONFIG_PATH."
 
-	cat <<EOF >"$FLINTLOCKD_CONFIG_PATH"
----
-containerd-socket: "$CONTAINERD_STATE_DIR/containerd.sock"
-grpc-endpoint: "$address:9090"
-verbosity: 9
-insecure: $insecure
-EOF
+	declare -A settings
+	settings["containerd-socket"]="$CONTAINERD_STATE_DIR/containerd.sock"
+	settings["grpc-endpoint"]="$address:9090"
+	settings["verbosity"]="9"
+	settings["insecure"]="$insecure"
 
 	if [[ -n "$bridge_name" ]]; then
-	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
-bridge-name: "$bridge_name"
-EOF
+		settings["bridge-name"]="$bridge_name"
 	else
-	cat <<EOF >>"$FLINTLOCKD_CONFIG_PATH"
-parent-iface: "$parent_iface"
-EOF
+		settings["parent-iface"]="$parent_iface"
 	fi
+
+	if [[ -n "$config_file" ]]; then
+		say "Merging provided flintlockd config file with auto-generated options"
+		while IFS= read -r line; do
+			if [[ $line != *":"* ]]; then
+				continue
+			fi
+			key=$(echo "$line" | awk 'BEGIN { FS = ":" } ; { print $1 }')
+			value=$(echo "$line" | awk 'BEGIN { FS = ":" } ; { print $2 }' | tr -d ' ')
+			settings[$key]="$value"
+		done <"$config_file"
+	fi
+
+	local content=''
+	for key in ${!settings[@]}; do
+		# note that there is a line-break in this string
+		# that is important to keep the settings file valid.
+		content+="${key}: ${settings[${key}]}
+"
+	done
+
+	cat <<EOF >"$FLINTLOCKD_CONFIG_PATH"
+---
+$content
+EOF
 
 	say "Flintlockd config saved"
 }
@@ -375,6 +397,10 @@ start_flintlockd_service() {
 
 	service=$(basename "$FLINTLOCKD_SERVICE_FILE")
 	fetch_service_file "$FLINTLOCK_REPO" "$service" "$FLINTLOCKD_SERVICE_FILE"
+
+	containerd_service=$(basename "$CONTAINERD_SERVICE_FILE")
+	sed -i "s|\(Requires=\)\(.*\)|\1$containerd_service|" "$FLINTLOCKD_SERVICE_FILE"
+
 	start_service "$FLINTLOCK_BIN"
 }
 
@@ -717,6 +743,7 @@ cmd_all() {
 	local fc_version="$FIRECRACKER_VERSION"
 	local fl_version="$FLINTLOCK_VERSION"
 	local ctrd_version="$CONTAINERD_VERSION"
+	local flintlock_config_file=""
 
 	while [ $# -gt 0 ]; do
 		case "$1" in
@@ -756,6 +783,10 @@ cmd_all() {
 		"--dev")
 			DEVELOPMENT=true
 			;;
+		"-f" | "--flintlock-config-file")
+			shift
+			flintlock_config_file="$1"
+			;;
 		*)
 			die "Unknown argument: $1. Please use --help for help."
 			;;
@@ -790,7 +821,7 @@ cmd_all() {
 
 	install_firecracker "$fc_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
-	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure"
+	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure" "$flintlock_config_file"
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Host $(hostname) provisioned"
 }
@@ -871,6 +902,7 @@ cmd_flintlock() {
 	local parent_iface=""
 	local bridge_name=""
 	local insecure=false
+	local config_file=""
 
 	while [ $# -gt 0 ]; do
 		case "$1" in
@@ -897,6 +929,10 @@ cmd_flintlock() {
 		"-k" | "--insecure")
 			insecure=true
 			;;
+		"-f" | "--config-file")
+			shift
+			config_file="$1"
+			;;
 		"--dev")
 			DEVELOPMENT=true
 			;;
@@ -909,7 +945,7 @@ cmd_flintlock() {
 
 	set_arch
 	prepare_dirs
-	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure"
+	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure" "$config_file"
 }
 
 cmd_direct_lvm() {
@@ -995,15 +1031,16 @@ cmd_all_help() {
                          can be configured by setting the FLINTLOCK, CONTAINERD and FIRECRACKER
 			 environment variables.
     OPTIONS:
-      -y                 Autoapprove all prompts (danger)
-      --skip-apt, -s     Skip installation of apt packages
-      --thinpool, -t     Name of thinpool to create (default: flintlock or flintlock-dev)
-      --disk, -d         Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
-      --grpc-address, -a Address on which to start the Flintlock GRPC server (default: local ipv4 address)
-      --parent-iface, -i Interface of the default route of the host
-      --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
-      --insecure, -k     Start flintlockd without basic auth or certs
-      --dev              Set up development environment. Loop thinpools will be created.
+      -y                          Autoapprove all prompts (danger)
+      --skip-apt, -s              Skip installation of apt packages
+      --thinpool, -t              Name of thinpool to create (default: flintlock or flintlock-dev)
+      --disk, -d                  Name blank unpartioned disk to use for direct lvm thinpool (ignored if --dev set)
+      --grpc-address, -a          Address on which to start the Flintlock GRPC server (default: local ipv4 address)
+      --parent-iface, -i          Interface of the default route of the host
+      --bridge, -b                Bridge to use instead of an interface (will override --parent-iface)
+      --insecure, -k              Start flintlockd without basic auth or certs
+      --dev                       Set up development environment. Loop thinpools will be created.
+      --flintlock-config-file, -f Path to a valid flintlockd configuration file with overriding config
 
 EOF
 }
@@ -1038,6 +1075,7 @@ cmd_flintlock_help() {
       --bridge, -b       Bridge to use instead of an interface (will override --parent-iface)
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Assumes containerd has been provisioned in a dev environment
+      --config-file, -f  Path to a valid flintlockd configuration file with overriding config
 
 EOF
 }
