@@ -39,7 +39,7 @@ This will use the tool at `./test/tools/run.py` to create a new project and devi
 with the credentials provided above, and then run the tests within that device.
 
 This exact command will run tests against main of the upstream branch, and only with
-minimal configuration. Read the tool [usage docs](test/tools/README.md) for information
+minimal configuration. Read the tool [usage docs](/test/tools/README.md) for information
 on how to configure and use the tool in your development.
 
 ### Configuration
@@ -62,4 +62,4 @@ You can pass in these flags to the test like so:
 ./test/e2e/test.sh -level.flintlockd=9
 ```
 
-All the flags can be found at [`params.go`](test/e2e/utils/params.go).
+All the flags can be found at [`params.go`](/test/e2e/utils/params.go).

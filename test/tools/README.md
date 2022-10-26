@@ -94,4 +94,4 @@ With a config file you can do more, for example:
 Not all device configuration is exposed yet, but is it fairly trivial to add more when
 required.
 
-To see all available configuration, see the [example config](tests/tools/example-config.yaml).
+To see all available configuration, see the [example config](/tests/tools/example-config.yaml).
