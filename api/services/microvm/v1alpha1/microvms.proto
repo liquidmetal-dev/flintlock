@@ -26,6 +26,7 @@ service MicroVM {
   rpc CreateMicroVM(CreateMicroVMRequest) returns (CreateMicroVMResponse) {
     option (google.api.http) = {
       post: "/v1alpha1/microvm"
+      body: "microvm"
     };
   }
   rpc DeleteMicroVM(DeleteMicroVMRequest) returns (google.protobuf.Empty) {
