@@ -54,15 +54,19 @@ const config = {
             type: 'doc',
             docId: 'intro',
             position: 'left',
-            label: 'Getting Started',
+            label: 'Documentation',
           },
           {
-            type: 'doc',
-            docId: 'proto',
+            href: 'https://buf.build/weaveworks-liquidmetal/flintlock',
             position: 'left',
             label: 'gRPC Proto',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
+          {
+            href: '/flintlock-api',
+            target: "_blank",
+            position: 'left',
+            label: 'HTTP API',
+          },
           {
             href: 'https://github.com/weaveworks-liquidmetal/flintlock',
             label: 'GitHub',
@@ -77,12 +81,17 @@ const config = {
             title: 'Docs',
             items: [
               {
-                label: 'Getting Started',
+                label: 'Docs',
                 to: '/docs/intro',
               },
               {
                 label: 'gRPC Proto',
-                to: '/docs/proto',
+                href: 'https://buf.build/weaveworks-liquidmetal/flintlock',
+              },
+              {
+                label: 'HTTP API',
+                to: '/flintlock-api',
+                target: '_blank',
               },
             ],
           },
@@ -103,8 +112,8 @@ const config = {
             title: 'More',
             items: [
               {
-                label: 'Blog',
-                to: '/blog',
+                label: 'Liquid Metal',
+                to: 'https://weaveworks-liquidmetal.github.io/site/',
               },
               {
                 label: 'GitHub',

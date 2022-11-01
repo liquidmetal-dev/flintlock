@@ -1,25 +1,26 @@
 ---
-sidebar_position: 1
+title: Introduction
 ---
 
 # Introduction
 
+:::warning site under construction
+:::
+
 ## What is flintlock?
 
 Flintlock is a service for creating and managing the lifecycle of microVMs on a
-host machine. Initially we will be supporting [Firecracker][firecracker].
+host machine. Initially we will be supporting [Firecracker][firecracker],
+with an aim to default to [Cloud Hypervisor][ch] in the future.
 
 The primary use case for flintlock is to create microVMs on a bare-metal host
 where the microVMs will be used as nodes in a virtualized Kubernetes cluster.
 It is an essential part of [Liquid Metal][liquid-metal] and will ultimately be
-driven by Cluster API Provider Microvm (coming soon).
-
-[firecracker]: https://firecracker-microvm.github.io/
-[liquid-metal]: https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal
+driven by [Cluster API Provider Microvm][capmvm].
 
 ## Features
 
-Using API requests (via gRPC or HTTP):
+Using API requests (via [gRPC][proto] or <a href="/flintlock-api" target="_blank">HTTP</a>):
 
 - Create, update, delete microVMs using Firecracker
 - Manage the lifecycle of microVMs (i.e. start, stop, pause)
@@ -27,14 +28,15 @@ Using API requests (via gRPC or HTTP):
 - Use OCI images for microVM volumes, kernel and initrd
 - (coming soon) Use CNI to configure the network for the microVMs
 
-## Documentation
+## Liquid Metal
 
-:::info
-Flintlock is only compatible with Linux. We recommend that
-non-linux users provision a [Linux VM][vagrant] in which to work.
-:::
+To learn more about using Flintlock MicroVMs in a Kubernetes cluster, check
+out the [official Liquid Metal docs][lm].
 
-See our [getting started with flintlock][getting-started] guide.
 
-[vagrant]: ./getting-started/extras/use-vagrant
-[getting-started]: ./getting-started/basics/configuring-network
+[ch]: https://www.cloudhypervisor.org/
+[capmvm]: https://github.com/weaveworks-liquidmetal/cluster-api-provider-microvm
+[proto]: https://buf.build/weaveworks-liquidmetal/flintlock
+[lm]: https://weaveworks-liquidmetal.github.io/site/
+[firecracker]: https://firecracker-microvm.github.io/
+[liquid-metal]: https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal
