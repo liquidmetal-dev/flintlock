@@ -42,6 +42,32 @@ git push origin "${RELEASE_VERSION}"
 * If this is a pre-release tick `This is a pre-release`
 * Publish the draft release and when asked say yes to creating a discussion.
 
+## Commit a new `buf` tag
+
+We have gRPC API docs hosted on [buf.build](https://buf.build/weaveworks-liquidmetal/flintlock).
+If the API has changed, you'll need to update these.
+
+Log in creds can be found in the shared Team Quicksilver 1Pass vault.
+
+Generate a new token.
+
+Log in locally:
+
+```
+buf registry login
+# username is weaveworks-liquidmetal
+# key is the token you generated
+```
+
+Push a new tag:
+
+```
+buf push --tag "${RELEASE_VERSION}"
+```
+
+If you get the message `The latest commit has the same content; not creating a new commit.`
+then it means there hasn't been changes to the API so you didn't need to do this.
+
 ## Announce release
 
 When the release is available announce it in the #liquid-metal slack channel.
