@@ -472,20 +472,6 @@ func (mr *MockReconcileMicroVMsUseCaseMockRecorder) ReconcileMicroVM(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileMicroVM", reflect.TypeOf((*MockReconcileMicroVMsUseCase)(nil).ReconcileMicroVM), arg0, arg1)
 }
 
-// ResyncMicroVMs mocks base method.
-func (m *MockReconcileMicroVMsUseCase) ResyncMicroVMs(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResyncMicroVMs", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ResyncMicroVMs indicates an expected call of ResyncMicroVMs.
-func (mr *MockReconcileMicroVMsUseCaseMockRecorder) ResyncMicroVMs(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResyncMicroVMs", reflect.TypeOf((*MockReconcileMicroVMsUseCase)(nil).ResyncMicroVMs), arg0, arg1)
-}
-
 // MockNetworkService is a mock of NetworkService interface.
 type MockNetworkService struct {
 	ctrl     *gomock.Controller
