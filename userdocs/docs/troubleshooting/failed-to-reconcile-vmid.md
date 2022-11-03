@@ -1,4 +1,6 @@
-# Flintlockd fails to start
+---
+title: Flintlockd
+---
 
 ## Error: `failed to reconcile vmid`
 
@@ -14,7 +16,7 @@ ERRO[0007] failed to reconcile vmid Hello/aa3b711d-4b60-4ba5-8069-0511c213308c:
 ```
 
 There is a plan to create a VM, but something went wrong. The easiest way to
-fix it to remove it from containerd:
+fix it to remove it from `containerd`:
 
 ```bash
 vmid='aa3b711d-4b60-4ba5-8069-0511c213308c'

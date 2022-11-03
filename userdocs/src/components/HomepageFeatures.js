@@ -4,33 +4,24 @@ import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
-    title: 'What is Flintlock?',
-    Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'Flintlock',
+    Svg: require('../../static/img/logo.svg').default,
     description: (
       <>
-        Flintlock is a service for creating and managing the lifecycle of
-        microVMs on a host machine. Initially we will be supporting Firecracker. 
+        A streamlined service to manage the lifecycle of microVMs.
+        Flintlock lets you focus on deploying your application in MicroVMs
+        tailored for its need.
       </>
     ),
   },
   {
-    title: 'Use Your Container Images',
-    Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
+    title: 'Backed by Container Images',
+    Svg: require('../../static/img/containerdio-icon.svg').default,
     description: (
       <>
-        With Flintlock, you can use your container images for MicroVMs
-        from OCI repositories, you don&apos;t have to create and deploy
-        filesystem images on all your machines.
-      </>
-    ),
-  },
-  {
-    title: 'Provision MicroVM on Demand',
-    Svg: require('../../static/img/undraw_docusaurus_tree.svg').default,
-    description: (
-      <>
-        Flintlock lets you focus on your deploying your application,
-        with the right MicroVMs provisioned based on your need.
+        With flintlock, you can use OCI images to supply kernel binaries
+        and Operating Systems to your VMs; no more large and cumbersome
+        filesystem images.
       </>
     ),
   },
@@ -38,7 +29,7 @@ const FeatureList = [
 
 function Feature({Svg, title, description}) {
   return (
-    <div className={clsx('col col--4')}>
+    <div className={clsx('col col--6')}>
       <div className="text--center">
         <Svg className={styles.featureSvg} alt={title} />
       </div>

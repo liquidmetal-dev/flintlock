@@ -23,7 +23,7 @@ Using API requests (via gRPC or HTTP):
 
 ## Documentation
 
-See our [getting started with flintlock][quickstart] guide.
+See our [getting started with flintlock][quickstart] tutorial.
 
 ## Contributing
 
@@ -50,21 +50,21 @@ Your feedback is always welcome!
 
 The table below shows you which versions of Firecracker are compatible with Flintlock:
 
-| Flintlock         | Firecracker                      |
-| ----------------- | -------------------------------- |
-|    v0.3.0         | Official v1.0+ or v1.0.0-macvtap |
-| <= v0.2.0         | <= v0.25.2-macvtap               |
-| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap               |
-|    v0.1.0-alpha.7 | **Do not use**                   |
-|    v0.1.0-alpha.8 | <= v0.25.2-macvtap               |
+| Flintlock         | Firecracker                        |
+| ----------------- | ---------------------------------- |
+| >= v0.3.0         | Official v1.0+ or >=v1.0.0-macvtap |
+| <= v0.2.0         | <= v0.25.2-macvtap                 |
+| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap                 |
+|    v0.1.0-alpha.7 | **Do not use**                     |
+|    v0.1.0-alpha.8 | <= v0.25.2-macvtap                 |
 
-> Note: Flintlock currently requires a custom build of Firecracker if you plan to use macvtap available [here][fc-fork].
+> Note: Flintlock currently requires a custom build of Firecracker if you plan to use `macvtap` available [here][fc-fork].
 
 ## License
 
 [MPL-2.0 License][license]
 
-[quickstart]: ./docs/quick-start.md
+[quickstart]: https://docs.flintlock.dev/docs/category/getting-started
 [contrib]: ./CONTRIBUTING.md
 [coc]: ./CODE_OF_CONDUCT.md
 [issues]: https://github.com/weaveworks-liquidmetal/flintlock/issues
