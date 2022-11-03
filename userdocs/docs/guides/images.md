@@ -17,7 +17,6 @@ Compatible images are published as part of the [Liquid Metal][lm] project.
 
 _The tags here refer to the version of Kubernetes._
 _The base OS is Ubuntu `20.04`._
-_Note that these will attempt to start a `kubelet` on boot._
 
 - `ghcr.io/weaveworks-liquidmetal/capmvm-kubernetes:1.23.5`
 - `ghcr.io/weaveworks-liquidmetal/capmvm-kubernetes:1.22.8`

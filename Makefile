@@ -207,8 +207,8 @@ $(BUF): $(TOOLS_BIN_DIR) $(BUF_SHARE)
 .PHONY: docs-install
 docs-install:
 	@if [ ! -d "userdocs/node_modules" ]; then \
-		echo " >>> npm install"; \
-		cd ./userdocs && npm install; \
+		echo " >>> yarn install"; \
+		cd ./userdocs && yarn install; \
 	fi
 
 .PHONY: docs-build
