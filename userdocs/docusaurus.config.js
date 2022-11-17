@@ -8,14 +8,14 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'Flintlock',
   tagline: ' Lock, Stock, and Two Smoking MicroVMs. Create and manage the lifecycle of MicroVMs backed by containerd.',
-  url: 'https://docs.flintlock.dev/',
-  baseUrl: '/',
+  url: 'https://weaveworks-liquidmetal.github.io',
+  baseUrl: '/flintlock/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'weaveworks',
+  organizationName: 'weaveworks-liquidmetal',
   projectName: 'flintlock',
-  trailingSlash: false,
+  trailingSlash: true,
 
   presets: [
     [

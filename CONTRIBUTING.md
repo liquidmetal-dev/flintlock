@@ -577,7 +577,7 @@ Contributors are also welcome to backfill ADRs if they are found to be missing.
 
 # :rocket: :tada: Thanks for reading! :tada: :rocket:
 
-[user-docs]: https://docs.flintlock.dev/
+[user-docs]: https://weaveworks-liquidmetal.github.io/flintlock/
 [slack-channel]: https://weave-community.slack.com/archives/C02KARWGR7S
 [quick-start]: ./docs/quick-start.md
 [discussions]: https://github.com/weaveworks-liquidmetal/flintlock/discussions
