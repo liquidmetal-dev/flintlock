@@ -64,7 +64,7 @@ The table below shows you which versions of Firecracker are compatible with Flin
 
 [MPL-2.0 License][license]
 
-[quickstart]: https://docs.flintlock.dev/docs/category/getting-started
+[quickstart]: https://weaveworks-liquidmetal.github.io/flintlock/docs/category/getting-started/
 [contrib]: ./CONTRIBUTING.md
 [coc]: ./CODE_OF_CONDUCT.md
 [issues]: https://github.com/weaveworks-liquidmetal/flintlock/issues
