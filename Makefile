@@ -1,7 +1,7 @@
 # Build Information
 BUILD_DATE := $(shell date +%Y-%m-%dT%H:%M:%SZ)
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
-VERSION := $(shell git describe --always --match "v*")
+VERSION := $(shell git describe --tags --abbrev=0)
 VERSION_PKG := github.com/weaveworks-liquidmetal/flintlock/internal/version
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
