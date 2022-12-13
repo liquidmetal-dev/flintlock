@@ -1,29 +1,49 @@
 ---
-sidebar_position: 5
+title: Using the service
 ---
 
-# Interacting with the service
-
 We recommend using one of the following tools to send requests to the Flintlock server.
-There are both GUI and a CLI option.
+There are GUI and CLI options.
 
-## grpc-client-cli
+## hammertime
 
-Install [grpcurl][grpcurl].
-
-Use the [`./hack/scripts/send.sh`][payload-example-send] script.
+[hammertime][ht] is a simple tool which gives a nice wrapper around what is essentially
+a `curl`. Use this if you need no bells and whistles and would rather manipulate your
+own `json`.
 
 ### Example
 
-To created a MicroVM:
+```bash
+hammertime create -a 192.168.1.66:9090 -n my-microvm -ns my-namespace
+
+hammertime get -a 192.168.1.66:9090 -i <UUID>
+
+hammertime create -a 192.168.1.66:9090 -f spec.json
+
+hammertime delete -a 192.168.1.66:9090 --all
+```
+
+## fl
+
+[fl][fl] aims to provide a fuller user experience, with formatted output and some
+extra features for handling your MicroVMs.
+
+### Example
+
+_coming soon..._
+
+## grpc-client-cli
+
+For the most bare-bones experience, use [grpcurl][grpcurl] and the [`./hack/scripts/send.sh`][payload-example-send] script.
+
+### Example
+
+To create a MicroVM:
 
 ```bash
 ./hack/scripts/send.sh \
   --method CreateMicroVM
 ```
-
-In the terminal where you started the Flintlock server (flintlockd), you should see in the logs that the MircoVM
-has started.
 
 ## BloomRPC
 
@@ -62,3 +82,5 @@ implemented at present.**
 [payload-example-send]: https://github.com/weaveworks-liquidmetal/flintlock/blob/main/hack/scripts/send.sh
 [payload-example-create]: https://github.com/weaveworks-liquidmetal/flintlock/blob/main/hack/scripts/payload/CreateMicroVM.json
 [payload-example-delete]: https://github.com/weaveworks-liquidmetal/flintlock/blob/main/hack/scripts/payload/DeleteMicroVM.json
+[ht]: https://github.com/warehouse-13/hammertime
+[fl]: https://github.com/weaveworks-liquidmetal/fl

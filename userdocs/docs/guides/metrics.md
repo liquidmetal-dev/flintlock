@@ -1,4 +1,6 @@
-# Start metrics exporter
+---
+title: Metrics exporter
+---
 
 Flintlock has a metrics exporter called `flintlock-metrics`. It listens on an
 HTTP port and serves Prometheus compatible output.
@@ -16,4 +18,4 @@ Available endpoints:
 * `/machine/{namespace}`: Metrics for all MicroVMs under a specific Namespace.
 * `/machine`: Metrics for all MicroVMs from all Namespaces.
 
-For testing/development, there is a minimal docker compose setup under `hack/scripts/monitoring/metrics`.
+For testing/development, there is a minimal `docker-compose` setup under `hack/scripts/monitoring/metrics`.

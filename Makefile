@@ -1,7 +1,7 @@
 # Build Information
 BUILD_DATE := $(shell date +%Y-%m-%dT%H:%M:%SZ)
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
-VERSION := $(shell git describe --always --match "v*")
+VERSION := $(shell git describe --tags --abbrev=0)
 VERSION_PKG := github.com/weaveworks-liquidmetal/flintlock/internal/version
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -207,8 +207,8 @@ $(BUF): $(TOOLS_BIN_DIR) $(BUF_SHARE)
 .PHONY: docs-install
 docs-install:
 	@if [ ! -d "userdocs/node_modules" ]; then \
-		echo " >>> npm install"; \
-		cd ./userdocs && npm install; \
+		echo " >>> yarn install"; \
+		cd ./userdocs && yarn install; \
 	fi
 
 .PHONY: docs-build

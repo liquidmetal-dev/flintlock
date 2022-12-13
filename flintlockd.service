@@ -14,7 +14,7 @@
 
 [Unit]
 Description=flintlock microvm service
-Documentation=https://docs.flintlock.dev/
+Documentation=https://weaveworks-liquidmetal.github.io/flintlock/
 Requires=containerd.service
 
 [Service]
