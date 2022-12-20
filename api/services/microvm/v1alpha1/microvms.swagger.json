@@ -341,6 +341,10 @@
         "uid": {
           "type": "string",
           "description": "UID is a globally unique identifier of the microvm."
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider allows you to specify the name of the microvm provider to use. If this isn't supplied\nthen the default provider will be used."
         }
       },
       "description": "MicroVMSpec represents the specification for a microvm."

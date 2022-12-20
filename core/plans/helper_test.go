@@ -37,11 +37,13 @@ func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
 		Repo:              mList.MicroVMRepository,
 		EventService:      mList.EventService,
 		IdentifierService: mList.IDService,
-		Provider:          mList.MicroVMService,
-		NetworkService:    mList.NetworkService,
-		ImageService:      mList.ImageService,
-		FileSystem:        afero.NewMemMapFs(),
-		Clock:             time.Now,
+		MicrovmProviders: map[string]ports.MicroVMService{
+			"mock": mList.MicroVMService,
+		},
+		NetworkService: mList.NetworkService,
+		ImageService:   mList.ImageService,
+		FileSystem:     afero.NewMemMapFs(),
+		Clock:          time.Now,
 	}
 }
 
@@ -66,6 +68,7 @@ func createTestSpec(name, ns string) *models.MicroVM {
 			},
 		},
 		Spec: models.MicroVMSpec{
+			Provider:   "mock",
 			VCPU:       2,
 			MemoryInMb: 2048,
 			Kernel: models.Kernel{

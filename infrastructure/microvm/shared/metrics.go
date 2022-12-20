@@ -1,4 +1,4 @@
-package firecracker
+package shared
 
 import (
 	"fmt"

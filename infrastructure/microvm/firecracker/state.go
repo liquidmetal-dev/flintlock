@@ -1,16 +1,15 @@
 package firecracker
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 
 	"github.com/spf13/afero"
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/shared"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
@@ -56,7 +55,7 @@ func (s *fsState) PIDPath() string {
 }
 
 func (s *fsState) PID() (int, error) {
-	return s.pidReadFromFile(s.PIDPath())
+	return shared.PIDReadFromFile(s.PIDPath(), s.fs)
 }
 
 func (s *fsState) LogPath() string {
@@ -76,7 +75,7 @@ func (s *fsState) StderrPath() string {
 }
 
 func (s *fsState) SetPid(pid int) error {
-	return s.pidWriteToFile(pid, s.PIDPath())
+	return shared.PIDWriteToFile(pid, s.PIDPath(), s.fs)
 }
 
 func (s *fsState) ConfigPath() string {
@@ -140,41 +139,6 @@ func (s *fsState) Metadata() (Metadata, error) {
 
 func (s *fsState) MetadataPath() string {
 	return fmt.Sprintf("%s/metadata.json", s.stateRoot)
-}
-
-func (s *fsState) pidReadFromFile(pidFile string) (int, error) {
-	file, err := s.fs.Open(pidFile)
-	if err != nil {
-		return -1, fmt.Errorf("opening pid file %s: %w", pidFile, err)
-	}
-
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
-		return -1, fmt.Errorf("reading pid file %s: %w", pidFile, err)
-	}
-
-	pid, err := strconv.Atoi(string(bytes.TrimSpace(data)))
-	if err != nil {
-		return -1, fmt.Errorf("converting data to int: %w", err)
-	}
-
-	return pid, nil
-}
-
-func (s *fsState) pidWriteToFile(pid int, pidFile string) error {
-	file, err := s.fs.OpenFile(pidFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, defaults.DataFilePerm)
-	if err != nil {
-		return fmt.Errorf("opening pid file %s: %w", pidFile, err)
-	}
-
-	defer file.Close()
-
-	_, err = fmt.Fprintf(file, "%d", pid)
-	if err != nil {
-		return fmt.Errorf("writing pid %d to file %s: %w", pid, pidFile, err)
-	}
-
-	return nil
 }
 
 func (s *fsState) readJSONFile(cfg interface{}, inputFile string) error {

@@ -52,6 +52,11 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, portsctx.ErrPortsMissing
 	}
 
+	provider, ok := ports.MicrovmProviders[p.vm.Spec.Provider]
+	if !ok {
+		return nil, fmt.Errorf("microvm provider %s isn't available", p.vm.Spec.Provider)
+	}
+
 	if p.vm.Spec.DeletedAt == 0 {
 		return []planner.Procedure{}, nil
 	}
@@ -59,7 +64,7 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	p.clearPlanList()
 
 	// MicroVM provider delete
-	if err := p.addStep(ctx, microvm.NewDeleteStep(p.vm, ports.Provider)); err != nil {
+	if err := p.addStep(ctx, microvm.NewDeleteStep(p.vm, provider)); err != nil {
 		return nil, fmt.Errorf("adding microvm delete step: %w", err)
 	}
 
