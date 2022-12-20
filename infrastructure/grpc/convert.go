@@ -140,6 +140,10 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 		}
 	}
 
+	if volume.MountPoint != nil {
+		convertedVol.MountPoint = *volume.MountPoint
+	}
+
 	return convertedVol
 }
 

@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	MetadataInterfaceName = "mmds"
+	MetadataInterfaceName = "eth0"
 )
 
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
@@ -192,15 +192,19 @@ func (a *app) addMetadataInterface(mvm *models.MicroVM) {
 		}
 	}
 
-	mvm.Spec.NetworkInterfaces = append(mvm.Spec.NetworkInterfaces, models.NetworkInterface{
-		GuestDeviceName:       MetadataInterfaceName,
-		Type:                  models.IfaceTypeTap,
-		AllowMetadataRequests: true,
-		GuestMAC:              "AA:FF:00:00:00:01",
-		StaticAddress: &models.StaticAddress{
-			Address: "169.254.0.1/16",
+	interfaces := []models.NetworkInterface{
+		{
+			GuestDeviceName:       MetadataInterfaceName,
+			Type:                  models.IfaceTypeTap,
+			AllowMetadataRequests: true,
+			GuestMAC:              "AA:FF:00:00:00:01",
+			StaticAddress: &models.StaticAddress{
+				Address: "169.254.0.1/16",
+			},
 		},
-	})
+	}
+	interfaces = append(interfaces, mvm.Spec.NetworkInterfaces...)
+	mvm.Spec.NetworkInterfaces = interfaces
 
 	return
 }

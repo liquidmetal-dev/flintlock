@@ -3,6 +3,7 @@ package plans
 import (
 	"context"
 	"fmt"
+	"github.com/weaveworks-liquidmetal/flintlock/core/steps/cloudinit"
 
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
@@ -62,6 +63,11 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 	// Images
 	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
 		return nil, fmt.Errorf("adding image steps: %w", err)
+	}
+	if len(p.vm.Spec.AdditionalVolumes) > 0 {
+		if err := p.addStep(ctx, cloudinit.NewDiskMountStep(p.vm)); err != nil {
+			return nil, fmt.Errorf("adding mount step: %w", err)
+		}
 	}
 
 	// Network interfaces
