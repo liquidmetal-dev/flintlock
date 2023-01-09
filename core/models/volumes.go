@@ -12,6 +12,9 @@ type Volume struct {
 	PartitionID string `json:"partition_id,omitempty"`
 	// Size is the size to resize this volume to.
 	Size int32 `json:"size,omitempty"`
+	// MountPoint allows you to optionally specify a mount point for the volume. This only
+	// applied to additional volumes and it will use cloud-init to mount the volumes.
+	MountPoint string `json:"mount_point,omitempty"`
 }
 
 // Volumes represents a collection of volumes.
@@ -26,6 +29,18 @@ func (v Volumes) GetByID(id string) *Volume {
 	}
 
 	return nil
+}
+
+// HasMountableVolumes returns true if any of the volumes
+// have a mount point defined
+func (v Volumes) HasMountableVolumes() bool {
+	for _, vol := range v {
+		if vol.MountPoint != "" {
+			return true
+		}
+	}
+
+	return false
 }
 
 // VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs.

@@ -56,6 +56,7 @@ require (
 	github.com/weaveworks-liquidmetal/flintlock/api v0.0.0-00010101000000-000000000000
 	github.com/weaveworks-liquidmetal/flintlock/client v0.0.0-00010101000000-000000000000
 	github.com/yitsushi/file-tailor v1.0.0
+	gopkg.in/yaml.v2 v2.4.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -133,5 +134,4 @@ require (
 	gopkg.in/djherbis/times.v1 v1.2.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

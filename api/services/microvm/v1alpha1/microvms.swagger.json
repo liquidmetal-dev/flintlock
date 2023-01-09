@@ -481,6 +481,10 @@
           "type": "boolean",
           "description": "IsReadOnly specifies that the volume is to be mounted readonly."
         },
+        "mountPoint": {
+          "type": "string",
+          "description": "MountPoint allows you to optionally specify a mount point for the volume. This only\napplied to additional volumes and it will use cloud-init to mount the volumes."
+        },
         "source": {
           "$ref": "#/definitions/typesVolumeSource",
           "description": "Source is where the volume will be sourced from."
