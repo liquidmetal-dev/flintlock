@@ -25,7 +25,6 @@ jobs:
   #       project_names: ${{ env.PROJECT_NAME }}
   build:
     runs-on: ubuntu-latest
-    needs: [test]
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -45,7 +44,7 @@ jobs:
         retention-days: 1
   release:
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: [build]
     permissions:
       contents: write
     steps:
