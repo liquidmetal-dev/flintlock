@@ -55,10 +55,10 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 
 // AddGWServerFlagsToCommand will add gRPC HTTP gateway flags to the supplied command.
 func AddGWServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
-	cmd.Flags().StringVar(&cfg.GRPCAPIEndpoint,
-		grpcEndpointFlag,
-		defaults.GRPCAPIEndpoint,
-		"The address of the gRPC server to act as a gateway for.")
+	cmd.Flags().BoolVar(&cfg.EnableHTTPGateway,
+		"enable-http",
+		false,
+		"Should the API be exposed via HTTP.")
 
 	cmd.Flags().StringVar(&cfg.HTTPAPIEndpoint,
 		httpEndpointFlag,

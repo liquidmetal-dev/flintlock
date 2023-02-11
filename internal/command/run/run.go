@@ -16,6 +16,7 @@ import (
 	grpc_mw "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
@@ -27,6 +28,7 @@ import (
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/flags"
 	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -63,6 +65,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
 	cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg)
 	cmdflags.AddDebugFlagsToCommand(cmd, cfg)
+	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)
@@ -105,6 +108,17 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 			if err := serveAPI(ctx, cfg); err != nil {
 				logger.Errorf("failed serving api: %v", err)
+			}
+		}()
+	}
+
+	if cfg.EnableHTTPGateway {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			if err := serveHTTP(ctx, cfg); err != nil {
+				logger.Errorf("failed serving http api: %v", err)
 			}
 		}()
 	}
@@ -267,6 +281,42 @@ func runPProf(ctx context.Context, cfg *config.Config) error {
 
 	if err := srv.Shutdown(shutDownCtx); err != nil {
 		logger.Warnf("Debug server shutdown failed:%+v", err)
+	}
+
+	return nil
+}
+
+func serveHTTP(ctx context.Context, cfg *config.Config) error {
+	logger := log.GetLogger(ctx)
+	mux := runtime.NewServeMux()
+
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+
+	if err := mvmv1.RegisterMicroVMHandlerFromEndpoint(ctx, mux, cfg.GRPCAPIEndpoint, opts); err != nil {
+		return fmt.Errorf("could not register microvm server: %w", err)
+	}
+
+	server := &http.Server{
+		Addr:    cfg.HTTPAPIEndpoint,
+		Handler: mux,
+	}
+
+	go func() {
+		<-ctx.Done()
+		logger.Infof("shutting down the http gateway server")
+
+		//nolint: contextcheck // Intentional.
+		if err := server.Shutdown(context.Background()); err != nil {
+			logger.Errorf("failed to shutdown http gateway server: %v", err)
+		}
+	}()
+
+	logger.Debugf("starting http server listening on endpoint %s", cfg.HTTPAPIEndpoint)
+
+	if err := server.ListenAndServe(); err != nil {
+		return fmt.Errorf("listening and serving http api: %w", err)
 	}
 
 	return nil

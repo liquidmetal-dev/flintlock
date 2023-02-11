@@ -16,6 +16,8 @@ type Config struct {
 	GRPCAPIEndpoint string
 	// HTTPAPIEndpoint is the endpoint for the HTTP proxy for the gRPC service
 	HTTPAPIEndpoint string
+	// EnableHTTPGateway indicates that the HTTP gateway should be started
+	EnableHTTPGateway bool
 	// FirecrackerBin is the firecracker binary to use.
 	FirecrackerBin string
 	// FirecrackerDetatch indicates if the child firecracker processes should be detached from their parent.
