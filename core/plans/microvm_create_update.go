@@ -3,6 +3,7 @@ package plans
 import (
 	"context"
 	"fmt"
+
 	"github.com/weaveworks-liquidmetal/flintlock/core/steps/cloudinit"
 
 	"github.com/weaveworks-liquidmetal/flintlock/core/models"
@@ -85,8 +86,8 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding microvm create step: %w", err)
 	}
 
-	// MicroVM provider start
-	if provider.Capabilities().Has(models.StartCapability) {
+	// MicroVM provider doesn't auto-start
+	if !provider.Capabilities().Has(models.AutoStartCapability) {
 		if err := p.addStep(ctx, microvm.NewStartStep(p.vm, provider, microVMBootTime)); err != nil {
 			return nil, fmt.Errorf("adding microvm start step: %w", err)
 		}

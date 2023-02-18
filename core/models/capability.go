@@ -8,9 +8,10 @@ const (
 	// has a metadata service.
 	MetadataServiceCapability Capability = "metadata-service"
 
-	// StartCapability is a capability that the microvm provider must be started separately from creation.
-	// If a provider doesn't have this capability then its assumed the microvm will be started at creation.
-	StartCapability Capability = "start"
+	// AutoStartCapability is a capability of the microvm provider where the vm is automatically started
+	// as part of the creation process. If a provider doesn't have this capability then its assumed the
+	// microvm will be started via a call to the start implementation of the provider.
+	AutoStartCapability Capability = "auto-start"
 )
 
 // Capabilities represents a list of capabilities.

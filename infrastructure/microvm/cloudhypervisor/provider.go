@@ -66,7 +66,7 @@ func (p *provider) Start(ctx context.Context, vm *models.MicroVM) error {
 // State returns the state of a microvm.
 func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
-		"service": "firecracker_microvm",
+		"service": "cloudhypervisor_microvm",
 		"vmid":    id,
 	})
 	logger.Info("checking state of microvm")
@@ -95,7 +95,7 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 
 	processExists, err := process.Exists(pid)
 	if err != nil {
-		return ports.MicroVMStateUnknown, fmt.Errorf("checking if firecracker process is running: %w", err)
+		return ports.MicroVMStateUnknown, fmt.Errorf("checking if cloudhypervisor process is running: %w", err)
 	}
 
 	if !processExists {

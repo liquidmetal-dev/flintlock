@@ -36,9 +36,9 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("creating metadata image: %w", err)
 	}
 
-	proc, err := p.startCloudHypervisor(ctx, vm, vmState, p.config.RunDetached)
+	proc, err := p.startCloudHypervisor(ctx, vm, vmState, p.config.RunDetached, logger)
 	if err != nil {
-		return fmt.Errorf("starting firecracker process: %w", err)
+		return fmt.Errorf("starting cloudhypervisor process: %w", err)
 	}
 
 	if err = vmState.SetPid(proc.Pid); err != nil {
@@ -48,8 +48,8 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 	return nil
 }
 
-func (p *provider) startCloudHypervisor(ctx context.Context, vm *models.MicroVM, state State, detached bool) (*os.Process, error) {
-	args, err := p.buildArgs(vm, state)
+func (p *provider) startCloudHypervisor(ctx context.Context, vm *models.MicroVM, state State, detached bool, logger *logrus.Entry) (*os.Process, error) {
+	args, err := p.buildArgs(vm, state, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (p *provider) startCloudHypervisor(ctx context.Context, vm *models.MicroVM,
 	return cmd.Process, nil
 }
 
-func (p *provider) buildArgs(vm *models.MicroVM, state State) ([]string, error) {
+func (p *provider) buildArgs(vm *models.MicroVM, state State, logger *logrus.Entry) ([]string, error) {
 	args := []string{
 		"--api-socket",
 		state.SockPath(),
@@ -141,6 +141,8 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State) ([]string, error) 
 			args = append(args, arg)
 		} else if iface.Type == models.IfaceTypeTap {
 			args = append(args, fmt.Sprintf("tap=%s,mac=%s", status.HostDeviceName, iface.GuestMAC))
+		} else {
+			logger.Warn("unknown network interface type", "name", iface.GuestDeviceName, "type", iface.Type)
 		}
 	}
 
