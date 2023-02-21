@@ -52,7 +52,7 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/urfave/cli/v2 v2.24.3
+	github.com/urfave/cli/v2 v2.24.4
 	github.com/weaveworks-liquidmetal/flintlock/api v0.0.0-20230211152005-2177e42d0ee6
 	github.com/weaveworks-liquidmetal/flintlock/client v0.0.0-20230211152005-2177e42d0ee6
 	github.com/yitsushi/file-tailor v1.0.0
