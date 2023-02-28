@@ -15,7 +15,7 @@ replace (
 
 require (
 	github.com/Microsoft/go-winio v0.6.0 // indirect
-	github.com/containerd/containerd v1.6.17
+	github.com/containerd/containerd v1.6.19
 	github.com/containerd/typeurl v1.0.2
 	github.com/firecracker-microvm/firecracker-go-sdk v1.0.0
 	github.com/go-openapi/strfmt v0.21.3 // indirect
@@ -61,7 +61,7 @@ require (
 )
 
 require (
-	github.com/Microsoft/hcsshim v0.9.6 // indirect
+	github.com/Microsoft/hcsshim v0.9.7 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
