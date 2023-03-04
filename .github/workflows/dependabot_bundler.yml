@@ -1,0 +1,40 @@
+name: bundlebot
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: 0 0 * * 1 # every Monday at 00:00
+
+jobs:
+  bundler:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: '${{ github.workspace }}/go.mod'
+      - name: Cache go-build and mod
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build/
+            ~/go/pkg/mod/
+          key: go-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-
+      - name: Install Dependabot Bundler
+        run: |
+          go install github.com/Skarlso/dependabot-bundler@v0.0.15
+      - name: Run Dependabot Bundler
+        run: |
+          dependabot-bundler \
+            --token ${{ secrets.GITHUB_TOKEN }} \
+            --owner weaveworks-liquidmetal \
+            --repo flintlock \
+            --labels 'area/dependency,kind/cleanup,user-signing-required' \
+            --pr-title 'chore(deps): Bundle dependabot pull requests'
