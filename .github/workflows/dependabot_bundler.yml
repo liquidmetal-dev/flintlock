@@ -29,11 +29,18 @@ jobs:
             go-
       - name: Install Dependabot Bundler
         run: |
-          go install github.com/Skarlso/dependabot-bundler@v0.0.14
+          go install github.com/Skarlso/dependabot-bundler@v0.0.15
       - name: Run Dependabot Bundler
         run: |
           dependabot-bundler \
             --token ${{ secrets.GITHUB_TOKEN }} \
             --owner weaveworks-liquidmetal \
             --repo flintlock \
+            --signing-public-key "${{ secrets.DEPENDABOT_BUNDLER_GPG_PUBLIC_KEY }}" \
+            --signing-private-key "${{ secrets.DEPENDABOT_BUNDLER_GPG_PRIVATE_KEY }}" \
+            --signing-key-passphrase "${{ secrets.DEPENDABOT_BUNDLER_GPG_PASSPHRASE }}" \
+            --signing-name dependabot-bundler \
+            --signing-email 126970507+dependabot-bundler@users.noreply.github.com \
+            --author-name dependabot-bundler \
+            --author-email 126970507+dependabot-bundler@users.noreply.github.com \
             --labels 'area/dependency,kind/cleanup'
