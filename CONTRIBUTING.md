@@ -53,6 +53,7 @@ and run: mdtoc -inplace CONTRIBUTING.md
 - [How the Maintainers process contributions](#how-the-maintainers-process-contributions)
   - [Prioritizing issues](#prioritizing-issues)
   - [Reviewing PRs](#reviewing-prs)
+  - [Dependabot Bundler](#dependabot-bundler)
 - [ADRs (Architectural Decision Records)](#adrs-architectural-decision-records)
   - [Process](#process)
 - [:rocket: :tada: Thanks for reading! :tada: :rocket:](#rocket-tada-thanks-for-reading-tada-rocket)
@@ -541,6 +542,13 @@ while lower priority or nice-to-have things may take a little longer to get appr
 
 To help facilitate a smoother and faster review, follow the guidelines [above](#pr-submission-guidelines).
 Submissions which do not meet standards will be de-prioritised for review.
+
+## Dependabot Bundler
+
+There is an action that will periodically bundle dependabot pull requests into a single
+pull request. This PR is not signed and has the label `user-signing-required`. This must be
+done by a maintainer of the repository. Check out the PR and push an amending commit into
+the existing branch. Then, the PR can be merged.
 
 # ADRs (Architectural Decision Records)
 
