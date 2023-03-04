@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/command/gw"
+
 	"github.com/weaveworks-liquidmetal/flintlock/internal/command/run"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/version"
@@ -71,9 +71,6 @@ func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) error {
 
 	cmd.AddCommand(runCmd)
 	cmd.AddCommand(versionCommand())
-
-	gwCmd := gw.NewCommand(cfg)
-	cmd.AddCommand(gwCmd)
 
 	return nil
 }

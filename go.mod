@@ -55,6 +55,7 @@ require (
 	github.com/urfave/cli/v2 v2.24.4
 	github.com/weaveworks-liquidmetal/flintlock/api v0.0.0-20230211152005-2177e42d0ee6
 	github.com/weaveworks-liquidmetal/flintlock/client v0.0.0-20230211152005-2177e42d0ee6
+	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/yitsushi/file-tailor v1.0.0
 	gopkg.in/yaml.v2 v2.4.0
 	sigs.k8s.io/yaml v1.3.0
