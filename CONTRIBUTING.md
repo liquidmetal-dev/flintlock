@@ -550,6 +550,21 @@ pull request. This PR is not signed and has the label `user-signing-required`. T
 done by a maintainer of the repository. Check out the PR and push an amending commit into
 the existing branch. Then, the PR can be merged.
 
+For an example, take a look at this pull request: [Bundle dependabot pull requests](https://github.com/weaveworks-liquidmetal/flintlock/pull/655).
+
+It was created by [this](https://github.com/weaveworks-liquidmetal/flintlock/actions/runs/4335326798) action triggered on the main branch.
+
+Once the pull request was opened, a maintainer created a commit into it by checking out the branch, then running a `git commit --amend`.
+
+```bash
+# git pull if not already up-to-date
+git checkout -b bundler-1678007734 origin/bundler-1678007734
+git commit --amend
+git push -f
+```
+
+After this, GitHub will start running the PR actions and it can eventually be merged.
+
 # ADRs (Architectural Decision Records)
 
 Any impactful decisions to the architecture, design, development and behaviour
