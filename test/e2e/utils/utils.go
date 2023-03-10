@@ -79,8 +79,8 @@ func PidRunning(pid int) bool {
 
 func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 	var (
-		kernelImage = "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11"
-		cloudImage  = "docker.io/richardcase/ubuntu-bionic-test:cloudimage_v0.0.1"
+		binImage = "ghcr.io/weaveworks-liquidmetal/flintlock-kernel:5.10.77"
+		osImage  = "ghcr.io/weaveworks-liquidmetal/capmvm-k8s-os:1.23.5"
 	)
 
 	return &types.MicroVMSpec{
@@ -89,25 +89,20 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 		Vcpu:       2,    //nolint: gomnd
 		MemoryInMb: 2048, //nolint: gomnd
 		Kernel: &types.Kernel{
-			Image:            kernelImage,
-			Cmdline:          map[string]string{},
-			Filename:         pointyString("vmlinux"),
+			Image:            binImage,
+			Filename:         pointyString("boot/vmlinux"),
 			AddNetworkConfig: true,
-		},
-		Initrd: &types.Initrd{
-			Image:    kernelImage,
-			Filename: pointyString("initrd-generic"),
 		},
 		RootVolume: &types.Volume{
 			Id:         "root",
-			IsReadOnly: true,
+			IsReadOnly: false,
 			Source: &types.VolumeSource{
-				ContainerSource: pointyString(cloudImage),
+				ContainerSource: pointyString(osImage),
 			},
 		},
 		Interfaces: []*types.NetworkInterface{
 			{
-				DeviceId: "eth0",
+				DeviceId: "eth1",
 				Type:     0,
 			},
 		},
