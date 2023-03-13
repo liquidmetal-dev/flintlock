@@ -34,7 +34,7 @@ jobs:
         title: 'Bump firecracker version to ${{ env.NEW_VERSION }}'
         pinned: false
         close-previous: true
-        assignees: "Callisto13, richardcase"
+        assignees: "Callisto13, yitsushi, Skarlso"
         rotate-assignees: true
         body: |-
           This is an automatically generated Issue to release a new version of
@@ -43,17 +43,18 @@ jobs:
           branch published.
           This Issue is to track those manual steps.
 
-          **Note that for now we are mirroring firecracker's releases of both v1.1.x and v1.2.x versions**.
+          **Note that for now we are mirroring firecracker's releases of v1.1.x, v1.2.x and v1.3.x versions**.
 
           To complete work on this Issue:
           - [ ] Clone [our fork](https://github.com/weaveworks/firecracker) (if you do not have it already).
           - [ ] Add the upstream as a remote: `git add remote up https://github.com/firecracker-microvm/firecracker`
           - [ ] Fetch all branches and tags: `git fetch && git fetch --tags`
           - [ ] Check out to the relevant `macvtap` version branch. `feature/macvtap` for a new `v1.2.x` release, `feature/macvtapv11x` for a new `v1.1.x` release.
-          - [ ] Update the feature branch. `git rebase firecracker-v1.2` for a `v1.2.x` release `git rebase firecracker-v1.1` for a `v1.1.x` release.
-          - [ ] Resolve any merge conflicts if necessary.
+          - [ ] Update the feature branch. `git rebase firecracker-v1.3` for a `v1.3.x` release `git rebase firecracker-v1.2` for a `v1.2.x` release, etc. etc.
+          - [ ] Resolve any merge conflicts if necessary. (There will be merge conflicts.)
+          - [ ] Add any code if necessary. (This will gradually become more necessary, because the older this feature branch gets, the more the code around it upstream will change.)
           - [ ] Make sure it builds. (`tools/devtool build`)
-          - [ ] Push the updated firecracker 'feature/macvtap' (or `firecracker/macvtapv11x`) fork branch.
+          - [ ] Push the updated firecracker 'feature/macvtap' (or `firecracker/macvtapv12`, etc) fork branch.
           - [ ] Create a new tag on the updated firecracker fork branch: `git tag -s ${{ env.NEW_VERSION}}-macvtap -m ${{ env.NEW_VERSION }}-macvtap`.
           - [ ] Push the tag to the fork: `git push <remote> ${{ env.NEW_VERSION }}-macvtap` (A new [release](https://github.com/weaveworks/firecracker/releases) will be created.)
           - [ ] In this repo, trigger the `nightly_e2e` workflow
