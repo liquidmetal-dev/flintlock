@@ -170,6 +170,21 @@ func (mr *MockImageMockRecorder) Size(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockImage)(nil).Size), arg0)
 }
 
+// Spec mocks base method.
+func (m *MockImage) Spec(arg0 context.Context) (v1.Image, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Spec", arg0)
+	ret0, _ := ret[0].(v1.Image)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Spec indicates an expected call of Spec.
+func (mr *MockImageMockRecorder) Spec(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Spec", reflect.TypeOf((*MockImage)(nil).Spec), arg0)
+}
+
 // Target mocks base method.
 func (m *MockImage) Target() v1.Descriptor {
 	m.ctrl.T.Helper()
