@@ -1,7 +1,7 @@
 package events
 
 import (
-	"github.com/containerd/typeurl"
+	"github.com/containerd/typeurl/v2"
 )
 
 func init() {
