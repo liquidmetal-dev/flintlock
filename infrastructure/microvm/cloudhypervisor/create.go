@@ -142,7 +142,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, logger *logrus.Ent
 		} else if iface.Type == models.IfaceTypeTap {
 			args = append(args, fmt.Sprintf("tap=%s,mac=%s", status.HostDeviceName, iface.GuestMAC))
 		} else {
-			logger.Warn("unknown network interface type", "name", iface.GuestDeviceName, "type", iface.Type)
+			return nil, fmt.Errorf("unknown network interface type %v for %s", iface.Type, iface.GuestDeviceName)
 		}
 	}
 
