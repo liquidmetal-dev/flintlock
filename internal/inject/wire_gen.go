@@ -7,15 +7,14 @@
 package inject
 
 import (
-	"fmt"
 	"github.com/spf13/afero"
 	"github.com/weaveworks-liquidmetal/flintlock/core/application"
 	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/controllers"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/firecracker"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/godisk"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/grpc"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/network"
 	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/ulid"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
@@ -31,11 +30,14 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-	config3 := firecrackerConfig(cfg)
-	config4 := networkConfig(cfg)
-	networkService := network.New(config4)
+	config3 := networkConfig(cfg)
+	networkService := network.New(config3)
 	fs := afero.NewOsFs()
-	microVMService := firecracker.New(config3, networkService, fs)
+	diskService := godisk.New(fs)
+	v, err := microvm.NewFromConfig(cfg, networkService, diskService, fs)
+	if err != nil {
+		return nil, err
+	}
 	eventService, err := containerd.NewEventService(config2)
 	if err != nil {
 		return nil, err
@@ -45,8 +47,7 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-	diskService := godisk.New(fs)
-	collection := appPorts(microVMRepository, microVMService, eventService, idService, networkService, imageService, fs, diskService)
+	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs, diskService)
 	return collection, nil
 }
 
@@ -82,14 +83,6 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 	}
 }
 
-func firecrackerConfig(cfg *config.Config) *firecracker.Config {
-	return &firecracker.Config{
-		FirecrackerBin: cfg.FirecrackerBin,
-		RunDetached:    cfg.FirecrackerDetatch,
-		StateRoot:      fmt.Sprintf("%s/vm", cfg.StateRootDir),
-	}
-}
-
 func networkConfig(cfg *config.Config) *network.Config {
 	return &network.Config{
 		ParentDeviceName: cfg.ParentIface,
@@ -99,15 +92,16 @@ func networkConfig(cfg *config.Config) *network.Config {
 
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
-		RootStateDir: cfg.StateRootDir,
-		MaximumRetry: cfg.MaximumRetry,
+		RootStateDir:    cfg.StateRootDir,
+		MaximumRetry:    cfg.MaximumRetry,
+		DefaultProvider: cfg.DefaultVMProvider,
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, prov ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
-		Provider:          prov,
+		MicrovmProviders:  providers,
 		EventService:      es,
 		IdentifierService: is,
 		NetworkService:    ns,

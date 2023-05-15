@@ -27,6 +27,13 @@ const (
 	// processes should be run detached.
 	FirecrackerDetach = true
 
+	// CloudHypervisorBin is the name of the Cloud Hypervisor binary.
+	CloudHypervisorBin = "cloud-hypervisor-static"
+
+	// CloudHypervisorDetach is the default for the flag to indicates with the child cloud-hypervisor
+	// processes should be run detached.
+	CloudHypervisorDetach = true
+
 	// ConfigurationDir is the default configuration directory.
 	ConfigurationDir = "/etc/opt/flintlockd"
 

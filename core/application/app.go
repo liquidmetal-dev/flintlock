@@ -25,6 +25,7 @@ type app struct {
 }
 
 type Config struct {
-	RootStateDir string
-	MaximumRetry int
+	RootStateDir    string
+	MaximumRetry    int
+	DefaultProvider string
 }

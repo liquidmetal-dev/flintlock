@@ -20,6 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
+	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm"
 	cmdflags "github.com/weaveworks-liquidmetal/flintlock/internal/command/flags"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 	"github.com/weaveworks-liquidmetal/flintlock/internal/inject"
@@ -52,6 +53,18 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 				return errors.New("You must supply at least one of parent interface, bridge name")
 			}
 
+			providerFound := false
+			for _, supportedProvider := range microvm.GetProviderNames() {
+				if supportedProvider == cfg.DefaultVMProvider {
+					providerFound = true
+					break
+				}
+			}
+			if !providerFound {
+				return fmt.Errorf("The provided default provider name %s isn't a supported provider", cfg.DefaultVMProvider)
+			}
+			logger.Infof("Default microvm provider: %s", cfg.DefaultVMProvider)
+
 			return nil
 		},
 		RunE: func(c *cobra.Command, _ []string) error {
@@ -63,7 +76,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddAuthFlagsToCommand(cmd, cfg)
 	cmdflags.AddTLSFlagsToCommand(cmd, cfg)
 	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
-	cmdflags.AddFirecrackerFlagsToCommand(cmd, cfg)
+	cmdflags.AddMicrovmProviderFlagsToCommand(cmd, cfg)
 	cmdflags.AddDebugFlagsToCommand(cmd, cfg)
 	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
 
