@@ -42,12 +42,12 @@ require (
 	golang.org/x/net v0.10.0 // indirect
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0
-	gopkg.in/yaml.v3 v3.0.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
 	github.com/carlmjohnson/requests v0.23.3
-	github.com/containerd/typeurl/v2 v2.1.0
+	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/diskfs/go-diskfs v1.3.0
 	github.com/docker/go-units v0.5.0
 	github.com/gorilla/mux v1.8.0
