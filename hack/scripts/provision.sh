@@ -305,6 +305,7 @@ do_all_flintlock() {
 	local bridge_name="$4"
 	local insecure="$5"
 	local config_file="$6"
+	local port="$7"
 
 	install_flintlockd "$version"
 
@@ -314,10 +315,13 @@ do_all_flintlock() {
 	if [[ -z "$address" ]]; then
 		address=$(lookup_address "$parent_iface")
 	fi
-	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure" "$config_file"
+	if [[ -z "$port" ]]; then
+		port="9090"
+	fi
+	write_flintlockd_config "$address" "$parent_iface" "$bridge_name" "$insecure" "$config_file" "$port"
 
 	start_flintlockd_service
-	say "Flintlockd running at $address:9090 via interface $parent_iface"
+	say "Flintlockd running at $address:$port via interface $parent_iface"
 }
 
 # Fetch and install the flintlockd binary at the specified version
@@ -346,6 +350,7 @@ write_flintlockd_config() {
 	local bridge_name="$3"
 	local insecure="$4"
 	local config_file="$5"
+	local port="$6"
 
 	mkdir -p "$(dirname "$FLINTLOCKD_CONFIG_PATH")"
 
@@ -353,7 +358,7 @@ write_flintlockd_config() {
 
 	declare -A settings
 	settings["containerd-socket"]="$CONTAINERD_STATE_DIR/containerd.sock"
-	settings["grpc-endpoint"]="$address:9090"
+	settings["grpc-endpoint"]="$address:$port"
 	settings["verbosity"]="9"
 	settings["insecure"]="$insecure"
 
@@ -413,7 +418,7 @@ lookup_interface() {
 lookup_address() {
 	local interface="$1"
 
-	ip route show | awk -v i="$interface" '$0 ~ i {print $9}' | grep -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)'
+	ip route show | awk -v i="$interface" '$0 ~ i {print $9}' | grep -E '^(192\.168|10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.)' -m 1
 }
 
 ## CONTAINERD
@@ -736,6 +741,7 @@ cmd_all() {
 	local skip_apt=false
 	local disk=""
 	local fl_address=""
+	local fl_port=""
 	local fl_iface=""
 	local bridge_name=""
 	local insecure=false
@@ -765,6 +771,10 @@ cmd_all() {
 		"-a" | "--grpc-address")
 			shift
 			fl_address="$1"
+			;;
+		"-p" | "--grpc-port")
+			shift
+			fl_port="$1"
 			;;
 		"-i" | "--parent-iface")
 			shift
@@ -821,7 +831,7 @@ cmd_all() {
 
 	install_firecracker "$fc_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
-	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure" "$flintlock_config_file"
+	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure" "$flintlock_config_file" "$fl_port"
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Host $(hostname) provisioned"
 }
@@ -899,6 +909,7 @@ cmd_containerd() {
 cmd_flintlock() {
 	local version="$FLINTLOCK_VERSION"
 	local address=""
+	local port=""
 	local parent_iface=""
 	local bridge_name=""
 	local insecure=false
@@ -917,6 +928,10 @@ cmd_flintlock() {
 		"-a" | "--grpc-address")
 			shift
 			address="$1"
+			;;
+		"-p" | "--grpc-port")
+			shift
+			port="$1"
 			;;
 		"-i" | "--parent-iface")
 			shift
@@ -945,7 +960,7 @@ cmd_flintlock() {
 
 	set_arch
 	prepare_dirs
-	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure" "$config_file"
+	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure" "$config_file" "$port"
 }
 
 cmd_direct_lvm() {

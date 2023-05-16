@@ -169,7 +169,7 @@ func (im *imageService) snapshotAndMount(ctx context.Context,
 		logger.Debugf("image %s isn't unpacked, unpacking using %s snapshotter", image.Name(), snapshotter)
 
 		if unpackErr := image.Unpack(ctx, snapshotter); unpackErr != nil {
-			return nil, fmt.Errorf("unpacking %s with snapshotter %s: %w", image.Name(), snapshotter, err)
+			return nil, fmt.Errorf("unpacking %s with snapshotter %s: %w", image.Name(), snapshotter, unpackErr)
 		}
 	}
 
