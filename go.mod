@@ -46,7 +46,7 @@ require (
 )
 
 require (
-	github.com/carlmjohnson/requests v0.23.3
+	github.com/carlmjohnson/requests v0.23.4
 	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/diskfs/go-diskfs v1.3.0
 	github.com/docker/go-units v0.5.0
