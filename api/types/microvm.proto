@@ -142,8 +142,6 @@ message Volume {
   VolumeSource source = 4;
   // PartitionID is the uuid of the boot partition.
   optional string partition_id = 5;
-  // Size is the size to resize this volume to.
-  optional int32 size_in_mb = 6;
   // TODO: add rate limiting
 }
 

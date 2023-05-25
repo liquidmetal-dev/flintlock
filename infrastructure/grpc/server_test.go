@@ -460,7 +460,6 @@ func createTestCreateRequest(id, namespace string) *mvm1.CreateMicroVMRequest {
 	filename := "kernel"
 	mac := "AA:FF:00:00:00:01"
 	containerSource := "docker.io/library/ubuntu:groovy"
-	rootVolSize := int32(20000)
 
 	return &mvm1.CreateMicroVMRequest{
 		Microvm: &types.MicroVMSpec{
@@ -489,7 +488,6 @@ func createTestCreateRequest(id, namespace string) *mvm1.CreateMicroVMRequest {
 				Source: &types.VolumeSource{
 					ContainerSource: &containerSource,
 				},
-				SizeInMb: &rootVolSize,
 			},
 		},
 	}
