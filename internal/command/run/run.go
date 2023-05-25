@@ -109,6 +109,8 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 			if err := runPProf(ctx, cfg); err != nil {
 				logger.Errorf("failed serving api: %v", err)
+				// Cancel all processes if at least one fails.
+				cancel()
 			}
 		}()
 	}
@@ -121,6 +123,8 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 			if err := serveAPI(ctx, cfg); err != nil {
 				logger.Errorf("failed serving api: %v", err)
+				// Cancel all processes if at least one fails.
+				cancel()
 			}
 		}()
 	}
@@ -132,6 +136,8 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 			defer wg.Done()
 			if err := serveHTTP(ctx, cfg); err != nil {
 				logger.Errorf("failed serving http api: %v", err)
+				// Cancel all processes if at least one fails.
+				cancel()
 			}
 		}()
 	}
@@ -144,6 +150,8 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 			if err := runControllers(ctx, cfg); err != nil {
 				logger.Errorf("failed running controllers: %v", err)
+				// Cancel all processes if at least one fails.
+				cancel()
 			}
 		}()
 	}
@@ -202,7 +210,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	reflection.Register(grpcServer)
 
 	if err := grpcServer.Serve(listener); err != nil {
-		logger.Fatalf("serving grpc api: %v", err) // TODO: remove this fatal #235
+		return fmt.Errorf("failed to start grpc server: %w", err)
 	}
 
 	return nil

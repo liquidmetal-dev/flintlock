@@ -50,8 +50,6 @@ func TestDiskCreation(t *testing.T) {
 	info, err := fs.Stat(imagePath)
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(info.Size()).To(g.Equal(expectedSize))
-
-	//TODO: in the future we could consider inspecting the created image.
 }
 
 func TestDiskCreationExistsNoOverwrite(t *testing.T) {

@@ -101,16 +101,13 @@ func (r *MicroVMController) runEventListener(ctx context.Context, resyncPeriod t
 			return
 		case evt := <-evtCh:
 			if err := r.handleEvent(evt, logger); err != nil {
-				// TODO: should we exit here? #233
 				logger.Errorf("handling events: %s", err)
 			}
 		case <-ticker.C:
 			if err := r.resyncSpecs(ctx, logger); err != nil {
-				// TODO: should we exit here? #233
 				logger.Errorf("resyncing specs: %s", err)
 			}
 		case evtErr := <-errCh:
-			// TODO: should we exit here? #233
 			logger.Errorf("error from event service: %s", evtErr)
 		}
 	}

@@ -74,7 +74,6 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 		link = &netlink.Tuntap{
 			LinkAttrs: netlink.LinkAttrs{
 				Name: input.DeviceName,
-				// TODO: add Namespace #206
 			},
 			Mode: netlink.TUNTAP_MODE_TAP,
 		}
@@ -85,7 +84,7 @@ func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreat
 					Name:        input.DeviceName,
 					MTU:         parentLink.Attrs().MTU,
 					ParentIndex: parentLink.Attrs().Index,
-					Namespace:   parentLink.Attrs().Namespace, // TODO: add namespace specific to vm #206
+					Namespace:   parentLink.Attrs().Namespace,
 					TxQLen:      parentLink.Attrs().TxQLen,
 				},
 				Mode: netlink.MACVLAN_MODE_BRIDGE,
