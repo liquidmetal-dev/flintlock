@@ -92,7 +92,7 @@ func (p *fcProvider) startFirecracker(cmd *exec.Cmd, vmState State, detached boo
 	}
 
 	if startErr != nil {
-		return nil, fmt.Errorf("starting firecracker process: %w", err)
+		return nil, fmt.Errorf("starting firecracker process: %w", startErr)
 	}
 
 	return cmd.Process, nil
