@@ -68,7 +68,7 @@ jobs:
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
         message: "There is a new version of Firecracker, complete the todo list here: <https://github.com/weaveworks-liquidmetal/flintlock/issues/${{ steps.issue.outputs.issue-number }}|#${{ steps.issue.outputs.issue-number }}>."
-        channel: team-quick-silver
+        channel: liquid-metal-dev
         color: green
         verbose: false
   notify:
@@ -81,6 +81,6 @@ jobs:
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
         message: "There is a new firecracker version, but the 'Bump Firecracker' issue failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here>."
-        channel: team-quick-silver
+        channel: liquid-metal-dev
         color: red
         verbose: false
