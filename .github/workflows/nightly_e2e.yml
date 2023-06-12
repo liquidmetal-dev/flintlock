@@ -39,7 +39,7 @@ jobs:
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
         message: "A flintlock integration test run failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here> and weep."
-        channel: team-quick-silver
+        channel: liquid-metal-dev
         color: red
         verbose: false
 
@@ -49,7 +49,7 @@ jobs:
       with:
         slack_token: ${{ secrets.SLACK_TOKEN }}
         message: "A flintlock integration test run succeeded :party-gopher:"
-        channel: team-quick-silver
+        channel: liquid-metal-dev
         color: green
         verbose: false
 
