@@ -181,6 +181,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 
 	app := inject.InitializeApp(cfg, ports)
 	server := inject.InitializeGRPCServer(app)
+	debugServer := inject.InitializeDebugServer(app)
 
 	serverOpts, err := generateOpts(ctx, cfg)
 	if err != nil {
@@ -190,6 +191,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	grpcServer := grpc.NewServer(serverOpts...)
 
 	mvmv1.RegisterMicroVMServer(grpcServer, server)
+	mvmv1.RegisterDebugServer(grpcServer, debugServer)
 	grpc_prometheus.Register(grpcServer)
 	http.Handle("/metrics", promhttp.Handler())
 
@@ -316,6 +318,10 @@ func serveHTTP(ctx context.Context, cfg *config.Config) error {
 	}
 
 	if err := mvmv1.RegisterMicroVMHandlerFromEndpoint(ctx, mux, cfg.GRPCAPIEndpoint, opts); err != nil {
+		return fmt.Errorf("could not register microvm server: %w", err)
+	}
+
+	if err := mvmv1.RegisterDebugHandlerFromEndpoint(ctx, mux, cfg.GRPCAPIEndpoint, opts); err != nil {
 		return fmt.Errorf("could not register microvm server: %w", err)
 	}
 

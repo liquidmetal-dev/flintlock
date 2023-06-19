@@ -72,6 +72,12 @@ func InitializeGRPCServer(app application.App) ports.MicroVMGRPCService {
 	return microVMGRPCService
 }
 
+func InitializeDebugServer(app application.App) ports.DebugInfoGRPCService {
+	microVMQueryUseCases := queryUCFromApp(app)
+	debugInfoGRPCService := grpc.NewDebugServer(microVMQueryUseCases)
+	return debugInfoGRPCService
+}
+
 // wire.go:
 
 func containerdConfig(cfg *config.Config) *containerd.Config {

@@ -56,6 +56,12 @@ func InitializeGRPCServer(app application.App) ports.MicroVMGRPCService {
 	return nil
 }
 
+func InitializeDebugServer(app application.App) ports.DebugInfoGRPCService {
+	wire.Build(microvmgrpc.NewDebugServer, queryUCFromApp)
+
+	return nil
+}
+
 func containerdConfig(cfg *config.Config) *containerd.Config {
 	return &containerd.Config{
 		SnapshotterKernel: cfg.CtrSnapshotterKernel,

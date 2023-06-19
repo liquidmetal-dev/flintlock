@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package microvm.services.api.v1alpha1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1";
+
+// DebugInfo represents the debug information of a Flintlock server.
+message DebugInfo {
+    int32 mvm_count = 1;
+    int32 iface_count = 2;
+    int32 total_vcpu = 3;
+    int32 total_memory_in_mb = 4;
+}
+
+service Debug {
+    rpc GetDebugInfo(google.protobuf.Empty) returns (DebugInfo) {
+        option (google.api.http) = {
+          get: "/debug"
+        };
+    }
+}

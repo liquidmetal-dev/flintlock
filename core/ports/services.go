@@ -46,6 +46,11 @@ type MicroVMGRPCService interface {
 	mvmv1.MicroVMServer
 }
 
+// DebugInfoGRPCService is a port for a debug info grpc service.
+type DebugInfoGRPCService interface {
+	mvmv1.DebugServer
+}
+
 // IDService is a port for a service for working with identifiers.
 type IDService interface {
 	// GenerateRandom will create a random identifier.
