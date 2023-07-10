@@ -40,7 +40,7 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	golang.org/x/net v0.11.0 // indirect
-	google.golang.org/grpc v1.56.1
+	google.golang.org/grpc v1.56.2
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
