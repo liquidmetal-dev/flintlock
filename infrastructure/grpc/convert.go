@@ -34,7 +34,6 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 			VCPU:       int64(spec.Vcpu),
 			MemoryInMb: int64(spec.MemoryInMb),
 			Metadata:   instance.New(),
-			Provider: *spec.Provider,
 		},
 	}
 
@@ -76,6 +75,10 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 	convertedModel.Spec.Metadata = map[string]string{}
 	for metadataKey, metadataValue := range spec.Metadata {
 		convertedModel.Spec.Metadata[metadataKey] = metadataValue
+	}
+
+	if spec.Provider != nil {
+		convertedModel.Spec.Provider = *spec.Provider
 	}
 
 	return convertedModel, nil
