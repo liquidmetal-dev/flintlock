@@ -77,6 +77,10 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		convertedModel.Spec.Metadata[metadataKey] = metadataValue
 	}
 
+	if convertedModel.Spec.Provider != nil {
+		convertedModel.Spec.Provider = *spec.Provider
+	}
+	
 	return convertedModel, nil
 }
 
