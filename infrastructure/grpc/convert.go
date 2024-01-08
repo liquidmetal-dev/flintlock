@@ -34,7 +34,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 			VCPU:       int64(spec.Vcpu),
 			MemoryInMb: int64(spec.MemoryInMb),
 			Metadata:   instance.New(),
-			Provider: spec.Kernel.Provider,
+			Provider: spec.Provider,
 		},
 	}
 
