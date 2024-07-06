@@ -38,7 +38,11 @@ func TestSimpleSyncQueue_Basic(t *testing.T) {
 	numConsumers := 5
 	consumersWG := sync.WaitGroup{}
 	consumersWG.Add(numConsumers)
+	var fatal bool
 	for i := 0; i < numConsumers; i++ {
+		if fatal {
+			break
+		}
 		go func(i int) {
 			defer consumersWG.Done()
 			for {
@@ -47,12 +51,17 @@ func TestSimpleSyncQueue_Basic(t *testing.T) {
 					return
 				}
 				if !strings.HasPrefix(item.(string), "ns1/vm") {
-					t.Fatal("received item from queue after shutdown")
+					fatal = true
+					return
 				}
 				atomic.AddInt32(&countConsumed, 1)
 				time.Sleep(3 * time.Millisecond)
 			}
 		}(i)
+	}
+
+	if fatal {
+		t.Fatal("received item from queue after shutdown")
 	}
 
 	producersWG.Wait()
@@ -82,7 +91,11 @@ func TestSimpleSyncQueue_Duplicate(t *testing.T) {
 	numConsumers := 5
 	consumersWG := sync.WaitGroup{}
 	consumersWG.Add(numConsumers)
+	var fatal bool
 	for i := 0; i < numConsumers; i++ {
+		if fatal {
+			break
+		}
 		go func(i int) {
 			defer consumersWG.Done()
 			for {
@@ -91,12 +104,17 @@ func TestSimpleSyncQueue_Duplicate(t *testing.T) {
 					return
 				}
 				if !strings.HasPrefix(item.(string), "ns1/vm") {
-					t.Fatal("received item from queue after shutdown")
+					fatal = true
+					return
 				}
 				atomic.AddInt32(&countConsumed, 1)
 				time.Sleep(3 * time.Millisecond)
 			}
 		}(i)
+	}
+
+	if fatal {
+		t.Fatal("received item from queue after shutdown")
 	}
 
 	t.Log("shutting queue down")

@@ -128,10 +128,6 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 		convertedVol.PartitionID = *volume.PartitionId
 	}
 
-	if volume.SizeInMb != nil {
-		convertedVol.Size = *volume.SizeInMb
-	}
-
 	if volume.Source != nil {
 		if volume.Source.ContainerSource != nil {
 			convertedVol.Source.Container = &models.ContainerVolumeSource{
@@ -198,7 +194,6 @@ func convertModelToVolumne(modelVolume *models.Volume) *types.Volume {
 		Id:          modelVolume.ID,
 		IsReadOnly:  modelVolume.IsReadOnly,
 		PartitionId: &modelVolume.PartitionID,
-		SizeInMb:    &modelVolume.Size,
 	}
 
 	if modelVolume.Source.Container != nil {

@@ -496,11 +496,6 @@
         "partitionId": {
           "type": "string",
           "description": "PartitionID is the uuid of the boot partition."
-        },
-        "sizeInMb": {
-          "type": "integer",
-          "format": "int32",
-          "description": "Size is the size to resize this volume to."
         }
       },
       "description": "Volume represents the configuration for a volume to be attached to a microvm."
