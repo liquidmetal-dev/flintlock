@@ -3,6 +3,11 @@
 
 ## Table of Contents
 
+- [services/microvm/v1alpha1/debug.proto](#services/microvm/v1alpha1/debug.proto)
+    - [DebugInfo](#microvm.services.api.v1alpha1.DebugInfo)
+  
+    - [Debug](#microvm.services.api.v1alpha1.Debug)
+  
 - [services/microvm/v1alpha1/microvms.proto](#services/microvm/v1alpha1/microvms.proto)
     - [CreateMicroVMRequest](#microvm.services.api.v1alpha1.CreateMicroVMRequest)
     - [CreateMicroVMRequest.MetadataEntry](#microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry)
@@ -17,6 +22,50 @@
     - [MicroVM](#microvm.services.api.v1alpha1.MicroVM)
   
 - [Scalar Value Types](#scalar-value-types)
+
+
+
+<a name="services/microvm/v1alpha1/debug.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## services/microvm/v1alpha1/debug.proto
+
+
+
+<a name="microvm.services.api.v1alpha1.DebugInfo"></a>
+
+### DebugInfo
+DebugInfo represents the debug information of a Flintlock server.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| mvm_count | [int32](#int32) |  |  |
+| iface_count | [int32](#int32) |  |  |
+| total_vcpu | [int32](#int32) |  |  |
+| total_memory_in_mb | [int32](#int32) |  |  |
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+
+<a name="microvm.services.api.v1alpha1.Debug"></a>
+
+### Debug
+
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| GetDebugInfo | [.google.protobuf.Empty](#google.protobuf.Empty) | [DebugInfo](#microvm.services.api.v1alpha1.DebugInfo) |  |
+
+ 
 
 
 
