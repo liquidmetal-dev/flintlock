@@ -7,8 +7,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 func PIDReadFromFile(pidFile string, fs afero.Fs) (int, error) {

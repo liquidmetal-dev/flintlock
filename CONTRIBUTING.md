@@ -29,6 +29,7 @@ and run: mdtoc -inplace CONTRIBUTING.md
 -->
 
 <!-- toc -->
+
 - [Where can I get involved?](#where-can-i-get-involved)
 - [Opening Issues](#opening-issues)
   - [Bug report guide](#bug-report-guide)
@@ -66,26 +67,27 @@ Here is a non-exhaustive list of ways you can help out:
 
 1. Open a [PR](#submitting-prs). :woman_technologist:
 
-    Beyond fixing bugs and submitting new features, there are other things you can submit
-    which, while less flashy, will be deeply appreciated by all who interact with the codebase:
+   Beyond fixing bugs and submitting new features, there are other things you can submit
+   which, while less flashy, will be deeply appreciated by all who interact with the codebase:
 
-      - Backfilling tests!
-      - Refactoring!
-      - Reviewing and updating [documentation][user-docs]!
+   - Backfilling tests!
+   - Refactoring!
+   - Reviewing and updating [documentation][user-docs]!
 
    (See also [Choosing something to work on](#choosing-something-to-work-on) below.)
+
 1. Open an [issue](#opening-issues). :interrobang:
 
-    We have 3 forms of issue: [bug reports](#bug-report-guide), [feature requests](#feature-request-guide) and [help requests](#help-request-guide).
-    If you are not sure which category you need, just make the best guess and provide as much information as possible.
+   We have 3 forms of issue: [bug reports](#bug-report-guide), [feature requests](#feature-request-guide) and [help requests](#help-request-guide).
+   If you are not sure which category you need, just make the best guess and provide as much information as possible.
 
 1. Help out others in the [community slack channel][slack-channel], or in some [discussions][discussions]. :sos:
 
-1. Chime in on [bugs](https://github.com/weaveworks-liquidmetal/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Fbug+), [feature requests](https://github.com/weaveworks-liquidmetal/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Ffeature) and asks for [help][discussions]. :thought_balloon:
+1. Chime in on [bugs](https://github.com/liquidmetal-dev/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Fbug+), [feature requests](https://github.com/liquidmetal-dev/flintlock/issues?q=is%3Aopen+is%3Aissue+label%3Akind%2Ffeature) and asks for [help][discussions]. :thought_balloon:
 
-1. Dig into some [`needs-investigation`](https://github.com/weaveworks-liquidmetal/flintlock/labels/needs-investigation) or [`help wanted`](https://github.com/weaveworks-liquidmetal/flintlock/labels/help-wanted) :detective:
+1. Dig into some [`needs-investigation`](https://github.com/liquidmetal-dev/flintlock/labels/needs-investigation) or [`help wanted`](https://github.com/liquidmetal-dev/flintlock/labels/help-wanted) :detective:
 
-1. Get involved in some [PR reviews](https://github.com/weaveworks-liquidmetal/flintlock/pulls). :nerd_face:
+1. Get involved in some [PR reviews](https://github.com/liquidmetal-dev/flintlock/pulls). :nerd_face:
 
 # Opening Issues
 
@@ -99,24 +101,25 @@ _See below for [how issues are prioritized](#prioritizing-issues)_.
 1. Before opening anything, take a good look through existing issues.
 
 1. More is more: give as much information as it is humanly possible to give.
-  Highly detailed issues are more likely to be picked up because they can be prioritized and
-  scheduled for work faster. They are also more accessible
-  to the community, meaning that you may not have to wait for the core team to get to it.
+   Highly detailed issues are more likely to be picked up because they can be prioritized and
+   scheduled for work faster. They are also more accessible
+   to the community, meaning that you may not have to wait for the core team to get to it.
 
 1. Please do not open an issue with a description that is **just** a link to another issue,
-  a link to a slack conversation, a quote from either one of those, or anything else
-  equally opaque. This raises the bar for entry and makes it hard for the community
-  to get involved. Take the time to write a proper description and summarise key points.
+   a link to a slack conversation, a quote from either one of those, or anything else
+   equally opaque. This raises the bar for entry and makes it hard for the community
+   to get involved. Take the time to write a proper description and summarise key points.
 
 1. Take care with formatting. Ensure the [markdown is tidy](https://docs.github.com/en/free-pro-team@latest/github/writing-on-github/getting-started-with-writing-and-formatting-on-github),
-  use [code blocks](https://docs.github.com/en/free-pro-team@latest/github/writing-on-github/creating-and-highlighting-code-blocks) etc etc.
-  The faster something can be read, the faster it can be dealt with.
+   use [code blocks](https://docs.github.com/en/free-pro-team@latest/github/writing-on-github/creating-and-highlighting-code-blocks) etc etc.
+   The faster something can be read, the faster it can be dealt with.
 
 1. Keep it civil. Yes, it is annoying when things don't work, but it is way more fun helping out
-  someone who is not... the worst. Remember that conversing via text exacerbates
-  everyone's negativity bias, so throw in some emoji when in doubt :+1: :smiley: :rocket: :tada:.
+   someone who is not... the worst. Remember that conversing via text exacerbates
+   everyone's negativity bias, so throw in some emoji when in doubt :+1: :smiley: :rocket: :tada:.
 
 **Dedicated guides**:
+
 - [Bug report guide](#bug-report-guide)
 - [Feature request guide](#feature-request-guide)
 - [Help request guide](#help-request-guide)
@@ -135,30 +138,30 @@ information. Add more that what is asked for if you can :smiley:.
 1. **Bump to the latest version of flintlock** to see whether your issue has already been fixed.
 
 1. **Write a concise and descriptive title**, like you would a commit message, something which others can easily
-  find when doing step 1 above.
+   find when doing step 1 above.
 
 1. **Detail what it was that you were trying to do and what you expected would happen**.
-  Give some background information around what you have already done to your environment, any custom configuration etc.
-  With sufficient information you can pre-empt any questions others may have. This should cut out some obvious
-  back-and-forth and help get people to the heart of the issue quickly.
+   Give some background information around what you have already done to your environment, any custom configuration etc.
+   With sufficient information you can pre-empt any questions others may have. This should cut out some obvious
+   back-and-forth and help get people to the heart of the issue quickly.
 
 1. **Explain what actually happened**. Provide the relevant error message and key logs.
 
 1. **Provide a reproduction**, for example the exact command you started `flintlockd` with,
-  or a config file, and anything important in the environment where `flintlockd` is running.
-  Please try to reduce your reproduction to the minimal necessary to help whoever is helping you
-  get to the broken state without needing to recreate your entire environment.
+   or a config file, and anything important in the environment where `flintlockd` is running.
+   Please try to reduce your reproduction to the minimal necessary to help whoever is helping you
+   get to the broken state without needing to recreate your entire environment.
 
 1. **If possible, reproduce the issue with logging verbosity set to 9** (`--verbosity 9`), if you have not already done so. Ensure
-  logs are formatted with [code blocks](https://docs.github.com/en/free-pro-team@latest/github/writing-on-github/creating-and-highlighting-code-blocks).
-  If they are long (>50 lines) please provide them in a Gist or collapsed using
-  [HTML details tags](https://gist.github.com/ericclemmons/b146fe5da72ca1f706b2ef72a20ac39d).
-  Take care to redact any sensitive info.
+   logs are formatted with [code blocks](https://docs.github.com/en/free-pro-team@latest/github/writing-on-github/creating-and-highlighting-code-blocks).
+   If they are long (>50 lines) please provide them in a Gist or collapsed using
+   [HTML details tags](https://gist.github.com/ericclemmons/b146fe5da72ca1f706b2ef72a20ac39d).
+   Take care to redact any sensitive info.
 
 1. Detail any workarounds which you tried, it may help others who experience the same problem.
 
 1. If you already have a fix in mind, note that on the report and go ahead and open a
-  PR whenever you are ready. A core team-member will assign the issue to you.
+   PR whenever you are ready. A core team-member will assign the issue to you.
 
 ## Feature request guide
 
@@ -176,16 +179,16 @@ Below are the steps we encourage people to take when creating a new feature requ
 1. **Explain clearly why you want this feature.**
 
 1. **Describe the behaviour you'd like to see.** As well as an explanation, please
-  provide some example commands/config/output. Please ensure everything is formatted
-  nicely with [code blocks](https://docs.github.com/en/free-pro-team@latest/github/writing-on-github/creating-and-highlighting-code-blocks).
-  If you have strong ideas, be as detailed as you like.
+   provide some example commands/config/output. Please ensure everything is formatted
+   nicely with [code blocks](https://docs.github.com/en/free-pro-team@latest/github/writing-on-github/creating-and-highlighting-code-blocks).
+   If you have strong ideas, be as detailed as you like.
 
 1. Note the deliverable of this issue: should the outcome be a simple PR to implement the
-  feature? Or does it need further design or an [ADR](#adrs-architectural-decision-records)?
+   feature? Or does it need further design or an [ADR](#adrs-architectural-decision-records)?
 
 1. If the feature is small (maybe it is more of an improvement) and you already have
-  a solution in mind, explain what you plan to do on the issue and open a PR!
-  A core team member will assign the task to you.
+   a solution in mind, explain what you plan to do on the issue and open a PR!
+   A core team member will assign the task to you.
 
 ## Help request guide
 
@@ -214,13 +217,14 @@ Please following these steps when starting a new discussion:
 It may turn out that it was a bug after all! In which case a new issue will be created.
 
 # Submitting PRs
+
 ## Choosing something to work on
 
 If you are not here to report a bug, ask for help or request some new behaviour, this
 is the section for you. We have curated a set of issues for anyone who simply
 wants to build up their open-source cred :muscle:.
 
-- Issues labelled [`good first issue`](https://github.com/weaveworks-liquidmetal/flintlock/labels/good%20first%20issue)
+- Issues labelled [`good first issue`](https://github.com/liquidmetal-dev/flintlock/labels/good%20first%20issue)
   should be accessible to folks new to the repo, as well as to open source in general.
 
   These issues should present a low/non-existent barrier to entry with a thorough description,
@@ -236,7 +240,7 @@ wants to build up their open-source cred :muscle:.
 
   See more on [asking for help](#asking-for-help) below!
 
-- [`help wanted` issues](https://github.com/weaveworks-liquidmetal/flintlock/labels/help%20wanted)
+- [`help wanted` issues](https://github.com/liquidmetal-dev/flintlock/labels/help%20wanted)
   are for those a little more familiar with the code base, but should still be accessible enough
   to newcomers.
 
@@ -246,6 +250,7 @@ wants to build up their open-source cred :muscle:.
 ## Developing flintlock
 
 **Sections:**
+
 - [Forking the repo](#forking-the-repo)
 - [Setting up your environment](#setting-up-your-environment)
 - [Building flintlock](#building-flintlock)
@@ -283,7 +288,7 @@ highlights some tools you can use to interact with the service.
 This project is written in Go. To be able to contribute you will need:
 
 1. A working Go installation of go 1.18. You can check the
-[official installation guide](https://golang.org/doc/install).
+   [official installation guide](https://golang.org/doc/install).
 
 2. Make sure that `$(go env GOPATH)/bin` is in your shell's `PATH`. You can do so by
    running `export PATH="$(go env GOPATH)/bin:$PATH"`
@@ -306,7 +311,7 @@ docker run --rm -it \
   --volume $(pwd):/src/flintlock \
   --ipc=host \
   --workdir=/src/flintlock \
-  weaveworks/flintlock-e2e:latest \
+  liquidmetal-dev/flintlock-e2e:latest \
   /bin/bash
 ```
 
@@ -325,6 +330,7 @@ The tests at `infrastructure/containerd` require containerd to be running,
 but these are disabled unless `CTR_SOCK_PATH` is set on the environment.
 
 To enable these tests:
+
 ```bash
 # start containerd
 export CTR_SOCK_PATH=</path/to/containerd.sock>
@@ -340,39 +346,39 @@ See the dedicated docs for the end to end tests [here](test/e2e/README.md).
 Once you have your environment set up and have completed a clean run of **both** the unit
 and the E2E tests you can get to work :tada: .
 
-1. First create a topic branch from where you want to base your work (this is usually
-  from `main`):
+1.  First create a topic branch from where you want to base your work (this is usually
+    from `main`):
 
-      ```bash
-      git checkout -b <feature-name>
-      ```
+        ```bash
+        git checkout -b <feature-name>
+        ```
 
-1. Write your solution. Try to align with existing patterns and standards.
+1.  Write your solution. Try to align with existing patterns and standards.
 
-1. Try to commit in small chunks so that changes are well described
-  and not lumped in with something unrelated. This will make debugging easier in
-  the future.
-  Make sure commit messages are in the [proper format](#commit-message-formatting).
+1.  Try to commit in small chunks so that changes are well described
+    and not lumped in with something unrelated. This will make debugging easier in
+    the future.
+    Make sure commit messages are in the [proper format](#commit-message-formatting).
 
-1. Ensure that every commit is **compilable** and that the tests run successfully at
-  that point.
+1.  Ensure that every commit is **compilable** and that the tests run successfully at
+    that point.
 
-1. Make sure your commits are [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
+1.  Make sure your commits are [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
 
-1. **All code contributions must be submitted with unit tests**. Read [this ADR](https://github.com/weaveworks-liquidmetal/flintlock/discussions/284)
-  for our guide on what counts as appropriate testing.
-  See [this package](https://github.com/weaveworks-liquidmetal/flintlock/tree/main/core/steps/microvm) package for a good example of tests.
+1.  **All code contributions must be submitted with unit tests**. Read [this ADR](https://github.com/liquidmetal-dev/flintlock/discussions/284)
+    for our guide on what counts as appropriate testing.
+    See [this package](https://github.com/liquidmetal-dev/flintlock/tree/main/core/steps/microvm) package for a good example of tests.
 
-1. For extra special bonus points, if you see any tests missing from the area you are
-  working on, please add them! It will be much appreciated :heart: .
+1.  For extra special bonus points, if you see any tests missing from the area you are
+    working on, please add them! It will be much appreciated :heart: .
 
-1. Check the documentation and update it to cover your changes,
-  either in the [README](README.md), [userdocs](userdocs) or [docs](docs/) folder.
-  If you have added a completely new feature please ensure that it is documented
-  thoroughly.
+1.  Check the documentation and update it to cover your changes,
+    either in the [README](README.md), [userdocs](userdocs) or [docs](docs/) folder.
+    If you have added a completely new feature please ensure that it is documented
+    thoroughly.
 
-1. Before you [open your PR](#pr-submission-guidelines), run all the unit and E2E tests and manually
-  verify that your solution works.
+1.  Before you [open your PR](#pr-submission-guidelines), run all the unit and E2E tests and manually
+    verify that your solution works.
 
 ## Asking for help
 
@@ -421,38 +427,38 @@ PRs which adhere to our guidelines are more likely to be accepted
 (when opening the PR, please use the checklist in the template):
 
 1. **The description is thorough.** When writing your description, please be as detailed as possible: don't make people
-  guess what you did or simply link back to the issue (the issue explains the problem
-  you are trying to solve, not how you solved it.)
-  Guide your reviewers through your solution by highlighting
-  key changes and implementation choices. Try and pre-empt any obvious questions
-  they may have. Providing snippets (or screenshots) of output is very helpful to
-  demonstrate new behaviour or UX changes. (Snippets are more searchable than screenshots,
-  but we wont be mad at a sneak peek at your terminal envs :eyes: .)
+   guess what you did or simply link back to the issue (the issue explains the problem
+   you are trying to solve, not how you solved it.)
+   Guide your reviewers through your solution by highlighting
+   key changes and implementation choices. Try and pre-empt any obvious questions
+   they may have. Providing snippets (or screenshots) of output is very helpful to
+   demonstrate new behaviour or UX changes. (Snippets are more searchable than screenshots,
+   but we wont be mad at a sneak peek at your terminal envs :eyes: .)
 
 1. **The change has been manually tested.** If you are supplying output above
-  then that can be your manual test, with proof :clap: .
+   then that can be your manual test, with proof :clap: .
 
 1. **The PR has a snappy title**. Your PR title will end up in the release notes,
-  so make it a good one. Using the same rule as for the title of a [commit message](#commit-message-formatting)
-  is generally a good idea. Try to use the [imperative](https://en.wikipedia.org/wiki/Imperative_mood) and centre it around the behaviour
-  or the user value it delivers, rather than any implementation detail.
+   so make it a good one. Using the same rule as for the title of a [commit message](#commit-message-formatting)
+   is generally a good idea. Try to use the [imperative](https://en.wikipedia.org/wiki/Imperative_mood) and centre it around the behaviour
+   or the user value it delivers, rather than any implementation detail.
 
-    eg: `"changed SomeFunc in file.go to also do thing X"`
-    is not useful for folks stopping by to quickly see what new stuff they can do with
-    `flintlock`, save that for commit messages or the PR description.
-    The title `"(feat): Add support for XYZ"` conveys the intent concisely and clearly.
+   eg: `"changed SomeFunc in file.go to also do thing X"`
+   is not useful for folks stopping by to quickly see what new stuff they can do with
+   `flintlock`, save that for commit messages or the PR description.
+   The title `"(feat): Add support for XYZ"` conveys the intent concisely and clearly.
 
 1. **There are new tests for new code.** This is very much required.
 
 1. **There are new tests for old code!** This will earn you the title of "Best Loved
-  and Respected Contributor" :boom: :sunglasses: .
+   and Respected Contributor" :boom: :sunglasses: .
 
 1. **There are well-written commit messages** ([see below](#commit-message-formatting))
-  which will make future debugging fun. (Any commits of the variety `"fix stuff"`, `"does thing"`
-  or `"my god why"` much be squashed or rebased.)
+   which will make future debugging fun. (Any commits of the variety `"fix stuff"`, `"does thing"`
+   or `"my god why"` much be squashed or rebased.)
 
 1. **Each of those well-written commits is compilable** and the tests run successfully at
-  that point.
+   that point.
 
 In general, we will merge a PR once a maintainer has reviewed and approved it.
 Trivial changes (e.g., corrections to spelling) may get waved through.
@@ -472,7 +478,7 @@ the body of the commit should describe the _why_ and _how_.
 If you encountered any weirdness along the way, this is a good place
 to note what you discovered and how you solved it.
 
-An example of a stellar commit message can be found [here](https://github.com/weaveworks-liquidmetal/flintlock/commit/7a30dd99dc7c05827ba11050505c476799bb2932).
+An example of a stellar commit message can be found [here](https://github.com/liquidmetal-dev/flintlock/commit/7a30dd99dc7c05827ba11050505c476799bb2932).
 
 The format can be described more formally as follows:
 
@@ -499,7 +505,7 @@ The core team regularly processes incoming issues. There may be some delay over 
 
 Every issue will be assigned a `priority/<x>` label. The levels of priorities are:
 
-- [`critical-urgent`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fcritical-urgent): These are time sensitive issues which should be picked up immediately.
+- [`critical-urgent`](https://github.com/liquidmetal-dev/flintlock/labels/priority%2Fcritical-urgent): These are time sensitive issues which should be picked up immediately.
   If an issue labelled `critical` is not assigned or being actively worked on,
   someone is expected to drop what they're doing immediately to work on it.
   This usually means the core team, but community members are welcome to claim
@@ -508,13 +514,13 @@ Every issue will be assigned a `priority/<x>` label. The levels of priorities ar
   they will be paired with a core team-member to manage the tracking, communication and release of any fix
   as well as to assume responsibility of all progess._
 
-- [`important-soon`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fimportant-soon): Must be assigned as soon as capacity becomes available.
+- [`important-soon`](https://github.com/liquidmetal-dev/flintlock/labels/priority%2Fimportant-soon): Must be assigned as soon as capacity becomes available.
   Ideally something should be delivered in time for the next release.
 
-- [`important-longterm`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fimportant-longterm): Important over the long term, but may not be currently
+- [`important-longterm`](https://github.com/liquidmetal-dev/flintlock/labels/priority%2Fimportant-longterm): Important over the long term, but may not be currently
   staffed and/or may require multiple releases to complete.
 
-- [`backlog`](https://github.com/weaveworks-liquidmetal/flintlock/labels/priority%2Fbacklog): There appears to be general agreement that this would be good to have,
+- [`backlog`](https://github.com/liquidmetal-dev/flintlock/labels/priority%2Fbacklog): There appears to be general agreement that this would be good to have,
   but we may not have anyone available to work on it right now or in the immediate future.
   PRs are still very welcome, although it might take a while to get them reviewed if
   reviewers are fully occupied with higher priority issues, for example immediately before a release.
@@ -523,11 +529,11 @@ These priority categories have been inspired by [the Kubernetes contributing gui
 
 Other labels include:
 
-- [`adr-required`](https://github.com/weaveworks-liquidmetal/flintlock/labels/adr-required):
+- [`adr-required`](https://github.com/liquidmetal-dev/flintlock/labels/adr-required):
   Indicates that the issue or PR contains a decision that needs to be documented in a [ADR](#adrs-architectural-decision-records) _before_
   it can be worked on.
 
-- [`needs-investigation`](https://github.com/weaveworks-liquidmetal/flintlock/labels/needs-investigation):  There is currently insufficient information to either categorize properly,
+- [`needs-investigation`](https://github.com/liquidmetal-dev/flintlock/labels/needs-investigation): There is currently insufficient information to either categorize properly,
   or to understand and implement a solution. This could be because the issue opener did
   not provide enough relevant information, or because more in-depth research is required
   before work can begin.
@@ -550,9 +556,9 @@ pull request. This PR is not signed and has the label `user-signing-required`. T
 done by a maintainer of the repository. Check out the PR and push an amending commit into
 the existing branch. Then, the PR can be merged.
 
-For an example, take a look at this pull request: [Bundle dependabot pull requests](https://github.com/weaveworks-liquidmetal/flintlock/pull/655).
+For an example, take a look at this pull request: [Bundle dependabot pull requests](https://github.com/liquidmetal-dev/flintlock/pull/655).
 
-It was created by [this](https://github.com/weaveworks-liquidmetal/flintlock/actions/runs/4335326798) action triggered on the main branch.
+It was created by [this](https://github.com/liquidmetal-dev/flintlock/actions/runs/4335326798) action triggered on the main branch.
 
 Once the pull request was opened, a maintainer created a commit into it by checking out the branch, then running a `git commit --amend`.
 
@@ -583,25 +589,25 @@ Contributors are also welcome to backfill ADRs if they are found to be missing.
 1. Choose an appropriate clear and concise title (eg `Implement flintlock in Go`).
 
 1. Open the discussion providing the context of the decision to be made. Describe
-  the various options, if more than one, and explain the pros and cons. Highlight
-  any areas which you would like the reviewers to pay attention to, or those on which
-  you would specifically like an opinion.
+   the various options, if more than one, and explain the pros and cons. Highlight
+   any areas which you would like the reviewers to pay attention to, or those on which
+   you would specifically like an opinion.
 
 1. Tag in the [maintainers](MAINTAINERS) as the "Deciders", and invite them to
-  participate and weigh in on the decision and its consequences.
+   participate and weigh in on the decision and its consequences.
 
 1. Once a decision has been made, open a PR adding a new ADR to the [directory](docs/adr).
-  Copy and complete the [template][adr-template];
-    - Increment the file number by one
-    - Set the status as "Accepted"
-    - Set the deciders as those who approved the discussion outcome
-    - Summarise the decision and consequences from the discussion thread
-    - Link back to the discussion from the ADR doc
+   Copy and complete the [template][adr-template];
+   - Increment the file number by one
+   - Set the status as "Accepted"
+   - Set the deciders as those who approved the discussion outcome
+   - Summarise the decision and consequences from the discussion thread
+   - Link back to the discussion from the ADR doc
 
 # :rocket: :tada: Thanks for reading! :tada: :rocket:
 
-[user-docs]: https://weaveworks-liquidmetal.github.io/flintlock/
+[user-docs]: https://www.liquidmetal.dev/flintlock/
 [slack-channel]: https://weave-community.slack.com/archives/C02KARWGR7S
 [quick-start]: ./docs/quick-start.md
-[discussions]: https://github.com/weaveworks-liquidmetal/flintlock/discussions
+[discussions]: https://github.com/liquidmetal-dev/flintlock/discussions
 [adr-template]: ./docs/adr/0000-template.md

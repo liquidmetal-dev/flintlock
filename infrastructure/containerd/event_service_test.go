@@ -8,9 +8,9 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks-liquidmetal/flintlock/api/events"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/containerd"
+	"github.com/liquidmetal-dev/flintlock/api/events"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
 )
 
 const (

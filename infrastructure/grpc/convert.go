@@ -3,11 +3,11 @@ package grpc
 import (
 	"fmt"
 
-	"github.com/weaveworks-liquidmetal/flintlock/api/types"
-	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/instance"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/ptr"
+	"github.com/liquidmetal-dev/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit/instance"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/ptr"
 )
 
 func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {

@@ -11,8 +11,8 @@ import (
 
 	g "github.com/onsi/gomega"
 
-	"github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
-	"github.com/weaveworks-liquidmetal/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	"github.com/liquidmetal-dev/flintlock/api/types"
 )
 
 func CreateMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateMicroVMResponse {
@@ -79,8 +79,8 @@ func PidRunning(pid int) bool {
 
 func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 	var (
-		binImage = "ghcr.io/weaveworks-liquidmetal/flintlock-kernel:5.10.77"
-		osImage  = "ghcr.io/weaveworks-liquidmetal/capmvm-k8s-os:1.23.5"
+		binImage = "ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77"
+		osImage  = "ghcr.io/liquidmetal-dev/capmvm-k8s-os:1.23.5"
 	)
 
 	return &types.MicroVMSpec{

@@ -7,9 +7,9 @@ import (
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	"gopkg.in/yaml.v2"
 
-	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit/network"
-	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit/network"
+	"github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
 const (

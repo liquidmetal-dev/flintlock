@@ -7,13 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/liquidmetal-dev/flintlock/api/events"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/queue"
 	"github.com/sirupsen/logrus"
-	"github.com/weaveworks-liquidmetal/flintlock/api/events"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/queue"
 )
 
 func New(eventSvc ports.EventService, reconcileUC ports.ReconcileMicroVMsUseCase, queryUC ports.MicroVMQueryUseCases) *MicroVMController {
@@ -188,7 +188,6 @@ func (r *MicroVMController) resyncSpecs(ctx context.Context, logger *logrus.Entr
 	specs, err := r.queryUC.GetAllMicroVM(ctx, models.ListMicroVMQuery{
 		"Namespace": "",
 	})
-
 	if err != nil {
 		return fmt.Errorf("getting all microvm specs for resync: %w", err)
 	}

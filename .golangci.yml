@@ -1,10 +1,10 @@
 run:
-    go: "1.18"
-    timeout: 10m
-    tests: false
-    allow-parallel-runners: true
-    skip-dirs:
-      - "./*/mock"
+  go: "1.18"
+  timeout: 10m
+  tests: false
+  allow-parallel-runners: true
+  skip-dirs:
+    - "./*/mock"
 
 linters-settings:
   funlen:
@@ -24,7 +24,7 @@ linters-settings:
   misspell:
     locale: GB
   goimports:
-    local-prefixes: github.com/weaveworks/flintlock
+    local-prefixes: github.com/liquidmetal-dev/flintlock
   govet:
     check-shadowing: true
   nolintlint:
@@ -34,72 +34,72 @@ linters-settings:
     require-specific: false
   varnamelen:
     ignore-names:
-    - err
-    - wg
-    - fs
-    - id
-    - vm
-    - ns
-    - ip
+      - err
+      - wg
+      - fs
+      - id
+      - vm
+      - ns
+      - ip
 
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
   exclude-rules:
-  - text: "should not use dot imports|don't use an underscore in package name"
-    linters:
-    - golint
-  - text: "local replacement are not allowed: github.com/weaveworks/flintlock/"
-    linters:
-    - gomoddirectives
-  - text: "sig: func github.com/weaveworks/flintlock/"
-    linters:
-    - wrapcheck
-  - source: "https://"
-    linters:
-    - lll
-  - path: pkg/defaults/
-    linters:
-    - lll
-  - path: _test\.go
-    linters:
-    - goerr113
-    - gocyclo
-    - errcheck
-    - gosec
-    - dupl
-    - funlen
-    - scopelint
-    - testpackage
-  - path: internal/version/
-    linters:
-    - gochecknoglobals
-  - path: internal/command/
-    linters:
-    - exhaustivestruct
-    - lll
-    - wrapcheck
-  - source: "// .* #\\d+"
-    linters:
-    - godox
-  - path: test/e2e/
-    linters:
-    - goerr113
-    - gomnd
-  # remove this once https://github.com/golangci/golangci-lint/issues/2649 is closed
-  - path: /
-    linters:
-    - typecheck
+    - text: "should not use dot imports|don't use an underscore in package name"
+      linters:
+        - golint
+    - text: "local replacement are not allowed: github.com/liquidmetal-dev/flintlock/"
+      linters:
+        - gomoddirectives
+    - text: "sig: func github.com/liquidmetal-dev/flintlock/"
+      linters:
+        - wrapcheck
+    - source: "https://"
+      linters:
+        - lll
+    - path: pkg/defaults/
+      linters:
+        - lll
+    - path: _test\.go
+      linters:
+        - goerr113
+        - gocyclo
+        - errcheck
+        - gosec
+        - dupl
+        - funlen
+        - scopelint
+        - testpackage
+    - path: internal/version/
+      linters:
+        - gochecknoglobals
+    - path: internal/command/
+      linters:
+        - exhaustivestruct
+        - lll
+        - wrapcheck
+    - source: "// .* #\\d+"
+      linters:
+        - godox
+    - path: test/e2e/
+      linters:
+        - goerr113
+        - gomnd
+    # remove this once https://github.com/golangci/golangci-lint/issues/2649 is closed
+    - path: /
+      linters:
+        - typecheck
 
 linters:
   enable-all: true
   disable:
-  - exhaustivestruct
-  - golint
-  - interfacer
-  - ireturn
-  - maligned
-  - nilnil
-  - scopelint
-  - tagliatelle
-  - gomoddirectives
+    - exhaustivestruct
+    - golint
+    - interfacer
+    - ireturn
+    - maligned
+    - nilnil
+    - scopelint
+    - tagliatelle
+    - gomoddirectives

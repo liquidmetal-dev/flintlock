@@ -15,7 +15,7 @@ Installation:
 ./hack/scripts/provision.sh --help
 
 # if you have not
-wget https://raw.githubusercontent.com/weaveworks/flintlock/main/hack/scripts/provision.sh
+wget https://raw.githubusercontent.com/liquidmetal-dev/flintlock/main/hack/scripts/provision.sh
 chmod +x provision.sh
 
 ./provision.sh --help

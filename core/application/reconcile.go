@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/liquidmetal-dev/flintlock/api/events"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/plans"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	portsctx "github.com/liquidmetal-dev/flintlock/core/ports/context"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 	"github.com/sirupsen/logrus"
-	"github.com/weaveworks-liquidmetal/flintlock/api/events"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/plans"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	portsctx "github.com/weaveworks-liquidmetal/flintlock/core/ports/context"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
 const backoffBaseInSeconds = 20

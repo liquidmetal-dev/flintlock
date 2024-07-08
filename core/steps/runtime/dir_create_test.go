@@ -9,7 +9,7 @@ import (
 	g "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/steps/runtime"
+	"github.com/liquidmetal-dev/flintlock/core/steps/runtime"
 )
 
 func TestCreateDirectory_NotExists(t *testing.T) {

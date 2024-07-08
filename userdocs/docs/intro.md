@@ -33,10 +33,9 @@ Using API requests (via [gRPC][proto] or <a href="/flintlock-api" target="_blank
 To learn more about using Flintlock MicroVMs in a Kubernetes cluster, check
 out the [official Liquid Metal docs][lm].
 
-
 [ch]: https://www.cloudhypervisor.org/
-[capmvm]: https://github.com/weaveworks-liquidmetal/cluster-api-provider-microvm
-[proto]: https://buf.build/weaveworks-liquidmetal/flintlock
-[lm]: https://weaveworks-liquidmetal.github.io/site/
+[capmvm]: https://github.com/liquidmetal-dev/cluster-api-provider-microvm
+[proto]: https://buf.build/liquidmetal-dev/flintlock
+[lm]: https://www.liquidmetal.dev
 [firecracker]: https://firecracker-microvm.github.io/
 [liquid-metal]: https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal

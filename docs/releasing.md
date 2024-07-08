@@ -16,35 +16,35 @@ git describe --tags --abbrev=0
 
 ## Create tag
 
-* Checkout upstream main
-* Create a tag with the version number:
+- Checkout upstream main
+- Create a tag with the version number:
 
 ```bash
 RELEASE_VERSION=v0.1.0-alpha.1
 git tag -s "${RELEASE_VERSION}" -m "${RELEASE_VERSION}"
 ```
 
-* Push the tag (to upstream if working from a fork)
+- Push the tag (to upstream if working from a fork)
 
-``` bash
+```bash
 git push origin "${RELEASE_VERSION}"
 ```
 
-* Check the [release](https://github.com/weaveworks-liquidmetal/flintlock/actions/workflows/release.yml) GitHub Actions workflow completes successfully.
+- Check the [release](https://github.com/liquidmetal-dev/flintlock/actions/workflows/release.yml) GitHub Actions workflow completes successfully.
   This may take a few minutes as it runs the e2es as part of the process.
 
 ## Edit & Publish GitHub Release
 
-* Got to the draft release in GitHub.
-* Make any edits to generated release notes
-  * If there are any breaking changes then manually add a note at the beginning of the release notes informing the user what they need to be aware of/do.
-  * Sometimes you may want to combine changes into 1 line
-* If this is a pre-release tick `This is a pre-release`
-* Publish the draft release and when asked say yes to creating a discussion.
+- Got to the draft release in GitHub.
+- Make any edits to generated release notes
+  - If there are any breaking changes then manually add a note at the beginning of the release notes informing the user what they need to be aware of/do.
+  - Sometimes you may want to combine changes into 1 line
+- If this is a pre-release tick `This is a pre-release`
+- Publish the draft release and when asked say yes to creating a discussion.
 
 ## Commit a new `buf` tag
 
-We have gRPC API docs hosted on [buf.build](https://buf.build/weaveworks-liquidmetal/flintlock).
+We have gRPC API docs hosted on [buf.build](https://buf.build/liquidmetal-dev/flintlock).
 If the API has changed, you'll need to update these.
 
 Log in creds can be found in the shared Team Quicksilver 1Pass vault.
@@ -55,7 +55,7 @@ Log in locally:
 
 ```
 buf registry login
-# username is weaveworks-liquidmetal
+# username is liquidmetal-dev
 # key is the token you generated
 ```
 

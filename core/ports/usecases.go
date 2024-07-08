@@ -3,7 +3,7 @@ package ports
 import (
 	"context"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
 // MicroVMCommandUseCases is the interface for uses cases that are actions (a.k.a commands) against a microvm.

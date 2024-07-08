@@ -17,7 +17,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version-file: '${{ github.workspace }}/go.mod'
+          go-version-file: "${{ github.workspace }}/go.mod"
       - name: Cache go-build and mod
         uses: actions/cache@v2
         with:
@@ -34,7 +34,7 @@ jobs:
         run: |
           dependabot-bundler \
             --token ${{ secrets.GITHUB_TOKEN }} \
-            --owner weaveworks-liquidmetal \
+            --owner liquidmetal-dev \
             --repo flintlock \
             --labels 'area/dependency,kind/cleanup,user-signing-required' \
             --pr-title 'chore(deps): Bundle dependabot pull requests'

@@ -9,7 +9,7 @@ import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "types/microvm.proto";
 
-option go_package = "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1";
+option go_package = "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     info: {

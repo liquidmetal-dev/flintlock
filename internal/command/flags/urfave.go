@@ -1,9 +1,9 @@
 package flags
 
 import (
+	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/urfave/cli/v2"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 type WithFlagsFunc func() []cli.Flag

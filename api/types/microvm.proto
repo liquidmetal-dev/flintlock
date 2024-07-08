@@ -4,7 +4,7 @@ package flintlock.types;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/weaveworks-liquidmetal/flintlock/api/types;types";
+option go_package = "github.com/liquidmetal-dev/flintlock/api/types;types";
 
 // MicroVM represents a microvm machine that is created via a provider.
 message MicroVM {

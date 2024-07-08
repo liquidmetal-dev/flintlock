@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/liquidmetal-dev/flintlock/internal/config"
 	. "github.com/onsi/gomega"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
 )
 
 func TestValidateTLSConfig(t *testing.T) {

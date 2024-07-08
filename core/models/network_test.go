@@ -3,8 +3,8 @@ package models_test
 import (
 	"testing"
 
+	"github.com/liquidmetal-dev/flintlock/core/models"
 	g "github.com/onsi/gomega"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 )
 
 func TestIPAddressCIDR_IsIPv4(t *testing.T) {

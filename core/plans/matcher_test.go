@@ -3,8 +3,8 @@ package plans_test
 import (
 	"strings"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 )
 
 type hostDeviceNameMatcher struct{}

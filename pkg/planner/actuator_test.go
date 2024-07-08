@@ -7,9 +7,9 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/ulid"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
 func TestActuator_SingleProc(t *testing.T) {

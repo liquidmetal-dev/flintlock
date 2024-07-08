@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/shared"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
 )
 
 const (
@@ -132,18 +132,25 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 // console=ttyS0   [KLN] Output console device and options
 // reboot=k        [KNL] reboot_type=kbd
 // panic=1         [KNL] Kernel behaviour on panic: delay <timeout>
-//                         timeout > 0: seconds before rebooting
-//                         timeout = 0: wait forever
-//                         timeout < 0: reboot immediately
+//
+//	timeout > 0: seconds before rebooting
+//	timeout = 0: wait forever
+//	timeout < 0: reboot immediately
+//
 // pci=off         [X86] don't probe for the PCI bus
 // i8042.noaux     [HW]  Don't check for auxiliary (== mouse) port
 // i8042.nomux     [HW]  Don't check presence of an active multiplexing
-//                       controller
+//
+//	controller
+//
 // i8042.nopnp     [HW]  Don't use ACPIPnP / PnPBIOS to discover KBD/AUX
-//                       controllers
+//
+//	controllers
+//
 // i8042.dumbkbd   [HW]  Pretend that controller can only read data from
-//                       keyboard and cannot control its state
-//                       (Don't attempt to blink the leds)
+//
+//	keyboard and cannot control its state
+//	(Don't attempt to blink the leds)
 //
 // Read more:
 // https://www.kernel.org/doc/html/v5.15/admin-guide/kernel-parameters.html

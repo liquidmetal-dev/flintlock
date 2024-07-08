@@ -8,10 +8,10 @@ import (
 	"log"
 	"testing"
 
+	"github.com/liquidmetal-dev/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/pkg/ptr"
+	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 	. "github.com/onsi/gomega"
-	"github.com/weaveworks-liquidmetal/flintlock/api/types"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/ptr"
-	u "github.com/weaveworks-liquidmetal/flintlock/test/e2e/utils"
 )
 
 var params *u.Params

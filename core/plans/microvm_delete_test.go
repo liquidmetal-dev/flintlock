@@ -8,11 +8,11 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/plans"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	portsctx "github.com/weaveworks-liquidmetal/flintlock/core/ports/context"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/plans"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	portsctx "github.com/liquidmetal-dev/flintlock/core/ports/context"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
 func TestMicroVMDeletePlan(t *testing.T) {

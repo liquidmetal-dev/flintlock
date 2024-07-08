@@ -9,11 +9,11 @@ import (
 	. "github.com/onsi/gomega"
 	grpcPkg "google.golang.org/grpc"
 
-	mvm1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
-	"github.com/weaveworks-liquidmetal/flintlock/api/types"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/grpc"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
+	mvm1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	"github.com/liquidmetal-dev/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
 )
 
 func TestServer_CreateMicroVM(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/liquidmetal-dev/flintlock/pkg/auth"
 	. "github.com/onsi/gomega"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/auth"
 	"google.golang.org/grpc/metadata"
 )
 

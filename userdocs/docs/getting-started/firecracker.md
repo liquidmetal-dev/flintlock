@@ -18,7 +18,7 @@ will run as a `firecracker` process.
 If you are feeling weird, you can build this yourself, but we don't recommend it:
 
 ```bash
-git clone https://github.com/weaveworks/firecracker.git
+git clone https://github.com/liquidmetal-dev/firecracker.git
 git fetch origin feature/macvtap
 git checkout -b feature/macvtap origin/feature/macvtap
 
@@ -31,8 +31,9 @@ toolbox=$(uname -m)-unknown-linux-musl
 
 cp build/cargo_target/${toolbox}/debug/{firecracker,jailer} ${TARGET}
 ```
+
 :::
 
-[discussion-107]: https://github.com/weaveworks-liquidmetal/flintlock/discussions/107
-[fc]: https://github.com/weaveworks/firecracker/releases
-[compat]: https://github.com/weaveworks-liquidmetal/flintlock#compatibility
+[discussion-107]: https://github.com/liquidmetal-dev/flintlock/discussions/107
+[fc]: https://github.com/liquidmetal-dev/firecracker/releases
+[compat]: https://github.com/liquidmetal-dev/flintlock#compatibility

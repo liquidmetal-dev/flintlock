@@ -3,10 +3,10 @@ package flags
 import (
 	"fmt"
 
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/firecracker"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/cobra"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/firecracker"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 const (
@@ -155,7 +155,6 @@ func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 
 // AddMicrovmProviderFlagsToCommand will add the microvm provider flags to the supplied command
 func AddMicrovmProviderFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
-
 	addFirecrackerFlagsToCommand(cmd, cfg)
 	addCloudHypervisorFlagsToCommand(cmd, cfg)
 

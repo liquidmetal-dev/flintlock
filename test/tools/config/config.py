@@ -130,7 +130,7 @@ class Config:
 
     def default_repo_config(self):
         return {
-            'username': 'weaveworks',
+            'username': 'liquidmetal-dev',
             'branch': 'main'
         }
 

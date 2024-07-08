@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/vishvananda/netlink"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 )
 
 const (

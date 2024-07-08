@@ -38,7 +38,7 @@ mv /usr/local/go/bin/go /usr/local/bin
 mkdir -p /root/work && cd /root/work
 
 if [[ -z $FL_USER ]]; then
-	FL_USER=weaveworks
+	FL_USER=liquidmetal-dev
 fi
 
 if [[ -z "$FL_BRANCH" ]]; then
@@ -64,11 +64,11 @@ fi
 curl -sL https://github.com/containerd/containerd/releases/download/v1.6.6/containerd-1.6.6-linux-amd64.tar.gz | tar xz -C "$INSTALL_ROOT" && containerd --version && ctr --version
 
 # install grpcurl
-go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && \
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest &&
 	grpcurl --version
 
 # install hammertime
-go install github.com/warehouse-13/hammertime/releases@latest && \
+go install github.com/warehouse-13/hammertime/releases@latest &&
 	hammertime
 
 touch /flintlock_ready

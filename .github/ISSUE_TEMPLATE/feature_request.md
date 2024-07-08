@@ -1,9 +1,9 @@
 ---
 name: Feature enhancement request
 about: Suggest an idea for flintlock
-title: ''
+title: ""
 labels: kind/feature
-assigness: ''
+assigness: ""
 ---
 
 <!--
@@ -13,7 +13,7 @@ Before creating a new feature request, please search existing issues to see if y
 If there is a similar feature request please up-vote it and/or add your comments to it instead
 
 For more information on how to request help on flintlock, please refer to our community docs.
-https://github.com/weaveworks-liquidmetal/flintlock/blob/main/CONTRIBUTING.md#opening-issues
+https://github.com/liquidmetal-dev/flintlock/blob/main/CONTRIBUTING.md#opening-issues
 -->
 
 **Describe the solution you'd like:**

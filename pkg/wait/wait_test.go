@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/wait"
+	"github.com/liquidmetal-dev/flintlock/pkg/wait"
 )
 
 func TestConditionMet(t *testing.T) {

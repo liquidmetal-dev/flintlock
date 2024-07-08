@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/liquidmetal-dev/flintlock/internal/command/metrics"
 	"github.com/sirupsen/logrus"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/command/metrics"
 )
 
 func main() {

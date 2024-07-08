@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/shared"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
 )
 
 type State interface {

@@ -3,9 +3,9 @@ package cloudhypervisor
 import (
 	"fmt"
 
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/spf13/afero"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/shared"
 )
 
 const (

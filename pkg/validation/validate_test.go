@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/liquidmetal-dev/flintlock/core/models"
 	. "github.com/onsi/gomega"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
 )
 
 func TestValidation_Valid(t *testing.T) {

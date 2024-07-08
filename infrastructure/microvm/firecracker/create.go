@@ -8,12 +8,12 @@ import (
 	"os/exec"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/process"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/process"
 )
 
 // Create will create a new microvm.
