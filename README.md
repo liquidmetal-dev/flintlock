@@ -7,6 +7,9 @@
 
 ## What is flintlock?
 
+> :tada: **This project was originally developed by Weaveworks but is now owned & run by the community. If you are interested in helping out please reach out.**
+
+
 Flintlock is a service for creating and managing the lifecycle of microVMs on a host machine. We support [Firecracker](https://firecracker-microvm.github.io/) and [Cloud Hypervisor](https://www.cloudhypervisor.org/) (experimental).
 
 The original use case for flintlock was to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of [Liquid Metal](https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal) and can be orchestrated by [Cluster API Provider Microvm](https://github.com/weaveworks-liquidmetal/cluster-api-provider-microvm).
