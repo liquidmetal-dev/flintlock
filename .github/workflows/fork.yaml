@@ -12,7 +12,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ssh-key: ${{ secrets.LIQUIDMETALBOT_TOKEN }}
           fetch-depth: 0
@@ -28,7 +28,7 @@ jobs:
           echo 'EOF' >> $GITHUB_ENV
       - name: Create Issue
         if: ${{ env.NEW_VERSION != '' }}
-        uses: imjohnbo/issue-bot@v3
+        uses: imjohnbo/issue-bot@572eed14422c4d6ca37e870f97e7da209422f5bd # v3
         id: issue
         with:
           title: "Bump firecracker version to ${{ env.NEW_VERSION }}"
@@ -64,7 +64,7 @@ jobs:
           labels: "area/firecracker, area/dependency, kind/feature, priority/critical-urgent"
       - name: Notify slack on creation success
         if: ${{ success() && env.NEW_VERSION != '' }}
-        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a # v1.1.0
         with:
           slack_token: ${{ secrets.SLACK_TOKEN }}
           message: "There is a new version of Firecracker, complete the todo list here: <https://github.com/liquidmetal-dev/flintlock/issues/${{ steps.issue.outputs.issue-number }}|#${{ steps.issue.outputs.issue-number }}>."
@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify slack on failure
-        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a # v1.1.0
         with:
           slack_token: ${{ secrets.SLACK_TOKEN }}
           message: "There is a new firecracker version, but the 'Bump Firecracker' issue failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here>."
