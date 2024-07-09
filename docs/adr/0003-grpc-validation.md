@@ -1,9 +1,9 @@
 # 3. MicroVM Spec Validation
 
-* Status: Proposed
-* Date: 2021-10-14
-* Authors: @jmickey
-* Deciders: @jmickey @richardcase
+- Status: Proposed
+- Date: 2021-10-14
+- Authors: @jmickey
+- Deciders: @jmickey @richardcase
 
 ## Context
 
@@ -23,8 +23,9 @@ As a result, neither of these solutions is fit for purpose.
 Alternative options to utilising these Protobuf plugins are:
 
 1. Fork one of the above plugins and maintain it for our own purposes.
-2. Perform validation on the model. This would be done either in the implementation of the use case - e.g. https://github.com/weaveworks-liquidmetal/flintlock/blob/main/core/application/commands.go#L14, or the conversion from the request type to the model: e.g. https://github.com/weaveworks-liquidmetal/flintlock/blob/main/infrastructure/grpc/server.go#L33.
-  - For this we could utilise the [go-playground/validator](https://github.com/go-playground/validator) project.
+2. Perform validation on the model. This would be done either in the implementation of the use case - e.g. https://github.com/liquidmetal-dev/flintlock/blob/main/core/application/commands.go#L14, or the conversion from the request type to the model: e.g. https://github.com/liquidmetal-dev/flintlock/blob/main/infrastructure/grpc/server.go#L33.
+
+- For this we could utilise the [go-playground/validator](https://github.com/go-playground/validator) project.
 
 ## Decision
 

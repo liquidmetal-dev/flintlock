@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
 // Config represents the flintlockd configuration.

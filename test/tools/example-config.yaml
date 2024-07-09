@@ -3,7 +3,7 @@ org_id: "test-org" # required
 project_name: "test-project" # or project ID
 project_id: "abcdef123456" # or project ID
 repo:
-  username: "weaveworks" # username of flinklock repo to clone on device
+  username: "liquidmetal-dev" # username of flinklock repo to clone on device
   branch: "main" # clone flintlock at this branch
 test:
   skip_delete: false # skip the test cleanup and process teardown steps
@@ -35,9 +35,9 @@ device:
   # minimum of 1 must be supplied
   # note: ensure that the specified plan is availble in each facility
   facility:
-  - "fr2"
-  - "fra2"
-  - "am6"
-  - "ams1"
+    - "fr2"
+    - "fra2"
+    - "am6"
+    - "ams1"
   operating_system: "ubuntu_20_04"
   billing_cycle: "hourly"

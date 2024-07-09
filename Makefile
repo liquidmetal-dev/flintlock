@@ -2,7 +2,7 @@
 BUILD_DATE := $(shell date +%Y-%m-%dT%H:%M:%SZ)
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 VERSION := $(shell git describe --tags --abbrev=0)
-VERSION_PKG := github.com/weaveworks-liquidmetal/flintlock/internal/version
+VERSION_PKG := github.com/liquidmetal-dev/flintlock/internal/version
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
@@ -48,7 +48,7 @@ PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
 WIRE := $(TOOLS_BIN_DIR)/wire
 
 # Useful things
-test_image = weaveworks/flintlock-e2e
+test_image = liquidmetal-dev/flintlock-e2e
 
 .DEFAULT_GOAL := help
 
@@ -81,15 +81,15 @@ build-release-flintlock-metrics: $(BIN_DIR) ## Build flintlock-metrics release b
 ##@ Generate
 
 .PHONY: generate
-generate: $(BUF) $(MOCKGEN)
+generate: $(BUF) $(MOCKGEN) $(WIRE)
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-proto
 	$(MAKE) generate-di
 
 .PHONY: generate-go
-generate-go: $(MOCKGEN) ## Generate Go Code
-	go generate ./... -mod=mod
+generate-go: $(MOCKGEN) ## Generate Go Code 
+	go generate ./infrastructure/mock
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
 generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI) $(PROTOC_GEN_DOC)
@@ -98,7 +98,7 @@ generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_G
 
 .PHONY: generate-di ## Generate the dependency injection code
 generate-di: $(WIRE)
-	$(WIRE) gen github.com/weaveworks-liquidmetal/flintlock/internal/inject
+	$(WIRE) gen github.com/liquidmetal-dev/flintlock/internal/inject
 
 ##@ Linting
 
@@ -156,7 +156,7 @@ docker-build: ## Build the e2e docker image
 	docker build -t $(test_image):latest -f test/docker/Dockerfile.e2e .
 
 .PHONY: docker-push
-docker-push: docker-build ## Push the e2e docker image to weaveworks/fl-e2e
+docker-push: docker-build ## Push the e2e docker image to liquidmetal-dev/fl-e2e
 	docker push $(test_image):latest
 
 ##@ Tools binaries

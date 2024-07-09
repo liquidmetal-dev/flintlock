@@ -19,7 +19,7 @@ just testing things out. For production environment instructions, see [this page
 ## Clone the repo
 
 ```bash
-git clone https://github.com/weaveworks-liquidmetal/flintlock
+git clone https://github.com/liquidmetal-dev/flintlock
 cd !$
 ```
 

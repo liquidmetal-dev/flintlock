@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/core/steps/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
 	g "github.com/onsi/gomega"
-	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/core/steps/network"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/mock"
 )
 
 func TestNewNetworkInterface_everythingIsEmpty(t *testing.T) {

@@ -38,7 +38,7 @@ CONTAINERD_SYSTEMD_SVC=""
 # flintlock
 FLINTLOCK_VERSION="${FLINTLOCK:=$DEFAULT_VERSION}"
 FLINTLOCK_BIN="flintlockd"
-FLINTLOCK_REPO="weaveworks/flintlock"
+FLINTLOCK_REPO="liquidmetal-dev/flintlock"
 FLINTLOCKD_SERVICE_FILE="/etc/systemd/system/flintlockd.service"
 FLINTLOCKD_CONFIG_PATH="/etc/opt/flintlockd/config.yaml"
 

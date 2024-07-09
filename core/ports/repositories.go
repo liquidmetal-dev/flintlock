@@ -3,7 +3,7 @@ package ports
 import (
 	"context"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
 type RepositoryGetOptions struct {

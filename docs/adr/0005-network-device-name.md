@@ -1,9 +1,9 @@
 # 5. Network Device Name on Host
 
-* Status: accepted
-* Date: 2021-11-08
-* Authors: @yitsushi
-* Deciders: @Callisto13 @jmickey @richardcase @yitsushi
+- Status: accepted
+- Date: 2021-11-08
+- Authors: @yitsushi
+- Deciders: @Callisto13 @jmickey @richardcase @yitsushi
 
 ## Context
 
@@ -16,10 +16,10 @@ device name on the host.
 
 Considered options:
 
-* Generate a UUID and use the first N bytes.
-* Generate a hash of the Name and Namespace combination and use the first N
+- Generate a UUID and use the first N bytes.
+- Generate a hash of the Name and Namespace combination and use the first N
   bytes.
-* Generate a random value.
+- Generate a random value.
 
 [^1]: https://elixir.bootlin.com/linux/v5.6/source/include/linux/netdevice.h#L1826
 [^2]: https://elixir.bootlin.com/linux/v5.6/source/include/uapi/linux/if.h#L33
@@ -46,4 +46,4 @@ As a result, it is possible to leak resources, when the MicroVM deletion failed
 and we lost track of a network device status from MicroVMSpec. For that reason,
 [Resource cleanup ADR #90][issue-90] priority might be raised to higher priority.
 
-[issue-90]: https://github.com/weaveworks-liquidmetal/flintlock/issues/90
+[issue-90]: https://github.com/liquidmetal-dev/flintlock/issues/90

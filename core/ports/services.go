@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	mvmv1 "github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
 // MicroVMService is the port definition for a microvm service.
@@ -164,7 +164,7 @@ const (
 
 // DiskCreateInput are the input options for creating a disk.
 type DiskCreateInput struct {
-	//Path is the filesystem path of where to create the disk.
+	// Path is the filesystem path of where to create the disk.
 	Path string
 	// Size is how big the disk should be. It uses human readable formats
 	// such as 8Mb, 10Kb.

@@ -14,23 +14,23 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions/setup-node@v1
         with:
-          node-version: '16.x'
+          node-version: "16.x"
       - uses: actions/setup-go@v3
         with:
-          go-version-file: '${{ github.workspace }}/go.mod'
+          go-version-file: "${{ github.workspace }}/go.mod"
       - name: Build docs
         run: make docs-build
   release:
-    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'weaveworks-liquidmetal' }}
+    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'liquidmetal-dev' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - uses: actions/setup-node@v1
         with:
-          node-version: '16.x'
+          node-version: "16.x"
       - uses: actions/setup-go@v3
         with:
-          go-version-file: '${{ github.workspace }}/go.mod'
+          go-version-file: "${{ github.workspace }}/go.mod"
       - uses: webfactory/ssh-agent@v0.5.0
         with:
           ssh-private-key: ${{ secrets.BOT_DEPLOY_KEY }}
@@ -41,5 +41,5 @@ jobs:
           DEPLOYMENT_BRANCH: gh-pages
         run: |
           git config --global user.email "noreply@github.com"
-          git config --global user.name "weaveworks-docs-bot"
+          git config --global user.name "liquidmetal-docs-bot"
           make docs-deploy

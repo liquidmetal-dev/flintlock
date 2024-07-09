@@ -6,15 +6,13 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/cloudhypervisor"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/firecracker"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/cloudhypervisor"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/firecracker"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
 )
 
-var (
-	errUnknownProvider = errors.New("unknown provider")
-)
+var errUnknownProvider = errors.New("unknown provider")
 
 // New will create a new instance of a microvm service from the supplied name.
 func New(name string, cfg *config.Config, networkSvc ports.NetworkService, diskSvc ports.DiskService, fs afero.Fs) (ports.MicroVMService, error) {

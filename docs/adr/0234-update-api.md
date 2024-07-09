@@ -1,10 +1,10 @@
 # Firecracker Patch Limitations & The Flintlock Update API
 
-* Status: accepted
-* Date: 2021-11-08
-* Authors: @jmickey
-* Deciders: @jmickey @richardcase @Callisto13 @yitsushi
-* ADR Discussion: https://github.com/weaveworks-liquidmetal/flintlock/discussions/234
+- Status: accepted
+- Date: 2021-11-08
+- Authors: @jmickey
+- Deciders: @jmickey @richardcase @Callisto13 @yitsushi
+- ADR Discussion: https://github.com/liquidmetal-dev/flintlock/discussions/234
 
 ## Context
 
@@ -26,15 +26,15 @@ As a result of discovering these limitations, the `flintlock` update gRPC API an
 Moving forward there are a few possible directions that could be taken:
 
 1. **Provide no support for in-place updates**. The primary consumer of the `flintlock` API will be the MicroVM Cluster API (CAPI) provider, which doesn't support updates. As a result it would be perfectly valid for us to decide that we won't support any in-place update capabilities, and instead all changes to MicroVM specs will result in recreation.
-2. **Implement in-place updates for valid operations**. Rate limiting, limited unmounted volume changes, metadata, and balloon devices are able to updated in-place. 
+2. **Implement in-place updates for valid operations**. Rate limiting, limited unmounted volume changes, metadata, and balloon devices are able to updated in-place.
 3. **Only update metadata**. The metadata service data store is probably the most logical place where in-place updates would make sense within the context of possible consumers (CAPI).
 
 ## Decision
 
-**Provide no support for in-place updates**. 
+**Provide no support for in-place updates**.
 
 The primary consumer of the `flintlock` API will be the MicroVM Cluster API (CAPI) provider, which doesn't support updates. As a result it would be perfectly valid for us to decide that we won't support any in-place update capabilities, and instead all changes to MicroVM specs will result in recreation.
 
 ## Consequences
 
-Having to recreate MicroVMs in order to support spec updates could possibly lead to issues where the host does not have sufficient resources in order to support `CreateBeforeDelete` style updates, where a new MicroVM is created, workloads are migrated, and the old MicroVM is removed. However, this is less of a consequence of this decision, and more a consequence  of the inherent limitations of the Firecracker MicroVM provider.
+Having to recreate MicroVMs in order to support spec updates could possibly lead to issues where the host does not have sufficient resources in order to support `CreateBeforeDelete` style updates, where a new MicroVM is created, workloads are migrated, and the old MicroVM is removed. However, this is less of a consequence of this decision, and more a consequence of the inherent limitations of the Firecracker MicroVM provider.

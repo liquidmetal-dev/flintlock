@@ -7,12 +7,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/weaveworks-liquidmetal/flintlock/internal/command/run"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/version"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/flags"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/internal/command/run"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/internal/version"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/flags"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
 func NewRootCommand() (*cobra.Command, error) {

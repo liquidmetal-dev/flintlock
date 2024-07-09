@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
 var errUIDRequired = errors.New("uid is required")

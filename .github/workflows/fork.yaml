@@ -3,7 +3,7 @@ name: bump firecracker
 on:
   workflow_dispatch: {}
   schedule:
-  - cron: 0 0 * * 1
+    - cron: 0 0 * * 1
 
 jobs:
   update:
@@ -11,76 +11,76 @@ jobs:
     permissions:
       issues: write
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        ssh-key: ${{ secrets.WEAVEWORKSBOT_TOKEN }}
-        fetch-depth: 0
-    - name: Bump firecracker?
-      run: |
-        new_version=$(./hack/scripts/bump_firecracker.sh)
-        if [[ "$new_version" == "" ]]; then
-          echo "No new Firecracker release. Nothing to do. (this is not an error, no worries.)"
-        fi
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ssh-key: ${{ secrets.LIQUIDMETALBOT_TOKEN }}
+          fetch-depth: 0
+      - name: Bump firecracker?
+        run: |
+          new_version=$(./hack/scripts/bump_firecracker.sh)
+          if [[ "$new_version" == "" ]]; then
+            echo "No new Firecracker release. Nothing to do. (this is not an error, no worries.)"
+          fi
 
-        echo 'NEW_VERSION<<EOF' >> $GITHUB_ENV
-        echo "${new_version}" >> $GITHUB_ENV
-        echo 'EOF' >> $GITHUB_ENV
-    - name: Create Issue
-      if: ${{ env.NEW_VERSION != '' }}
-      uses: imjohnbo/issue-bot@v3
-      id: issue
-      with:
-        title: 'Bump firecracker version to ${{ env.NEW_VERSION }}'
-        pinned: false
-        close-previous: true
-        assignees: "Callisto13, yitsushi, Skarlso"
-        rotate-assignees: true
-        body: |-
-          This is an automatically generated Issue to release a new version of
-          Firecracker on our fork.
-          There are some manual steps to get new releases of our fork
-          branch published.
-          This Issue is to track those manual steps.
+          echo 'NEW_VERSION<<EOF' >> $GITHUB_ENV
+          echo "${new_version}" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: Create Issue
+        if: ${{ env.NEW_VERSION != '' }}
+        uses: imjohnbo/issue-bot@v3
+        id: issue
+        with:
+          title: "Bump firecracker version to ${{ env.NEW_VERSION }}"
+          pinned: false
+          close-previous: true
+          assignees: "Callisto13, yitsushi, Skarlso"
+          rotate-assignees: true
+          body: |-
+            This is an automatically generated Issue to release a new version of
+            Firecracker on our fork.
+            There are some manual steps to get new releases of our fork
+            branch published.
+            This Issue is to track those manual steps.
 
-          **Note that for now we are mirroring firecracker's releases of v1.1.x, v1.2.x and v1.3.x versions**.
+            **Note that for now we are mirroring firecracker's releases of v1.1.x, v1.2.x and v1.3.x versions**.
 
-          To complete work on this Issue:
-          - [ ] Clone [our fork](https://github.com/weaveworks/firecracker) (if you do not have it already).
-          - [ ] Add the upstream as a remote: `git add remote up https://github.com/firecracker-microvm/firecracker`
-          - [ ] Fetch all branches and tags: `git fetch && git fetch --tags`
-          - [ ] Check out to the relevant `macvtap` version branch. `feature/macvtap` for a new `v1.2.x` release, `feature/macvtapv11x` for a new `v1.1.x` release.
-          - [ ] Update the feature branch. `git rebase firecracker-v1.3` for a `v1.3.x` release `git rebase firecracker-v1.2` for a `v1.2.x` release, etc. etc.
-          - [ ] Resolve any merge conflicts if necessary. (There will be merge conflicts.)
-          - [ ] Add any code if necessary. (This will gradually become more necessary, because the older this feature branch gets, the more the code around it upstream will change.)
-          - [ ] Make sure it builds. (`tools/devtool build`)
-          - [ ] Push the updated firecracker 'feature/macvtap' (or `firecracker/macvtapv12`, etc) fork branch.
-          - [ ] Create a new tag on the updated firecracker fork branch: `git tag -s ${{ env.NEW_VERSION}}-macvtap -m ${{ env.NEW_VERSION }}-macvtap`.
-          - [ ] Push the tag to the fork: `git push <remote> ${{ env.NEW_VERSION }}-macvtap` (A new [release](https://github.com/weaveworks/firecracker/releases) will be created.)
-          - [ ] In this repo, trigger the `nightly_e2e` workflow
-          - [ ] Once the tests have passed you can close the Issue, if the tests fail, either fix them or unrelease the version
+            To complete work on this Issue:
+            - [ ] Clone [our fork](https://github.com/liquidmetal-dev/firecracker) (if you do not have it already).
+            - [ ] Add the upstream as a remote: `git add remote up https://github.com/firecracker-microvm/firecracker`
+            - [ ] Fetch all branches and tags: `git fetch && git fetch --tags`
+            - [ ] Check out to the relevant `macvtap` version branch. `feature/macvtap` for a new `v1.2.x` release, `feature/macvtapv11x` for a new `v1.1.x` release.
+            - [ ] Update the feature branch. `git rebase firecracker-v1.3` for a `v1.3.x` release `git rebase firecracker-v1.2` for a `v1.2.x` release, etc. etc.
+            - [ ] Resolve any merge conflicts if necessary. (There will be merge conflicts.)
+            - [ ] Add any code if necessary. (This will gradually become more necessary, because the older this feature branch gets, the more the code around it upstream will change.)
+            - [ ] Make sure it builds. (`tools/devtool build`)
+            - [ ] Push the updated firecracker 'feature/macvtap' (or `firecracker/macvtapv12`, etc) fork branch.
+            - [ ] Create a new tag on the updated firecracker fork branch: `git tag -s ${{ env.NEW_VERSION}}-macvtap -m ${{ env.NEW_VERSION }}-macvtap`.
+            - [ ] Push the tag to the fork: `git push <remote> ${{ env.NEW_VERSION }}-macvtap` (A new [release](https://github.com/liquidmetal-dev/firecracker/releases) will be created.)
+            - [ ] In this repo, trigger the `nightly_e2e` workflow
+            - [ ] Once the tests have passed you can close the Issue, if the tests fail, either fix them or unrelease the version
 
-          Auto-generated by [issue-bot](https://github.com/imjohnbo/issue-bot).
-        labels: "area/firecracker, area/dependency, kind/feature, priority/critical-urgent"
-    - name: Notify slack on creation success
-      if: ${{ success() && env.NEW_VERSION != '' }}
-      uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
-      with:
-        slack_token: ${{ secrets.SLACK_TOKEN }}
-        message: "There is a new version of Firecracker, complete the todo list here: <https://github.com/weaveworks-liquidmetal/flintlock/issues/${{ steps.issue.outputs.issue-number }}|#${{ steps.issue.outputs.issue-number }}>."
-        channel: liquid-metal-dev
-        color: green
-        verbose: false
+            Auto-generated by [issue-bot](https://github.com/imjohnbo/issue-bot).
+          labels: "area/firecracker, area/dependency, kind/feature, priority/critical-urgent"
+      - name: Notify slack on creation success
+        if: ${{ success() && env.NEW_VERSION != '' }}
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          message: "There is a new version of Firecracker, complete the todo list here: <https://github.com/liquidmetal-dev/flintlock/issues/${{ steps.issue.outputs.issue-number }}|#${{ steps.issue.outputs.issue-number }}>."
+          channel: liquid-metal-dev
+          color: green
+          verbose: false
   notify:
     needs: [update]
     if: ${{ failure() }}
     runs-on: ubuntu-latest
     steps:
-    - name: Notify slack on failure
-      uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
-      with:
-        slack_token: ${{ secrets.SLACK_TOKEN }}
-        message: "There is a new firecracker version, but the 'Bump Firecracker' issue failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here>."
-        channel: liquid-metal-dev
-        color: red
-        verbose: false
+      - name: Notify slack on failure
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          message: "There is a new firecracker version, but the 'Bump Firecracker' issue failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here>."
+          channel: liquid-metal-dev
+          color: red
+          verbose: false

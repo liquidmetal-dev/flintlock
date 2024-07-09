@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/weaveworks-liquidmetal/flintlock/api/events"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	portsctx "github.com/weaveworks-liquidmetal/flintlock/core/ports/context"
-	"github.com/weaveworks-liquidmetal/flintlock/core/steps/event"
-	"github.com/weaveworks-liquidmetal/flintlock/core/steps/microvm"
-	"github.com/weaveworks-liquidmetal/flintlock/core/steps/network"
-	"github.com/weaveworks-liquidmetal/flintlock/core/steps/runtime"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/defaults"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
+	"github.com/liquidmetal-dev/flintlock/api/events"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	portsctx "github.com/liquidmetal-dev/flintlock/core/ports/context"
+	"github.com/liquidmetal-dev/flintlock/core/steps/event"
+	"github.com/liquidmetal-dev/flintlock/core/steps/microvm"
+	"github.com/liquidmetal-dev/flintlock/core/steps/network"
+	"github.com/liquidmetal-dev/flintlock/core/steps/runtime"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
 type DeletePlanInput struct {

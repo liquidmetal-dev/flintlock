@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 	"github.com/sirupsen/logrus"
-	cerrs "github.com/weaveworks-liquidmetal/flintlock/core/errors"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
 func NewKernelMount(vm *models.MicroVM, imageService ports.ImageService) planner.Procedure {

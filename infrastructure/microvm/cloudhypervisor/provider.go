@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/cloudhypervisor"
+	"github.com/liquidmetal-dev/flintlock/pkg/cloudhypervisor"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
-	cerrs "github.com/weaveworks-liquidmetal/flintlock/core/errors"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/process"
+	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/process"
 )
 
 const (
@@ -118,7 +118,7 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 		return ports.MicroVMStateUnknown, fmt.Errorf("querying cloud-hypervisor for info: %w", err)
 	}
 
-	//NOTE: we can support paused/unpause in the future
+	// NOTE: we can support paused/unpause in the future
 	switch vmInfo.State {
 	case cloudhypervisor.VmStateRunning:
 		return ports.MicroVMStateRunning, nil

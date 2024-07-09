@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/weaveworks-liquidmetal/flintlock/client/cloudinit"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/infrastructure/microvm/shared"
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 )
 
 const (

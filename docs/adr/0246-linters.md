@@ -33,10 +33,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/errors"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 ```
 
@@ -45,7 +45,7 @@ import (
 > Tool for detection of FIXME, TODO and other comment keywords.
 
 No `TODO`, `FIXME`, or `BUG` comments should live in the code without filed
-issues to track them.  The reason is simple: if we have a comment with "todo",
+issues to track them. The reason is simple: if we have a comment with "todo",
 it has the same value as not having that comment at all, because no one will
 care about it.
 
@@ -112,6 +112,7 @@ if !exists {
   }
 }
 ```
+
 </details>
 
 <details>
@@ -138,6 +139,7 @@ if !exists {
   }
 }
 ```
+
 </details>
 
 **Error check**
@@ -156,6 +158,7 @@ if !exists {
 	return ports.MicroVMStatePending, nil
 }
 ```
+
 </details>
 
 <details>
@@ -174,6 +177,7 @@ if !exists {
 	return ports.MicroVMStatePending, nil
 }
 ```
+
 </details>
 
 ## Description on ignored linters
@@ -181,7 +185,6 @@ if !exists {
 It is possible to add a `//nolint` command for a specific file, block, or line,
 but it's not recommended. If it has a reason why we need that `//nolint`, tell
 us a why.
-
 
 ### Example
 
@@ -198,11 +201,11 @@ process := exec.Command(options.Command, options.Args...)
 
 # Consequences
 
-* All `todo` comments have a GitHub reference.
-* Code will be easier to read and update.
-* If a linter rule is ignored, the code itself documents why.
-* No unnecessary global variables, less painful debugging what changed that value.
-* Spell checker in comments with GB locale. No more `maintanence` or `color`.
-* Some of the rules are hard to keep in mind first.
+- All `todo` comments have a GitHub reference.
+- Code will be easier to read and update.
+- If a linter rule is ignored, the code itself documents why.
+- No unnecessary global variables, less painful debugging what changed that value.
+- Spell checker in comments with GB locale. No more `maintanence` or `color`.
+- Some of the rules are hard to keep in mind first.
 
-Discussion: https://github.com/weaveworks-liquidmetal/flintlock/discussions/246
+Discussion: https://github.com/liquidmetal-dev/flintlock/discussions/246

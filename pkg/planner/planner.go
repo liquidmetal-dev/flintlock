@@ -3,7 +3,7 @@ package planner
 import (
 	"context"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
 // NOTE: this is based on this prior work https://gianarb.it/blog/reactive-plan-golang-example

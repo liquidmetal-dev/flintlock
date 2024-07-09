@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
 func (a *app) GetMicroVM(ctx context.Context, uid string) (*models.MicroVM, error) {

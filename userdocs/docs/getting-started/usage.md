@@ -62,16 +62,16 @@ All available endpoints will be visible in a nice tree view.
 
 To create a MircoVM, select the `CreateMicroVM` endpoint in the left-hand menu.
 Replace the sample request JSON in the left editor panel with [this
-example][payload-example-create].  Click the green `>` in the centre of the
+example][payload-example-create]. Click the green `>` in the centre of the
 screen. The response should come immediately.
 
 In the terminal where you started the Flintlock server, you should see in the
 logs that the MircoVM has started.
 
 To delete the MircoVM, select the `DeleteMicroVM` endpoint in the left-hand
-menu.  Replace the sample request JSON in the left editor panel with [this
-example][payload-example-delete].  Take care to ensure the values match those
-of the MicroVM you created earlier.  Click the green `>` in the centre of the
+menu. Replace the sample request JSON in the left editor panel with [this
+example][payload-example-delete]. Take care to ensure the values match those
+of the MicroVM you created earlier. Click the green `>` in the centre of the
 screen. The response should come immediately.
 
 **Note: there are example payloads for other endpoints, but not all are
@@ -79,8 +79,8 @@ implemented at present.**
 
 [grpcurl]: https://github.com/fullstorydev/grpcurl
 [bloomrpc]: https://github.com/uw-labs/bloomrpc
-[payload-example-send]: https://github.com/weaveworks-liquidmetal/flintlock/blob/main/hack/scripts/send.sh
-[payload-example-create]: https://github.com/weaveworks-liquidmetal/flintlock/blob/main/hack/scripts/payload/CreateMicroVM.json
-[payload-example-delete]: https://github.com/weaveworks-liquidmetal/flintlock/blob/main/hack/scripts/payload/DeleteMicroVM.json
+[payload-example-send]: https://github.com/liquidmetal-dev/flintlock/blob/main/hack/scripts/send.sh
+[payload-example-create]: https://github.com/liquidmetal-dev/flintlock/blob/main/hack/scripts/payload/CreateMicroVM.json
+[payload-example-delete]: https://github.com/liquidmetal-dev/flintlock/blob/main/hack/scripts/payload/DeleteMicroVM.json
 [ht]: https://github.com/warehouse-13/hammertime
-[fl]: https://github.com/weaveworks-liquidmetal/fl
+[fl]: https://github.com/liquidmetal-dev/fl

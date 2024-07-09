@@ -32,6 +32,7 @@ NET_DEVICE=<your parent interface name>
 
 Lastly we start `flintlockd` with the address to our `containerd`, and the `parent-iface`
 name:
+
 ```bash
 sudo ./bin/flintlockd run \
   --containerd-socket=/run/containerd-dev/containerd.sock \
@@ -46,6 +47,7 @@ gRPC API from your host machine then you need to run `flintlockd` with the
 :::
 
 You should see it start successfully with similar output:
+
 ```
 INFO[0000] flintlockd, version=undefined, built_on=undefined, commit=undefined
 INFO[0000] flintlockd grpc api server starting
@@ -59,4 +61,4 @@ INFO[0000] starting event listener                       controller=microvm
 INFO[0000] Starting workersnum_workers1                  controller=microvm
 ```
 
-[flint]: https://github.com/weaveworks-liquidmetal/flintlock/releases
+[flint]: https://github.com/liquidmetal-dev/flintlock/releases

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/planner"
 )
 
 func NewCreateDirectory(dir string, mode os.FileMode, fs afero.Fs) planner.Procedure {

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/liquidmetal-dev/flintlock/pkg/process"
 	g "github.com/onsi/gomega"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/process"
 )
 
 func TestSendSignal(t *testing.T) {

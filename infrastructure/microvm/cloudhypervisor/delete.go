@@ -7,13 +7,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/cloudhypervisor"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/wait"
+	"github.com/liquidmetal-dev/flintlock/pkg/cloudhypervisor"
+	"github.com/liquidmetal-dev/flintlock/pkg/wait"
 
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/process"
 	"github.com/sirupsen/logrus"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/log"
-	"github.com/weaveworks-liquidmetal/flintlock/pkg/process"
 )
 
 const (

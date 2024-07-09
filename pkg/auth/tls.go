@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/weaveworks-liquidmetal/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"google.golang.org/grpc/credentials"
 )
 

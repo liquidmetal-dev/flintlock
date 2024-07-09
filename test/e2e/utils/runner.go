@@ -19,12 +19,12 @@ import (
 	"github.com/pelletier/go-toml"
 	"google.golang.org/grpc"
 
-	"github.com/weaveworks-liquidmetal/flintlock/api/services/microvm/v1alpha1"
+	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 )
 
 const (
 	containerdBin      = "containerd"
-	flintlockCmdDir    = "github.com/weaveworks-liquidmetal/flintlock/cmd/flintlockd"
+	flintlockCmdDir    = "github.com/liquidmetal-dev/flintlock/cmd/flintlockd"
 	containerdCfgDir   = "/etc/containerd"
 	containerdRootDir  = "/var/lib/containerd-e2e"
 	containerdStateDir = "/run/containerd-e2e"

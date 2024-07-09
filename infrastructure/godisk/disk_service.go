@@ -13,7 +13,7 @@ import (
 	units "github.com/docker/go-units"
 	"github.com/spf13/afero"
 
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 )
 
 const (

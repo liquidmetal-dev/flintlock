@@ -8,12 +8,12 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'Flintlock',
   tagline: ' Lock, Stock, and Two Smoking MicroVMs. Create and manage the lifecycle of MicroVMs backed by containerd.',
-  url: 'https://weaveworks-liquidmetal.github.io',
+  url: 'https://www.liquidmetal.dev',
   baseUrl: '/flintlock/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'weaveworks-liquidmetal',
+  organizationName: 'liquidmetal-dev',
   projectName: 'flintlock',
   trailingSlash: true,
 
@@ -25,13 +25,13 @@ const config = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
-          editUrl: 'https://github.com/weaveworks-liquidmetal/flintlock/edit/main/userdocs/',
+          editUrl: 'https://github.com/liquidmetal-dev/flintlock/edit/main/userdocs/',
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
           editUrl:
-            'https://github.com/weaveworks-liquidmetal/flintlock/edit/main/userdocs/blog/',
+            'https://github.com/liquidmetal-dev/flintlock/edit/main/userdocs/blog/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -57,7 +57,7 @@ const config = {
             label: 'Documentation',
           },
           {
-            href: 'https://buf.build/weaveworks-liquidmetal/flintlock',
+            href: 'https://buf.build/liquidmetal-dev/flintlock',
             position: 'left',
             label: 'gRPC Proto',
           },
@@ -68,7 +68,7 @@ const config = {
             label: 'HTTP API',
           },
           {
-            href: 'https://github.com/weaveworks-liquidmetal/flintlock',
+            href: 'https://github.com/liquidmetal-dev/flintlock',
             label: 'GitHub',
             position: 'right',
           },
@@ -86,7 +86,7 @@ const config = {
               },
               {
                 label: 'gRPC Proto',
-                href: 'https://buf.build/weaveworks-liquidmetal/flintlock',
+                href: 'https://buf.build/liquidmetal-dev/flintlock',
               },
               {
                 label: 'HTTP API',
@@ -113,16 +113,16 @@ const config = {
             items: [
               {
                 label: 'Liquid Metal',
-                to: 'https://weaveworks-liquidmetal.github.io/site/',
+                to: 'https://www.liquidmetal.dev',
               },
               {
                 label: 'GitHub',
-                href: 'https://github.com/weaveworks-liquidmetal/flintlock',
+                href: 'https://github.com/liquidmetal-dev/flintlock',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Weaveworks, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Liquid Metal Authors. Built with Docusaurus.`,
       },
       prism: {
         theme: lightCodeTheme,

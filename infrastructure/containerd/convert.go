@@ -6,8 +6,8 @@ import (
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/typeurl/v2"
-	"github.com/weaveworks-liquidmetal/flintlock/core/models"
-	"github.com/weaveworks-liquidmetal/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 )
 
 func convertMountToModel(mountPoint mount.Mount, snapshotter string) (models.Mount, error) {
