@@ -34,7 +34,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_golang v1.16.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/afero v1.9.5
+	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.16.0
@@ -146,7 +146,7 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
-	google.golang.org/genproto v0.0.0-20230920204549-e6e6cdab5c13 // indirect
+	google.golang.org/genproto v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
