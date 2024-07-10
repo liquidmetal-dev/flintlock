@@ -17,8 +17,19 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    labels:
+      - "kind/cleanup"
+      - "area/build-and-release"
     groups:
       actions:
         update-types:
           - "minor"
           - "patch"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "kind/cleanup"
+      - "area/build-and-release"
