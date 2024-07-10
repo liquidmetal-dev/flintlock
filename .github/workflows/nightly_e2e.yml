@@ -13,11 +13,11 @@ jobs:
       PROJECT_NAME: "flintlock_nightly_e2e"
     name: e2e tests
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Get branch name
         id: branch-name
-        uses: tj-actions/branch-names@v5
+        uses: tj-actions/branch-names@6871f53176ad61624f978536bbf089c574dc19a2 # v8.0.1
 
       - name: Run tests
         env:
@@ -34,7 +34,7 @@ jobs:
           test/tools/run.py run-e2e -c e2e-config.yaml
 
       - name: Notify slack on failure
-        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a # v1.1.0
         if: ${{ failure() }}
         with:
           slack_token: ${{ secrets.SLACK_TOKEN }}
@@ -44,7 +44,7 @@ jobs:
           verbose: false
 
       - name: Notify slack on success
-        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a # v1.1.0
         if: ${{ success() }}
         with:
           slack_token: ${{ secrets.SLACK_TOKEN }}
@@ -54,7 +54,7 @@ jobs:
           verbose: false
 
       - name: Cleanup project
-        uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95
+        uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95 # main
         with:
           metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
           project_names: ${{ env.PROJECT_NAME }}
