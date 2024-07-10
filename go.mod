@@ -48,6 +48,7 @@ require (
 require (
 	github.com/carlmjohnson/requests v0.23.5
 	github.com/containerd/containerd/api v1.7.19
+	github.com/containerd/platforms v0.2.1
 	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/diskfs/go-diskfs v1.3.0
 	github.com/docker/go-units v0.5.0
@@ -75,7 +76,6 @@ require (
 	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/containerd/ttrpc v1.2.5 // indirect
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/containernetworking/plugins v1.2.0 // indirect

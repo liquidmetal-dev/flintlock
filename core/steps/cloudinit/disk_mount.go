@@ -119,7 +119,7 @@ func (s *diskMountStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	return nil, nil
 }
 
-func (s *diskMountStep) Verify(ctx context.Context) error {
+func (s *diskMountStep) Verify(_ context.Context) error {
 	return nil
 }
 

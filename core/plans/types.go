@@ -1,8 +1,9 @@
 package plans
 
 import (
-	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/spf13/afero"
+
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 )
 
 // Providers input is a type to be used as input to plans.

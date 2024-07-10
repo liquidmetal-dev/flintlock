@@ -2,7 +2,6 @@ package log_test
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -15,7 +14,7 @@ import (
 func TestLogger_Configure(t *testing.T) {
 	RegisterTestingT(t)
 
-	tempLogFile, err := ioutil.TempFile(os.TempDir(), "log")
+	tempLogFile, err := os.CreateTemp(os.TempDir(), "log")
 	tempLogFileName := tempLogFile.Name()
 	tempLogFile.Close()
 	os.Remove(tempLogFile.Name())

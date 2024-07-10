@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/sirupsen/logrus"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
 // Actuator will execute the given plan.

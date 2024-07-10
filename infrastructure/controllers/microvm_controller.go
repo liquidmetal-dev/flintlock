@@ -7,16 +7,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/liquidmetal-dev/flintlock/api/events"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/queue"
-	"github.com/sirupsen/logrus"
 )
 
-func New(eventSvc ports.EventService, reconcileUC ports.ReconcileMicroVMsUseCase, queryUC ports.MicroVMQueryUseCases) *MicroVMController {
+func New(
+	eventSvc ports.EventService,
+	reconcileUC ports.ReconcileMicroVMsUseCase,
+	queryUC ports.MicroVMQueryUseCases,
+) *MicroVMController {
 	return &MicroVMController{
 		eventSvc:    eventSvc,
 		reconcileUC: reconcileUC,
@@ -69,7 +74,7 @@ func (r *MicroVMController) Run(ctx context.Context,
 	logger.Info("Starting workers", "num_workers", numWorkers)
 	wg.Add(numWorkers)
 
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		go func() {
 			defer wg.Done()
 

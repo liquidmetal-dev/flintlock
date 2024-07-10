@@ -3,11 +3,13 @@ package auth
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
+
+	"google.golang.org/grpc/credentials"
 
 	"github.com/liquidmetal-dev/flintlock/internal/config"
-	"google.golang.org/grpc/credentials"
 )
 
 // LoadTLSForGRPC will process TLS config and return TLS credentials for the gRPC server.
@@ -25,14 +27,14 @@ func LoadTLSForGRPC(tlsCfg *config.TLSConfig) (credentials.TransportCredentials,
 	}
 
 	if tlsCfg.ClientCAFile != "" {
-		caCert, err := ioutil.ReadFile(tlsCfg.ClientCAFile)
+		caCert, err := os.ReadFile(tlsCfg.ClientCAFile)
 		if err != nil {
 			return nil, fmt.Errorf("reading CA cert file %s: %w", tlsCfg.ClientCAFile, err)
 		}
 
 		pool := x509.NewCertPool()
 		if !pool.AppendCertsFromPEM(caCert) {
-			return nil, fmt.Errorf("could not append CACert to cert pool")
+			return nil, errors.New("could not append CACert to cert pool")
 		}
 
 		grpcTLS.ClientCAs = pool

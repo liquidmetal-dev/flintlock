@@ -5,9 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/liquidmetal-dev/flintlock/core/steps/runtime"
 	g "github.com/onsi/gomega"
 	"github.com/spf13/afero"
+
+	"github.com/liquidmetal-dev/flintlock/core/steps/runtime"
 )
 
 func TestDeleteDirectory_NotExists(t *testing.T) {

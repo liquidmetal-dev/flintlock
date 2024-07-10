@@ -19,7 +19,7 @@ func withOwnerLease(ctx context.Context, owner string, client Client) (context.C
 }
 
 func getExistingOrCreateLease(ctx context.Context, name string, manager leases.Manager) (*leases.Lease, error) {
-	filter := fmt.Sprintf("id==%s", name)
+	filter := "id==" + name
 
 	existingLeases, err := manager.List(ctx, filter)
 	if err != nil {
@@ -53,5 +53,5 @@ func deleteLease(ctx context.Context, owner string, client Client) error {
 }
 
 func getLeaseNameForOwner(owner string) string {
-	return fmt.Sprintf("flintlock/%s", owner)
+	return "flintlock/" + owner
 }

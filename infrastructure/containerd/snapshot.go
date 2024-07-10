@@ -14,7 +14,7 @@ func snapshotKey(owner, ownerUsageID string) string {
 func snapshotExists(ctx context.Context, key string, ss snapshots.Snapshotter) (bool, error) {
 	snapshotExists := false
 
-	err := ss.Walk(ctx, func(walkCtx context.Context, info snapshots.Info) error {
+	err := ss.Walk(ctx, func(_ context.Context, info snapshots.Info) error {
 		if info.Name == key {
 			snapshotExists = true
 		}

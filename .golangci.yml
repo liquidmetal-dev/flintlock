@@ -13,6 +13,8 @@ linters-settings:
     skip-tests: true
   gosec:
     exclude-generated: true
+    excludes:
+      - G108
   lll:
     line-length: 120
   misspell:
@@ -87,8 +89,26 @@ issues:
 linters:
   enable-all: true
   disable:
+    - bodyclose
+    - contextcheck
+    - cyclop
     - depguard
+    - exhaustruct
+    - err113
+    - forcetypeassert
     - ireturn
+    - interfacebloat
+    - inamedparam
+    - musttag
+    - nonamedreturns
     - nilnil
     - tagliatelle
     - gomoddirectives
+    - gochecknoglobals
+    - gci
+    - varnamelen
+    - protogetter
+    - gomnd
+    - mnd
+    - wsl
+    - wrapcheck

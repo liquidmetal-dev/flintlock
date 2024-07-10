@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	g "github.com/onsi/gomega"
+
 	"github.com/liquidmetal-dev/flintlock/api/events"
 	"github.com/liquidmetal-dev/flintlock/core/steps/event"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
-	g "github.com/onsi/gomega"
 )
 
 const (

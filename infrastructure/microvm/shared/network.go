@@ -89,10 +89,7 @@ func configureStaticEthernet(iface *models.NetworkInterface, eth *network.Ethern
 			Addresses: []string{},
 		}
 
-		for nsIndex := range iface.StaticAddress.Nameservers {
-			ns := iface.StaticAddress.Nameservers[nsIndex]
-			eth.Nameservers.Addresses = append(eth.Nameservers.Addresses, ns)
-		}
+		eth.Nameservers.Addresses = append(eth.Nameservers.Addresses, iface.StaticAddress.Nameservers...)
 	}
 
 	eth.DHCP4 = firecracker.Bool(false)

@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
-	"github.com/sirupsen/logrus"
 )
 
 func NewNetworkInterface(vmid *models.VMID,
@@ -129,6 +130,6 @@ func (s *createInterface) Do(ctx context.Context) ([]planner.Procedure, error) {
 	return nil, nil
 }
 
-func (s *createInterface) Verify(ctx context.Context) error {
+func (s *createInterface) Verify(_ context.Context) error {
 	return nil
 }

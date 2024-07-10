@@ -14,23 +14,23 @@ const (
 	PathVmmPing     = "vmm.ping"
 	PathVmmShutdown = "vmm.shutdown"
 
-	PathVmInfo           = "vm.info"
-	PathVmCounters       = "vm.counters"
-	PathVmCreate         = "vm.create"
-	PathVmDelete         = "vm.delete"
-	PathVmBoot           = "vm.boot"
-	PathVmPause          = "vm.pause"
-	PathVmResume         = "vm.resume"
-	PathVmShutdown       = "vm.shutdown"
-	PathVmReboot         = "vm.reboot"
-	PathVmPowerButton    = "vm.power-button"
-	PathVmResize         = "vm.resize"
-	PathVmResizeZone     = "vm.resize-zone"
-	PathVmAddDevice      = "vm.add-device"
-	PathVmRemoveDevice   = "vm.remove-device"
-	PathVmAddDisk        = "vm.add-disk"
-	PathVmAddFs          = "vm.add-fs"
-	PathVmAddPmem        = "vm.add-pmem"
+	PathVMInfo           = "vm.info"
+	PathVMCounters       = "vm.counters"
+	PathVMCreate         = "vm.create"
+	PathVMDelete         = "vm.delete"
+	PathVMBoot           = "vm.boot"
+	PathVMPause          = "vm.pause"
+	PathVMResume         = "vm.resume"
+	PathVMShutdown       = "vm.shutdown"
+	PathVMReboot         = "vm.reboot"
+	PathVMPowerButton    = "vm.power-button"
+	PathVMResize         = "vm.resize"
+	PathVMResizeZone     = "vm.resize-zone"
+	PathVMAddDevice      = "vm.add-device"
+	PathVMRemoveDevice   = "vm.remove-device"
+	PathVMAddDisk        = "vm.add-disk"
+	PathVMAddFs          = "vm.add-fs"
+	PathVMAddPmem        = "vm.add-pmem"
 	PathAddNetworkDevice = "vm.add-net"
 	PathAddVsockDevice   = "vm.add-vsock"
 	PathAddVdpaDevice    = "vm.add-vdpa"
@@ -48,11 +48,11 @@ type Client interface {
 	// VmmShutdown shuts down the cloud-hypervisor vmm.
 	VmmShutdown(ctx context.Context) error
 	// Info returns general information about the cloud-hypervisor Virtual Machine (VM) instance.
-	Info(ctx context.Context) (*VmInfo, error)
+	Info(ctx context.Context) (*VMInfo, error)
 	// Counters gets the counters from the VM.
-	Counters(ctx context.Context) (*VmCounters, error)
+	Counters(ctx context.Context) (*VMCounters, error)
 	// Create will create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
-	Create(ctx context.Context, config *VmConfig) error
+	Create(ctx context.Context, config *VMConfig) error
 	// Delete will delete the cloud-hypervisor Virtual Machine (VM) instance.
 	Delete(ctx context.Context) error
 	// Boot will boot the previously created VM instance.
@@ -68,13 +68,13 @@ type Client interface {
 	// PowerButton simulates pressing the equivalent of a physical power button.
 	PowerButton(ctx context.Context) error
 	// Resize will change the vpcus/ram/balloon (a.k.a resize).
-	Resize(ctx context.Context, config *VmResize) error
+	Resize(ctx context.Context, config *VMResize) error
 	// ResizeZone will resize a memory zone.
-	ResizeZone(ctx context.Context, config *VmResizeZone) error
+	ResizeZone(ctx context.Context, config *VMResizeZone) error
 	// AddDevice is used to add a new device to the VM.
-	AddDevice(ctx context.Context, config *VmAddDevice) (*PciDeviceInfo, error)
+	AddDevice(ctx context.Context, config *VMAddDevice) (*PciDeviceInfo, error)
 	// RemoveDevice is used to remove a device from the VM.
-	RemoveDevice(ctx context.Context, config *VmRemoveDevice) error
+	RemoveDevice(ctx context.Context, config *VMRemoveDevice) error
 	// AddDisk will add a new disk to the VM.
 	AddDisk(ctx context.Context, config *DiskConfig) (*PciDeviceInfo, error)
 	// AddFs will add a new virtio-fs device to the VM.
@@ -88,7 +88,7 @@ type Client interface {
 	// AddVdpaDevice will add a new vdpa device to the VM.
 	AddVdpaDevice(ctx context.Context, config *VdpaConfig) (*PciDeviceInfo, error)
 	// Snapshot will create a snapshot of the VM.
-	Snapshot(ctx context.Context, config *VmSnapshotConfig) error
+	Snapshot(ctx context.Context, config *VMSnapshotConfig) error
 	// CoreDump will take a core dump of the VM.
 	CoreDump(ctx context.Context, config *VMCoreDumpData) error
 	// Restore will restore a VM from a snapshot.
@@ -133,24 +133,25 @@ func (c *client) VmmShutdown(ctx context.Context) error {
 }
 
 // Info returns general information about the cloud-hypervisor Virtual Machine (VM) instance.
-func (c *client) Info(ctx context.Context) (*VmInfo, error) {
-	data := &VmInfo{}
+func (c *client) Info(ctx context.Context) (*VMInfo, error) {
+	data := &VMInfo{}
 
-	if err := c.builder.Clone().Path(PathVmInfo).
+	if err := c.builder.Clone().Path(PathVMInfo).
 		ToJSON(data).
 		Fetch(ctx); err != nil {
 		return nil, err
 	}
+
 	return data, nil
 }
 
 // Counters gets the counters from the VM.
-func (c *client) Counters(ctx context.Context) (*VmCounters, error) {
-	data := &VmCounters{}
+func (c *client) Counters(ctx context.Context) (*VMCounters, error) {
+	data := &VMCounters{}
 
 	if err := c.builder.
 		Clone().
-		Path(PathVmCounters).
+		Path(PathVMCounters).
 		ToJSON(data).
 		Fetch(ctx); err != nil {
 		return nil, err
@@ -159,14 +160,14 @@ func (c *client) Counters(ctx context.Context) (*VmCounters, error) {
 	return data, nil
 }
 
-// Create will create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created
-func (c *client) Create(ctx context.Context, config *VmConfig) error {
-	return c.builder.Clone().Path(PathVmCreate).Put().BodyJSON(config).Fetch(ctx)
+// Create will create the cloud-hypervisor Virtual Machine (VM) instance. The instance is not booted, only created.
+func (c *client) Create(ctx context.Context, config *VMConfig) error {
+	return c.builder.Clone().Path(PathVMCreate).Put().BodyJSON(config).Fetch(ctx)
 }
 
 // Delete will delete the cloud-hypervisor Virtual Machine (VM) instance.
 func (c *client) Delete(ctx context.Context) error {
-	return c.builder.Clone().Path(PathVmDelete).Put().Fetch(ctx)
+	return c.builder.Clone().Path(PathVMDelete).Put().Fetch(ctx)
 }
 
 // Boot will boot the previously created VM instance.
@@ -174,7 +175,7 @@ func (c *client) Boot(ctx context.Context) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmBoot).
+		Path(PathVMBoot).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not boot because it is not created yet",
 		})).
@@ -187,7 +188,7 @@ func (c *client) Pause(ctx context.Context) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmPause).
+		Path(PathVMPause).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not pause because it is not created yet",
 			405: "The VM instance could not pause because it is not booted",
@@ -201,7 +202,7 @@ func (c *client) Resume(ctx context.Context) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmResume).
+		Path(PathVMResume).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not resume because it is not booted yet",
 			405: "The VM instance could not resume because it is not paused",
@@ -215,7 +216,7 @@ func (c *client) Shutdown(ctx context.Context) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmShutdown).
+		Path(PathVMShutdown).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not shut down because is not created",
 			405: "The VM instance could not shut down because it is not started",
@@ -229,7 +230,7 @@ func (c *client) Reboot(ctx context.Context) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmReboot).
+		Path(PathVMReboot).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not reboot because it is not created",
 			405: "The VM instance could not reboot because it is not booted",
@@ -243,7 +244,7 @@ func (c *client) PowerButton(ctx context.Context) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmPowerButton).
+		Path(PathVMPowerButton).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The button could not be triggered because it is not created yet",
 			405: "The button could not be triggered because it is not booted",
@@ -253,11 +254,11 @@ func (c *client) PowerButton(ctx context.Context) error {
 }
 
 // Resize will change the vpcus/ram/balloon (a.k.a resize).
-func (c *client) Resize(ctx context.Context, config *VmResize) error {
+func (c *client) Resize(ctx context.Context, _ *VMResize) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmResize).
+		Path(PathVMResize).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not be resized because it is not created",
 		})).
@@ -266,11 +267,11 @@ func (c *client) Resize(ctx context.Context, config *VmResize) error {
 }
 
 // ResizeZone will resize a memory zone.
-func (c *client) ResizeZone(ctx context.Context, config *VmResizeZone) error {
+func (c *client) ResizeZone(ctx context.Context, _ *VMResizeZone) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmResizeZone).
+		Path(PathVMResizeZone).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The memory zone could not be resized",
 		})).
@@ -278,13 +279,13 @@ func (c *client) ResizeZone(ctx context.Context, config *VmResizeZone) error {
 		Fetch(ctx)
 }
 
-// AddDevice is used to add a new device to the the VM.
-func (c *client) AddDevice(ctx context.Context, config *VmAddDevice) (*PciDeviceInfo, error) {
+// AddDevice is used to add a new device to the VM.
+func (c *client) AddDevice(ctx context.Context, _ *VMAddDevice) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
 	if err := c.
 		builder.
 		Clone().
-		Path(PathVmAddDevice).
+		Path(PathVMAddDevice).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The new device could not be added to the VM instance",
 		})).
@@ -297,11 +298,11 @@ func (c *client) AddDevice(ctx context.Context, config *VmAddDevice) (*PciDevice
 }
 
 // RemoveDevice is used to remove a device from the VM.
-func (c *client) RemoveDevice(ctx context.Context, config *VmRemoveDevice) error {
+func (c *client) RemoveDevice(ctx context.Context, _ *VMRemoveDevice) error {
 	return c.
 		builder.
 		Clone().
-		Path(PathVmRemoveDevice).
+		Path(PathVMRemoveDevice).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The device could not be removed from the VM instance",
 		})).
@@ -310,12 +311,12 @@ func (c *client) RemoveDevice(ctx context.Context, config *VmRemoveDevice) error
 }
 
 // AddDisk will add a new disk to the VM.
-func (c *client) AddDisk(ctx context.Context, config *DiskConfig) (*PciDeviceInfo, error) {
+func (c *client) AddDisk(ctx context.Context, _ *DiskConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
 	if err := c.
 		builder.
 		Clone().
-		Path(PathVmAddDisk).
+		Path(PathVMAddDisk).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new disk could not be added to the VM instance",
 		})).
@@ -328,12 +329,12 @@ func (c *client) AddDisk(ctx context.Context, config *DiskConfig) (*PciDeviceInf
 }
 
 // AddFs will add a new virtio-fs device to the VM.
-func (c *client) AddFs(ctx context.Context, config *FsConfig) (*PciDeviceInfo, error) {
+func (c *client) AddFs(ctx context.Context, _ *FsConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
 	if err := c.
 		builder.
 		Clone().
-		Path(PathVmAddFs).
+		Path(PathVMAddFs).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new virtio-fs device could not be added to the VM instance",
 		})).
@@ -346,12 +347,12 @@ func (c *client) AddFs(ctx context.Context, config *FsConfig) (*PciDeviceInfo, e
 }
 
 // AddPmemDevice will add a new pmem device to the VM.
-func (c *client) AddPmemDevice(ctx context.Context, config *PmemConfig) (*PciDeviceInfo, error) {
+func (c *client) AddPmemDevice(ctx context.Context, _ *PmemConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
 	if err := c.
 		builder.
 		Clone().
-		Path(PathVmAddPmem).
+		Path(PathVMAddPmem).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new pmem device could not be added to the VM instance",
 		})).
@@ -364,7 +365,7 @@ func (c *client) AddPmemDevice(ctx context.Context, config *PmemConfig) (*PciDev
 }
 
 // AddNetworkDevice will add a new network device to the VM.
-func (c *client) AddNetworkDevice(ctx context.Context, config *NetConfig) (*PciDeviceInfo, error) {
+func (c *client) AddNetworkDevice(ctx context.Context, _ *NetConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
 	if err := c.
 		builder.
@@ -382,7 +383,7 @@ func (c *client) AddNetworkDevice(ctx context.Context, config *NetConfig) (*PciD
 }
 
 // AddVsockDevice will add a new vsock device to the VM.
-func (c *client) AddVsockDevice(ctx context.Context, config *VsockConfig) (*PciDeviceInfo, error) {
+func (c *client) AddVsockDevice(ctx context.Context, _ *VsockConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
 	if err := c.
 		builder.
@@ -400,7 +401,7 @@ func (c *client) AddVsockDevice(ctx context.Context, config *VsockConfig) (*PciD
 }
 
 // AddVdpaDevice will add a new vdpa device to the VM.
-func (c *client) AddVdpaDevice(ctx context.Context, config *VdpaConfig) (*PciDeviceInfo, error) {
+func (c *client) AddVdpaDevice(ctx context.Context, _ *VdpaConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
 	if err := c.
 		builder.
@@ -418,7 +419,7 @@ func (c *client) AddVdpaDevice(ctx context.Context, config *VdpaConfig) (*PciDev
 }
 
 // Snapshot will create a snapshot of the VM.
-func (c *client) Snapshot(ctx context.Context, config *VmSnapshotConfig) error {
+func (c *client) Snapshot(ctx context.Context, _ *VMSnapshotConfig) error {
 	return c.
 		builder.
 		Clone().
@@ -432,7 +433,7 @@ func (c *client) Snapshot(ctx context.Context, config *VmSnapshotConfig) error {
 }
 
 // CoreDump will take a core dump of the VM.
-func (c *client) CoreDump(ctx context.Context, config *VMCoreDumpData) error {
+func (c *client) CoreDump(ctx context.Context, _ *VMCoreDumpData) error {
 	return c.
 		builder.
 		Clone().
@@ -446,7 +447,7 @@ func (c *client) CoreDump(ctx context.Context, config *VMCoreDumpData) error {
 }
 
 // Restore will restore a VM from a snapshot.
-func (c *client) Restore(ctx context.Context, config *RestoreConfig) error {
+func (c *client) Restore(ctx context.Context, _ *RestoreConfig) error {
 	return c.
 		builder.
 		Clone().
@@ -459,7 +460,7 @@ func (c *client) Restore(ctx context.Context, config *RestoreConfig) error {
 }
 
 // ReceiveMigration will receive a VM migration from a URL.
-func (c *client) ReceiveMigration(ctx context.Context, config *ReceiveMigrationData) error {
+func (c *client) ReceiveMigration(ctx context.Context, _ *ReceiveMigrationData) error {
 	return c.
 		builder.
 		Clone().
@@ -472,7 +473,7 @@ func (c *client) ReceiveMigration(ctx context.Context, config *ReceiveMigrationD
 }
 
 // SendMigration will send a VM migration to a URL.
-func (c *client) SendMigration(ctx context.Context, config *SendMigrationData) error {
+func (c *client) SendMigration(ctx context.Context, _ *SendMigrationData) error {
 	return c.
 		builder.
 		Clone().

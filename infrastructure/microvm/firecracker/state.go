@@ -4,13 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
+
+	"github.com/spf13/afero"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
-	"github.com/spf13/afero"
 )
 
 type State interface {
@@ -51,7 +52,7 @@ func (s *fsState) Root() string {
 }
 
 func (s *fsState) PIDPath() string {
-	return fmt.Sprintf("%s/firecracker.pid", s.stateRoot)
+	return s.stateRoot + "/firecracker.pid"
 }
 
 func (s *fsState) PID() (int, error) {
@@ -59,19 +60,19 @@ func (s *fsState) PID() (int, error) {
 }
 
 func (s *fsState) LogPath() string {
-	return fmt.Sprintf("%s/firecracker.log", s.stateRoot)
+	return s.stateRoot + "/firecracker.log"
 }
 
 func (s *fsState) MetricsPath() string {
-	return fmt.Sprintf("%s/firecracker.metrics", s.stateRoot)
+	return s.stateRoot + "/firecracker.metrics"
 }
 
 func (s *fsState) StdoutPath() string {
-	return fmt.Sprintf("%s/firecracker.stdout", s.stateRoot)
+	return s.stateRoot + "/firecracker.stdout"
 }
 
 func (s *fsState) StderrPath() string {
-	return fmt.Sprintf("%s/firecracker.stderr", s.stateRoot)
+	return s.stateRoot + "/firecracker.stderr"
 }
 
 func (s *fsState) SetPid(pid int) error {
@@ -79,7 +80,7 @@ func (s *fsState) SetPid(pid int) error {
 }
 
 func (s *fsState) ConfigPath() string {
-	return fmt.Sprintf("%s/firecracker.cfg", s.stateRoot)
+	return s.stateRoot + "/firecracker.cfg"
 }
 
 func (s *fsState) Config() (VmmConfig, error) {
@@ -138,7 +139,7 @@ func (s *fsState) Metadata() (Metadata, error) {
 }
 
 func (s *fsState) MetadataPath() string {
-	return fmt.Sprintf("%s/metadata.json", s.stateRoot)
+	return s.stateRoot + "/metadata.json"
 }
 
 func (s *fsState) readJSONFile(cfg interface{}, inputFile string) error {
@@ -147,7 +148,7 @@ func (s *fsState) readJSONFile(cfg interface{}, inputFile string) error {
 		return fmt.Errorf("opening file %s: %w", inputFile, err)
 	}
 
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return fmt.Errorf("reading file %s: %w", inputFile, err)
 	}

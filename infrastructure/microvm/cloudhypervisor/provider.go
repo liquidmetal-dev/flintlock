@@ -28,7 +28,8 @@ type Config struct {
 	CloudHypervisorBin string
 	// StateRoot is the folder to store any required state (i.e. socks, pid, log files).
 	StateRoot string
-	// RunDetached indicates that the cloud hypervisor processes should be run detached (a.k.a daemon) from the parent process.
+	// RunDetached indicates that the cloud hypervisor processes
+	// should be run detached (a.k.a daemon) from the parent process.
 	RunDetached bool
 	// DeleteVMTimeout is the timeout to wait for the microvm to be deleted.
 	DeleteVMTimeout time.Duration
@@ -59,7 +60,7 @@ func (p *provider) Capabilities() models.Capabilities {
 }
 
 // Start will start a created microvm.
-func (p *provider) Start(ctx context.Context, vm *models.MicroVM) error {
+func (p *provider) Start(_ context.Context, _ *models.MicroVM) error {
 	return cerrs.NewNotSupported("start")
 }
 
@@ -120,9 +121,9 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 
 	// NOTE: we can support paused/unpause in the future
 	switch vmInfo.State {
-	case cloudhypervisor.VmStateRunning:
+	case cloudhypervisor.VMStateRunning:
 		return ports.MicroVMStateRunning, nil
-	case cloudhypervisor.VmStateCreated:
+	case cloudhypervisor.VMStateCreated:
 		return ports.MicroVMStatePending, nil
 	default:
 		return ports.MicroVMStateUnknown, fmt.Errorf("cloud-hypervisor in an unsupported state: %s", vmInfo.State)
@@ -162,9 +163,9 @@ func DefaultKernelCmdLine() config.KernelCmdLine {
 		"rw":      "",
 		"reboot":  "k",
 		"panic":   "1",
-		//"i8042.noaux":   "",
-		//"i8042.nomux":   "",
-		//"i8042.nopnp":   "",
-		//"i8042.dumbkbd": "",
+		// "i8042.noaux":   "",
+		// "i8042.nomux":   "",
+		// "i8042.nopnp":   "",
+		// "i8042.dumbkbd": "",
 	}
 }

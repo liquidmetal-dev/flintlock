@@ -2,7 +2,6 @@ package microvm
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/spf13/afero"
 
@@ -15,7 +14,12 @@ import (
 var errUnknownProvider = errors.New("unknown provider")
 
 // New will create a new instance of a microvm service from the supplied name.
-func New(name string, cfg *config.Config, networkSvc ports.NetworkService, diskSvc ports.DiskService, fs afero.Fs) (ports.MicroVMService, error) {
+func New(name string,
+	cfg *config.Config,
+	networkSvc ports.NetworkService,
+	diskSvc ports.DiskService,
+	fs afero.Fs,
+) (ports.MicroVMService, error) {
 	switch name {
 	case firecracker.ProviderName:
 		return firecracker.New(firecrackerConfig(cfg), networkSvc, fs), nil
@@ -27,7 +31,11 @@ func New(name string, cfg *config.Config, networkSvc ports.NetworkService, diskS
 }
 
 // NewFromConfig will create instances of the vm providers based on the config.
-func NewFromConfig(cfg *config.Config, networkSvc ports.NetworkService, diskSvc ports.DiskService, fs afero.Fs) (map[string]ports.MicroVMService, error) {
+func NewFromConfig(cfg *config.Config,
+	networkSvc ports.NetworkService,
+	diskSvc ports.DiskService,
+	fs afero.Fs,
+) (map[string]ports.MicroVMService, error) {
 	providers := map[string]ports.MicroVMService{}
 
 	if cfg.CloudHypervisorBin != "" {
@@ -55,7 +63,7 @@ func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 	return &firecracker.Config{
 		FirecrackerBin: cfg.FirecrackerBin,
 		RunDetached:    cfg.FirecrackerDetatch,
-		StateRoot:      fmt.Sprintf("%s/vm", cfg.StateRootDir),
+		StateRoot:      cfg.StateRootDir + "/vm",
 	}
 }
 
@@ -63,6 +71,6 @@ func cloudHypervisorConfig(cfg *config.Config) *cloudhypervisor.Config {
 	return &cloudhypervisor.Config{
 		CloudHypervisorBin: cfg.CloudHypervisorBin,
 		RunDetached:        cfg.CloudHypervisorDetatch,
-		StateRoot:          fmt.Sprintf("%s/vm", cfg.StateRootDir),
+		StateRoot:          cfg.StateRootDir + "/vm",
 	}
 }

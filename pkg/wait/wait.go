@@ -44,6 +44,6 @@ func ForCondition(conditionFn ConditionFunc, maxWait time.Duration, checkInterna
 // FileExistsCondition creates a condition check on the existence of a file.
 func FileExistsCondition(filepath string, fs afero.Fs) ConditionFunc {
 	return func() (bool, error) {
-		return afero.Exists(fs, filepath) //nolint: wrapcheck // It's ok ;)
+		return afero.Exists(fs, filepath)
 	}
 }

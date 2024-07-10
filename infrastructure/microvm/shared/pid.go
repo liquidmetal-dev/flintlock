@@ -3,12 +3,13 @@ package shared
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strconv"
 
-	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
 func PIDReadFromFile(pidFile string, fs afero.Fs) (int, error) {
@@ -17,7 +18,7 @@ func PIDReadFromFile(pidFile string, fs afero.Fs) (int, error) {
 		return -1, fmt.Errorf("opening pid file %s: %w", pidFile, err)
 	}
 
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return -1, fmt.Errorf("reading pid file %s: %w", pidFile, err)
 	}

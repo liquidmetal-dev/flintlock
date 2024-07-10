@@ -103,10 +103,7 @@ func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.Netw
 			converted.StaticAddress.Gateway = (*models.IPAddressCIDR)(netInt.Address.Gateway)
 		}
 
-		for index := range netInt.Address.Nameservers {
-			nameserver := netInt.Address.Nameservers[index]
-			converted.StaticAddress.Nameservers = append(converted.StaticAddress.Nameservers, nameserver)
-		}
+		converted.StaticAddress.Nameservers = append(converted.StaticAddress.Nameservers, netInt.Address.Nameservers...)
 	}
 	if netInt.Overrides != nil {
 		converted.BridgeName = *netInt.Overrides.BridgeName
@@ -239,10 +236,7 @@ func convertModelToNetworkInterface(modelNetInt *models.NetworkInterface) *types
 			converted.Address.Gateway = (*string)(modelNetInt.StaticAddress.Gateway)
 		}
 
-		for index := range modelNetInt.StaticAddress.Nameservers {
-			nameserver := modelNetInt.StaticAddress.Nameservers[index]
-			converted.Address.Nameservers = append(converted.Address.Nameservers, nameserver)
-		}
+		converted.Address.Nameservers = append(converted.Address.Nameservers, modelNetInt.StaticAddress.Nameservers...)
 	}
 
 	return converted

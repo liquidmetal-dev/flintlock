@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	g "github.com/onsi/gomega"
+
 	internalerrors "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/steps/runtime"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
-	g "github.com/onsi/gomega"
 )
 
 func testVM() *models.MicroVM {

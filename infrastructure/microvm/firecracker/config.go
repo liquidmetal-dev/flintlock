@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	cloudInitNetVersion = 2
+	cloudInitNetVersion = 2 //nolint: unused // TODO: Remove it looks like is not used
 )
 
 type ConfigOption func(cfg *VmmConfig) error

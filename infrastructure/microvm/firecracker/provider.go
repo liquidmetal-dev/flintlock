@@ -8,15 +8,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
+	tailor "github.com/yitsushi/file-tailor"
+
 	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/afero"
-	tailor "github.com/yitsushi/file-tailor"
 )
 
 const (
@@ -73,7 +74,7 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 // issues when we try to add new MicroVM providers, so that way we would work
 // twice on the same thing, now remove them and then add it back and make a
 // separation here, like option B.
-func (p *fcProvider) Start(ctx context.Context, vm *models.MicroVM) error {
+func (p *fcProvider) Start(_ context.Context, _ *models.MicroVM) error {
 	return cerrs.NewNotSupported("start")
 }
 
@@ -158,7 +159,7 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 	return ports.MicroVMStateRunning, nil
 }
 
-func (p *fcProvider) Metrics(ctx context.Context, vmid models.VMID) (ports.MachineMetrics, error) {
+func (p *fcProvider) Metrics(_ context.Context, vmid models.VMID) (ports.MachineMetrics, error) {
 	machineMetrics := shared.MachineMetrics{
 		Namespace:   vmid.Namespace(),
 		MachineName: vmid.Name(),

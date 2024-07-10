@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/liquidmetal-dev/flintlock/pkg/log"
-	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
 func NewCreateDirectory(dir string, mode os.FileMode, fs afero.Fs) planner.Procedure {
@@ -105,6 +106,6 @@ func (s *createDirectory) directoryExists() (bool, error) {
 	return exists, nil
 }
 
-func (s *createDirectory) Verify(ctx context.Context) error {
+func (s *createDirectory) Verify(_ context.Context) error {
 	return nil
 }

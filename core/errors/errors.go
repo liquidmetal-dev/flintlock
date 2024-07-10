@@ -17,7 +17,7 @@ var (
 	ErrNoMount                            = errors.New("no image mount point")
 	ErrNoVolumeMount                      = errors.New("no volume mount point")
 	ErrParentIfaceRequiredForMacvtap      = errors.New("a parent network device name is required for macvtap interfaces")
-	ErrParentIfaceRequiredForAttachingTap = errors.New("a parent network device name is required for attaching a TAP interface")
+	ErrParentIfaceRequiredForAttachingTap = errors.New("a parent network device name is required for attaching a TAP interface") //nolint: lll // that is okay
 	ErrGuestDeviceNameRequired            = errors.New("a guest device name is required")
 	ErrUnsupportedIfaceType               = errors.New("unsupported network interface type")
 	ErrIfaceNotFound                      = errors.New("network interface not found")
@@ -41,7 +41,7 @@ type IncorrectVMIDFormatError struct {
 
 // Error returns the error message.
 func (e IncorrectVMIDFormatError) Error() string {
-	return fmt.Sprintf("unexpected vmid format: %s", e.ActualID)
+	return "unexpected vmid format: " + e.ActualID
 }
 
 func NewErrUnsupportedInterface(ifaceType string) UnsupportedInterfaceError {
@@ -136,7 +136,7 @@ type notSupportedError struct {
 
 // Error returns the error message.
 func (e notSupportedError) Error() string {
-	return fmt.Sprintf("%s is not supported", e.unsupported)
+	return e.unsupported + "is not supported"
 }
 
 // IsNotSupported tests an error to see if its a not supported error.

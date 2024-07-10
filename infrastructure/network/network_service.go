@@ -7,12 +7,13 @@ import (
 	"net"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
+
 	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
-	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
 )
 
 type Config struct {
@@ -33,7 +34,9 @@ type networkService struct {
 }
 
 // IfaceCreate will create the network interface.
-func (n *networkService) IfaceCreate(ctx context.Context, input ports.IfaceCreateInput) (*ports.IfaceDetails, error) {
+func (n *networkService) IfaceCreate(ctx context.Context,
+	input ports.IfaceCreateInput,
+) (*ports.IfaceDetails, error) { //nolint: cyclop // TODO: need to check if can be refactored
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "netlink_network",
 		"iface":   input.DeviceName,

@@ -52,7 +52,7 @@ func validateBasicAuthToken(suppliedToken string, expectedToken string) error {
 
 	data := base64.StdEncoding.EncodeToString([]byte(expectedToken))
 
-	if strings.Compare(suppliedToken, string(data)) != 0 {
+	if strings.Compare(suppliedToken, data) != 0 {
 		return errFailedBasicAuth
 	}
 
