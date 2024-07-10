@@ -7,8 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/vishvananda/netlink"
+
+	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
 const (
@@ -35,7 +36,7 @@ func NewIfaceName(ifaceType models.IfaceType) (string, error) {
 		return "", interfaceErrorf("unknown interface type: %s", ifaceType)
 	}
 
-	for i := 0; i < retryGenerate; i++ {
+	for range retryGenerate {
 		name, err := generateRandomName(devPrefix)
 		if err != nil {
 			continue

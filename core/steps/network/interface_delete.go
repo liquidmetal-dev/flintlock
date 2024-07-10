@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
-	"github.com/sirupsen/logrus"
 )
 
 func DeleteNetworkInterface(vmid *models.VMID,
@@ -96,6 +97,6 @@ func (s deleteInterface) ShouldDo(ctx context.Context) (bool, error) {
 	return exists, nil
 }
 
-func (s deleteInterface) Verify(ctx context.Context) error {
+func (s deleteInterface) Verify(_ context.Context) error {
 	return nil
 }

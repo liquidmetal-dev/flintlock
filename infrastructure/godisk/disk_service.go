@@ -32,7 +32,7 @@ type diskService struct {
 }
 
 // Create will create a new disk.
-func (s *diskService) Create(ctx context.Context, input ports.DiskCreateInput) error {
+func (s *diskService) Create(_ context.Context, input ports.DiskCreateInput) error {
 	if input.Path == "" {
 		return errPathRequired
 	}
@@ -59,7 +59,7 @@ func (s *diskService) Create(ctx context.Context, input ports.DiskCreateInput) e
 		return fmt.Errorf("converting disk size %s: %w", input.Size, err)
 	}
 
-	createdDisk, err := diskfs.Create(input.Path, int64(diskSize), diskfs.Raw, diskfs.SectorSizeDefault)
+	createdDisk, err := diskfs.Create(input.Path, diskSize, diskfs.Raw, diskfs.SectorSizeDefault)
 	if err != nil {
 		return fmt.Errorf("creating disk %s: %w", input.Path, err)
 	}

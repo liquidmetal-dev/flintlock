@@ -48,13 +48,18 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 	return nil
 }
 
-func (p *provider) startCloudHypervisor(ctx context.Context, vm *models.MicroVM, state State, detached bool, logger *logrus.Entry) (*os.Process, error) {
+func (p *provider) startCloudHypervisor(_ context.Context,
+	vm *models.MicroVM,
+	state State,
+	detached bool,
+	logger *logrus.Entry,
+) (*os.Process, error) {
 	args, err := p.buildArgs(vm, state, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
+	cmd := exec.Command(p.config.CloudHypervisorBin, args...) //nolint: gosec // TODO: need to validate the args
 
 	stdOutFile, err := p.fs.OpenFile(state.StdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
@@ -84,7 +89,7 @@ func (p *provider) startCloudHypervisor(ctx context.Context, vm *models.MicroVM,
 	return cmd.Process, nil
 }
 
-func (p *provider) buildArgs(vm *models.MicroVM, state State, logger *logrus.Entry) ([]string, error) {
+func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) ([]string, error) {
 	args := []string{
 		"--api-socket",
 		state.SockPath(),
@@ -112,7 +117,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, logger *logrus.Ent
 	if !volumeStatusFound {
 		return nil, cerrors.NewVolumeNotMounted(vm.Spec.RootVolume.ID)
 	}
-	args = append(args, "--disk", fmt.Sprintf("path=%s", rootVolumeStatus.Mount.Source))
+	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
 	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
 
 	for _, vol := range vm.Spec.AdditionalVolumes {
@@ -120,7 +125,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, logger *logrus.Ent
 		if !ok {
 			return nil, cerrors.NewVolumeNotMounted(vol.ID)
 		}
-		args = append(args, fmt.Sprintf("path=%s", status.Mount.Source))
+		args = append(args, "path="+status.Mount.Source)
 	}
 
 	// Network interfaces
@@ -133,15 +138,16 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, logger *logrus.Ent
 		}
 
 		args = append(args, "--net")
-		if iface.Type == models.IfaceTypeMacvtap {
+		switch {
+		case iface.Type == models.IfaceTypeMacvtap:
 			arg, err := p.createMacvtapArg(&iface, status)
 			if err != nil {
 				return nil, fmt.Errorf("creating macvtap interface: %w", err)
 			}
 			args = append(args, arg)
-		} else if iface.Type == models.IfaceTypeTap {
+		case iface.Type == models.IfaceTypeTap:
 			args = append(args, fmt.Sprintf("tap=%s,mac=%s", status.HostDeviceName, iface.GuestMAC))
-		} else {
+		default:
 			return nil, fmt.Errorf("unknown network interface type %v for %s", iface.Type, iface.GuestDeviceName)
 		}
 	}
@@ -149,7 +155,9 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, logger *logrus.Ent
 	return args, nil
 }
 
-func (p *provider) createMacvtapArg(netInt *models.NetworkInterface, status *models.NetworkInterfaceStatus) (string, error) {
+func (p *provider) createMacvtapArg(netInt *models.NetworkInterface,
+	status *models.NetworkInterfaceStatus,
+) (string, error) {
 	hostDevName := fmt.Sprintf("/dev/tap%d", status.Index)
 	fd, err := syscall.Open(hostDevName, syscall.O_RDWR, 755)
 	if err != nil {
@@ -158,7 +166,7 @@ func (p *provider) createMacvtapArg(netInt *models.NetworkInterface, status *mod
 
 	arg := fmt.Sprintf("fd=%d,mac=", fd)
 	if netInt.GuestMAC != "" {
-		arg = arg + netInt.GuestMAC
+		arg += netInt.GuestMAC
 	}
 
 	return arg, nil

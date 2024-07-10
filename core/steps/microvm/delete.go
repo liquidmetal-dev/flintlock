@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
-	"github.com/sirupsen/logrus"
 )
 
 func NewDeleteStep(vm *models.MicroVM, vmSvc ports.MicroVMService) planner.Procedure {
@@ -60,6 +61,6 @@ func (s *deleteStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	return nil, nil
 }
 
-func (s *deleteStep) Verify(ctx context.Context) error {
+func (s *deleteStep) Verify(_ context.Context) error {
 	return nil
 }

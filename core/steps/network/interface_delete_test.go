@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	g "github.com/onsi/gomega"
+	"github.com/vishvananda/netlink"
+
 	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/core/steps/network"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
-	g "github.com/onsi/gomega"
-	"github.com/vishvananda/netlink"
 )
 
 func TestDeleteNetworkInterface_doesNotExist(t *testing.T) {

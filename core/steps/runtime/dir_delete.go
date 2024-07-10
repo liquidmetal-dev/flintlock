@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/liquidmetal-dev/flintlock/pkg/log"
-	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
 func NewDeleteDirectory(dir string, fs afero.Fs) planner.Procedure {
@@ -72,6 +73,6 @@ func (s *deleteDirectory) targetExists() (bool, error) {
 	return exists, nil
 }
 
-func (s *deleteDirectory) Verify(ctx context.Context) error {
+func (s *deleteDirectory) Verify(_ context.Context) error {
 	return nil
 }

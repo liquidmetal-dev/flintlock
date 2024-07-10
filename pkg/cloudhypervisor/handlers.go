@@ -25,6 +25,7 @@ func CustomErrValidator(failureMapping map[int]string) requests.ResponseHandler 
 
 		if res.ContentLength > 0 {
 			data, _ := io.ReadAll(res.Body)
+
 			return fmt.Errorf("%w: unexpected status: %d: %s",
 				(*requests.ResponseError)(res), res.StatusCode, string(data))
 		}
@@ -40,6 +41,7 @@ func ToJSONForCode(code int, dest interface{}) requests.ResponseHandler {
 	return func(res *http.Response) error {
 		if code != res.StatusCode {
 			dest = nil
+
 			return nil
 		}
 
@@ -50,6 +52,7 @@ func ToJSONForCode(code int, dest interface{}) requests.ResponseHandler {
 		if err = json.Unmarshal(data, dest); err != nil {
 			return err
 		}
+
 		return nil
 	}
 }

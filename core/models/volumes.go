@@ -32,7 +32,7 @@ func (v Volumes) GetByID(id string) *Volume {
 }
 
 // HasMountableVolumes returns true if any of the volumes
-// have a mount point defined
+// have a mount point defined.
 func (v Volumes) HasMountableVolumes() bool {
 	for _, vol := range v {
 		if vol.MountPoint != "" {

@@ -88,7 +88,7 @@ generate: ## Generate code
 	$(MAKE) generate-di
 
 .PHONY: generate-go
-generate-go: $(MOCKGEN) ## Generate Go Code 
+generate-go: $(MOCKGEN) ## Generate Go Code
 	go generate ./infrastructure/mock
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
@@ -165,7 +165,7 @@ $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Get and build golangci-lint
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golangci/golangci-lint/cmd/golangci-lint
 
 $(GINKGO): $(TOOLS_DIR)/go.mod  # Get and build gginkgo
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/ginkgo
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/v2/ginkgo
 
 $(MOCKGEN): $(TOOLS_DIR)/go.mod  # Get and build mockgen
 	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golang/mock/mockgen

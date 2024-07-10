@@ -1,31 +1,31 @@
 package cloudhypervisor
 
-// VmInfo represents information about the VM.
-type VmInfo struct {
-	Config           VmConfig               `json:"config"`
-	State            VmState                `json:"state"`
+// VMInfo represents information about the VM.
+type VMInfo struct {
+	Config           VMConfig               `json:"config"`
+	State            VMState                `json:"state"`
 	MemoryActualSize *int64                 `json:"memory_actual_size,omitempty"`
 	DeviceTree       *map[string]DeviceNode `json:"device_tree,omitempty"`
 }
 
-// VmState is type to represent the state of a VM.
-type VmState string
+// VMState is type to represent the state of a VM.
+type VMState string
 
 var (
-	// VmStateCreated is a state where the the VM is created.
-	VmStateCreated VmState = "Created"
-	// VmStateRunning is a state where the the VM is running.
-	VmStateRunning VmState = "Running"
-	// VmStateShutdown is a state where the the VM is shutdown.
-	VmStateShutdown VmState = "Shutdown"
-	// VmStatePaused is a state where the the VM is paused.
-	VmStatePaused VmState = "Paused"
-	// VmStateBreakPoint is a state where the the VM is stopped at a breakpoint.
-	VmStateBreakPoint VmState = "BreakPoint"
+	// VMStateCreated is a state where the VM is created.
+	VMStateCreated VMState = "Created"
+	// VMStateRunning is a state where the VM is running.
+	VMStateRunning VMState = "Running"
+	// VMStateShutdown is a state where the VM is shutdown.
+	VMStateShutdown VMState = "Shutdown"
+	// VMStatePaused is a state where the VM is paused.
+	VMStatePaused VMState = "Paused"
+	// VMStateBreakPoint is a state where the VM is stopped at a breakpoint.
+	VMStateBreakPoint VMState = "BreakPoint"
 )
 
-// VmConfig is the configuration for a VM.
-type VmConfig struct {
+// VMConfig is the configuration for a VM.
+type VMConfig struct {
 	Cpus     *CpusConfig     `json:"cpus,omitempty"`
 	Memory   *MemoryConfig   `json:"memory,omitempty"`
 	Payload  PayloadConfig   `json:"payload"`
@@ -73,19 +73,19 @@ type ConsoleConfig struct {
 	Iommu *bool       `json:"iommu,omitempty"`
 }
 
-// CpuAffinity is used to specify CPU affinity.
-type CpuAffinity struct {
+// CPUAffinity is used to specify CPU affinity.
+type CPUAffinity struct {
 	Vcpu     *int32  `json:"vcpu,omitempty"`
 	HostCpus []int32 `json:"host_cpus,omitempty"`
 }
 
-// CpuFeatures is used to enable / disable CPU features.
-type CpuFeatures struct {
+// CPUFeatures is used to enable / disable CPU features.
+type CPUFeatures struct {
 	Amx *bool `json:"amx,omitempty"`
 }
 
-// CpuTopology is configuration for the SPU topology.
-type CpuTopology struct {
+// CPUTopology is configuration for the SPU topology.
+type CPUTopology struct {
 	ThreadsPerCore *int32 `json:"threads_per_core,omitempty"`
 	CoresPerDie    *int32 `json:"cores_per_die,omitempty"`
 	DiesPerPackage *int32 `json:"dies_per_package,omitempty"`
@@ -97,10 +97,10 @@ type CpusConfig struct {
 	BootVcpus   int32         `json:"boot_vcpus"`
 	MaxVcpus    int32         `json:"max_vcpus"`
 	KvmHyperv   *bool         `json:"kvm_hyperv,omitempty"`
-	Topology    *CpuTopology  `json:"topology,omitempty"`
+	Topology    *CPUTopology  `json:"topology,omitempty"`
 	MaxPhysBits *int32        `json:"max_phys_bits,omitempty"`
-	Affinity    []CpuAffinity `json:"affinity,omitempty"`
-	Features    *CpuFeatures  `json:"features,omitempty"`
+	Affinity    []CPUAffinity `json:"affinity,omitempty"`
+	Features    *CPUFeatures  `json:"features,omitempty"`
 }
 
 // DeviceConfig represents configuration for a device attached to a VM.
@@ -108,12 +108,12 @@ type DeviceConfig struct {
 	Path       string  `json:"path"`
 	Iommu      *bool   `json:"iommu,omitempty"`
 	PciSegment *int32  `json:"pci_segment,omitempty"`
-	Id         *string `json:"id,omitempty"`
+	ID         *string `json:"id,omitempty"`
 }
 
 // DeviceNode represents a device attached to a VM.
 type DeviceNode struct {
-	Id        *string                  `json:"id,omitempty"`
+	ID        *string                  `json:"id,omitempty"`
 	Resources []map[string]interface{} `json:"resources,omitempty"`
 	Children  []string                 `json:"children,omitempty"`
 	PciBdf    *string                  `json:"pci_bdf,omitempty"`
@@ -131,7 +131,7 @@ type DiskConfig struct {
 	VhostSocket       *string            `json:"vhost_socket,omitempty"`
 	RateLimiterConfig *RateLimiterConfig `json:"rate_limiter_config,omitempty"`
 	PciSegment        *int32             `json:"pci_segment,omitempty"`
-	Id                *string            `json:"id,omitempty"`
+	ID                *string            `json:"id,omitempty"`
 }
 
 // FsConfig represents the configuration for a virtio-fs device.
@@ -141,7 +141,7 @@ type FsConfig struct {
 	NumQueues  int32   `json:"num_queues"`
 	QueueSize  int32   `json:"queue_size"`
 	PciSegment *int32  `json:"pci_segment,omitempty"`
-	Id         *string `json:"id,omitempty"`
+	ID         *string `json:"id,omitempty"`
 }
 
 // MemoryConfig represents the memory configuration for a VM.
@@ -160,7 +160,7 @@ type MemoryConfig struct {
 
 // MemoryZoneConfig represents the NUMA memory zone configuration.
 type MemoryZoneConfig struct {
-	Id             string  `json:"id"`
+	ID             string  `json:"id"`
 	Size           int64   `json:"size"`
 	File           *string `json:"file,omitempty"`
 	Mergeable      *bool   `json:"mergeable,omitempty"`
@@ -176,7 +176,7 @@ type MemoryZoneConfig struct {
 // NetConfig is the configuration for a network interface.
 type NetConfig struct {
 	Tap               *string            `json:"tap,omitempty"`
-	Ip                *string            `json:"ip,omitempty"`
+	IP                *string            `json:"ip,omitempty"`
 	Mask              *string            `json:"mask,omitempty"`
 	Mac               *string            `json:"mac,omitempty"`
 	Iommu             *bool              `json:"iommu,omitempty"`
@@ -185,14 +185,14 @@ type NetConfig struct {
 	VhostUser         *bool              `json:"vhost_user,omitempty"`
 	VhostSocket       *string            `json:"vhost_socket,omitempty"`
 	VhostMode         *string            `json:"vhost_mode,omitempty"`
-	Id                *string            `json:"id,omitempty"`
+	ID                *string            `json:"id,omitempty"`
 	PciSegment        *int32             `json:"pci_segment,omitempty"`
 	RateLimiterConfig *RateLimiterConfig `json:"rate_limiter_config,omitempty"`
 }
 
 // NumaConfig is the NUMA configuration for a VM.
 type NumaConfig struct {
-	GuestNumaId    int32          `json:"guest_numa_id"`
+	GuestNumaID    int32          `json:"guest_numa_id"`
 	Cpus           []int32        `json:"cpus,omitempty"`
 	Distances      []NumaDistance `json:"distances,omitempty"`
 	MemoryZones    []string       `json:"memory_zones,omitempty"`
@@ -207,7 +207,7 @@ type NumaDistance struct {
 
 // PciDeviceInfo represents information about a PCI device.
 type PciDeviceInfo struct {
-	Id  string `json:"id"`
+	ID  string `json:"id"`
 	Bdf string `json:"bdf"`
 }
 
@@ -215,7 +215,7 @@ type PciDeviceInfo struct {
 type PayloadConfig struct {
 	Kernel    string `json:"kernel"`
 	CmdLine   string `json:"cmdline,omitempty"`
-	InitRamFs string `json:"initramfs,omitempty"`
+	InitRAMFs string `json:"initramfs,omitempty"`
 }
 
 // PlatformConfig contains information about the platform.
@@ -234,10 +234,11 @@ type PmemConfig struct {
 	Iommu         *bool   `json:"iommu,omitempty"`
 	DiscardWrites *bool   `json:"discard_writes,omitempty"`
 	PciSegment    *int32  `json:"pci_segment,omitempty"`
-	Id            *string `json:"id,omitempty"`
+	ID            *string `json:"id,omitempty"`
 }
 
-// RateLimiterConfig defines an IO rate limiter with independent bytes/s and ops/s limits. Limits are defined by configuring each of the _bandwidth_ and _ops_ token buckets.
+// RateLimiterConfig defines an IO rate limiter with independent bytes/s and ops/s limits.
+// Limits are defined by configuring each of the _bandwidth_ and _ops_ token buckets.
 type RateLimiterConfig struct {
 	Bandwidth *TokenBucket `json:"bandwidth,omitempty"`
 	Ops       *TokenBucket `json:"ops,omitempty"`
@@ -245,12 +246,12 @@ type RateLimiterConfig struct {
 
 // ReceiveMigrationData is the configuration for receiving a VM migration.
 type ReceiveMigrationData struct {
-	ReceiverUrl string `json:"receiver_url"`
+	ReceiverURL string `json:"receiver_url"`
 }
 
 // RestoreConfig is the configuration for restoring a VM snapshot.
 type RestoreConfig struct {
-	SourceUrl string `json:"source_url"`
+	SourceURL string `json:"source_url"`
 	Prefault  *bool  `json:"prefault,omitempty"`
 }
 
@@ -262,13 +263,13 @@ type RngConfig struct {
 
 // SendMigrationData is the configuration for migrating a VM to another host.
 type SendMigrationData struct {
-	DestinationUrl string `json:"destination_url"`
+	DestinationURL string `json:"destination_url"`
 	Local          *bool  `json:"local,omitempty"`
 }
 
 // SgxEpcConfig is the SGX configuration.
 type SgxEpcConfig struct {
-	Id       string `json:"id"`
+	ID       string `json:"id"`
 	Size     int64  `json:"size"`
 	Prefault *bool  `json:"prefault,omitempty"`
 }
@@ -282,7 +283,8 @@ type TdxConfig struct {
 // and an interval for refilling purposes (_refill_time_). The refill-rate is derived from _size_ and _refill_time_,
 // and it is the constant rate at which the tokens replenish. The refill process only starts happening after the
 // initial burst budget is consumed. Consumption from the token bucket is unbounded in speed which allows for bursts
-// bound in size by the amount of tokens available. Once the token bucket is empty, consumption speed is bound by the refill-rate.
+// bound in size by the amount of tokens available. Once the token bucket is empty,
+// consumption speed is bound by the refill-rate.
 type TokenBucket struct {
 	Size         int64  `json:"size"`
 	OneTimeBurst *int64 `json:"one_time_burst,omitempty"`
@@ -295,40 +297,40 @@ type VdpaConfig struct {
 	NumQueues  int32   `json:"num_queues"`
 	Iommu      *bool   `json:"iommu,omitempty"`
 	PciSegment *int32  `json:"pci_segment,omitempty"`
-	Id         *string `json:"id,omitempty"`
+	ID         *string `json:"id,omitempty"`
 }
 
-// VmAddDevice represents the configuration for adding a new device to a VM.
-type VmAddDevice struct {
+// VMAddDevice represents the configuration for adding a new device to a VM.
+type VMAddDevice struct {
 	Path  *string `json:"path,omitempty"`
 	Iommu *bool   `json:"iommu,omitempty"`
-	Id    *string `json:"id,omitempty"`
+	ID    *string `json:"id,omitempty"`
 }
 
-// VmRemoveDevice represents the configuration for removing a device from a VM.
-type VmRemoveDevice struct {
-	Id *string `json:"id,omitempty"`
+// VMRemoveDevice represents the configuration for removing a device from a VM.
+type VMRemoveDevice struct {
+	ID *string `json:"id,omitempty"`
 }
 
-// VmResizeZone is the target size for a NUMA memory zone.
-type VmResizeZone struct {
-	Id         *string `json:"id,omitempty"`
-	DesiredRam *int64  `json:"desired_ram,omitempty"`
+// VMResizeZone is the target size for a NUMA memory zone.
+type VMResizeZone struct {
+	ID         *string `json:"id,omitempty"`
+	DesiredRAM *int64  `json:"desired_ram,omitempty"`
 }
 
-// VmResize is the target size for the VM.
-type VmResize struct {
+// VMResize is the target size for the VM.
+type VMResize struct {
 	DesiredVcpus   *int32 `json:"desired_vcpus,omitempty"`
-	DesiredRam     *int64 `json:"desired_ram,omitempty"`
+	DesiredRAM     *int64 `json:"desired_ram,omitempty"`
 	DesiredBalloon *int64 `json:"desired_balloon,omitempty"`
 }
 
-// VmSnapshotConfig is the configuration for taking a VM snapshot.
-type VmSnapshotConfig struct {
-	DestinationUrl *string `json:"destination_url,omitempty"`
+// VMSnapshotConfig is the configuration for taking a VM snapshot.
+type VMSnapshotConfig struct {
+	DestinationURL *string `json:"destination_url,omitempty"`
 }
 
-// VmmPingResponse is the details of the VMM
+// VmmPingResponse is the details of the VMM.
 type VmmPingResponse struct {
 	Version string `json:"version"`
 }
@@ -339,7 +341,7 @@ type VsockConfig struct {
 	Socket     string  `json:"socket"`
 	Iommu      *bool   `json:"iommu,omitempty"`
 	PciSegment *int32  `json:"pci_segment,omitempty"`
-	Id         *string `json:"id,omitempty"`
+	ID         *string `json:"id,omitempty"`
 }
 
 // VMCoreDumpData is the configuration for a core dump.
@@ -347,5 +349,5 @@ type VMCoreDumpData struct {
 	DestinationURL string `json:"destination_url"`
 }
 
-// VmCounters is the perf counters exposed from the VM.
-type VmCounters map[string]map[string]int64
+// VMCounters is the perf counters exposed from the VM.
+type VMCounters map[string]map[string]int64

@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/internal/command/flags"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/internal/inject"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 )
 
 type serveFunc func(http.ResponseWriter, *http.Request)
@@ -30,7 +32,7 @@ func serveCommand() *cli.Command {
 			flags.WithHTTPEndpointFlags(),
 			flags.WithGlobalConfigFlags(),
 		),
-		Action: func(c *cli.Context) error {
+		Action: func(_ *cli.Context) error {
 			return serve(cfg)
 		},
 	}
@@ -51,7 +53,13 @@ func serve(cfg *config.Config) error {
 
 	logrus.Infof("Start listening on %s", cfg.HTTPAPIEndpoint)
 
-	return http.ListenAndServe(cfg.HTTPAPIEndpoint, router)
+	server := &http.Server{
+		Addr:              cfg.HTTPAPIEndpoint,
+		ReadHeaderTimeout: 3 * time.Second,
+		Handler:           router,
+	}
+
+	return server.ListenAndServe()
 }
 
 func getAllMachineMetrics(ctx context.Context, aports *ports.Collection, query models.ListMicroVMQuery) ([]ports.MachineMetrics, error) {
@@ -66,6 +74,7 @@ func getAllMachineMetrics(ctx context.Context, aports *ports.Collection, query m
 		provider, ok := aports.MicrovmProviders[machine.Spec.Provider]
 		if !ok {
 			logrus.Errorf("microvm provider %s isn't available for machine %s", machine.Spec.Provider, machine.ID)
+
 			continue
 		}
 
@@ -164,7 +173,7 @@ func serveMachinesByNamespace(aports *ports.Collection) serveFunc {
 }
 
 func serveAllMachines(aports *ports.Collection) serveFunc {
-	return func(response http.ResponseWriter, request *http.Request) {
+	return func(response http.ResponseWriter, _ *http.Request) {
 		mms, err := getAllMachineMetrics(context.Background(), aports, models.ListMicroVMQuery{})
 		if err != nil {
 			response.WriteHeader(http.StatusInternalServerError)

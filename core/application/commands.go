@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
+
 	"github.com/liquidmetal-dev/flintlock/api/events"
 	"github.com/liquidmetal-dev/flintlock/client/cloudinit"
 	"github.com/liquidmetal-dev/flintlock/client/cloudinit/instance"
@@ -14,8 +17,6 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/validation"
-	"github.com/sirupsen/logrus"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -216,6 +217,4 @@ func (a *app) addMetadataInterface(mvm *models.MicroVM) {
 	}
 	interfaces = append(interfaces, mvm.Spec.NetworkInterfaces...)
 	mvm.Spec.NetworkInterfaces = interfaces
-
-	return
 }

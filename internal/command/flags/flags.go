@@ -3,10 +3,11 @@ package flags
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/firecracker"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 	kernelSnapshotterFlag     = "containerd-kernel-ss"
 	containerdNamespace       = "containerd-ns"
 	maximumRetryFlag          = "maximum-retry"
-	basicAuthTokenFlag        = "basic-auth-token"
+	basicAuthTokenFlag        = "basic-auth-token" //nolint: gosec // This is a flag name
 	insecureFlag              = "insecure"
 	tlsCertFlag               = "tls-cert"
 	tlsKeyFlag                = "tls-key"
@@ -153,7 +154,7 @@ func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 	return nil
 }
 
-// AddMicrovmProviderFlagsToCommand will add the microvm provider flags to the supplied command
+// AddMicrovmProviderFlagsToCommand will add the microvm provider flags to the supplied command.
 func AddMicrovmProviderFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	addFirecrackerFlagsToCommand(cmd, cfg)
 	addCloudHypervisorFlagsToCommand(cmd, cfg)
@@ -197,7 +198,7 @@ func addFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"If true the child firecracker processes will be detached from the parent flintlock process.")
 }
 
-func addCloudHypervisorFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
+func addCloudHypervisorFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.CloudHypervisorBin,
 		cloudHypervisorBinFlag,
 		defaults.CloudHypervisorBin,
@@ -206,6 +207,4 @@ func addCloudHypervisorFlagsToCommand(cmd *cobra.Command, cfg *config.Config) er
 		cloudHypervisorDetachFlag,
 		defaults.CloudHypervisorDetach,
 		"If true the child cloud hypervisor processes will be detached from the parent flintlock process.")
-
-	return nil
 }

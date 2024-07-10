@@ -11,12 +11,18 @@ import (
 	"sync"
 	"time"
 
-	_ "net/http/pprof"
+	_ "net/http/pprof" // Register pprof handlers
 
 	grpc_mw "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
+
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	cmdflags "github.com/liquidmetal-dev/flintlock/internal/command/flags"
@@ -26,11 +32,6 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/auth"
 	"github.com/liquidmetal-dev/flintlock/pkg/flags"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
 )
 
 // NewCommand creates a new cobra command for running flintlock.
@@ -50,18 +51,19 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 			)
 
 			if cfg.ParentIface == "" && cfg.BridgeName == "" {
-				return errors.New("You must supply at least one of parent interface, bridge name")
+				return errors.New("you must supply at least one of parent interface, bridge name")
 			}
 
 			providerFound := false
 			for _, supportedProvider := range microvm.GetProviderNames() {
 				if supportedProvider == cfg.DefaultVMProvider {
 					providerFound = true
+
 					break
 				}
 			}
 			if !providerFound {
-				return fmt.Errorf("The provided default provider name %s isn't a supported provider", cfg.DefaultVMProvider)
+				return fmt.Errorf("the provided default provider name %s isn't a supported provider", cfg.DefaultVMProvider)
 			}
 			logger.Infof("Default microvm provider: %s", cfg.DefaultVMProvider)
 
@@ -282,8 +284,9 @@ func runPProf(ctx context.Context, cfg *config.Config) error {
 	logger.Warnf("Debug endpoint is ENABLED at %s", cfg.DebugEndpoint)
 
 	srv := &http.Server{
-		Addr:    cfg.DebugEndpoint,
-		Handler: http.DefaultServeMux,
+		Addr:              cfg.DebugEndpoint,
+		Handler:           http.DefaultServeMux,
+		ReadHeaderTimeout: 3 * time.Second,
 	}
 
 	go func() {
@@ -320,8 +323,9 @@ func serveHTTP(ctx context.Context, cfg *config.Config) error {
 	}
 
 	server := &http.Server{
-		Addr:    cfg.HTTPAPIEndpoint,
-		Handler: mux,
+		Addr:              cfg.HTTPAPIEndpoint,
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
 	}
 
 	go func() {

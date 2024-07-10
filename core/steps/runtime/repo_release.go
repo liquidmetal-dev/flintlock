@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
-	"github.com/sirupsen/logrus"
 )
 
 func NewRepoRelease(vm *models.MicroVM, repo ports.MicroVMRepository) planner.Procedure {
@@ -65,6 +66,6 @@ func (s *repoRelease) Do(ctx context.Context) ([]planner.Procedure, error) {
 	return nil, nil
 }
 
-func (s *repoRelease) Verify(ctx context.Context) error {
+func (s *repoRelease) Verify(_ context.Context) error {
 	return nil
 }

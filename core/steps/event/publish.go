@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
-	"github.com/sirupsen/logrus"
 )
 
 func NewPublish(topic string, event interface{}, eventSvc ports.EventService) planner.Procedure {
@@ -29,7 +30,7 @@ func (s *eventPublish) Name() string {
 	return "event_publish"
 }
 
-func (s *eventPublish) ShouldDo(ctx context.Context) (bool, error) {
+func (s *eventPublish) ShouldDo(_ context.Context) (bool, error) {
 	return true, nil
 }
 
@@ -47,6 +48,6 @@ func (s *eventPublish) Do(ctx context.Context) ([]planner.Procedure, error) {
 	return nil, nil
 }
 
-func (s *eventPublish) Verify(ctx context.Context) error {
+func (s *eventPublish) Verify(_ context.Context) error {
 	return nil
 }

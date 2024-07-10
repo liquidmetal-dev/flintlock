@@ -1,9 +1,10 @@
 package flags
 
 import (
+	"github.com/urfave/cli/v2"
+
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
-	"github.com/urfave/cli/v2"
 )
 
 type WithFlagsFunc func() []cli.Flag

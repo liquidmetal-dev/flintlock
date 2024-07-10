@@ -31,7 +31,7 @@ func (p *provider) createCloudInitImage(ctx context.Context, vm *models.MicroVM,
 			continue
 		}
 
-		dest := fmt.Sprintf("/%s", k)
+		dest := "/" + k
 		files = append(files, ports.DiskFile{
 			Path:          dest,
 			ContentBase64: v,

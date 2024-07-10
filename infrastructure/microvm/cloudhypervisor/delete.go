@@ -7,13 +7,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/liquidmetal-dev/flintlock/pkg/cloudhypervisor"
-	"github.com/liquidmetal-dev/flintlock/pkg/wait"
+	"github.com/sirupsen/logrus"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/pkg/cloudhypervisor"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
-	"github.com/sirupsen/logrus"
+	"github.com/liquidmetal-dev/flintlock/pkg/wait"
 )
 
 const (
@@ -61,7 +61,7 @@ func (p *provider) Delete(ctx context.Context, id string) error {
 			return false, infoErr
 		}
 
-		return info.State == cloudhypervisor.VmStateShutdown || info.State == cloudhypervisor.VmStateCreated, nil
+		return info.State == cloudhypervisor.VMStateShutdown || info.State == cloudhypervisor.VMStateCreated, nil
 	}
 
 	shutDownTimeout := shutdownTimeOutSeconds * time.Second

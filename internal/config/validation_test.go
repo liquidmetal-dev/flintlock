@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 func TestValidateTLSConfig(t *testing.T) {
 	g := NewWithT(t)
 
-	tempFile, err := ioutil.TempFile("", "certfile")
+	tempFile, err := os.CreateTemp("", "certfile")
 	g.Expect(err).NotTo(HaveOccurred())
 	t.Cleanup(func() {
 		g.Expect(os.Remove(tempFile.Name())).To(Succeed())

@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
-	"github.com/sirupsen/logrus"
 )
 
 func NewKernelMount(vm *models.MicroVM, imageService ports.ImageService) planner.Procedure {
@@ -95,6 +96,6 @@ func (s *kernelMount) getMountSpec() *ports.ImageMountSpec {
 	}
 }
 
-func (s *kernelMount) Verify(ctx context.Context) error {
+func (s *kernelMount) Verify(_ context.Context) error {
 	return nil
 }
