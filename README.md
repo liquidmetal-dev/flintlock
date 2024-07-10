@@ -70,6 +70,10 @@ The table below shows you which versions of Firecracker are compatible with Flin
 
 [MPL-2.0 License][license]
 
+## Acknowledgements
+
+The biggest acknowledgement goes to @Weaveworks who where pioneers in the early Kubernetes world and produced some fantastic open source that lives on despite the demise of the company. A big thank you to the company and everyone that worked there. It was the engineers at Weaveworks that originally created Liquid Metal. RIP Weaveworks.
+
 [quickstart]: https://www.liquidmetal.dev
 [contrib]: ./CONTRIBUTING.md
 [coc]: ./CODE_OF_CONDUCT.md
