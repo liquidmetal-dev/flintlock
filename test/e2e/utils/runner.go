@@ -13,7 +13,7 @@ import (
 
 	ccfg "github.com/containerd/containerd/services/server/config"
 	"github.com/containerd/containerd/snapshots/devmapper/dmsetup"
-	gk "github.com/onsi/ginkgo"
+	gk "github.com/onsi/ginkgo/v2"
 	gm "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pelletier/go-toml"

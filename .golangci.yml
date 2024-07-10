@@ -1,19 +1,13 @@
 run:
-  go: "1.18"
+  go: "1.22"
   timeout: 10m
   tests: false
   allow-parallel-runners: true
-  skip-dirs:
-    - "./*/mock"
 
 linters-settings:
   funlen:
     lines: 110
     statements: 60
-  staticcheck:
-    go: "1.18"
-  stylecheck:
-    go: "1.18"
   cyclop:
     max-complexity: 15
     skip-tests: true
@@ -22,13 +16,10 @@ linters-settings:
   lll:
     line-length: 120
   misspell:
-    locale: GB
+    locale: UK
   goimports:
     local-prefixes: github.com/liquidmetal-dev/flintlock
-  govet:
-    check-shadowing: true
   nolintlint:
-    allow-leading-space: false
     allow-unused: false
     require-explanation: true
     require-specific: false
@@ -85,21 +76,19 @@ issues:
     - path: test/e2e/
       linters:
         - goerr113
-        - gomnd
+        - mnd
     # remove this once https://github.com/golangci/golangci-lint/issues/2649 is closed
     - path: /
       linters:
         - typecheck
+  exclude-dirs:
+    - "./*/mock"
 
 linters:
   enable-all: true
   disable:
-    - exhaustivestruct
-    - golint
-    - interfacer
+    - depguard
     - ireturn
-    - maligned
     - nilnil
-    - scopelint
     - tagliatelle
     - gomoddirectives

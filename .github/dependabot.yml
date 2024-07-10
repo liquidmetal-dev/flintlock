@@ -2,6 +2,9 @@ version: 2
 updates:
   - package-ecosystem: "gomod"
     directory: "/"
+    directories:
+      - "/"
+      - "./hack/tools"
     schedule:
       interval: "weekly"
     labels:
