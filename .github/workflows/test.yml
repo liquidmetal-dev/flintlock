@@ -7,7 +7,7 @@ jobs:
     name: test
     runs-on: ubuntu-latest
     steps:
-      - uses: yitsushi/devmapper-containerd-action@628cd44c88379567d478f3638a2251d4c373a0e8 # v1.0.1
+      - uses: yitsushi/devmapper-containerd-action@bfb86f4fe3121aeb8a1b06601b3f07d064665204 # v1.0.1
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
