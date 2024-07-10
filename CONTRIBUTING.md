@@ -12,7 +12,7 @@ If we have missed anything you think should be included, or if anything is not
 clear, we also accept contributions to this contribution doc :smile:.
 
 The list of maintainers can be found [here](MAINTAINERS). To reach out to the team
-please join the [#liquid-metal][slack-channel] slack channel.
+please join the [#liquidmetal][slack-channel] channel in the CNCF slack.
 
 Reading docs is often tedious, so we'll put our most important contributing rule
 right at the top: **Always be kind!**
@@ -607,7 +607,7 @@ Contributors are also welcome to backfill ADRs if they are found to be missing.
 # :rocket: :tada: Thanks for reading! :tada: :rocket:
 
 [user-docs]: https://www.liquidmetal.dev/flintlock/
-[slack-channel]: https://weave-community.slack.com/archives/C02KARWGR7S
+[slack-channel]: https://cloud-native.slack.com/archives/C07B5R5BLBZ
 [quick-start]: ./docs/quick-start.md
 [discussions]: https://github.com/liquidmetal-dev/flintlock/discussions
 [adr-template]: ./docs/adr/0000-template.md
