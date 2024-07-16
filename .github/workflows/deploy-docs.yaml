@@ -31,18 +31,18 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
         with:
-          node-version: 18
-          cache: npm
-          cache-dependency-path: 'userdocs/package-lock.json'
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: 'userdocs/yarn.lock'
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v3
       - name: Install dependencies
         working-directory: ./userdocs
-        run: npm install
+        run: yarn install --frozen-lockfile
       - name: Build website
         working-directory: ./userdocs
-        run: npm run build
+        run: yarn build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
@@ -50,12 +50,13 @@ jobs:
 
   # Deployment job
   deploy:
+    name: Deploy to GitHub pages
+    needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
