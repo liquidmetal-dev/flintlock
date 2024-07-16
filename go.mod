@@ -50,7 +50,7 @@ require (
 	github.com/containerd/containerd/api v1.7.19
 	github.com/containerd/platforms v0.2.1
 	github.com/containerd/typeurl/v2 v2.2.0
-	github.com/diskfs/go-diskfs v1.3.0
+	github.com/diskfs/go-diskfs v1.4.0
 	github.com/docker/go-units v0.5.0
 	github.com/gorilla/mux v1.8.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -82,6 +82,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
+	github.com/elliotwutingfeng/asciiset v0.0.0-20230602022725-51bbb787efab // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -122,7 +123,7 @@ require (
 	github.com/opencontainers/selinux v1.11.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
-	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
