@@ -49,7 +49,7 @@ require (
 	github.com/carlmjohnson/requests v0.23.5
 	github.com/containerd/containerd/api v1.7.19
 	github.com/containerd/platforms v0.2.1
-	github.com/containerd/typeurl/v2 v2.1.1
+	github.com/containerd/typeurl/v2 v2.2.0
 	github.com/diskfs/go-diskfs v1.3.0
 	github.com/docker/go-units v0.5.0
 	github.com/gorilla/mux v1.8.1
