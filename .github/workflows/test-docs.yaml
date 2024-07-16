@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  test-deploy:
-    name: Test docs build
+  build:
+    name: Build docusaurus
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,15 +16,12 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
         with:
-          node-version: 18
-          cache: npm
-          cache-dependency-path: 'userdocs/package-lock.json'
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v3
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: 'userdocs/yarn.lock'
       - name: Install dependencies
         working-directory: ./userdocs
-        run: npm install
+        run: yarn install --frozen-lockfile
       - name: Build website
         working-directory: ./userdocs
-        run: npm run build
+        run: yarn build
