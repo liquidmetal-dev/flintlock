@@ -203,26 +203,6 @@ $(BUF): $(TOOLS_BIN_DIR) $(BUF_SHARE)
 	cp $(TOOLS_SHARE_DIR)/buf/bin/* $(TOOLS_BIN_DIR)
 	rm -rf $(TOOLS_SHARE_DIR)/buf
 
-##@ Docs
-.PHONY: docs-install
-docs-install:
-	@if [ ! -d "userdocs/node_modules" ]; then \
-		echo " >>> yarn install"; \
-		cd ./userdocs && yarn install; \
-	fi
-
-.PHONY: docs-build
-docs-build: ## Build userdocs site
-docs-build: generate-proto docs-install
-	cd ./userdocs && yarn build
-
-.PHONY: docs-deploy
-docs-deploy: docs-build
-	cd ./userdocs && \
-		DEPLOYMENT_BRANCH=gh-pages \
-		USE_SSH=true \
-		yarn deploy
-
 ##@ Utility
 
 .PHONY: help
