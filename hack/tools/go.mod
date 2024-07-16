@@ -8,9 +8,9 @@ require (
 	github.com/google/wire v0.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
 	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/pseudomuto/protoc-gen-doc v1.5.0
+	github.com/pseudomuto/protoc-gen-doc v1.5.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
