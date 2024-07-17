@@ -23,6 +23,7 @@ defaults:
 
 jobs:
   build:
+    name: Build docusaurus
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
