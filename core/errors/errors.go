@@ -136,7 +136,7 @@ type notSupportedError struct {
 
 // Error returns the error message.
 func (e notSupportedError) Error() string {
-	return e.unsupported + "is not supported"
+	return e.unsupported + " is not supported"
 }
 
 // IsNotSupported tests an error to see if its a not supported error.
