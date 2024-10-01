@@ -3,6 +3,18 @@ updates:
   - package-ecosystem: "gomod"
     directories:
       - "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "kind/cleanup"
+      - "area/dependency"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directories:
       - "./hack/tools"
     schedule:
       interval: "weekly"
