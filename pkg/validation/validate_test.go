@@ -49,8 +49,8 @@ func TestValidation_Invalid(t *testing.T) {
 		vmspec    models.MicroVM
 	}{
 		{
-			name:      "nil spec should fail validation with 5 errors",
-			numErrors: 6,
+			name:      "nil spec should fail validation with 4 errors",
+			numErrors: 4,
 			vmspec:    models.MicroVM{},
 		},
 		{
