@@ -48,7 +48,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
 				im.GenerateRandom().Return("id1234", nil).Times(1)
 
-				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability})
+				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability, models.MacvtapCapability}).AnyTimes()
 
 				im.GenerateRandom().Return(testUID, nil).Times(1)
 
@@ -90,7 +90,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			specToCreate: createTestSpec("id1234", "default", testUID),
 			expectError:  false,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
-				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability})
+				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability, models.MacvtapCapability}).AnyTimes()
 				im.GenerateRandom().Return(testUID, nil).Times(1)
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
@@ -152,7 +152,7 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			specToCreate: createTestSpecWithMetadata("id1234", "default", testUID, createInstanceMetadatadata(t, "abcdef")),
 			expectError:  false,
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
-				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability})
+				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability, models.MacvtapCapability}).AnyTimes()
 				im.GenerateRandom().Return(testUID, nil).Times(1)
 				rm.Get(
 					gomock.AssignableToTypeOf(context.Background()),
