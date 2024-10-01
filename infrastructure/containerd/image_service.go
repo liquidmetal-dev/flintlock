@@ -45,7 +45,7 @@ type imageService struct {
 func (im *imageService) Pull(ctx context.Context, input *ports.ImageSpec) error {
 	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
 	actionMessage := fmt.Sprintf("getting image %s for owner %s", input.ImageName, input.Owner)
-	logger.Debugf(actionMessage)
+	logger.Debug(actionMessage)
 
 	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
 
