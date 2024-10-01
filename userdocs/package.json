@@ -31,6 +31,9 @@
     "styled-components": "^6.1.13",
     "url-loader": "^4.1.1"
   },
+  "engines": {
+    "node": ">=18.0"
+  },
   "browserslist": {
     "production": [
       ">0.5%",
