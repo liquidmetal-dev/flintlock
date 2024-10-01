@@ -1,8 +1,8 @@
 module github.com/liquidmetal-dev/flintlock/hack/tools
 
-go 1.22.1
+go 1.23
 
-toolchain go1.22.6
+toolchain go1.23.1
 
 require (
 	github.com/golang/mock v1.6.0

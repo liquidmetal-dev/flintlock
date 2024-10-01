@@ -7,10 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/snapshots"
+	"github.com/containerd/errdefs"
 	"github.com/opencontainers/image-spec/identity"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
