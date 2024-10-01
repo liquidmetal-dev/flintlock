@@ -1,6 +1,7 @@
 module github.com/liquidmetal-dev/flintlock
 
-go 1.22
+go 1.23
+
 toolchain go1.23.1
 
 replace (
