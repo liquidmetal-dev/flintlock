@@ -2,6 +2,16 @@
 title: Firecracker
 ---
 
+:::danger
+We no longer support using the forked version of Firecracker. Please use an upstream
+version. Download the binaries from [Github](https://github.com/firecracker-microvm/firecracker).
+
+If you require macvtap network interfaces then please use Cloud Hypervisor as
+the VM provider instead.
+:::
+
+
+
 We have to use a custom built firecracker from the `feature/macvtap` branch
 ([see][discussion-107]).
 

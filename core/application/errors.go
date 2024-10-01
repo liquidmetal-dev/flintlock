@@ -7,7 +7,10 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
-var errUIDRequired = errors.New("uid is required")
+var (
+	errUIDRequired         = errors.New("uid is required")
+	errMacvtapNotSupported = errors.New("macvtap network interfaces not supported by the microvm provider")
+)
 
 type specAlreadyExistsError struct {
 	name      string

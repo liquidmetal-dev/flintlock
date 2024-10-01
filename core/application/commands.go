@@ -87,6 +87,14 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		}
 	}
 
+	if !provider.Capabilities().Has(models.MacvtapCapability) {
+		for _, netInt := range mvm.Spec.NetworkInterfaces {
+			if netInt.Type == models.IfaceTypeMacvtap {
+				return nil, errMacvtapNotSupported
+			}
+		}
+	}
+
 	err = a.addInstanceData(mvm, logger)
 	if err != nil {
 		return nil, fmt.Errorf("adding instance data: %w", err)

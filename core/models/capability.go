@@ -12,6 +12,10 @@ const (
 	// as part of the creation process. If a provider doesn't have this capability then its assumed the
 	// microvm will be started via a call to the start implementation of the provider.
 	AutoStartCapability Capability = "auto-start"
+
+	// MacvtapCapability is a capability that indocates the microvm provider
+	// has support for macvtap network interfaces.
+	MacvtapCapability Capability = "macvtap"
 )
 
 // Capabilities represents a list of capabilities.
