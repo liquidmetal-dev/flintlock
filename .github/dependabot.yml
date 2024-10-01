@@ -10,9 +10,9 @@ updates:
       - "kind/cleanup"
       - "area/dependency"
     groups:
-      gomod:
-        update-types:
-          - "patch"
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -23,10 +23,9 @@ updates:
       - "kind/cleanup"
       - "area/build-and-release"
     groups:
-      actions:
-        update-types:
-          - "minor"
-          - "patch"
+      dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -35,3 +34,20 @@ updates:
     labels:
       - "kind/cleanup"
       - "area/build-and-release"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/userdocs"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "kind/cleanup"
+      - "kind/documentation"
+      - "area/build-and-release"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
