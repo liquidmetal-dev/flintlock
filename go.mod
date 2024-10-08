@@ -43,13 +43,14 @@ require (
 	github.com/vishvananda/netlink v1.3.0
 	golang.org/x/net v0.28.0 // indirect
 	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
 	github.com/carlmjohnson/requests v0.24.2
 	github.com/containerd/containerd/api v1.7.19
+	github.com/containerd/errdefs v0.1.0
 	github.com/containerd/platforms v0.2.1
 	github.com/containerd/typeurl/v2 v2.2.0
 	github.com/diskfs/go-diskfs v1.4.2
@@ -58,7 +59,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/liquidmetal-dev/flintlock/api v0.0.0-20230211152005-2177e42d0ee6
 	github.com/liquidmetal-dev/flintlock/client v0.0.0-20230211152005-2177e42d0ee6
-	github.com/onsi/ginkgo/v2 v2.20.1
+	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/urfave/cli/v2 v2.27.4
 	github.com/yitsushi/file-tailor v1.0.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -75,7 +76,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/continuity v0.4.2 // indirect
-	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/ttrpc v1.2.5 // indirect
