@@ -54,12 +54,38 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	detached bool,
 	logger *logrus.Entry,
 ) (*os.Process, error) {
+
+	logger.Debugf("creating virtiofsd")
+
+    cmdVirtioFS := exec.Command("/usr/libexec/virtiofsd", 
+        "--socket-path="+state.VirtioFSPath(),
+        "-o", "source=/mnt/user/appdata,cache=always,sandbox=chroot,xattr")
+	stdOutFileVirtioFS, err := p.fs.OpenFile(state.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	if err != nil {
+		return nil, fmt.Errorf("opening stdout file %s: %w", state.VirtioFSStdoutPath(), err)
+	}
+	
+	stdErrFileVirtioFS, err := p.fs.OpenFile(state.VirtioFSStderrPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	if err != nil {
+		return nil, fmt.Errorf("opening sterr file %s: %w", state.VirtioFSStderrPath(), err)
+	}
+
+	cmdVirtioFS.Stderr = stdErrFileVirtioFS
+	cmdVirtioFS.Stdout = stdOutFileVirtioFS
+	cmdVirtioFS.Stdin = &bytes.Buffer{}
+
+	var startErr error
+	startErr = cmdVirtioFS.Start()
+	if startErr != nil {
+		return nil, fmt.Errorf("starting virtiofsd process: %w", err)
+	}
+
 	args, err := p.buildArgs(vm, state, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := exec.Command(p.config.CloudHypervisorBin, args...) //nolint: gosec // TODO: need to validate the args
+	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
 
 	stdOutFile, err := p.fs.OpenFile(state.StdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
@@ -74,8 +100,6 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	cmd.Stderr = stdErrFile
 	cmd.Stdout = stdOutFile
 	cmd.Stdin = &bytes.Buffer{}
-
-	var startErr error
 	if detached {
 		startErr = process.DetachedStart(cmd)
 	} else {
@@ -110,7 +134,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 
 	// CPU and memory
 	args = append(args, "--cpus", fmt.Sprintf("boot=%d", vm.Spec.VCPU))
-	args = append(args, "--memory", fmt.Sprintf("size=%dM", vm.Spec.MemoryInMb))
+	args = append(args, "--memory", fmt.Sprintf("size=%dM,shared=on", vm.Spec.MemoryInMb))
 
 	// Volumes (root, additional, metadata)
 	rootVolumeStatus, volumeStatusFound := vm.Status.Volumes[vm.Spec.RootVolume.ID]
@@ -119,6 +143,8 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
 	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
+	// --fs tag=myfs,socket=/tmp/virtiofs,num_queues=1,queue_size=512
+	args = append(args, "--fs", fmt.Sprintf("tag=appdata,socket=%s,num_queues=1,queue_size=512", state.VirtioFSPath()))
 
 	for _, vol := range vm.Spec.AdditionalVolumes {
 		status, ok := vm.Status.Volumes[vol.ID]
