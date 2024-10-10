@@ -144,7 +144,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
 	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
 	// --fs tag=myfs,socket=/tmp/virtiofs,num_queues=1,queue_size=512
-	args = append(args, "--fs", fmt.Sprintf("tag=appdata,socket=%s,num_queues=1,queue_size=512", state.VirtioFSPath()))
+	args = append(args, "--fs", fmt.Sprintf("tag=appdata,socket=%s,num_queues=1,queue_size=1024", state.VirtioFSPath()))
 
 	for _, vol := range vm.Spec.AdditionalVolumes {
 		status, ok := vm.Status.Volumes[vol.ID]
