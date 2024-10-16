@@ -57,9 +57,9 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 
 	logger.Debugf("creating virtiofsd")
 
-    cmdVirtioFS := exec.Command("/usr/libexec/virtiofsd", 
+    cmdVirtioFS := exec.Command("/usr/libexec/virtiofsd",
         "--socket-path="+state.VirtioFSPath(),
-        "-o", "source=/mnt/user,cache=always,sandbox=chroot,xattr")
+        "-o", "source=/mnt/user,cache=none,sandbox=chroot,xattr")
 	stdOutFileVirtioFS, err := p.fs.OpenFile(state.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening stdout file %s: %w", state.VirtioFSStdoutPath(), err)
