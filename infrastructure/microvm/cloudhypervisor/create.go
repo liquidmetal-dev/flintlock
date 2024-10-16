@@ -59,7 +59,7 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 
     cmdVirtioFS := exec.Command("/usr/libexec/virtiofsd",
         "--socket-path="+state.VirtioFSPath(),
-        "-o", "source=/mnt/user,cache=none,sandbox=chroot,xattr")
+        "-o", "source=/mnt/user,cache=always,sandbox=chroot,announce_submounts")
 	stdOutFileVirtioFS, err := p.fs.OpenFile(state.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening stdout file %s: %w", state.VirtioFSStdoutPath(), err)
@@ -144,7 +144,8 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
 	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
 	// --fs tag=myfs,socket=/tmp/virtiofs,num_queues=1,queue_size=512
-	args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024,announce_submounts,allow_root", state.VirtioFSPath()))
+	args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", state.VirtioFSPath()))
+
 
 	for _, vol := range vm.Spec.AdditionalVolumes {
 		status, ok := vm.Status.Volumes[vol.ID]
