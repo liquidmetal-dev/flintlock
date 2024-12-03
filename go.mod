@@ -50,7 +50,7 @@ require (
 require (
 	github.com/carlmjohnson/requests v0.24.3
 	github.com/containerd/containerd/api v1.8.0
-	github.com/containerd/errdefs v0.3.0
+	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/platforms v0.2.1
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/diskfs/go-diskfs v1.4.2
