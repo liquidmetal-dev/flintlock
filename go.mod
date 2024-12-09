@@ -42,7 +42,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/vishvananda/netlink v1.3.0
 	golang.org/x/net v0.30.0 // indirect
-	google.golang.org/grpc v1.68.0
+	google.golang.org/grpc v1.68.1
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -50,7 +50,7 @@ require (
 require (
 	github.com/carlmjohnson/requests v0.24.3
 	github.com/containerd/containerd/api v1.8.0
-	github.com/containerd/errdefs v0.3.0
+	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/platforms v0.2.1
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/diskfs/go-diskfs v1.4.2
