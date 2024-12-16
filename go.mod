@@ -30,7 +30,7 @@ require (
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/oklog/ulid v1.3.1
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.36.0
+	github.com/onsi/gomega v1.36.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/pelletier/go-toml v1.9.5
@@ -42,15 +42,15 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/vishvananda/netlink v1.3.0
 	golang.org/x/net v0.30.0 // indirect
-	google.golang.org/grpc v1.68.0
-	google.golang.org/protobuf v1.35.2
+	google.golang.org/grpc v1.69.0
+	google.golang.org/protobuf v1.36.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
 	github.com/carlmjohnson/requests v0.24.3
 	github.com/containerd/containerd/api v1.8.0
-	github.com/containerd/errdefs v0.3.0
+	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/platforms v0.2.1
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/diskfs/go-diskfs v1.4.2
@@ -144,9 +144,9 @@ require (
 	go.mongodb.org/mongo-driver v1.11.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
-	go.opentelemetry.io/otel v1.24.0 // indirect
-	go.opentelemetry.io/otel/metric v1.24.0 // indirect
-	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+	go.opentelemetry.io/otel v1.31.0 // indirect
+	go.opentelemetry.io/otel/metric v1.31.0 // indirect
+	go.opentelemetry.io/otel/trace v1.31.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
