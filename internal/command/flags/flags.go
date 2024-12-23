@@ -31,6 +31,7 @@ const (
 	tlsClientCAFlag           = "tls-client-ca"
 	debugEndpointFlag         = "debug-endpoint"
 	cloudHypervisorBinFlag    = "cloudhypervisor-bin"
+	virtioFSBinFlag           = "virtiofs-bin"
 	cloudHypervisorDetachFlag = "cloudhypervisor-detach"
 )
 
@@ -203,6 +204,10 @@ func addCloudHypervisorFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		cloudHypervisorBinFlag,
 		defaults.CloudHypervisorBin,
 		"The path to the cloud hypervisor binary to use.")
+	cmd.Flags().StringVar(&cfg.VirtioFSBin,
+		virtioFSBinFlag,
+		defaults.VirtioFSBin,
+		"The path to the virtiofs binary to use.")
 	cmd.Flags().BoolVar(&cfg.CloudHypervisorDetatch,
 		cloudHypervisorDetachFlag,
 		defaults.CloudHypervisorDetach,

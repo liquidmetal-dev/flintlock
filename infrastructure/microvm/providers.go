@@ -70,6 +70,7 @@ func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 func cloudHypervisorConfig(cfg *config.Config) *cloudhypervisor.Config {
 	return &cloudhypervisor.Config{
 		CloudHypervisorBin: cfg.CloudHypervisorBin,
+		VirtioFSBin:        cfg.VirtioFSBin,
 		RunDetached:        cfg.CloudHypervisorDetatch,
 		StateRoot:          cfg.StateRootDir + "/vm",
 	}
