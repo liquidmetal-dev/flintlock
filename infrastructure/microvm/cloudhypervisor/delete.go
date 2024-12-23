@@ -87,7 +87,23 @@ func (p *provider) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to wait for pid %d: %w", pid, err)
 	}
 
-	logger.Info("deleted microvm")
+	pidVirtiofs, pidVirtiofsErr := vmState.PID()
+	if pidVirtiofsErr != nil {
+		return fmt.Errorf("unable to get VirtioFS PID: %w", pidVirtiofsErr)
+	}
+	processVirtioFSExists, err := process.Exists(pidVirtiofs)
+	if err != nil {
+		return fmt.Errorf("checking if VirtioFS process is running: %w", err)
+	}
+	if !processVirtioFSExists {
+		logger.Debugf("virtiofsd is not used")
+		logger.Info("deleted microvm")
+		return nil
+	}
+	logger.Debugf("sending SIGTERM to %d virtiofsd", pid)
+	if sigErr := process.SendSignal(pid, syscall.SIGTERM); sigErr != nil {
+		return fmt.Errorf("failed to terminate with SIGTERM: %w", sigErr)
+	}
 
 	return nil
 }

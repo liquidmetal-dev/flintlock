@@ -14,6 +14,7 @@ const (
 	logFileName       = "cloudhypervisor.log"
 	stdOutFileName    = "cloudhypervisor.stdout"
 	stdErrFileName    = "cloudhypervisor.stderr"
+	pidVirtioFSFileName       = "virtiofs.pid"
 	stdErrVirtioFSFileName    = "virtiofs.stderr"
 	stdOutVirtioFSFileName    = "virtiofs.stdout"
 	socketVirtiofsFileName    = "virtiofs.sock"
@@ -33,6 +34,10 @@ type State interface {
 	StderrPath() string
 	SockPath() string
 
+	VirtioPID() (int, error)
+	VirtioFSPIDPath() string
+	SetVirtioFSPid(pid int) error
+	
 	VirtioFSPath() string
 	VirtioFSStdoutPath() string
 	VirtioFSStderrPath() string
@@ -98,4 +103,16 @@ func (s *fsState)  VirtioFSStdoutPath() string {
 
 func (s *fsState)  VirtioFSStderrPath() string {
 	return fmt.Sprintf("%s/%s", s.stateRoot, stdErrVirtioFSFileName)
+}
+
+func (s *fsState) VirtioFSPIDPath() string {
+	return fmt.Sprintf("%s/%s", s.stateRoot, pidVirtioFSFileName)
+}
+
+func (s *fsState) VirtioPID() (int, error) {
+	return shared.PIDReadFromFile(s.VirtioFSPIDPath(), s.fs)
+}
+
+func (s *fsState) SetVirtioFSPid(pid int) error {
+	return shared.PIDWriteToFile(pid, s.VirtioFSPIDPath(), s.fs)
 }
