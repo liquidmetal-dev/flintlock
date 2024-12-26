@@ -100,11 +100,7 @@ const config = {
             items: [
               {
                 label: 'Slack',
-                href: 'https://slack.weave.works/',
-              },
-              {
-                label: 'Twitter',
-                href: 'https://twitter.com/weaveworks',
+                href: 'https://cloud-native.slack.com/archives/C07B5R5BLBZ',
               },
             ],
           },
