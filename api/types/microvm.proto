@@ -151,8 +151,18 @@ message Volume {
 message VolumeSource {
   // Container is used to specify a source of a volume as a OCI container.
   optional string container_source = 1;
+
+  optional string virtiofs_source = 2;
+
   //TODO: add CSI
 }
+
+// VirtioFSVolumeSource represents the details of a volume coming from a OCI image.
+message VirtioFSVolumeSource {
+    // Path on the host machine to pass through.
+    string path = 1;
+}
+
 
 // ContainerVolumeSource represents the details of a volume coming from a OCI image.
 message ContainerVolumeSource {
