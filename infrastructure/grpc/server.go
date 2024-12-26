@@ -34,14 +34,13 @@ func (s *server) CreateMicroVM(
 ) (*mvmv1.CreateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 	logger.Trace("converting request to model")
-
+	
 	if req == nil || req.Microvm == nil {
 		logger.Error("invalid create microvm request: MicroVMSpec required")
 
 		//nolint:wrapcheck // don't wrap grpc errors when using the status package
 		return nil, status.Error(codes.InvalidArgument, "invalid create microvm request: MicroVMSpec required")
 	}
-	logger.Infof("DEBUG VM: %s",  req.Microvm)
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)
@@ -55,8 +54,6 @@ func (s *server) CreateMicroVM(
 
 		return nil, fmt.Errorf("creating microvm: %w", err)
 	}
-
-	logger.Trace("converting model to response")
 
 	resp := &mvmv1.CreateMicroVMResponse{
 		Microvm: &types.MicroVM{

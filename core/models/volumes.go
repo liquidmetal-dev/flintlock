@@ -48,7 +48,8 @@ type VolumeSource struct {
 	// Container is used to specify a source of a volume as a OCI container.
 	Container *ContainerVolumeSource `json:"container,omitempty"`
 
-	VirtioFS *VirtioFSVolumeSource `json:"virtiofs,omitempty"`
+	// Used to specify path for virtiofsd
+	VirtioFS *VirtioFSVolumeSource `json:"virtiofs_source,omitempty"`
 }
 
 // ContainerDriveSource represents the details of a volume coming from a OCI image.

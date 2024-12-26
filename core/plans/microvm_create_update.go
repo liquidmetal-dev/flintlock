@@ -66,7 +66,7 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding root dir step: %w", err)
 	}
 
-		// MicroVM provider doesn't auto-start
+	// MicroVM provider doesn't have virtiofs
 	if provider.Capabilities().Has(models.VirtioFSCapability) {
 		if err := p.addVirtioFSSteps(ctx, p.vm); err != nil {
 			return nil, fmt.Errorf("adding virtiofs steps: %w", err)
