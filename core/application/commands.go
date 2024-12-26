@@ -37,6 +37,10 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, fmt.Errorf("an error occurred when attempting to validate microvm spec: %w", validErr)
 	}
 
+	if mvm.Spec.RootVolume.Source.VirtioFS != nil {
+		return nil, fmt.Errorf("VirtioFS is not available yet for RootVolume")
+	}
+
 	if mvm.ID.IsEmpty() {
 		name, err := a.ports.IdentifierService.GenerateRandom()
 		if err != nil {
