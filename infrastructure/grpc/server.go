@@ -41,7 +41,7 @@ func (s *server) CreateMicroVM(
 		//nolint:wrapcheck // don't wrap grpc errors when using the status package
 		return nil, status.Error(codes.InvalidArgument, "invalid create microvm request: MicroVMSpec required")
 	}
-
+	logger.Infof("DEBUG VM: %s",  req.Microvm)
 	modelSpec, err := convertMicroVMToModel(req.Microvm)
 	if err != nil {
 		return nil, fmt.Errorf("converting request: %w", err)

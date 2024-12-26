@@ -152,6 +152,7 @@ message VolumeSource {
   // Container is used to specify a source of a volume as a OCI container.
   optional string container_source = 1;
 
+  // Used for the virtiofs source path
   optional string virtiofs_source = 2;
 
   //TODO: add CSI

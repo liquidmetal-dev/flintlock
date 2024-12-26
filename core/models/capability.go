@@ -16,6 +16,8 @@ const (
 	// MacvtapCapability is a capability that indocates the microvm provider
 	// has support for macvtap network interfaces.
 	MacvtapCapability Capability = "macvtap"
+
+	VirtioFSCapability Capability = "virtiofs"
 )
 
 // Capabilities represents a list of capabilities.

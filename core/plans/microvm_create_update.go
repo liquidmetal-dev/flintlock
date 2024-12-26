@@ -66,6 +66,13 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding root dir step: %w", err)
 	}
 
+		// MicroVM provider doesn't auto-start
+	if provider.Capabilities().Has(models.VirtioFSCapability) {
+		if err := p.addVirtioFSSteps(ctx, p.vm); err != nil {
+			return nil, fmt.Errorf("adding virtiofs steps: %w", err)
+		}
+	}
+
 	// Images
 	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
 		return nil, fmt.Errorf("adding image steps: %w", err)
@@ -120,6 +127,25 @@ func (p *microvmCreateOrUpdatePlan) addStep(ctx context.Context, step planner.Pr
 
 	return nil
 }
+
+func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
+	vm *models.MicroVM,
+) error {
+	rootStatus, ok := vm.Status.Volumes[vm.Spec.RootVolume.ID]
+	if !ok {
+		rootStatus = &models.VolumeStatus{}
+		vm.Status.Volumes[vm.Spec.RootVolume.ID] = rootStatus
+	}
+	if vm.Spec.RootVolume.Source.VirtioFS != nil {
+		if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vm.Spec.RootVolume, rootStatus)); err != nil {
+			return fmt.Errorf("adding virtiofs root mount step: %w", err)
+		}
+	}
+	
+	return nil
+}
+
+
 
 func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 	vm *models.MicroVM,

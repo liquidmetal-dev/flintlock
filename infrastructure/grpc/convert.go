@@ -212,7 +212,11 @@ func convertModelToVolumne(modelVolume *models.Volume) *types.Volume {
 			ContainerSource: (*string)(&modelVolume.Source.Container.Image),
 		}
 	}
-
+	if modelVolume.Source.VirtioFS != nil {
+		convertedVol.Source = &types.VolumeSource{
+			VirtiofsSource: (*string)(&modelVolume.Source.VirtioFS.Path),
+		}
+	}
 	return convertedVol
 }
 

@@ -1,0 +1,68 @@
+package runtime
+
+import (
+	"context"
+	// "fmt"
+
+	"github.com/sirupsen/logrus"
+
+	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/planner"
+)
+
+func NewVirtioFSMount(vmid *models.VMID,
+	volume *models.Volume,
+	status *models.VolumeStatus,
+) planner.Procedure {
+	return &volumeVirtioFSMount{
+		vmid:     vmid,
+		volume:   volume,
+		status:   status,
+	}
+}
+
+type volumeVirtioFSMount struct {
+	vmid     *models.VMID
+	volume   *models.Volume
+	status   *models.VolumeStatus
+}
+
+// Name is the name of the procedure/operation.
+func (s *volumeVirtioFSMount) Name() string {
+	return "runtime_virtiofs"
+}
+
+func (s *volumeVirtioFSMount) ShouldDo(ctx context.Context) (bool, error) {
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"step": s.Name(),
+		"id":   s.volume.ID,
+	})
+	logger.Debug("checking if procedure should be run")
+
+	if s.status == nil || s.status.Mount.Source == "" {
+		return true, nil
+	}
+
+	return true,nil
+}
+
+// Do will perform the operation/procedure.
+func (s *volumeVirtioFSMount) Do(ctx context.Context) ([]planner.Procedure, error) {
+	if s.status == nil {
+		return nil, cerrs.ErrMissingStatusInfo
+	}
+
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"step": s.Name(),
+		"id":   s.volume.ID,
+	})
+	logger.Debug("running step for virtiofs volume")
+
+	return nil,nil
+}
+
+func (s *volumeVirtioFSMount) Verify(_ context.Context) error {
+	return nil
+}

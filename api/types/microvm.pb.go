@@ -804,7 +804,8 @@ type VolumeSource struct {
 
 	// Container is used to specify a source of a volume as a OCI container.
 	ContainerSource *string `protobuf:"bytes,1,opt,name=container_source,json=containerSource,proto3,oneof" json:"container_source,omitempty"`
-	VirtiofsSource  *string `protobuf:"bytes,2,opt,name=virtiofs_source,json=virtiofsSource,proto3,oneof" json:"virtiofs_source,omitempty"`
+	// Used for the virtiofs source path
+	VirtiofsSource *string `protobuf:"bytes,2,opt,name=virtiofs_source,json=virtiofsSource,proto3,oneof" json:"virtiofs_source,omitempty"`
 }
 
 func (x *VolumeSource) Reset() {

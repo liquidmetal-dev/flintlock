@@ -366,7 +366,7 @@ VolumeSource is the source of a volume. Based loosely on the volumes in Kubernet
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | container_source | [string](#string) | optional | Container is used to specify a source of a volume as a OCI container. |
-| virtiofs_source | [string](#string) | optional |  |
+| virtiofs_source | [string](#string) | optional | Used for the virtiofs source path |
 
 
 

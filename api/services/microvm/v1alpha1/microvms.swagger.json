@@ -519,7 +519,8 @@
           "description": "Container is used to specify a source of a volume as a OCI container."
         },
         "virtiofsSource": {
-          "type": "string"
+          "type": "string",
+          "title": "Used for the virtiofs source path"
         }
       },
       "description": "VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs."
