@@ -3,43 +3,44 @@
 
 ## Table of Contents
 
-- [types/microvm.proto](#types/microvm.proto)
-    - [ContainerVolumeSource](#flintlock.types.ContainerVolumeSource)
-    - [Initrd](#flintlock.types.Initrd)
-    - [Kernel](#flintlock.types.Kernel)
-    - [Kernel.CmdlineEntry](#flintlock.types.Kernel.CmdlineEntry)
-    - [MicroVM](#flintlock.types.MicroVM)
-    - [MicroVMSpec](#flintlock.types.MicroVMSpec)
-    - [MicroVMSpec.LabelsEntry](#flintlock.types.MicroVMSpec.LabelsEntry)
-    - [MicroVMSpec.MetadataEntry](#flintlock.types.MicroVMSpec.MetadataEntry)
-    - [MicroVMStatus](#flintlock.types.MicroVMStatus)
-    - [MicroVMStatus.NetworkInterfacesEntry](#flintlock.types.MicroVMStatus.NetworkInterfacesEntry)
-    - [MicroVMStatus.VolumesEntry](#flintlock.types.MicroVMStatus.VolumesEntry)
-    - [Mount](#flintlock.types.Mount)
-    - [NetworkInterface](#flintlock.types.NetworkInterface)
-    - [NetworkInterfaceStatus](#flintlock.types.NetworkInterfaceStatus)
-    - [NetworkOverrides](#flintlock.types.NetworkOverrides)
-    - [StaticAddress](#flintlock.types.StaticAddress)
-    - [Volume](#flintlock.types.Volume)
-    - [VolumeSource](#flintlock.types.VolumeSource)
-    - [VolumeStatus](#flintlock.types.VolumeStatus)
+- [types/microvm.proto](#types_microvm-proto)
+    - [ContainerVolumeSource](#flintlock-types-ContainerVolumeSource)
+    - [Initrd](#flintlock-types-Initrd)
+    - [Kernel](#flintlock-types-Kernel)
+    - [Kernel.CmdlineEntry](#flintlock-types-Kernel-CmdlineEntry)
+    - [MicroVM](#flintlock-types-MicroVM)
+    - [MicroVMSpec](#flintlock-types-MicroVMSpec)
+    - [MicroVMSpec.LabelsEntry](#flintlock-types-MicroVMSpec-LabelsEntry)
+    - [MicroVMSpec.MetadataEntry](#flintlock-types-MicroVMSpec-MetadataEntry)
+    - [MicroVMStatus](#flintlock-types-MicroVMStatus)
+    - [MicroVMStatus.NetworkInterfacesEntry](#flintlock-types-MicroVMStatus-NetworkInterfacesEntry)
+    - [MicroVMStatus.VolumesEntry](#flintlock-types-MicroVMStatus-VolumesEntry)
+    - [Mount](#flintlock-types-Mount)
+    - [NetworkInterface](#flintlock-types-NetworkInterface)
+    - [NetworkInterfaceStatus](#flintlock-types-NetworkInterfaceStatus)
+    - [NetworkOverrides](#flintlock-types-NetworkOverrides)
+    - [StaticAddress](#flintlock-types-StaticAddress)
+    - [VirtioFSVolumeSource](#flintlock-types-VirtioFSVolumeSource)
+    - [Volume](#flintlock-types-Volume)
+    - [VolumeSource](#flintlock-types-VolumeSource)
+    - [VolumeStatus](#flintlock-types-VolumeStatus)
   
-    - [MicroVMStatus.MicroVMState](#flintlock.types.MicroVMStatus.MicroVMState)
-    - [Mount.MountType](#flintlock.types.Mount.MountType)
-    - [NetworkInterface.IfaceType](#flintlock.types.NetworkInterface.IfaceType)
+    - [MicroVMStatus.MicroVMState](#flintlock-types-MicroVMStatus-MicroVMState)
+    - [Mount.MountType](#flintlock-types-Mount-MountType)
+    - [NetworkInterface.IfaceType](#flintlock-types-NetworkInterface-IfaceType)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="types/microvm.proto"></a>
+<a name="types_microvm-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
 ## types/microvm.proto
 
 
 
-<a name="flintlock.types.ContainerVolumeSource"></a>
+<a name="flintlock-types-ContainerVolumeSource"></a>
 
 ### ContainerVolumeSource
 ContainerVolumeSource represents the details of a volume coming from a OCI image.
@@ -54,7 +55,7 @@ ContainerVolumeSource represents the details of a volume coming from a OCI image
 
 
 
-<a name="flintlock.types.Initrd"></a>
+<a name="flintlock-types-Initrd"></a>
 
 ### Initrd
 Initrd represents the configuration for the initial ramdisk.
@@ -70,7 +71,7 @@ Initrd represents the configuration for the initial ramdisk.
 
 
 
-<a name="flintlock.types.Kernel"></a>
+<a name="flintlock-types-Kernel"></a>
 
 ### Kernel
 Kernel represents the configuration for a kernel.
@@ -79,7 +80,7 @@ Kernel represents the configuration for a kernel.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | image | [string](#string) |  | Image is the container image to use. |
-| cmdline | [Kernel.CmdlineEntry](#flintlock.types.Kernel.CmdlineEntry) | repeated | Cmdline is the additional kernel command line args. Each provider has its own recommended list, they will be used automatically. This field is for additional values. |
+| cmdline | [Kernel.CmdlineEntry](#flintlock-types-Kernel-CmdlineEntry) | repeated | Cmdline is the additional kernel command line args. Each provider has its own recommended list, they will be used automatically. This field is for additional values. |
 | filename | [string](#string) | optional | Filename is used to specify the name of the kernel file in the Image. |
 | add_network_config | [bool](#bool) |  | AddNetworkConfig if set to true indicates that the network-config kernel argument should be generated. |
 
@@ -88,7 +89,7 @@ Kernel represents the configuration for a kernel.
 
 
 
-<a name="flintlock.types.Kernel.CmdlineEntry"></a>
+<a name="flintlock-types-Kernel-CmdlineEntry"></a>
 
 ### Kernel.CmdlineEntry
 
@@ -104,7 +105,7 @@ Kernel represents the configuration for a kernel.
 
 
 
-<a name="flintlock.types.MicroVM"></a>
+<a name="flintlock-types-MicroVM"></a>
 
 ### MicroVM
 MicroVM represents a microvm machine that is created via a provider.
@@ -113,15 +114,15 @@ MicroVM represents a microvm machine that is created via a provider.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | version | [int32](#int32) |  |  |
-| spec | [MicroVMSpec](#flintlock.types.MicroVMSpec) |  | Spec is the specification of the microvm. |
-| status | [MicroVMStatus](#flintlock.types.MicroVMStatus) |  | Status is the runtime status of the microvm. |
+| spec | [MicroVMSpec](#flintlock-types-MicroVMSpec) |  | Spec is the specification of the microvm. |
+| status | [MicroVMStatus](#flintlock-types-MicroVMStatus) |  | Status is the runtime status of the microvm. |
 
 
 
 
 
 
-<a name="flintlock.types.MicroVMSpec"></a>
+<a name="flintlock-types-MicroVMSpec"></a>
 
 ### MicroVMSpec
 MicroVMSpec represents the specification for a microvm.
@@ -131,18 +132,18 @@ MicroVMSpec represents the specification for a microvm.
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  | ID is the identifier of the microvm. If this empty at creation time a ID will be automatically generated. |
 | namespace | [string](#string) |  | Namespace is the name of the namespace the microvm belongs to. |
-| labels | [MicroVMSpec.LabelsEntry](#flintlock.types.MicroVMSpec.LabelsEntry) | repeated | Labels allows you to include extra data for the microvms. |
+| labels | [MicroVMSpec.LabelsEntry](#flintlock-types-MicroVMSpec-LabelsEntry) | repeated | Labels allows you to include extra data for the microvms. |
 | vcpu | [int32](#int32) |  | VCPU specifies how many vcpu the machine will be allocated. |
 | memory_in_mb | [int32](#int32) |  | MemoryInMb is the amount of memory in megabytes that the machine will be allocated. |
-| kernel | [Kernel](#flintlock.types.Kernel) |  | Kernel is the details of the kernel to use . |
-| initrd | [Initrd](#flintlock.types.Initrd) | optional | Initrd is the optional details of the initial ramdisk. |
-| root_volume | [Volume](#flintlock.types.Volume) |  | RootVolume specifies the root volume mount for the MicroVM. |
-| additional_volumes | [Volume](#flintlock.types.Volume) | repeated | AdditionalVolumes specifies the volumes to be attached to the microvm. |
-| interfaces | [NetworkInterface](#flintlock.types.NetworkInterface) | repeated | Interfaces specifies the network interfaces to be attached to the microvm. Device names on the guest machine are determined by the order defined in the list starting from eth1, eth2, ..., ethN. |
-| metadata | [MicroVMSpec.MetadataEntry](#flintlock.types.MicroVMSpec.MetadataEntry) | repeated | Metadata allows you to specify data to be added to the metadata service. The key is the name of the metadata item and the value is the base64 encoded contents of the metadata. |
-| created_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | CreatedAt indicates the time the microvm was created at. |
-| updated_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | UpdatedAt indicates the time the microvm was last updated. |
-| deleted_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | DeletedAt indicates the time the microvm was marked as deleted. |
+| kernel | [Kernel](#flintlock-types-Kernel) |  | Kernel is the details of the kernel to use . |
+| initrd | [Initrd](#flintlock-types-Initrd) | optional | Initrd is the optional details of the initial ramdisk. |
+| root_volume | [Volume](#flintlock-types-Volume) |  | RootVolume specifies the root volume mount for the MicroVM. |
+| additional_volumes | [Volume](#flintlock-types-Volume) | repeated | AdditionalVolumes specifies the volumes to be attached to the microvm. |
+| interfaces | [NetworkInterface](#flintlock-types-NetworkInterface) | repeated | Interfaces specifies the network interfaces to be attached to the microvm. Device names on the guest machine are determined by the order defined in the list starting from eth1, eth2, ..., ethN. |
+| metadata | [MicroVMSpec.MetadataEntry](#flintlock-types-MicroVMSpec-MetadataEntry) | repeated | Metadata allows you to specify data to be added to the metadata service. The key is the name of the metadata item and the value is the base64 encoded contents of the metadata. |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | CreatedAt indicates the time the microvm was created at. |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | UpdatedAt indicates the time the microvm was last updated. |
+| deleted_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | DeletedAt indicates the time the microvm was marked as deleted. |
 | uid | [string](#string) | optional | UID is a globally unique identifier of the microvm. |
 | provider | [string](#string) | optional | Provider allows you to specify the name of the microvm provider to use. If this isn&#39;t supplied then the default provider will be used. |
 
@@ -151,7 +152,7 @@ MicroVMSpec represents the specification for a microvm.
 
 
 
-<a name="flintlock.types.MicroVMSpec.LabelsEntry"></a>
+<a name="flintlock-types-MicroVMSpec-LabelsEntry"></a>
 
 ### MicroVMSpec.LabelsEntry
 
@@ -167,7 +168,7 @@ MicroVMSpec represents the specification for a microvm.
 
 
 
-<a name="flintlock.types.MicroVMSpec.MetadataEntry"></a>
+<a name="flintlock-types-MicroVMSpec-MetadataEntry"></a>
 
 ### MicroVMSpec.MetadataEntry
 
@@ -183,7 +184,7 @@ MicroVMSpec represents the specification for a microvm.
 
 
 
-<a name="flintlock.types.MicroVMStatus"></a>
+<a name="flintlock-types-MicroVMStatus"></a>
 
 ### MicroVMStatus
 MicroVMStatus contains the runtime status of the microvm.
@@ -191,11 +192,11 @@ MicroVMStatus contains the runtime status of the microvm.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| state | [MicroVMStatus.MicroVMState](#flintlock.types.MicroVMStatus.MicroVMState) |  | State stores information about the last known state of the vm and the spec. |
-| volumes | [MicroVMStatus.VolumesEntry](#flintlock.types.MicroVMStatus.VolumesEntry) | repeated | Volumes holds the status of the volumes. |
-| kernel_mount | [Mount](#flintlock.types.Mount) |  | KernelMount holds the status of the kernel mount point. |
-| initrd_mount | [Mount](#flintlock.types.Mount) |  | InitrdMount holds the status of the initrd mount point. |
-| network_interfaces | [MicroVMStatus.NetworkInterfacesEntry](#flintlock.types.MicroVMStatus.NetworkInterfacesEntry) | repeated | NetworkInterfaces holds the status of the network interfaces. |
+| state | [MicroVMStatus.MicroVMState](#flintlock-types-MicroVMStatus-MicroVMState) |  | State stores information about the last known state of the vm and the spec. |
+| volumes | [MicroVMStatus.VolumesEntry](#flintlock-types-MicroVMStatus-VolumesEntry) | repeated | Volumes holds the status of the volumes. |
+| kernel_mount | [Mount](#flintlock-types-Mount) |  | KernelMount holds the status of the kernel mount point. |
+| initrd_mount | [Mount](#flintlock-types-Mount) |  | InitrdMount holds the status of the initrd mount point. |
+| network_interfaces | [MicroVMStatus.NetworkInterfacesEntry](#flintlock-types-MicroVMStatus-NetworkInterfacesEntry) | repeated | NetworkInterfaces holds the status of the network interfaces. |
 | retry | [int32](#int32) |  | Retry is a counter about how many times we retried to reconcile. |
 
 
@@ -203,7 +204,7 @@ MicroVMStatus contains the runtime status of the microvm.
 
 
 
-<a name="flintlock.types.MicroVMStatus.NetworkInterfacesEntry"></a>
+<a name="flintlock-types-MicroVMStatus-NetworkInterfacesEntry"></a>
 
 ### MicroVMStatus.NetworkInterfacesEntry
 
@@ -212,14 +213,14 @@ MicroVMStatus contains the runtime status of the microvm.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [NetworkInterfaceStatus](#flintlock.types.NetworkInterfaceStatus) |  |  |
+| value | [NetworkInterfaceStatus](#flintlock-types-NetworkInterfaceStatus) |  |  |
 
 
 
 
 
 
-<a name="flintlock.types.MicroVMStatus.VolumesEntry"></a>
+<a name="flintlock-types-MicroVMStatus-VolumesEntry"></a>
 
 ### MicroVMStatus.VolumesEntry
 
@@ -228,14 +229,14 @@ MicroVMStatus contains the runtime status of the microvm.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [VolumeStatus](#flintlock.types.VolumeStatus) |  |  |
+| value | [VolumeStatus](#flintlock-types-VolumeStatus) |  |  |
 
 
 
 
 
 
-<a name="flintlock.types.Mount"></a>
+<a name="flintlock-types-Mount"></a>
 
 ### Mount
 Mount represents a volume mount point.
@@ -243,7 +244,7 @@ Mount represents a volume mount point.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| type | [Mount.MountType](#flintlock.types.Mount.MountType) |  | Type specifies the type of the mount (e.g. device or directory). |
+| type | [Mount.MountType](#flintlock-types-Mount-MountType) |  | Type specifies the type of the mount (e.g. device or directory). |
 | source | [string](#string) |  | Source is the location of the mounted volume. |
 
 
@@ -251,7 +252,7 @@ Mount represents a volume mount point.
 
 
 
-<a name="flintlock.types.NetworkInterface"></a>
+<a name="flintlock-types-NetworkInterface"></a>
 
 ### NetworkInterface
 
@@ -260,17 +261,17 @@ Mount represents a volume mount point.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | device_id | [string](#string) |  | DeviceID is the ID of the interface. There is no relation between the ID and the name of the interface device on the quest machine. |
-| type | [NetworkInterface.IfaceType](#flintlock.types.NetworkInterface.IfaceType) |  | IfaceType specifies the type of network interface to create for use by the guest. |
+| type | [NetworkInterface.IfaceType](#flintlock-types-NetworkInterface-IfaceType) |  | IfaceType specifies the type of network interface to create for use by the guest. |
 | guest_mac | [string](#string) | optional | GuestMAC allows the specifying of a specifi MAC address to use for the interface. If not supplied a autogenerated MAC address will be used. |
-| address | [StaticAddress](#flintlock.types.StaticAddress) | optional | Address is an optional static IP address to manually assign to this interface. If not supplied then DHCP will be used. |
-| overrides | [NetworkOverrides](#flintlock.types.NetworkOverrides) | optional | Overrides is optional overrides applicable for network configuration. |
+| address | [StaticAddress](#flintlock-types-StaticAddress) | optional | Address is an optional static IP address to manually assign to this interface. If not supplied then DHCP will be used. |
+| overrides | [NetworkOverrides](#flintlock-types-NetworkOverrides) | optional | Overrides is optional overrides applicable for network configuration. |
 
 
 
 
 
 
-<a name="flintlock.types.NetworkInterfaceStatus"></a>
+<a name="flintlock-types-NetworkInterfaceStatus"></a>
 
 ### NetworkInterfaceStatus
 
@@ -287,7 +288,7 @@ Mount represents a volume mount point.
 
 
 
-<a name="flintlock.types.NetworkOverrides"></a>
+<a name="flintlock-types-NetworkOverrides"></a>
 
 ### NetworkOverrides
 NetworkOverrides represents override values for a network interface.
@@ -302,7 +303,7 @@ NetworkOverrides represents override values for a network interface.
 
 
 
-<a name="flintlock.types.StaticAddress"></a>
+<a name="flintlock-types-StaticAddress"></a>
 
 ### StaticAddress
 StaticAddress represents a static IPv4 or IPv6 address.
@@ -319,7 +320,22 @@ StaticAddress represents a static IPv4 or IPv6 address.
 
 
 
-<a name="flintlock.types.Volume"></a>
+<a name="flintlock-types-VirtioFSVolumeSource"></a>
+
+### VirtioFSVolumeSource
+VirtioFSVolumeSource represents the details of a volume coming from a OCI image.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| path | [string](#string) |  | Path on the host machine to pass through. |
+
+
+
+
+
+
+<a name="flintlock-types-Volume"></a>
 
 ### Volume
 Volume represents the configuration for a volume to be attached to a microvm.
@@ -330,7 +346,7 @@ Volume represents the configuration for a volume to be attached to a microvm.
 | id | [string](#string) |  | ID is the uinique identifier of the volume. |
 | is_read_only | [bool](#bool) |  | IsReadOnly specifies that the volume is to be mounted readonly. |
 | mount_point | [string](#string) | optional | MountPoint allows you to optionally specify a mount point for the volume. This only applied to additional volumes and it will use cloud-init to mount the volumes. |
-| source | [VolumeSource](#flintlock.types.VolumeSource) |  | Source is where the volume will be sourced from. |
+| source | [VolumeSource](#flintlock-types-VolumeSource) |  | Source is where the volume will be sourced from. |
 | partition_id | [string](#string) | optional | PartitionID is the uuid of the boot partition. |
 | size_in_mb | [int32](#int32) | optional | Size is the size to resize this volume to.
 
@@ -341,7 +357,7 @@ TODO: add rate limiting |
 
 
 
-<a name="flintlock.types.VolumeSource"></a>
+<a name="flintlock-types-VolumeSource"></a>
 
 ### VolumeSource
 VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs.
@@ -349,16 +365,15 @@ VolumeSource is the source of a volume. Based loosely on the volumes in Kubernet
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| container_source | [string](#string) | optional | Container is used to specify a source of a volume as a OCI container.
-
-TODO: add CSI |
-
+| container_source | [string](#string) | optional | Container is used to specify a source of a volume as a OCI container. |
+| virtiofs_source | [string](#string) | optional |  |
 
 
 
 
 
-<a name="flintlock.types.VolumeStatus"></a>
+
+<a name="flintlock-types-VolumeStatus"></a>
 
 ### VolumeStatus
 
@@ -366,7 +381,7 @@ TODO: add CSI |
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| mount | [Mount](#flintlock.types.Mount) |  | Mount represents a volume mount point. |
+| mount | [Mount](#flintlock-types-Mount) |  | Mount represents a volume mount point. |
 
 
 
@@ -375,7 +390,7 @@ TODO: add CSI |
  
 
 
-<a name="flintlock.types.MicroVMStatus.MicroVMState"></a>
+<a name="flintlock-types-MicroVMStatus-MicroVMState"></a>
 
 ### MicroVMStatus.MicroVMState
 
@@ -389,7 +404,7 @@ TODO: add CSI |
 
 
 
-<a name="flintlock.types.Mount.MountType"></a>
+<a name="flintlock-types-Mount-MountType"></a>
 
 ### Mount.MountType
 
@@ -401,7 +416,7 @@ TODO: add CSI |
 
 
 
-<a name="flintlock.types.NetworkInterface.IfaceType"></a>
+<a name="flintlock-types-NetworkInterface-IfaceType"></a>
 
 ### NetworkInterface.IfaceType
 

@@ -7,8 +7,6 @@
 package inject
 
 import (
-	"time"
-
 	"github.com/liquidmetal-dev/flintlock/core/application"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
@@ -21,6 +19,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
+	"time"
 )
 
 // Injectors from wire.go:

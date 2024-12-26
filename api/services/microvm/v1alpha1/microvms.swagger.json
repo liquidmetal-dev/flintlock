@@ -516,7 +516,10 @@
       "properties": {
         "containerSource": {
           "type": "string",
-          "description": "Container is used to specify a source of a volume as a OCI container.\n\nTODO: add CSI"
+          "description": "Container is used to specify a source of a volume as a OCI container."
+        },
+        "virtiofsSource": {
+          "type": "string"
         }
       },
       "description": "VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs."

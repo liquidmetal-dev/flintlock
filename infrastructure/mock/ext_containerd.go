@@ -11,7 +11,7 @@ import (
 	containerd "github.com/containerd/containerd"
 	content "github.com/containerd/containerd/content"
 	images "github.com/containerd/containerd/images"
-	platforms "github.com/containerd/containerd/platforms"
+	platforms "github.com/containerd/platforms"
 	gomock "github.com/golang/mock/gomock"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
