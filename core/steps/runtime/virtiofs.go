@@ -70,8 +70,11 @@ func (s *volumeVirtioFSMount) Do(ctx context.Context) ([]planner.Procedure, erro
 		"id":   s.volume.ID,
 	})
 	virtiofsState := virtiofs.NewVirtioFSState(*s.vmid, s.stateDir)
+	err := startVirtioFS(ctx, virtiofsState, s)
 	logger.Debug("running step for virtiofs volume: ", virtiofsState.VirtioFSPath())
-
+	if err != nil {
+		return nil,fmt.Errorf("starting cloudhypervisor process: %w", err)
+	}
 	return nil,nil
 }
 
@@ -80,21 +83,21 @@ func (s *volumeVirtioFSMount) Verify(_ context.Context) error {
 }
 
 
-func startVirtioFS(ctx context.Context, virtiofsState virtiofs.VirtioFSState, s *volumeVirtioFSMount) (*os.Process, error) {
+func startVirtioFS(ctx context.Context, virtiofsState virtiofs.VirtioFSState, s *volumeVirtioFSMount) (error) {
 	fs := afero.NewOsFs()
-	
+	options := fmt.Sprintf("source=%s,cache=none,sandbox=chroot,announce_submounts,allow_direct_io", s.volume.Source.VirtioFS.Path)
     cmdVirtioFS := exec.Command("/usr/libexec/virtiofsd",
         "--socket-path="+virtiofsState.VirtioFSPath(),
 		"--thread-pool-size=32",
-        "-o", "source=/mnt/user,cache=none,sandbox=chroot,announce_submounts,allow_direct_io")
+        "-o", options)
 	stdOutFileVirtioFS, err := fs.OpenFile(virtiofsState.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
-		return nil, fmt.Errorf("opening stdout file %s: %w", virtiofsState.VirtioFSStdoutPath(), err)
+		return fmt.Errorf("opening stdout file %s: %w", virtiofsState.VirtioFSStdoutPath(), err)
 	}
 	
 	stdErrFileVirtioFS, err := fs.OpenFile(virtiofsState.VirtioFSStderrPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
-		return nil, fmt.Errorf("opening sterr file %s: %w", virtiofsState.VirtioFSStderrPath(), err)
+		return fmt.Errorf("opening sterr file %s: %w", virtiofsState.VirtioFSStderrPath(), err)
 	}
 
 	cmdVirtioFS.Stderr = stdErrFileVirtioFS
@@ -105,7 +108,7 @@ func startVirtioFS(ctx context.Context, virtiofsState virtiofs.VirtioFSState, s 
 	process.DetachedStart(cmdVirtioFS)
 
 	if startErr != nil {
-		return nil, fmt.Errorf("starting virtiofsd process: %w", err)
+		return fmt.Errorf("starting virtiofsd process: %w", err)
 	}
-	return cmdVirtioFS.Process, nil
+	return nil
 }
