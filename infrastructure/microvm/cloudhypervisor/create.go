@@ -27,21 +27,12 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 	logger.Debugf("creating microvm")
 
 	vmState := NewState(vm.ID, p.config.StateRoot, p.fs)
-
 	if err := p.ensureState(vmState); err != nil {
 		return fmt.Errorf("ensuring state dir: %w", err)
 	}
 
 	if err := p.createCloudInitImage(ctx, vm, vmState); err != nil {
 		return fmt.Errorf("creating metadata image: %w", err)
-	}
-
-	procVFS, err := p.startVirtioFS(ctx, vm, vmState, logger)
-	if err != nil {
-		return fmt.Errorf("starting virtiofs process: %w", err)
-	}
-	if err = vmState.SetVirtioFSPid(procVFS.Pid); err != nil {
-		return fmt.Errorf("saving pid %d to file: %w", procVFS.Pid, err)
 	}
 
 	proc, err := p.startCloudHypervisor(ctx, vm, vmState, p.config.RunDetached, logger)
@@ -55,44 +46,6 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 
 	return nil
 }
-
-func (p *provider) startVirtioFS(_ context.Context,
-	vm *models.MicroVM,
-	state State,
-	logger *logrus.Entry,
-) (*os.Process, error) {
-
-	logger.Debugf("creating virtiofsd")
-
-    cmdVirtioFS := exec.Command(p.config.VirtioFSBin,
-        "--socket-path="+state.VirtioFSPath(),
-		"--thread-pool-size=32",
-        "-o", "source=/mnt/user,cache=none,sandbox=chroot,announce_submounts,allow_direct_io")
-	stdOutFileVirtioFS, err := p.fs.OpenFile(state.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
-	if err != nil {
-		return nil, fmt.Errorf("opening stdout file %s: %w", state.VirtioFSStdoutPath(), err)
-	}
-	
-	stdErrFileVirtioFS, err := p.fs.OpenFile(state.VirtioFSStderrPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
-	if err != nil {
-		return nil, fmt.Errorf("opening sterr file %s: %w", state.VirtioFSStderrPath(), err)
-	}
-
-	cmdVirtioFS.Stderr = stdErrFileVirtioFS
-	cmdVirtioFS.Stdout = stdOutFileVirtioFS
-	cmdVirtioFS.Stdin = &bytes.Buffer{}
-
-	var startErr error
-	process.DetachedStart(cmdVirtioFS)
-
-	if startErr != nil {
-		return nil, fmt.Errorf("starting virtiofsd process: %w", err)
-	}
-	return cmdVirtioFS.Process, nil
-}
-
-
-
 
 func (p *provider) startCloudHypervisor(_ context.Context,
 	vm *models.MicroVM,

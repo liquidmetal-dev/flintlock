@@ -131,26 +131,29 @@ func (p *microvmCreateOrUpdatePlan) addStep(ctx context.Context, step planner.Pr
 func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
 	vm *models.MicroVM,
 ) error {
-	rootStatus, ok := vm.Status.Volumes[vm.Spec.RootVolume.ID]
-	if !ok {
-		rootStatus = &models.VolumeStatus{}
-		vm.Status.Volumes[vm.Spec.RootVolume.ID] = rootStatus
-	}
-	if vm.Spec.RootVolume.Source.VirtioFS != nil {
-		if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vm.Spec.RootVolume, rootStatus)); err != nil {
-			return fmt.Errorf("adding virtiofs root mount step: %w", err)
+	
+	for i := range vm.Spec.AdditionalVolumes {
+		vol := vm.Spec.AdditionalVolumes[i]
+		if vol.Source.VirtioFS != nil {
+			status, ok := vm.Status.Volumes[vol.ID]
+			if !ok {
+				status = &models.VolumeStatus{}
+				vm.Status.Volumes[vol.ID] = status
+			}
+			if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vol, status, p.stateDir)); err != nil {
+				return fmt.Errorf("adding volume mount step: %w", err)
+			}
 		}
 	}
-	
+
 	return nil
 }
-
-
 
 func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 	vm *models.MicroVM,
 	imageSvc ports.ImageService,
 ) error {
+	//TODO: Refactory for VirtioFS RootVol Support
 	rootStatus, ok := vm.Status.Volumes[vm.Spec.RootVolume.ID]
 	if !ok {
 		rootStatus = &models.VolumeStatus{}
@@ -165,14 +168,12 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 
 	for i := range vm.Spec.AdditionalVolumes {
 		vol := vm.Spec.AdditionalVolumes[i]
-
-		status, ok := vm.Status.Volumes[vol.ID]
-		if !ok {
-			status = &models.VolumeStatus{}
-			vm.Status.Volumes[vol.ID] = status
-		}
-
 		if vol.Source.Container != nil {
+			status, ok := vm.Status.Volumes[vol.ID]
+			if !ok {
+				status = &models.VolumeStatus{}
+				vm.Status.Volumes[vol.ID] = status
+			}
 			if err := p.addStep(ctx, runtime.NewVolumeMount(&vm.ID, &vol, status, imageSvc)); err != nil {
 				return fmt.Errorf("adding volume mount step: %w", err)
 			}

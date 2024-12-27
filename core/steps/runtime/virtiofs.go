@@ -1,25 +1,33 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
-	// "fmt"
-
-	"github.com/sirupsen/logrus"
+	"fmt"
+	"os"
+	"os/exec"
 
 	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
+	"github.com/liquidmetal-dev/flintlock/pkg/process"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
 )
 
 func NewVirtioFSMount(vmid *models.VMID,
 	volume *models.Volume,
 	status *models.VolumeStatus,
+	stateDir string,
 ) planner.Procedure {
 	return &volumeVirtioFSMount{
-		vmid:     vmid,
-		volume:   volume,
-		status:   status,
+		vmid:   vmid,
+		volume: volume,
+		status: status,
+		stateDir: stateDir,
 	}
 }
 
@@ -27,6 +35,7 @@ type volumeVirtioFSMount struct {
 	vmid     *models.VMID
 	volume   *models.Volume
 	status   *models.VolumeStatus
+	stateDir string 
 }
 
 // Name is the name of the procedure/operation.
@@ -44,8 +53,10 @@ func (s *volumeVirtioFSMount) ShouldDo(ctx context.Context) (bool, error) {
 	if s.status == nil || s.status.Mount.Source == "" {
 		return true, nil
 	}
+	//TODO: MAKE THIS A VALID CHECK IF IT's MOUNTED
+	mounted := false
 
-	return true,nil
+	return !mounted,nil
 }
 
 // Do will perform the operation/procedure.
@@ -58,11 +69,43 @@ func (s *volumeVirtioFSMount) Do(ctx context.Context) ([]planner.Procedure, erro
 		"step": s.Name(),
 		"id":   s.volume.ID,
 	})
-	logger.Debug("running step for virtiofs volume")
+	virtiofsState := virtiofs.NewVirtioFSState(*s.vmid, s.stateDir)
+	logger.Debug("running step for virtiofs volume: ", virtiofsState.VirtioFSPath())
 
 	return nil,nil
 }
 
 func (s *volumeVirtioFSMount) Verify(_ context.Context) error {
 	return nil
+}
+
+
+func startVirtioFS(ctx context.Context, virtiofsState virtiofs.VirtioFSState, s *volumeVirtioFSMount) (*os.Process, error) {
+	fs := afero.NewOsFs()
+	
+    cmdVirtioFS := exec.Command("/usr/libexec/virtiofsd",
+        "--socket-path="+virtiofsState.VirtioFSPath(),
+		"--thread-pool-size=32",
+        "-o", "source=/mnt/user,cache=none,sandbox=chroot,announce_submounts,allow_direct_io")
+	stdOutFileVirtioFS, err := fs.OpenFile(virtiofsState.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	if err != nil {
+		return nil, fmt.Errorf("opening stdout file %s: %w", virtiofsState.VirtioFSStdoutPath(), err)
+	}
+	
+	stdErrFileVirtioFS, err := fs.OpenFile(virtiofsState.VirtioFSStderrPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	if err != nil {
+		return nil, fmt.Errorf("opening sterr file %s: %w", virtiofsState.VirtioFSStderrPath(), err)
+	}
+
+	cmdVirtioFS.Stderr = stdErrFileVirtioFS
+	cmdVirtioFS.Stdout = stdOutFileVirtioFS
+	cmdVirtioFS.Stdin = &bytes.Buffer{}
+
+	var startErr error
+	process.DetachedStart(cmdVirtioFS)
+
+	if startErr != nil {
+		return nil, fmt.Errorf("starting virtiofsd process: %w", err)
+	}
+	return cmdVirtioFS.Process, nil
 }
