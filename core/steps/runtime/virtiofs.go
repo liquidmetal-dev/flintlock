@@ -64,11 +64,11 @@ func (s *volumeVirtioFSMount) Do(ctx context.Context) ([]planner.Procedure, erro
 		"id":   s.volume.ID,
 	})
 	logger.Trace("Creating VirtioFS")
-	vol := &ports.VirtioFSCreateInput{
+	vol := ports.VirtioFSCreateInput{
 		Path: s.volume.Source.VirtioFS.Path,
 	}
 	
-	if err := s.vFSService.Create(ctx, *vol); err != nil {
+	if err := s.vFSService.Create(ctx, vol); err != nil {
 		return nil, fmt.Errorf("creating microvm: %w", err)
 	}
 	return nil,nil
