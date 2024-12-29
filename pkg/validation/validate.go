@@ -27,6 +27,8 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("datetimeInPast", customTimestampValidator, false)
 	_ = validator.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
 	_ = validator.RegisterValidation("novirtiofs", customNoVirtioFSValidator, false)
+	_ = validator.RegisterValidation("onlyOneVirtioFS", customOnlyOneVirtioFSValidator, false)
+	_ = validator.RegisterValidation("multipleVolSources", customMultipleVolSources, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
 
 	return &validate{
@@ -83,4 +85,33 @@ func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.Stru
 func customNoVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
 	field, _ := fieldLevel.Field().Interface().(models.Volume)
 	return field.Source.VirtioFS != nil
+}
+
+func customOnlyOneVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	field, _ := fieldLevel.Field().Interface().(models.Volumes)
+	virtioFSCount := 0 // Counter for VirtioFS volumes
+	if len(field) > 0 {		
+		for _, volume := range field {
+			// Check if this volume has VirtioFS
+			if volume.Source.VirtioFS != nil {
+				virtioFSCount++
+			}
+		}
+	}
+	return virtioFSCount > 1
+}
+
+func customMultipleVolSources(fieldLevel playgroundValidator.FieldLevel) bool {
+	field, _ := fieldLevel.Field().Interface().(models.Volumes)
+	if len(field) > 0 {		
+		for _, volume := range field {
+			// Check if this volume has VirtioFS
+			if volume.Source.VirtioFS != nil {
+			}
+			if volume.Source.Container != nil && volume.Source.VirtioFS != nil {
+				return	true
+			}
+		}
+	}
+	return false
 }

@@ -36,30 +36,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	if validErr := validator.ValidateStruct(mvm); validErr != nil {
 		return nil, fmt.Errorf("an error occurred when attempting to validate microvm spec: %w", validErr)
 	}
-
-	if mvm.Spec.RootVolume.Source.VirtioFS != nil {
-		return nil, fmt.Errorf("VirtioFS is not available yet for RootVolume")
-	}
-	if len(mvm.Spec.AdditionalVolumes) > 0 {
-		virtioFSCount := 0 // Counter for VirtioFS volumes
-		
-		for _, volume := range mvm.Spec.AdditionalVolumes {
-			if volume.Source.Container != nil && volume.Source.VirtioFS != nil {
-				return nil, fmt.Errorf("Cannot have both ContainerSource and VirtioFS on the same volume")
-			}
-			
-			// Check if this volume has VirtioFS
-			if volume.Source.VirtioFS != nil {
-				virtioFSCount++
-			}
-		}
 	
-		// Ensure only one volume contains VirtioFS
-		if virtioFSCount > 1 {
-			return nil, fmt.Errorf("Only one volume can have VirtioFS")
-		}
-	}
-
 	if mvm.ID.IsEmpty() {
 		name, err := a.ports.IdentifierService.GenerateRandom()
 		if err != nil {
