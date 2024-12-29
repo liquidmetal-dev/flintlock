@@ -105,9 +105,6 @@ func customMultipleVolSources(fieldLevel playgroundValidator.FieldLevel) bool {
 	field, _ := fieldLevel.Field().Interface().(models.Volumes)
 	if len(field) > 0 {		
 		for _, volume := range field {
-			// Check if this volume has VirtioFS
-			if volume.Source.VirtioFS != nil {
-			}
 			if volume.Source.Container != nil && volume.Source.VirtioFS != nil {
 				return	true
 			}
