@@ -140,9 +140,9 @@ func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
 				status = &models.VolumeStatus{}
 				vm.Status.Volumes[vol.ID] = status
 			}
-			if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vol, status, p.stateDir)); err != nil {
-				return fmt.Errorf("adding volume mount step: %w", err)
-			}
+			// if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vol, status, p.stateDir)); err != nil {
+			// 	return fmt.Errorf("adding volume mount step: %w", err)
+			// }
 		}
 	}
 

@@ -1,45 +1,28 @@
 package virtiofs
 
 import (
-	"fmt"
-	
-	"github.com/liquidmetal-dev/flintlock/core/models"
+	"context"
+	"github.com/spf13/afero"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
 )
 
-
-type VirtioFSState interface {
-
-	// VirtioPID() (int, error)
-	VirtioFSPIDPath() string
-	// SetVirtioFSPid(pid int) error
-	
-	VirtioFSPath() string
-	VirtioFSStdoutPath() string
-	VirtioFSStderrPath() string
-}
-
-func NewVirtioFSState(vmid models.VMID, stateDir string) VirtioFSState {
-	return &vFSState{
-		stateRoot: fmt.Sprintf("%s/%s", stateDir, vmid.String()),
+// New will create a new instance of the VirtioFS.
+func New(cfg *config.Config,
+	fs afero.Fs,
+) (ports.VirtioFSService) {
+	return &vFSService{
+		config:          cfg,
+		fs:              fs,
 	}
 }
 
-type vFSState struct {
-	stateRoot string
+type vFSService struct {
+	config *config.Config
+	fs     afero.Fs
 }
 
-func (s *vFSState) VirtioFSPath() string {
-	return fmt.Sprintf("%s/%s", s.stateRoot, "/virtiofs.sock")
-}
-
-func (s *vFSState)  VirtioFSStdoutPath() string {
-	return fmt.Sprintf("%s/%s", s.stateRoot, "/virtiofs.stdout")
-}
-
-func (s *vFSState)  VirtioFSStderrPath() string {
-	return fmt.Sprintf("%s/%s", s.stateRoot, "/virtiofs.pid")
-}
-
-func (s *vFSState) VirtioFSPIDPath() string {
-	return fmt.Sprintf("%s/%s", s.stateRoot, "/virtiofs.pid")
+// Create will create a new disk.
+func (s *vFSService) Create(_ context.Context, input ports.VirtioFSCreateInput) error {
+	return nil
 }

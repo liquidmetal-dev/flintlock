@@ -187,3 +187,17 @@ type DiskFile struct {
 	// ContentBase64 is the content of the file encoded as base64.
 	ContentBase64 string
 }
+
+
+
+// Create VirtioFSInput are the input options for creating a disk.
+type VirtioFSCreateInput struct {
+	Path string
+}
+
+
+// MicroVMService is the port definition for a microvm service.
+type VirtioFSService interface {
+	// Create will create a new microvm.
+	Create(ctx context.Context, inout VirtioFSCreateInput) error
+}
