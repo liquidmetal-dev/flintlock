@@ -26,6 +26,7 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("imageURI", customImageURIValidator, false)
 	_ = validator.RegisterValidation("datetimeInPast", customTimestampValidator, false)
 	_ = validator.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
+	_ = validator.RegisterValidation("novirtiofs", customNoVirtioFSValidator, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
 
 	return &validate{
@@ -77,4 +78,9 @@ func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.Stru
 
 		return
 	}
+}
+
+func customNoVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	field, _ := fieldLevel.Field().Interface().(models.Volume)
+	return field.Source.VirtioFS != nil
 }

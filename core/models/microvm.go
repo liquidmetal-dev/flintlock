@@ -38,7 +38,7 @@ type MicroVMSpec struct {
 	// NetworkInterfaces specifies the network interfaces attached to the machine.
 	NetworkInterfaces []NetworkInterface `json:"network_interfaces" validate:"required,dive,required"`
 	// RootVolume specified the root volume to be attached to the machine.
-	RootVolume Volume `json:"root_volume" validate:"required"`
+	RootVolume Volume `json:"root_volume" validate:"required,novirtiofs"`
 	// AdditionalVolumes specifies the volumes to be attached to the machine.
 	AdditionalVolumes Volumes `json:"additional_volumes"`
 	// Metadata allows you to specify data to be added to the metadata service. The key is the name
