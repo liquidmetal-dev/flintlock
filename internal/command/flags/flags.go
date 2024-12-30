@@ -32,6 +32,7 @@ const (
 	debugEndpointFlag         = "debug-endpoint"
 	cloudHypervisorBinFlag    = "cloudhypervisor-bin"
 	cloudHypervisorDetachFlag = "cloudhypervisor-detach"
+	virtioFSBinFlag           = "virtiofs-bin"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -162,6 +163,7 @@ func AddMicrovmProviderFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.DefaultVMProvider, "default-provider", firecracker.ProviderName, "The name of the microvm provider to use by default if not supplied in the create request.")
 }
 
+
 // AddContainerDFlagsToCommand will add the containerd specific flags to the supplied cobra command.
 func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.CtrSocketPath,
@@ -185,6 +187,13 @@ func AddDebugFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		debugEndpointFlag,
 		"",
 		"The endpoint for the debug web server to listen on. It must include a port (e.g. localhost:10500).  An empty string means disable the debug endpoint.")
+}
+
+func AddVirtioFSFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().StringVar(&cfg.VirtioFSBin,
+		virtioFSBinFlag,
+		defaults.VirtioFSBin,
+		"The path to the virtiofs binary to use.")
 }
 
 func addFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
