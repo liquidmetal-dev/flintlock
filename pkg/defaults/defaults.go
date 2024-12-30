@@ -29,6 +29,9 @@ const (
 
 	// CloudHypervisorBin is the name of the Cloud Hypervisor binary.
 	CloudHypervisorBin = "cloud-hypervisor-static"
+	
+	// VirtioFSBin is the name of the virtiofsd binary.
+	VirtioFSBin = "/usr/libexec/virtiofsd"
 
 	// CloudHypervisorDetach is the default for the flag to indicates with the child cloud-hypervisor
 	// processes should be run detached.

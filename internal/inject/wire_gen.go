@@ -7,8 +7,6 @@
 package inject
 
 import (
-	"time"
-
 	"github.com/liquidmetal-dev/flintlock/core/application"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
@@ -18,9 +16,11 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
+	"time"
 )
 
 // Injectors from wire.go:
@@ -48,7 +48,8 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs, diskService)
+	virtioFSService := virtiofs.New(cfg, fs)
+	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs, diskService, virtioFSService)
 	return collection, nil
 }
 
@@ -99,7 +100,7 @@ func appConfig(cfg *config.Config) *application.Config {
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
 		MicrovmProviders:  providers,
@@ -110,6 +111,7 @@ func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMSe
 		FileSystem:        fs,
 		Clock:             time.Now,
 		DiskService:       ds,
+		VirtioFSService:   vfs,
 	}
 }
 

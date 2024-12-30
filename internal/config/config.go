@@ -24,6 +24,8 @@ type Config struct {
 	FirecrackerDetatch bool
 	// CloudHypervisorBin is the Cloud Hypervisor binary to use.
 	CloudHypervisorBin string
+	// VirtioFSBin is the VirtioFS binary to use.
+	VirtioFSBin string
 	// CloudHypervisorDetatch indicates if the child cloud hypervisor processes should be detached from their parent.
 	CloudHypervisorDetatch bool
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.

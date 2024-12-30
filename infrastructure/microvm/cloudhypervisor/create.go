@@ -27,7 +27,6 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 	logger.Debugf("creating microvm")
 
 	vmState := NewState(vm.ID, p.config.StateRoot, p.fs)
-
 	if err := p.ensureState(vmState); err != nil {
 		return fmt.Errorf("ensuring state dir: %w", err)
 	}
@@ -54,12 +53,15 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	detached bool,
 	logger *logrus.Entry,
 ) (*os.Process, error) {
+
+	var startErr error
+
 	args, err := p.buildArgs(vm, state, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := exec.Command(p.config.CloudHypervisorBin, args...) //nolint: gosec // TODO: need to validate the args
+	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
 
 	stdOutFile, err := p.fs.OpenFile(state.StdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
@@ -74,8 +76,6 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	cmd.Stderr = stdErrFile
 	cmd.Stdout = stdOutFile
 	cmd.Stdin = &bytes.Buffer{}
-
-	var startErr error
 	if detached {
 		startErr = process.DetachedStart(cmd)
 	} else {
@@ -110,7 +110,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 
 	// CPU and memory
 	args = append(args, "--cpus", fmt.Sprintf("boot=%d", vm.Spec.VCPU))
-	args = append(args, "--memory", fmt.Sprintf("size=%dM", vm.Spec.MemoryInMb))
+	args = append(args, "--memory", fmt.Sprintf("size=%dM,shared=on", vm.Spec.MemoryInMb))
 
 	// Volumes (root, additional, metadata)
 	rootVolumeStatus, volumeStatusFound := vm.Status.Volumes[vm.Spec.RootVolume.ID]
@@ -119,6 +119,8 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
 	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
+	args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", state.VirtioFSPath()))
+
 
 	for _, vol := range vm.Spec.AdditionalVolumes {
 		status, ok := vm.Status.Volumes[vol.ID]

@@ -47,6 +47,9 @@ func (v Volumes) HasMountableVolumes() bool {
 type VolumeSource struct {
 	// Container is used to specify a source of a volume as a OCI container.
 	Container *ContainerVolumeSource `json:"container,omitempty"`
+
+	// Used to specify path for virtiofsd
+	VirtioFS *VirtioFSVolumeSource `json:"virtiofs_source,omitempty"`
 }
 
 // ContainerDriveSource represents the details of a volume coming from a OCI image.
@@ -54,6 +57,13 @@ type ContainerVolumeSource struct {
 	// Image is the OCI image to use.
 	Image ContainerImage `json:"image"`
 }
+
+// VirtioFSSource represents the details of the VirtioFS volume.
+type VirtioFSVolumeSource struct {
+	// Image is the OCI image to use.
+	Path string `json:"path"`
+}
+
 
 // Mount represents a volume mount point.
 type Mount struct {

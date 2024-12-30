@@ -274,6 +274,7 @@ func request_MicroVM_ListMicroVMsStream_0(ctx context.Context, marshaler runtime
 // UnaryRPC     :call MicroVMServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterMicroVMHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterMicroVMHandlerServer(ctx context.Context, mux *runtime.ServeMux, server MicroVMServer) error {
 
 	mux.Handle("POST", pattern_MicroVM_CreateMicroVM_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -421,7 +422,7 @@ func RegisterMicroVMHandler(ctx context.Context, mux *runtime.ServeMux, conn *gr
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "MicroVMClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "MicroVMClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "MicroVMClient" to call the correct interceptors.
+// "MicroVMClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterMicroVMHandlerClient(ctx context.Context, mux *runtime.ServeMux, client MicroVMClient) error {
 
 	mux.Handle("POST", pattern_MicroVM_CreateMicroVM_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
