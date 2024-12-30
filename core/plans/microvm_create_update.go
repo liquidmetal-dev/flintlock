@@ -68,7 +68,7 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 
 	// MicroVM provider doesn't have virtiofs
 	if provider.Capabilities().Has(models.VirtioFSCapability) {
-		if err := p.addVirtioFSSteps(ctx, p.vm); err != nil {
+		if err := p.addVirtioFSSteps(ctx, p.vm, ports.VirtioFSService); err != nil {
 			return nil, fmt.Errorf("adding virtiofs steps: %w", err)
 		}
 	}
@@ -130,6 +130,7 @@ func (p *microvmCreateOrUpdatePlan) addStep(ctx context.Context, step planner.Pr
 
 func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
 	vm *models.MicroVM,
+	vfsService ports.VirtioFSService,
 ) error {
 	
 	for i := range vm.Spec.AdditionalVolumes {
@@ -140,9 +141,9 @@ func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
 				status = &models.VolumeStatus{}
 				vm.Status.Volumes[vol.ID] = status
 			}
-			// if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vol, status, p.stateDir)); err != nil {
-			// 	return fmt.Errorf("adding volume mount step: %w", err)
-			// }
+			if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vol, status, vfsService)); err != nil {
+				return fmt.Errorf("adding volume mount step: %w", err)
+			}
 		}
 	}
 
