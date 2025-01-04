@@ -1,6 +1,6 @@
 module github.com/liquidmetal-dev/flintlock/api
 
-go 1.17
+go 1.23
 
 require (
 	github.com/containerd/typeurl/v2 v2.1.0
