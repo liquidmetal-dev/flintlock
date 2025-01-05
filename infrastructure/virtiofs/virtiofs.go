@@ -32,6 +32,9 @@ type vFSService struct {
 // Create will start and create a virtiofsd process
 func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.VirtioFSCreateInput) error {
 	state := NewState(*vmid,s.config.StateRootDir, s.fs)
+	if err := s.ensureState(state); err != nil {
+		return fmt.Errorf("ensuring state dir: %w", err)
+	}
 	procVFS, err := s.startVirtioFS(ctx ,input,state)
 	if err != nil {
 		return fmt.Errorf("starting virtiofs process: %w", err)
@@ -74,4 +77,19 @@ func (s *vFSService) startVirtioFS(_ context.Context,
 		return nil, fmt.Errorf("starting virtiofsd process: %w", err)
 	}
 	return cmdVirtioFS.Process, nil
+}
+
+
+func (s *vFSService) ensureState(state State) error {
+	exists, err := afero.DirExists(s.fs, state.Root())
+	if err != nil {
+		return fmt.Errorf("checking if state dir %s exists: %w", state.Root(), err)
+	}
+
+	if !exists {
+		if err = s.fs.MkdirAll(state.Root(), defaults.DataDirPerm); err != nil {
+			return fmt.Errorf("creating state directory %s: %w", state.Root(), err)
+		}
+	}
+	return nil
 }

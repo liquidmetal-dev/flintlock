@@ -18,6 +18,7 @@ const (
 
 type State interface {
 
+	Root() string
 	VirtioPID() (int, error)
 	VirtioFSPIDPath() string
 	SetVirtioFSPid(pid int) error
@@ -25,11 +26,12 @@ type State interface {
 	VirtioFSPath() string
 	VirtioFSStdoutPath() string
 	VirtioFSStderrPath() string
+
 }
 
 func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
 	return &fsState{
-		stateRoot: fmt.Sprintf("%s/%s", stateDir, vmid.String()),
+		stateRoot: fmt.Sprintf("%s/vm/%s", stateDir, vmid.String()),
 		fs:        fs,
 	}
 }
@@ -37,6 +39,10 @@ func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
 type fsState struct {
 	stateRoot string
 	fs        afero.Fs
+}
+
+func (s *fsState) Root() string {
+	return s.stateRoot
 }
 
 func (s *fsState) VirtioFSPath() string {
