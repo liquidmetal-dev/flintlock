@@ -30,19 +30,23 @@ type vFSService struct {
 }
 
 // Create will start and create a virtiofsd process
-func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.VirtioFSCreateInput) error {
-	state := NewState(*vmid,s.config.StateRootDir, s.fs)
+func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.VirtioFSCreateInput) (*models.Mount, error) {
+	state := NewState(*vmid,s.config.StateRootDir + "/vm", s.fs)
 	if err := s.ensureState(state); err != nil {
-		return fmt.Errorf("ensuring state dir: %w", err)
+		return nil, fmt.Errorf("ensuring state dir: %w", err)
 	}
 	procVFS, err := s.startVirtioFS(ctx ,input,state)
 	if err != nil {
-		return fmt.Errorf("starting virtiofs process: %w", err)
+		return nil,fmt.Errorf("starting virtiofs process: %w", err)
 	}
 	if err = state.SetVirtioFSPid(procVFS.Pid); err != nil {
-		return fmt.Errorf("saving pid %d to file: %w", procVFS.Pid, err)
+		return nil,fmt.Errorf("saving pid %d to file: %w", procVFS.Pid, err)
 	}
-	return nil
+	mount := models.Mount{
+		Source: state.VirtioFSPath(),
+		Type: "hostpath",
+	}
+	return &mount,nil
 }
 
 

@@ -47,10 +47,8 @@ func (s *volumeVirtioFSMount) ShouldDo(ctx context.Context) (bool, error) {
 	if s.status == nil || s.status.Mount.Source == "" {
 		return true, nil
 	}
-	//TODO: MAKE THIS A VALID CHECK IF IT's MOUNTED
-	mounted := false
-
-	return !mounted,nil
+	
+	return false,nil
 }
 
 // Do will perform the operation/procedure.
@@ -67,9 +65,12 @@ func (s *volumeVirtioFSMount) Do(ctx context.Context) ([]planner.Procedure, erro
 	vol := ports.VirtioFSCreateInput{
 		Path: s.volume.Source.VirtioFS.Path,
 	}
-	
-	if err := s.vFSService.Create(ctx, s.vmid, vol); err != nil {
+	mount, err := s.vFSService.Create(ctx, s.vmid, vol)
+	if  err != nil {
 		return nil, fmt.Errorf("creating microvm: %w", err)
+	}
+	if  mount != nil {
+		s.status.Mount = *mount
 	}
 	return nil,nil
 }

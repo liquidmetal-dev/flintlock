@@ -31,7 +31,7 @@ type State interface {
 
 func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
 	return &fsState{
-		stateRoot: fmt.Sprintf("%s/vm/%s", stateDir, vmid.String()),
+		stateRoot: fmt.Sprintf("%s/%s", stateDir, vmid.String()),
 		fs:        fs,
 	}
 }

@@ -199,5 +199,5 @@ type VirtioFSCreateInput struct {
 // MicroVMService is the port definition for a microvm service.
 type VirtioFSService interface {
 	// Create will create a new microvm.
-	Create(ctx context.Context, vmid *models.VMID, inout VirtioFSCreateInput) error
+	Create(ctx context.Context, vmid *models.VMID, inout VirtioFSCreateInput) (*models.Mount,error)
 }

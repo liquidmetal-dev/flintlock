@@ -16,6 +16,9 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
+
+	virtiofs "github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
+
 )
 
 // Create will create a new microvm.
@@ -25,7 +28,6 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 		"vmid":    vm.ID.String(),
 	})
 	logger.Debugf("creating microvm")
-
 	vmState := NewState(vm.ID, p.config.StateRoot, p.fs)
 	if err := p.ensureState(vmState); err != nil {
 		return fmt.Errorf("ensuring state dir: %w", err)
@@ -119,7 +121,6 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
 	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
-	args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", state.VirtioFSPath()))
 
 
 	for _, vol := range vm.Spec.AdditionalVolumes {
@@ -127,7 +128,13 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		if !ok {
 			return nil, cerrors.NewVolumeNotMounted(vol.ID)
 		}
-		args = append(args, "path="+status.Mount.Source)
+		if vol.Source.VirtioFS != nil {
+			vfsstate := virtiofs.NewState(vm.ID,p.config.StateRoot, p.fs)
+			args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.VirtioFSPath()))
+			
+		} else	{ 
+			args = append(args, "path="+status.Mount.Source)
+		}
 	}
 
 	// Network interfaces
