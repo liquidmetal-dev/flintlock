@@ -34,7 +34,7 @@ type volumeVirtioFSMount struct {
 
 // Name is the name of the procedure/operation.
 func (s *volumeVirtioFSMount) Name() string {
-	return "runtime_virtiofs"
+	return "runtime_virtiofs_create"
 }
 
 func (s *volumeVirtioFSMount) ShouldDo(ctx context.Context) (bool, error) {

@@ -1,17 +1,22 @@
 package virtiofs
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
-	"context"
-	"bytes"
-	"github.com/spf13/afero"
+	"syscall"
+	"time"
+
+	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
-	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
 )
 
 // New will create a new instance of the VirtioFS.
@@ -49,6 +54,58 @@ func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.
 	return &mount,nil
 }
 
+// Create will start and create a virtiofsd process
+func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) (error) {
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "virtiofs_delete",
+		"vmid":    vmid.String(),
+	})
+	state := NewState(*vmid,s.config.StateRootDir + "/vm", s.fs)
+	pid, pidErr := state.VirtioPID()
+	if pidErr != nil {
+		fmt.Printf("unable to get PID: %s", pidErr)
+	}
+	fmt.Printf("Found Pid %d\n", pid)
+	processExists, err := process.Exists(pid)
+	if err != nil {
+		return fmt.Errorf("checking if virtiofsd process is running: %w", err)
+	}
+	if !processExists {
+		return nil
+	}
+	logger.Debugf("sending SIGTERM to %d", pid)
+
+	if sigErr := process.SendSignal(pid, syscall.SIGTERM); sigErr != nil {
+		return fmt.Errorf("failed to terminate with SIGHUP: %w", sigErr)
+	}
+
+	ctxTimeout, cancel := context.WithTimeout(ctx,200*time.Millisecond)
+	defer cancel()
+
+	// Make sure the virtiofsd is stopped.
+	if err := process.WaitWithContext(ctxTimeout, pid); err != nil {
+		return fmt.Errorf("failed to wait for pid %d: %w", pid, err)
+	}
+
+	return nil
+}
+
+// Create will start and create a virtiofsd process
+func (s *vFSService) HasVirtioFSDProcess(ctx context.Context, vmid *models.VMID) (bool,error) {
+	state := NewState(*vmid,s.config.StateRootDir + "/vm", s.fs)
+	pid, pidErr := state.VirtioPID()
+	if pidErr != nil {
+		return false,nil	
+	}
+	processExists, err := process.Exists(pid)
+	if err != nil {
+		return false,nil
+	}
+	if !processExists {
+		return false,nil
+	}
+	return true,nil
+}
 
 
 func (s *vFSService) startVirtioFS(_ context.Context,
