@@ -112,7 +112,6 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 
 	// CPU and memory
 	args = append(args, "--cpus", fmt.Sprintf("boot=%d", vm.Spec.VCPU))
-	args = append(args, "--memory", fmt.Sprintf("size=%dM,shared=on", vm.Spec.MemoryInMb))
 
 	// Volumes (root, additional, metadata)
 	rootVolumeStatus, volumeStatusFound := vm.Status.Volumes[vm.Spec.RootVolume.ID]
@@ -122,7 +121,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
 	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
 
-
+	hasVirtioFS := false
 	for _, vol := range vm.Spec.AdditionalVolumes {
 		status, ok := vm.Status.Volumes[vol.ID]
 		if !ok {
@@ -131,10 +130,16 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		if vol.Source.VirtioFS != nil {
 			vfsstate := virtiofs.NewState(vm.ID,p.config.StateRoot, p.fs)
 			args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.VirtioFSPath()))
+			hasVirtioFS = true
 			
 		} else	{ 
 			args = append(args, "path="+status.Mount.Source)
 		}
+	}
+	if hasVirtioFS {
+		args = append(args, "--memory", fmt.Sprintf("size=%dM,shared=on", vm.Spec.MemoryInMb))
+	} else {
+		args = append(args, "--memory", fmt.Sprintf("size=%dM", vm.Spec.MemoryInMb))
 	}
 
 	// Network interfaces
