@@ -10,6 +10,7 @@ import (
 var (
 	errUIDRequired         = errors.New("uid is required")
 	errMacvtapNotSupported = errors.New("macvtap network interfaces not supported by the microvm provider")
+	errVirtioFSNotSupported = errors.New("Virtiofs not supported by the microvm provider")
 )
 
 type specAlreadyExistsError struct {
