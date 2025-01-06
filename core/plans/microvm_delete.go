@@ -67,10 +67,12 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	if err := p.addStep(ctx, microvm.NewDeleteStep(p.vm, provider)); err != nil {
 		return nil, fmt.Errorf("adding microvm delete step: %w", err)
 	}
-
-	if err := p.addVirtioFSSteps(ctx, p.vm, ports.VirtioFSService, provider); err != nil {
-		return nil, fmt.Errorf("adding virtiofs steps: %w", err)
+	if provider.Capabilities().Has(models.VirtioFSCapability) {
+		if err := p.addVirtioFSSteps(ctx, p.vm, ports.VirtioFSService, provider); err != nil {
+			return nil, fmt.Errorf("adding virtiofs steps: %w", err)
+		}
 	}
+
 
 	if err := p.addStep(ctx, runtime.NewRepoRelease(p.vm, ports.Repo)); err != nil {
 		return nil, fmt.Errorf("adding release lease step: %w", err)
