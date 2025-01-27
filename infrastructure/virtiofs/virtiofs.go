@@ -35,7 +35,9 @@ type vFSService struct {
 }
 
 // Create will start and create a virtiofsd process.
-func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.VirtioFSCreateInput) (*models.Mount, error) {
+func (s *vFSService) Create(ctx context.Context, 
+	vmid *models.VMID, 
+	input ports.VirtioFSCreateInput) (*models.Mount, error) {
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	if err := s.ensureState(state); err != nil {
 		return nil, fmt.Errorf("ensuring state dir: %w", err)
@@ -114,12 +116,16 @@ func (s *vFSService) startVirtioFS(_ context.Context,
 		"--socket-path="+state.VirtioFSPath(),
 		"--thread-pool-size=32",
 		"-o", options)
-	stdOutFileVirtioFS, err := s.fs.OpenFile(state.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	stdOutFileVirtioFS, err := s.fs.OpenFile(state.VirtioFSStdoutPath(), 
+		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 
+		defaults.DataFilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening stdout file %s: %w", state.VirtioFSStdoutPath(), err)
 	}
 
-	stdErrFileVirtioFS, err := s.fs.OpenFile(state.VirtioFSStderrPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	stdErrFileVirtioFS, err := s.fs.OpenFile(state.VirtioFSStderrPath(), 
+		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 
+		defaults.DataFilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening sterr file %s: %w", state.VirtioFSStderrPath(), err)
 	}
