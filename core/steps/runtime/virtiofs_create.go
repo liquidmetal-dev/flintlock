@@ -72,6 +72,7 @@ func (s *volumeVirtioFSMount) Do(ctx context.Context) ([]planner.Procedure, erro
 	if mount != nil {
 		s.status.Mount = *mount
 	}
+	
 	return nil, nil
 }
 
