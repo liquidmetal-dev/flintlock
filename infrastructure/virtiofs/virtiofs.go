@@ -51,6 +51,7 @@ func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.
 		Source: state.VirtioFSPath(),
 		Type:   "hostpath",
 	}
+
 	return &mount, nil
 }
 
@@ -136,6 +137,7 @@ func (s *vFSService) startVirtioFS(_ context.Context,
 	if startErr != nil {
 		return nil, fmt.Errorf("starting virtiofsd process: %w", err)
 	}
+
 	return cmdVirtioFS.Process, nil
 }
 
@@ -150,5 +152,6 @@ func (s *vFSService) ensureState(state State) error {
 			return fmt.Errorf("creating state directory %s: %w", state.Root(), err)
 		}
 	}
+
 	return nil
 }

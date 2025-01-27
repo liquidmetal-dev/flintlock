@@ -84,6 +84,7 @@ func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.Stru
 
 func customNoVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
 	field, _ := fieldLevel.Field().Interface().(models.Volume)
+	
 	return field.Source.VirtioFS == nil
 }
 
@@ -98,6 +99,7 @@ func customOnlyOneVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) b
 			}
 		}
 	}
+
 	return !(virtioFSCount > 1)
 }
 
