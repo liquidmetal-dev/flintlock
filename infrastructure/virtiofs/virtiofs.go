@@ -105,6 +105,7 @@ func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (
 	if !processExists {
 		return false, nil
 	}
+	
 	return true, nil
 }
 
