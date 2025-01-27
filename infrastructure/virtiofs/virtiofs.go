@@ -66,7 +66,6 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 	if pidErr != nil {
 		fmt.Printf("unable to get PID: %s", pidErr)
 	}
-	fmt.Printf("Found Pid %d\n", pid)
 	processExists, err := process.Exists(pid)
 	if err != nil {
 		return fmt.Errorf("checking if virtiofsd process is running: %w", err)
@@ -105,7 +104,7 @@ func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (
 	if !processExists {
 		return false, nil
 	}
-	
+
 	return true, nil
 }
 
