@@ -16,9 +16,9 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/godisk"
 	microvmgrpc "github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
-	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )

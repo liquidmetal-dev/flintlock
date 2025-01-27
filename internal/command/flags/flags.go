@@ -163,7 +163,6 @@ func AddMicrovmProviderFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.DefaultVMProvider, "default-provider", firecracker.ProviderName, "The name of the microvm provider to use by default if not supplied in the create request.")
 }
 
-
 // AddContainerDFlagsToCommand will add the containerd specific flags to the supplied cobra command.
 func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.CtrSocketPath,

@@ -10,23 +10,21 @@ import (
 )
 
 const (
-	pidVirtioFSFileName       = "virtiofs.pid"
-	stdErrVirtioFSFileName    = "virtiofs.stderr"
-	stdOutVirtioFSFileName    = "virtiofs.stdout"
-	socketVirtiofsFileName    = "virtiofs.sock"
+	pidVirtioFSFileName    = "virtiofs.pid"
+	stdErrVirtioFSFileName = "virtiofs.stderr"
+	stdOutVirtioFSFileName = "virtiofs.stdout"
+	socketVirtiofsFileName = "virtiofs.sock"
 )
 
 type State interface {
-
 	Root() string
 	VirtioPID() (int, error)
 	VirtioFSPIDPath() string
 	SetVirtioFSPid(pid int) error
-	
+
 	VirtioFSPath() string
 	VirtioFSStdoutPath() string
 	VirtioFSStderrPath() string
-
 }
 
 func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
@@ -49,11 +47,11 @@ func (s *fsState) VirtioFSPath() string {
 	return fmt.Sprintf("%s/%s", s.stateRoot, socketVirtiofsFileName)
 }
 
-func (s *fsState)  VirtioFSStdoutPath() string {
+func (s *fsState) VirtioFSStdoutPath() string {
 	return fmt.Sprintf("%s/%s", s.stateRoot, stdOutVirtioFSFileName)
 }
 
-func (s *fsState)  VirtioFSStderrPath() string {
+func (s *fsState) VirtioFSStderrPath() string {
 	return fmt.Sprintf("%s/%s", s.stateRoot, stdErrVirtioFSFileName)
 }
 

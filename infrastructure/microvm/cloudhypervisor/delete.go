@@ -86,7 +86,7 @@ func (p *provider) Delete(ctx context.Context, id string) error {
 	if err := process.WaitWithContext(ctxTimeout, pid); err != nil {
 		return fmt.Errorf("failed to wait for pid %d: %w", pid, err)
 	}
-	
+
 	logger.Info("deleted microvm")
 
 	return nil

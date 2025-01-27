@@ -26,7 +26,7 @@ const (
 type Config struct {
 	// CloudHypervisorBin is the Cloud Hypervisor binary to use.
 	CloudHypervisorBin string
-	
+
 	// StateRoot is the folder to store any required state (i.e. socks, pid, log files).
 	StateRoot string
 	// RunDetached indicates that the cloud hypervisor processes

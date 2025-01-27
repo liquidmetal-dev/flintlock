@@ -34,7 +34,7 @@ func (s *server) CreateMicroVM(
 ) (*mvmv1.CreateMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 	logger.Trace("converting request to model")
-	
+
 	if req == nil || req.Microvm == nil {
 		logger.Error("invalid create microvm request: MicroVMSpec required")
 

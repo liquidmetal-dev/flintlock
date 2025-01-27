@@ -5,10 +5,10 @@ import (
 	"fmt"
 	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 	"github.com/sirupsen/logrus"
-	"github.com/liquidmetal-dev/flintlock/core/ports"
 )
 
 func NewDeleteVirtioFSMount(vmid *models.VMID,
@@ -18,22 +18,22 @@ func NewDeleteVirtioFSMount(vmid *models.VMID,
 	vfsSvc ports.VirtioFSService,
 ) planner.Procedure {
 	return &deleteVolumeVirtioFSMount{
-		vmid:   vmid,
-		volume: volume,
-		status: status,
+		vmid:       vmid,
+		volume:     volume,
+		status:     status,
 		vFSService: vfsSvc,
-		vmSvc: vmSvc,
-		vfsSvc: vfsSvc,
+		vmSvc:      vmSvc,
+		vfsSvc:     vfsSvc,
 	}
 }
 
 type deleteVolumeVirtioFSMount struct {
-	vmid     *models.VMID
-	volume   *models.Volume
-	status   *models.VolumeStatus
+	vmid       *models.VMID
+	volume     *models.Volume
+	status     *models.VolumeStatus
 	vFSService ports.VirtioFSService
-	vmSvc ports.MicroVMService
-	vfsSvc ports.VirtioFSService
+	vmSvc      ports.MicroVMService
+	vfsSvc     ports.VirtioFSService
 }
 
 // Name is the name of the procedure/operation.
@@ -47,9 +47,8 @@ func (s *deleteVolumeVirtioFSMount) ShouldDo(ctx context.Context) (bool, error) 
 		"id":   s.volume.ID,
 	})
 	logger.Debug("checking if procedure should be run")
-	
 
-	return s.vFSService.HasVirtioFSDProcess(ctx,s.vmid)
+	return s.vFSService.HasVirtioFSDProcess(ctx, s.vmid)
 }
 
 // Do will perform the operation/procedure.
@@ -61,7 +60,7 @@ func (s *deleteVolumeVirtioFSMount) Do(ctx context.Context) ([]planner.Procedure
 		return nil, fmt.Errorf("deleting viritofsd: %w", err)
 	}
 
-	return nil,nil
+	return nil, nil
 }
 
 func (s *deleteVolumeVirtioFSMount) Verify(_ context.Context) error {

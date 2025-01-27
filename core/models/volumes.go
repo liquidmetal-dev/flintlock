@@ -64,7 +64,6 @@ type VirtioFSVolumeSource struct {
 	Path string `json:"path"`
 }
 
-
 // Mount represents a volume mount point.
 type Mount struct {
 	// Type specifies the type of the mount (e.g. device or directory).

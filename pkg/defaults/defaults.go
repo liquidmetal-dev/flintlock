@@ -29,7 +29,7 @@ const (
 
 	// CloudHypervisorBin is the name of the Cloud Hypervisor binary.
 	CloudHypervisorBin = "cloud-hypervisor-static"
-	
+
 	// VirtioFSBin is the name of the virtiofsd binary.
 	VirtioFSBin = "/usr/libexec/virtiofsd"
 
