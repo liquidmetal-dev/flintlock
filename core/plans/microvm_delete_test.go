@@ -54,6 +54,8 @@ func TestMicroVMDeletePlan(t *testing.T) {
 		Delete(gomock.Any(), gomock.Eq("namespace/vmid/ae1ce196-6249-11ec-90d6-0242ac120003")).
 		Return(nil).
 		Times(1)
+	
+	mList.MicroVMService.EXPECT().Capabilities().Return(models.Capabilities{}).Times(1)
 
 	mList.NetworkService.
 		EXPECT().
