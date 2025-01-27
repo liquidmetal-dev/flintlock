@@ -64,6 +64,7 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 	pid, pidErr := state.VirtioPID()
 	if pidErr != nil {
 		fmt.Println(fmt.Errorf("unable to get PID: %w", pidErr))
+		
 		return nil
 	}
 	processExists, err := process.Exists(pid)
@@ -100,6 +101,7 @@ func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (
 	if err != nil {
 		return false, err
 	}
+
 	return processExists, nil
 }
 
