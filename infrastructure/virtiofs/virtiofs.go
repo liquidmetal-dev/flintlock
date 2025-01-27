@@ -112,6 +112,7 @@ func (s *vFSService) startVirtioFS(_ context.Context,
 	state State,
 ) (*os.Process, error) {
 	options := fmt.Sprintf("source=%s,cache=none,sandbox=chroot,announce_submounts,allow_direct_io", input.Path)
+	// #nosec
 	cmdVirtioFS := exec.Command(s.config.VirtioFSBin,
 		"--socket-path="+state.VirtioFSPath(),
 		"--thread-pool-size=32",

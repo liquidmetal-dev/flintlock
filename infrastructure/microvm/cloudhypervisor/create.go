@@ -60,7 +60,7 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	if err != nil {
 		return nil, err
 	}
-
+	// #nosec
 	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
 
 	stdOutFile, err := p.fs.OpenFile(state.StdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
