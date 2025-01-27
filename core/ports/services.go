@@ -202,7 +202,7 @@ type VirtioFSDeleteInput struct {
 // VirtiofsService is the port definition for a VirtioFS service.
 type VirtioFSService interface {
 	// Create will create a new virtiofs share.
-	Create(ctx context.Context, vmid *models.VMID, inout VirtioFSCreateInput) (*models.Mount,error)
+	Create(ctx context.Context, vmid *models.VMID, input VirtioFSCreateInput) (*models.Mount,error)
 	Delete(ctx context.Context, vmid *models.VMID) (error)
 	HasVirtioFSDProcess(ctx context.Context, vmid *models.VMID) (bool, error)
 
