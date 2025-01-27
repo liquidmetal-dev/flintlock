@@ -153,7 +153,7 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 	vm *models.MicroVM,
 	imageSvc ports.ImageService,
 ) error {
-	//TODO: Refactory for VirtioFS RootVol Support
+	// TODO: Refactory for VirtioFS RootVol Support
 	rootStatus, ok := vm.Status.Volumes[vm.Spec.RootVolume.ID]
 	if !ok {
 		rootStatus = &models.VolumeStatus{}

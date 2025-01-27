@@ -37,7 +37,8 @@ type vFSService struct {
 // Create will start and create a virtiofsd process.
 func (s *vFSService) Create(ctx context.Context,
 	vmid *models.VMID,
-	input ports.VirtioFSCreateInput) (*models.Mount, error) {
+	input ports.VirtioFSCreateInput,
+) (*models.Mount, error) {
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	if err := s.ensureState(state); err != nil {
 		return nil, fmt.Errorf("ensuring state dir: %w", err)
