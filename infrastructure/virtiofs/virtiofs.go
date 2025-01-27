@@ -34,7 +34,7 @@ type vFSService struct {
 	fs     afero.Fs
 }
 
-// Create will start and create a virtiofsd process
+// Create will start and create a virtiofsd process.
 func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.VirtioFSCreateInput) (*models.Mount, error) {
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	if err := s.ensureState(state); err != nil {
@@ -55,7 +55,6 @@ func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.
 	return &mount, nil
 }
 
-// Create will start and create a virtiofsd process
 func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "virtiofs_delete",
@@ -90,7 +89,6 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 	return nil
 }
 
-// Create will start and create a virtiofsd process
 func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (bool, error) {
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	pid, pidErr := state.VirtioPID()
