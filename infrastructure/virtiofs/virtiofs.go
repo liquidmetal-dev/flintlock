@@ -64,10 +64,8 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 	})
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	pid, pidErr := state.VirtioPID()
-	if pidErr != nil {
-		fmt.Println(fmt.Errorf("unable to get PID: %w", pidErr))
-		
-		return nil
+	if pidErr != nil {		
+		return fmt.Errorf("cannot get pid %w", pidErr)
 	}
 	processExists, err := process.Exists(pid)
 	if err != nil {
