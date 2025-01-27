@@ -91,7 +91,7 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 }
 
 // Create will start and create a virtiofsd process
-func (s *vFSService) HasVirtioFSDProcess(ctx context.Context, vmid *models.VMID) (bool, error) {
+func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (bool, error) {
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	pid, pidErr := state.VirtioPID()
 	if pidErr != nil {

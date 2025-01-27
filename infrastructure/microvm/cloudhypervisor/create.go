@@ -54,7 +54,6 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	detached bool,
 	logger *logrus.Entry,
 ) (*os.Process, error) {
-
 	var startErr error
 
 	args, err := p.buildArgs(vm, state, logger)
@@ -130,7 +129,6 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 			vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.fs)
 			args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.VirtioFSPath()))
 			hasVirtioFS = true
-
 		} else {
 			args = append(args, "path="+status.Mount.Source)
 		}
