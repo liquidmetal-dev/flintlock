@@ -132,7 +132,7 @@ func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
 	vm *models.MicroVM,
 	vfsService ports.VirtioFSService,
 ) error {
-	
+
 	for i := range vm.Spec.AdditionalVolumes {
 		vol := vm.Spec.AdditionalVolumes[i]
 		if vol.Source.VirtioFS != nil {

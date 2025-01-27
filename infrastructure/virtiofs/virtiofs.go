@@ -22,10 +22,10 @@ import (
 // New will create a new instance of the VirtioFS.
 func New(cfg *config.Config,
 	fs afero.Fs,
-) (ports.VirtioFSService) {
+) ports.VirtioFSService {
 	return &vFSService{
-		config:          cfg,
-		fs:              fs,
+		config: cfg,
+		fs:     fs,
 	}
 }
 
@@ -36,31 +36,31 @@ type vFSService struct {
 
 // Create will start and create a virtiofsd process
 func (s *vFSService) Create(ctx context.Context, vmid *models.VMID, input ports.VirtioFSCreateInput) (*models.Mount, error) {
-	state := NewState(*vmid,s.config.StateRootDir + "/vm", s.fs)
+	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	if err := s.ensureState(state); err != nil {
 		return nil, fmt.Errorf("ensuring state dir: %w", err)
 	}
-	procVFS, err := s.startVirtioFS(ctx ,input,state)
+	procVFS, err := s.startVirtioFS(ctx, input, state)
 	if err != nil {
-		return nil,fmt.Errorf("starting virtiofs process: %w", err)
+		return nil, fmt.Errorf("starting virtiofs process: %w", err)
 	}
 	if err = state.SetVirtioFSPid(procVFS.Pid); err != nil {
-		return nil,fmt.Errorf("saving pid %d to file: %w", procVFS.Pid, err)
+		return nil, fmt.Errorf("saving pid %d to file: %w", procVFS.Pid, err)
 	}
 	mount := models.Mount{
 		Source: state.VirtioFSPath(),
-		Type: "hostpath",
+		Type:   "hostpath",
 	}
-	return &mount,nil
+	return &mount, nil
 }
 
 // Create will start and create a virtiofsd process
-func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) (error) {
+func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "virtiofs_delete",
 		"vmid":    vmid.String(),
 	})
-	state := NewState(*vmid,s.config.StateRootDir + "/vm", s.fs)
+	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	pid, pidErr := state.VirtioPID()
 	if pidErr != nil {
 		fmt.Printf("unable to get PID: %s", pidErr)
@@ -79,7 +79,7 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) (error) {
 		return fmt.Errorf("failed to terminate with SIGHUP: %w", sigErr)
 	}
 
-	ctxTimeout, cancel := context.WithTimeout(ctx,200*time.Millisecond)
+	ctxTimeout, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer cancel()
 
 	// Make sure the virtiofsd is stopped.
@@ -91,37 +91,36 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) (error) {
 }
 
 // Create will start and create a virtiofsd process
-func (s *vFSService) HasVirtioFSDProcess(ctx context.Context, vmid *models.VMID) (bool,error) {
-	state := NewState(*vmid,s.config.StateRootDir + "/vm", s.fs)
+func (s *vFSService) HasVirtioFSDProcess(ctx context.Context, vmid *models.VMID) (bool, error) {
+	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	pid, pidErr := state.VirtioPID()
 	if pidErr != nil {
-		return false,nil	
+		return false, nil
 	}
 	processExists, err := process.Exists(pid)
 	if err != nil {
-		return false,nil
+		return false, nil
 	}
 	if !processExists {
-		return false,nil
+		return false, nil
 	}
-	return true,nil
+	return true, nil
 }
-
 
 func (s *vFSService) startVirtioFS(_ context.Context,
 	input ports.VirtioFSCreateInput,
 	state State,
 ) (*os.Process, error) {
 	options := fmt.Sprintf("source=%s,cache=none,sandbox=chroot,announce_submounts,allow_direct_io", input.Path)
-    cmdVirtioFS := exec.Command(s.config.VirtioFSBin,
-        "--socket-path="+state.VirtioFSPath(),
+	cmdVirtioFS := exec.Command(s.config.VirtioFSBin,
+		"--socket-path="+state.VirtioFSPath(),
 		"--thread-pool-size=32",
-        "-o", options)
+		"-o", options)
 	stdOutFileVirtioFS, err := s.fs.OpenFile(state.VirtioFSStdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening stdout file %s: %w", state.VirtioFSStdoutPath(), err)
 	}
-	
+
 	stdErrFileVirtioFS, err := s.fs.OpenFile(state.VirtioFSStderrPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening sterr file %s: %w", state.VirtioFSStderrPath(), err)
@@ -139,7 +138,6 @@ func (s *vFSService) startVirtioFS(_ context.Context,
 	}
 	return cmdVirtioFS.Process, nil
 }
-
 
 func (s *vFSService) ensureState(state State) error {
 	exists, err := afero.DirExists(s.fs, state.Root())

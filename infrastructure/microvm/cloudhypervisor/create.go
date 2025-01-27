@@ -18,7 +18,6 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
 
 	virtiofs "github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
-
 )
 
 // Create will create a new microvm.
@@ -128,11 +127,11 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 			return nil, cerrors.NewVolumeNotMounted(vol.ID)
 		}
 		if vol.Source.VirtioFS != nil {
-			vfsstate := virtiofs.NewState(vm.ID,p.config.StateRoot, p.fs)
+			vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.fs)
 			args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.VirtioFSPath()))
 			hasVirtioFS = true
-			
-		} else	{ 
+
+		} else {
 			args = append(args, "path="+status.Mount.Source)
 		}
 	}
