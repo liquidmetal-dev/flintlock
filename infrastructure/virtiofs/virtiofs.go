@@ -135,7 +135,7 @@ func (s *vFSService) startVirtioFS(_ context.Context,
 	cmdVirtioFS.Stdin = &bytes.Buffer{}
 
 	var startErr error
-	process.DetachedStart(cmdVirtioFS)
+	startErr = process.DetachedStart(cmdVirtioFS)
 
 	if startErr != nil {
 		return nil, fmt.Errorf("starting virtiofsd process: %w", err)
