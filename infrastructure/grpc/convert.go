@@ -57,7 +57,7 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 			convertedModel.Spec.Initrd.Filename = *spec.Initrd.Filename
 		}
 	}
-	
+
 	if spec.RootVolume != nil {
 		convertedModel.Spec.RootVolume = *convertVolumeToModel(spec.RootVolume)
 	}
@@ -144,7 +144,7 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 			}
 		}
 	}
-	
+
 	if volume.MountPoint != nil {
 		convertedVol.MountPoint = *volume.MountPoint
 	}

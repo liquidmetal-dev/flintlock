@@ -90,7 +90,7 @@ func customNoVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
 func customOnlyOneVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
 	field, _ := fieldLevel.Field().Interface().(models.Volumes)
 	virtioFSCount := 0 // Counter for VirtioFS volumes
-	if len(field) > 0 {		
+	if len(field) > 0 {
 		for _, volume := range field {
 			// Check if this volume has VirtioFS
 			if volume.Source.VirtioFS != nil {
@@ -103,10 +103,10 @@ func customOnlyOneVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) b
 
 func customMultipleVolSources(fieldLevel playgroundValidator.FieldLevel) bool {
 	field, _ := fieldLevel.Field().Interface().(models.Volumes)
-	if len(field) > 0 {		
+	if len(field) > 0 {
 		for _, volume := range field {
 			if volume.Source.Container != nil && volume.Source.VirtioFS != nil {
-				return	false
+				return false
 			}
 		}
 	}
