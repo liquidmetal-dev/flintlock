@@ -94,7 +94,7 @@ func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
 	pid, _ := state.VirtioPID()
 	if pid == -1 {
-		return false,nil
+		return false, nil
 	}
 	processExists, err := process.Exists(pid)
 	if err != nil {
