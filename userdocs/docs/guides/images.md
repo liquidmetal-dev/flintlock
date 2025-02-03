@@ -2,6 +2,8 @@
 title: MicroVM images
 ---
 
+> NOTE: this page is currently out of date and will be updated soon.
+
 MicroVMs receive kernel binaries and Operating System volumes from container images.
 This means that users can easily create and publish their own on Dockerhub.
 
@@ -112,6 +114,6 @@ COPY vmlinux initrd-generic /
 1. Use docker build and then push
 
 [image-builder]: https://github.com/liquidmetal-dev/image-builder
-[lm]: https://weaveworks-liquidmetal.github.io/site/
+[lm]: https://liquidmetal.dev/
 [db]: https://wiki.debian.org/Debootstrap
 [fc]: https://github.com/firecracker-microvm/firecracker/tree/main/resources/guest_configs

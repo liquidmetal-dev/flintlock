@@ -94,6 +94,13 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 			}
 		}
 	}
+	if !provider.Capabilities().Has(models.VirtioFSCapability) {
+		for _, volume := range mvm.Spec.AdditionalVolumes {
+			if volume.Source.VirtioFS != nil {
+				return nil, errVirtioFSNotSupported
+			}
+		}
+	}
 
 	err = a.addInstanceData(mvm, logger)
 	if err != nil {

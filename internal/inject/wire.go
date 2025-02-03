@@ -18,6 +18,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
@@ -33,7 +34,8 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 		appPorts,
 		containerdConfig,
 		networkConfig,
-		afero.NewOsFs)
+		afero.NewOsFs,
+		virtiofs.New)
 
 	return nil, nil
 }
@@ -80,7 +82,7 @@ func appConfig(cfg *config.Config) *application.Config {
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
 		MicrovmProviders:  providers,
@@ -91,6 +93,7 @@ func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMSe
 		FileSystem:        fs,
 		Clock:             time.Now,
 		DiskService:       ds,
+		VirtioFSService:   vfs,
 	}
 }
 

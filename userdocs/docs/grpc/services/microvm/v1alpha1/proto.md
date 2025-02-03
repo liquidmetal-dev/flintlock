@@ -3,31 +3,31 @@
 
 ## Table of Contents
 
-- [services/microvm/v1alpha1/microvms.proto](#services/microvm/v1alpha1/microvms.proto)
-    - [CreateMicroVMRequest](#microvm.services.api.v1alpha1.CreateMicroVMRequest)
-    - [CreateMicroVMRequest.MetadataEntry](#microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry)
-    - [CreateMicroVMResponse](#microvm.services.api.v1alpha1.CreateMicroVMResponse)
-    - [DeleteMicroVMRequest](#microvm.services.api.v1alpha1.DeleteMicroVMRequest)
-    - [GetMicroVMRequest](#microvm.services.api.v1alpha1.GetMicroVMRequest)
-    - [GetMicroVMResponse](#microvm.services.api.v1alpha1.GetMicroVMResponse)
-    - [ListMessage](#microvm.services.api.v1alpha1.ListMessage)
-    - [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest)
-    - [ListMicroVMsResponse](#microvm.services.api.v1alpha1.ListMicroVMsResponse)
+- [services/microvm/v1alpha1/microvms.proto](#services_microvm_v1alpha1_microvms-proto)
+    - [CreateMicroVMRequest](#microvm-services-api-v1alpha1-CreateMicroVMRequest)
+    - [CreateMicroVMRequest.MetadataEntry](#microvm-services-api-v1alpha1-CreateMicroVMRequest-MetadataEntry)
+    - [CreateMicroVMResponse](#microvm-services-api-v1alpha1-CreateMicroVMResponse)
+    - [DeleteMicroVMRequest](#microvm-services-api-v1alpha1-DeleteMicroVMRequest)
+    - [GetMicroVMRequest](#microvm-services-api-v1alpha1-GetMicroVMRequest)
+    - [GetMicroVMResponse](#microvm-services-api-v1alpha1-GetMicroVMResponse)
+    - [ListMessage](#microvm-services-api-v1alpha1-ListMessage)
+    - [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest)
+    - [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse)
   
-    - [MicroVM](#microvm.services.api.v1alpha1.MicroVM)
+    - [MicroVM](#microvm-services-api-v1alpha1-MicroVM)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="services/microvm/v1alpha1/microvms.proto"></a>
+<a name="services_microvm_v1alpha1_microvms-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
 ## services/microvm/v1alpha1/microvms.proto
 
 
 
-<a name="microvm.services.api.v1alpha1.CreateMicroVMRequest"></a>
+<a name="microvm-services-api-v1alpha1-CreateMicroVMRequest"></a>
 
 ### CreateMicroVMRequest
 
@@ -35,15 +35,15 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVMSpec](#flintlock.types.MicroVMSpec) |  |  |
-| metadata | [CreateMicroVMRequest.MetadataEntry](#microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry) | repeated |  |
+| microvm | [flintlock.types.MicroVMSpec](#flintlock-types-MicroVMSpec) |  |  |
+| metadata | [CreateMicroVMRequest.MetadataEntry](#microvm-services-api-v1alpha1-CreateMicroVMRequest-MetadataEntry) | repeated |  |
 
 
 
 
 
 
-<a name="microvm.services.api.v1alpha1.CreateMicroVMRequest.MetadataEntry"></a>
+<a name="microvm-services-api-v1alpha1-CreateMicroVMRequest-MetadataEntry"></a>
 
 ### CreateMicroVMRequest.MetadataEntry
 
@@ -52,14 +52,14 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
-| value | [google.protobuf.Any](#google.protobuf.Any) |  |  |
+| value | [google.protobuf.Any](#google-protobuf-Any) |  |  |
 
 
 
 
 
 
-<a name="microvm.services.api.v1alpha1.CreateMicroVMResponse"></a>
+<a name="microvm-services-api-v1alpha1-CreateMicroVMResponse"></a>
 
 ### CreateMicroVMResponse
 
@@ -67,14 +67,14 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVM](#flintlock.types.MicroVM) |  |  |
+| microvm | [flintlock.types.MicroVM](#flintlock-types-MicroVM) |  |  |
 
 
 
 
 
 
-<a name="microvm.services.api.v1alpha1.DeleteMicroVMRequest"></a>
+<a name="microvm-services-api-v1alpha1-DeleteMicroVMRequest"></a>
 
 ### DeleteMicroVMRequest
 
@@ -89,7 +89,7 @@
 
 
 
-<a name="microvm.services.api.v1alpha1.GetMicroVMRequest"></a>
+<a name="microvm-services-api-v1alpha1-GetMicroVMRequest"></a>
 
 ### GetMicroVMRequest
 
@@ -104,7 +104,7 @@
 
 
 
-<a name="microvm.services.api.v1alpha1.GetMicroVMResponse"></a>
+<a name="microvm-services-api-v1alpha1-GetMicroVMResponse"></a>
 
 ### GetMicroVMResponse
 
@@ -112,14 +112,14 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVM](#flintlock.types.MicroVM) |  |  |
+| microvm | [flintlock.types.MicroVM](#flintlock-types-MicroVM) |  |  |
 
 
 
 
 
 
-<a name="microvm.services.api.v1alpha1.ListMessage"></a>
+<a name="microvm-services-api-v1alpha1-ListMessage"></a>
 
 ### ListMessage
 
@@ -127,14 +127,14 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVM](#flintlock.types.MicroVM) |  |  |
+| microvm | [flintlock.types.MicroVM](#flintlock-types-MicroVM) |  |  |
 
 
 
 
 
 
-<a name="microvm.services.api.v1alpha1.ListMicroVMsRequest"></a>
+<a name="microvm-services-api-v1alpha1-ListMicroVMsRequest"></a>
 
 ### ListMicroVMsRequest
 
@@ -150,7 +150,7 @@
 
 
 
-<a name="microvm.services.api.v1alpha1.ListMicroVMsResponse"></a>
+<a name="microvm-services-api-v1alpha1-ListMicroVMsResponse"></a>
 
 ### ListMicroVMsResponse
 
@@ -158,7 +158,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVM](#flintlock.types.MicroVM) | repeated |  |
+| microvm | [flintlock.types.MicroVM](#flintlock-types-MicroVM) | repeated |  |
 
 
 
@@ -171,18 +171,18 @@
  
 
 
-<a name="microvm.services.api.v1alpha1.MicroVM"></a>
+<a name="microvm-services-api-v1alpha1-MicroVM"></a>
 
 ### MicroVM
 MicroVM providers a service to create and manage the lifecycle of microvms.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| CreateMicroVM | [CreateMicroVMRequest](#microvm.services.api.v1alpha1.CreateMicroVMRequest) | [CreateMicroVMResponse](#microvm.services.api.v1alpha1.CreateMicroVMResponse) |  |
-| DeleteMicroVM | [DeleteMicroVMRequest](#microvm.services.api.v1alpha1.DeleteMicroVMRequest) | [.google.protobuf.Empty](#google.protobuf.Empty) |  |
-| GetMicroVM | [GetMicroVMRequest](#microvm.services.api.v1alpha1.GetMicroVMRequest) | [GetMicroVMResponse](#microvm.services.api.v1alpha1.GetMicroVMResponse) |  |
-| ListMicroVMs | [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest) | [ListMicroVMsResponse](#microvm.services.api.v1alpha1.ListMicroVMsResponse) |  |
-| ListMicroVMsStream | [ListMicroVMsRequest](#microvm.services.api.v1alpha1.ListMicroVMsRequest) | [ListMessage](#microvm.services.api.v1alpha1.ListMessage) stream |  |
+| CreateMicroVM | [CreateMicroVMRequest](#microvm-services-api-v1alpha1-CreateMicroVMRequest) | [CreateMicroVMResponse](#microvm-services-api-v1alpha1-CreateMicroVMResponse) |  |
+| DeleteMicroVM | [DeleteMicroVMRequest](#microvm-services-api-v1alpha1-DeleteMicroVMRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) |  |
+| GetMicroVM | [GetMicroVMRequest](#microvm-services-api-v1alpha1-GetMicroVMRequest) | [GetMicroVMResponse](#microvm-services-api-v1alpha1-GetMicroVMResponse) |  |
+| ListMicroVMs | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse) |  |
+| ListMicroVMsStream | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMessage](#microvm-services-api-v1alpha1-ListMessage) stream |  |
 
  
 

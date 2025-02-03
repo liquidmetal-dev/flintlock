@@ -81,6 +81,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddMicrovmProviderFlagsToCommand(cmd, cfg)
 	cmdflags.AddDebugFlagsToCommand(cmd, cfg)
 	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
+	cmdflags.AddVirtioFSFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)

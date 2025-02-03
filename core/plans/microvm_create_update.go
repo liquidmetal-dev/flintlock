@@ -66,6 +66,13 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding root dir step: %w", err)
 	}
 
+	// MicroVM provider doesn't have virtiofs
+	if provider.Capabilities().Has(models.VirtioFSCapability) {
+		if err := p.addVirtioFSSteps(ctx, p.vm, ports.VirtioFSService); err != nil {
+			return nil, fmt.Errorf("adding virtiofs steps: %w", err)
+		}
+	}
+
 	// Images
 	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
 		return nil, fmt.Errorf("adding image steps: %w", err)
@@ -121,6 +128,27 @@ func (p *microvmCreateOrUpdatePlan) addStep(ctx context.Context, step planner.Pr
 	return nil
 }
 
+func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
+	vm *models.MicroVM,
+	vfsService ports.VirtioFSService,
+) error {
+	for i := range vm.Spec.AdditionalVolumes {
+		vol := vm.Spec.AdditionalVolumes[i]
+		if vol.Source.VirtioFS != nil {
+			status, ok := vm.Status.Volumes[vol.ID]
+			if !ok {
+				status = &models.VolumeStatus{}
+				vm.Status.Volumes[vol.ID] = status
+			}
+			if err := p.addStep(ctx, runtime.NewVirtioFSMount(&vm.ID, &vol, status, vfsService)); err != nil {
+				return fmt.Errorf("adding volume mount step: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 	vm *models.MicroVM,
 	imageSvc ports.ImageService,
@@ -139,14 +167,12 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 
 	for i := range vm.Spec.AdditionalVolumes {
 		vol := vm.Spec.AdditionalVolumes[i]
-
-		status, ok := vm.Status.Volumes[vol.ID]
-		if !ok {
-			status = &models.VolumeStatus{}
-			vm.Status.Volumes[vol.ID] = status
-		}
-
 		if vol.Source.Container != nil {
+			status, ok := vm.Status.Volumes[vol.ID]
+			if !ok {
+				status = &models.VolumeStatus{}
+				vm.Status.Volumes[vol.ID] = status
+			}
 			if err := p.addStep(ctx, runtime.NewVolumeMount(&vm.ID, &vol, status, imageSvc)); err != nil {
 				return fmt.Errorf("adding volume mount step: %w", err)
 			}

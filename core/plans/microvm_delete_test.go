@@ -55,6 +55,8 @@ func TestMicroVMDeletePlan(t *testing.T) {
 		Return(nil).
 		Times(1)
 
+	mList.MicroVMService.EXPECT().Capabilities().Return(models.Capabilities{}).Times(1)
+
 	mList.NetworkService.
 		EXPECT().
 		IfaceExists(gomock.Any(), &hostDeviceNameMatcher{}).

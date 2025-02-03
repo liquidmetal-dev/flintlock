@@ -81,7 +81,9 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 			context.Background(),
 			defaults.TopicMicroVMEvents,
 			&events.MicroVMSpecUpdated{
-				UID: uid,
+				UID:       uid,
+				Namespace: spec.ID.Namespace(),
+				ID:        spec.ID.Name(),
 			},
 		)
 		if err != nil {
