@@ -92,9 +92,9 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 
 func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (bool, error) {
 	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
-	pid, pidErr := state.VirtioPID()
-	if pidErr != nil {
-		return false, pidErr
+	pid, _ := state.VirtioPID()
+	if pid == -1 {
+		return false,nil
 	}
 	processExists, err := process.Exists(pid)
 	if err != nil {
