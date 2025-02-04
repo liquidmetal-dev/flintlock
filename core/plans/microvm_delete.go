@@ -67,6 +67,11 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	if err := p.addStep(ctx, microvm.NewDeleteStep(p.vm, provider)); err != nil {
 		return nil, fmt.Errorf("adding microvm delete step: %w", err)
 	}
+	if provider.Capabilities().Has(models.VirtioFSCapability) {
+		if err := p.addVirtioFSSteps(ctx, p.vm, ports.VirtioFSService, provider); err != nil {
+			return nil, fmt.Errorf("adding virtiofs steps: %w", err)
+		}
+	}
 
 	if err := p.addStep(ctx, runtime.NewRepoRelease(p.vm, ports.Repo)); err != nil {
 		return nil, fmt.Errorf("adding release lease step: %w", err)
@@ -134,6 +139,28 @@ func (p *microvmDeletePlan) addNetworkSteps(
 
 		if err := p.addStep(ctx, step); err != nil {
 			return fmt.Errorf("adding delete network interface step: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (p *microvmDeletePlan) addVirtioFSSteps(
+	ctx context.Context,
+	vm *models.MicroVM,
+	vfsService ports.VirtioFSService,
+	vmService ports.MicroVMService,
+) error {
+	for i := range vm.Spec.AdditionalVolumes {
+		vol := vm.Spec.AdditionalVolumes[i]
+		if vol.Source.VirtioFS != nil {
+			status := vm.Status.Volumes[vol.ID]
+			if status != nil && status.Mount.Source != "" {
+				step := runtime.NewDeleteVirtioFSMount(&vm.ID, &vol, status, vmService, vfsService)
+				if err := p.addStep(ctx, step); err != nil {
+					return fmt.Errorf("adding delete network interface step: %w", err)
+				}
+			}
 		}
 	}
 

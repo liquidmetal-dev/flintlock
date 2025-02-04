@@ -187,3 +187,20 @@ type DiskFile struct {
 	// ContentBase64 is the content of the file encoded as base64.
 	ContentBase64 string
 }
+
+// Create VirtioFSInput are the input options for creating a disk.
+type VirtioFSCreateInput struct {
+	Path string
+}
+
+type VirtioFSDeleteInput struct {
+	Path string
+}
+
+// VirtiofsService is the port definition for a VirtioFS service.
+type VirtioFSService interface {
+	// Create will create a new virtiofs share.
+	Create(ctx context.Context, vmid *models.VMID, input VirtioFSCreateInput) (*models.Mount, error)
+	Delete(ctx context.Context, vmid *models.VMID) error
+	HasVirtioFSDProcess(ctx context.Context, vmid *models.VMID) (bool, error)
+}

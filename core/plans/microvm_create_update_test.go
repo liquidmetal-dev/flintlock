@@ -41,7 +41,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 		EXPECT().
 		Create(gomock.Any(), gomock.Any())
 
-	mList.MicroVMService.EXPECT().Capabilities().Return(models.Capabilities{})
+	mList.MicroVMService.EXPECT().Capabilities().Return(models.Capabilities{}).Times(2)
 
 	mList.MicroVMService.
 		EXPECT().
