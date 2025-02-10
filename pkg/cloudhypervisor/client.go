@@ -109,6 +109,7 @@ func New(socketPath string) Client {
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
 			return net.Dial("unix", socketPath)
 		},
+		DisableKeepAlives: true, // Disable keep-alive to ensure connections are closed after use
 	}
 
 	return &client{
