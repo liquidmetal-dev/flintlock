@@ -4,6 +4,7 @@
 package inject
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/wire"
@@ -17,6 +18,7 @@ import (
 	microvmgrpc "github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/sqlite"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -26,13 +28,15 @@ import (
 func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	wire.Build(containerd.NewEventService,
 		containerd.NewImageService,
-		containerd.NewMicroVMRepo,
+		// containerd.NewMicroVMRepo,
+		sqlite.NewMicroVMRepo,
 		ulid.New,
 		microvm.NewFromConfig,
 		network.New,
 		godisk.New,
 		appPorts,
 		containerdConfig,
+		sqliteConfig,
 		networkConfig,
 		afero.NewOsFs,
 		virtiofs.New)
@@ -64,6 +68,12 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
+	}
+}
+
+func sqliteConfig(cfg *config.Config) *sqlite.Config {
+	return &sqlite.Config{
+		DatabasePath: fmt.Sprintf("%s/microvm.db", cfg.DataPath),
 	}
 }
 
