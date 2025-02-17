@@ -16,7 +16,7 @@
 # limitations under the License.
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "generic/ubuntu2004"
+  config.vm.box = "bento/ubuntu-24.04"
 
   config.ssh.forward_agent = true
   config.vm.synced_folder "./", "/home/vagrant/flintlock"
@@ -45,7 +45,8 @@ Vagrant.configure("2") do |config|
     sh.inline = <<~SHELL
       #!/usr/bin/env bash
       set -eux -o pipefail
-      apt update && apt upgrade -y
+      #apt update && apt upgrade -y
+      apt update
     SHELL
   end
 
@@ -58,13 +59,14 @@ Vagrant.configure("2") do |config|
         git \
         gcc \
         curl \
-        unzip
+        unzip \
+        direnv
     SHELL
   end
 
   config.vm.provision "install-golang", type: "shell", run: "once" do |sh|
     sh.env = {
-      'GO_VERSION': ENV['GO_VERSION'] || "1.17.2",
+      'GO_VERSION': ENV['GO_VERSION'] || "1.23.1",
     }
     sh.inline = <<~SHELL
       #!/usr/bin/env bash
@@ -90,7 +92,17 @@ EOF
       apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
       adduser 'vagrant' libvirt
       adduser 'vagrant' kvm
-      setfacl -m u:${USER}:rw /dev/kvm
+      #setfacl -m u:${USER}:rw /dev/kvm
+    SHELL
+  end
+
+  config.vm.provision "install-devbox", type: "shell", run: "once" do |sh|
+    sh.inline = <<~SHELL
+      #!/usr/bin/env bash
+      set -eux -o pipefail
+      sh <(curl -L https://nixos.org/nix/install) --daemon
+      curl -L -o devbox https://releases.jetify.com/devbox 
+      mv ./devbox /usr/local/bin
     SHELL
   end
 end
