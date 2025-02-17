@@ -109,9 +109,7 @@ linters:
     - gci
     - varnamelen
     - protogetter
-    - gomnd
     - mnd
     - wsl
     - wrapcheck
     - exportloopref # deprecated
-    - execinquery # deprecated

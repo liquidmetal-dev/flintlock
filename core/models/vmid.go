@@ -79,7 +79,7 @@ func (v *VMID) UID() string {
 }
 
 // String returns a string representation of the vmid.
-func (v VMID) String() string {
+func (v *VMID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.namespace, v.name, v.uid)
 }
 
