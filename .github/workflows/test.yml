@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
-          go-version-file: '${{ github.workspace }}/go.mod'
+          go-version-file: "${{ github.workspace }}/go.mod"
           check-latest: true
           cache: false
       - name: Build
@@ -24,7 +24,7 @@ jobs:
           make test-with-cov
         env:
           CTR_SOCK_PATH: /run/containerd/containerd.sock
-      - name: Upload coverage to Codecov
-        run: bash <(curl -s https://codecov.io/bash)
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      # - name: Upload coverage to Codecov
+      #   run: bash <(curl -s https://codecov.io/bash)
+      #   env:
+      #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
