@@ -27,7 +27,12 @@ DEVPOOL_DATA=""
 # firecracker
 FIRECRACKER_VERSION="${FIRECRACKER:=$DEFAULT_VERSION}"
 FIRECRACKER_BIN="firecracker"
-FIRECRACKER_REPO="weaveworks/firecracker"
+FIRECRACKER_REPO="firecracker-microvm/firecracker"
+
+# cloud-hypervisor
+CLOUD_HYPERVISOR_VERSION="${CLOUD_HYPERVISOR:=$DEFAULT_VERSION}"
+CLOUD_HYPERVISOR_BIN="cloud-hypervisor-static"
+CLOUD_HYPERVISOR_REPO="cloud-hypervisor/cloud-hypervisor"
 
 # containerd
 CONTAINERD_VERSION="${CONTAINERD:=$DEFAULT_VERSION}"
@@ -265,6 +270,9 @@ start_service() {
 # Fetch and install the firecracker binary
 install_firecracker() {
 	local tag="$1"
+	local arch=$(uname -m)
+
+	tempdir=$(mktemp -d)
 
 	say "Installing firecracker version $tag to $INSTALL_PATH"
 
@@ -272,15 +280,17 @@ install_firecracker() {
 		tag=$(latest_release_tag "$FIRECRACKER_REPO")
 	fi
 
-	bin_name="${FIRECRACKER_BIN}_${ARCH}"
-
-	# older firecracker macvtap releases had binaries with different names
-	if is_older_version "$tag"; then
-		bin_name="$FIRECRACKER_BIN"
-	fi
+	bin_name="${FIRECRACKER_BIN}-${tag}-${arch}.tgz"
 
 	url=$(build_download_url "$FIRECRACKER_REPO" "$tag" "$bin_name")
-	install_release_bin "$url" "$FIRECRACKER_BIN" || die "could not install firecracker"
+
+	curl -sL "$url" | tar xz -C "$tempdir"
+
+	fc_bin_down="$tempdir/release-$tag-$arch/firecracker-$tag-$arch"
+
+	cp "$fc_bin_down" "$INSTALL_PATH/$FIRECRACKER_BIN"
+
+	rm -rf "$tempdir"
 
 	"$FIRECRACKER_BIN" --version &>/dev/null
 	ok_or_die "firecracker version $tag not installed"
@@ -288,11 +298,33 @@ install_firecracker() {
 	say "Firecracker version $tag successfully installed"
 }
 
-is_older_version() {
+## CLOUD HYPERVISOR
+#
+#
+# Fetch and install the Cloud Hypervisor binary
+install_cloudhypervisor() {
 	local tag="$1"
-	local cutoff="v1.1.1-macvtap"
+	local arch=$(uname -m)
 
-	[[ "$tag" == $(printf "%s\n%s" "$tag" "$cutoff" | sort -V | head -n 1) && "$tag" != "$cutoff" ]]
+	say "Installing Cloud Hypervisor version $tag to $INSTALL_PATH"
+
+	if [[ "$tag" == "$DEFAULT_VERSION" ]]; then
+		tag=$(latest_release_tag "$CLOUD_HYPERVISOR_REPO")
+	fi
+
+	bin_name="${CLOUD_HYPERVISOR_BIN}"
+
+	if [[ "$arch" == "aarch64" ]]; then
+		bin_name="${CLOUD_HYPERVISOR_BIN}-aarch64"
+	fi
+
+	url=$(build_download_url "$CLOUD_HYPERVISOR_REPO" "$tag" "$bin_name")
+	install_release_bin "$url" "$CLOUD_HYPERVISOR_BIN" || die "could not install cloud-hypervisor"
+
+	"$CLOUD_HYPERVISOR_BIN" --version &>/dev/null
+	ok_or_die "cloud-hypervisor version $tag not installed"
+
+	say "Cloud Hypervisor version $tag successfully installed"
 }
 
 ## FLINTLOCK
@@ -747,6 +779,7 @@ cmd_all() {
 	local insecure=false
 	local thinpool="$DEFAULT_THINPOOL"
 	local fc_version="$FIRECRACKER_VERSION"
+	local ch_version="$CLOUD_HYPERVISOR_VERSION"
 	local fl_version="$FLINTLOCK_VERSION"
 	local ctrd_version="$CONTAINERD_VERSION"
 	local flintlock_config_file=""
@@ -806,7 +839,7 @@ cmd_all() {
 
 	say "$(date -u +'%F %H:%M:%S %Z'): Provisioning host $(hostname)"
 	say "The following subcommands will be performed:" \
-		"apt, firecracker, containerd, flintlock, direct_lvm|devpool"
+		"apt, firecracker, cloudhypervisor, containerd, flintlock, direct_lvm|devpool"
 
 	set_arch
 	say "Will install binaries for architecture: $ARCH"
@@ -830,6 +863,7 @@ cmd_all() {
 	fi
 
 	install_firecracker "$fc_version"
+	install_cloudhypervisor "$ch_version"
 	do_all_containerd "$ctrd_version" "$set_thinpool"
 	do_all_flintlock "$fl_version" "$fl_address" "$fl_iface" "$bridge_name" "$insecure" "$flintlock_config_file" "$fl_port"
 
@@ -870,6 +904,30 @@ cmd_firecracker() {
 
 	set_arch
 	install_firecracker "$version"
+}
+
+cmd_cloudhypervisor() {
+	local version="$CLOUD_HYPERVISOR_VERSION"
+
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		"-h" | "--help")
+			cmd_cloudhypervisor_help
+			exit 1
+			;;
+		"-v" | "--version")
+			shift
+			version="$1"
+			;;
+		*)
+			die "Unknown argument: $1. Please use --help for help."
+			;;
+		esac
+		shift
+	done
+
+	set_arch
+	install_cloudhypervisor "$version"
 }
 
 cmd_containerd() {
@@ -1069,6 +1127,15 @@ cmd_firecracker_help() {
 EOF
 }
 
+cmd_cloudhypervisor_help() {
+	cat <<EOF
+  cloudhypervisor        Install Cloud Hypervisor from feature branch
+    OPTIONS:
+      --version, -v      Version to install (default: latest)
+
+EOF
+}
+
 cmd_containerd_help() {
 	cat <<EOF
   containerd             Install, configure and start containerd service
@@ -1129,6 +1196,7 @@ EOF
 	cmd_all_help
 	cmd_apt_help
 	cmd_firecracker_help
+	cmd_cloudhypervisor_help
 	cmd_containerd_help
 	cmd_flintlock_help
 	cmd_direct_lvm_help
@@ -1161,9 +1229,9 @@ main() {
 		shift
 	done
 
-	if [[ $(id -u) != 0 ]]; then
-		die "Run this script as root..." >&2
-	fi
+	#if [[ $(id -u) != 0 ]]; then
+	#	die "Run this script as root..." >&2
+	#fi
 
 	# $1 is now a command name. Check if it is a valid command and, if so,
 	# run it.
