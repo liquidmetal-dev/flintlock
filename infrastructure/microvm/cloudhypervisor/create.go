@@ -20,7 +20,7 @@ import (
 	virtiofs "github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 
 	"path/filepath"
-	"strings" //tmp review after actual cut
+	"strings"
 )
 
 // Create will create a new microvm.
@@ -63,7 +63,6 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Starting cloud-hypervisor with args:", args) // Debugging line
 	// #nosec
 	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
 
