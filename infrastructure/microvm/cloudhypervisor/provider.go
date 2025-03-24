@@ -57,7 +57,8 @@ type provider struct {
 
 // Capabilities returns a list of the capabilities the provider supports.
 func (p *provider) Capabilities() models.Capabilities {
-	return []models.Capability{models.AutoStartCapability, models.MacvtapCapability, models.VirtioFSCapability, models.PCIPassthroughCapability}
+	return []models.Capability{models.AutoStartCapability, models.MacvtapCapability,
+		models.VirtioFSCapability, models.PCIPassthroughCapability}
 }
 
 // Start will start a created microvm.

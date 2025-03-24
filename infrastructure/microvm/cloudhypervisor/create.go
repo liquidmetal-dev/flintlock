@@ -101,7 +101,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		"-v",
 	}
 
-	if vm.Spec.PCIDevices != nil && len(vm.Spec.PCIDevices) > 0 {
+	if len(vm.Spec.PCIDevices) > 0 {
 		args = append(args, "--device")
 		for _, device := range vm.Spec.PCIDevices {
 			devicePath, err := findPCIDevicePath(device.VendorID, device.DeviceID)
