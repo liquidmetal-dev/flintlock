@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	errUIDRequired          = errors.New("uid is required")
-	errMacvtapNotSupported  = errors.New("macvtap network interfaces not supported by the microvm provider")
-	errVirtioFSNotSupported = errors.New("virtiofs not supported by the microvm provider")
+	errUIDRequired                       = errors.New("uid is required")
+	errMacvtapNotSupported               = errors.New("macvtap network interfaces not supported by the microvm provider")
+	errVirtioFSNotSupported              = errors.New("virtiofs not supported by the microvm provider")
 	errPCIDevicesPassthroughNotSupported = errors.New("pci device passthrough not supported by the microvm provider")
 )
 

@@ -19,8 +19,8 @@ import (
 
 	virtiofs "github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 
-	"strings" //tmp review after actual cut
 	"path/filepath"
+	"strings" //tmp review after actual cut
 )
 
 // Create will create a new microvm.
@@ -113,8 +113,8 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 				return nil, fmt.Errorf("error Finding PCI device: vendorID=%s, deviceID=%s", device.VendorID, device.DeviceID)
 			} else {
 				args = append(args, "path="+devicePath)
-			}	
-		}	
+			}
+		}
 	}
 	// Kernel and cmdline args
 	kernelCmdLine := DefaultKernelCmdLine()

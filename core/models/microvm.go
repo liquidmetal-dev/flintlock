@@ -79,7 +79,6 @@ type PCIDevice struct {
 	DeviceID string
 }
 
-
 type Initrd struct {
 	// Image is the container image to use for the initrd.
 	Image ContainerImage `json:"image" validate:"imageURI"`
