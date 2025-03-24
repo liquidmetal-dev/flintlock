@@ -232,12 +232,6 @@ func (p *provider) ensureState(vmState State) error {
 	return nil
 }
 
-func (p *provider) createMacvtapArg(netInt *models.NetworkInterface,
-	status *models.NetworkInterfaceStatus,
-) (string, error) {
-
-}
-
 // findPCIDevice searches for a PCI device by a single vendor ID and device ID.
 // It returns the path of the first matching device found.
 func findPCIDevicePath(vendorID, deviceID string) (string, error) {
