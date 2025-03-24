@@ -102,6 +102,12 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		}
 	}
 
+	if !provider.Capabilities().Has(models.VirtioFSCapability) {
+		if mvm.Spec.PCIDevices != nil {
+			return nil, errPCIDevicesPassthroughNotSupported
+		}
+	}
+
 	err = a.addInstanceData(mvm, logger)
 	if err != nil {
 		return nil, fmt.Errorf("adding instance data: %w", err)

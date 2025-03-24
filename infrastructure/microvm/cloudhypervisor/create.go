@@ -18,6 +18,9 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
 
 	virtiofs "github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
+
+	"strings" //tmp review after actual cut
+	"path/filepath"
 )
 
 // Create will create a new microvm.
@@ -60,6 +63,7 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Starting cloud-hypervisor with args:", args) // Debugging line
 	// #nosec
 	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
 
@@ -98,6 +102,20 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		"-v",
 	}
 
+	if vm.Spec.PCIDevices != nil && len(vm.Spec.PCIDevices) > 0 {
+		args = append(args, "--device")
+		for _, device := range vm.Spec.PCIDevices {
+			devicePath, err := findPCIDevicePath(device.VendorID, device.DeviceID)
+			if err != nil {
+				return nil, fmt.Errorf("error with PCI device path: %w", err)
+			}
+			if devicePath == "" {
+				return nil, fmt.Errorf("error Finding PCI device: vendorID=%s, deviceID=%s", device.VendorID, device.DeviceID)
+			} else {
+				args = append(args, "path="+devicePath)
+			}	
+		}	
+	}
 	// Kernel and cmdline args
 	kernelCmdLine := DefaultKernelCmdLine()
 
@@ -214,4 +232,45 @@ func (p *provider) ensureState(vmState State) error {
 	logFile.Close()
 
 	return nil
+}
+
+// findPCIDevice searches for a PCI device by a single vendor ID and device ID.
+// It returns the path of the first matching device found.
+func findPCIDevicePath(vendorID, deviceID string) (string, error) {
+	basePath := "/sys/bus/pci/devices/"
+
+	// Read directory entries
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		return "", err
+	}
+
+	// Loop through each PCI device directory
+	for _, entry := range entries {
+		devicePath := filepath.Join(basePath, entry.Name())
+		vendorPath := filepath.Join(devicePath, "vendor")
+		deviceFilePath := filepath.Join(devicePath, "device")
+
+		// Read vendor ID
+		vendor, err := os.ReadFile(vendorPath)
+		if err != nil {
+			continue
+		}
+
+		// Read device ID
+		device, err := os.ReadFile(deviceFilePath)
+		if err != nil {
+			continue
+		}
+
+		// Clean up output (remove spaces and "0x" prefix)
+		vendorStr := strings.TrimPrefix(strings.TrimSpace(string(vendor)), "0x")
+		deviceStr := strings.TrimPrefix(strings.TrimSpace(string(device)), "0x")
+		// Check if vendorStr and deviceStr match the given vendor and device ID
+		if strings.Contains(vendorStr, vendorID) && strings.Contains(deviceStr, deviceID) {
+			return devicePath, nil // Return the first matching device path
+		}
+	}
+
+	return "", nil // Return an empty string if no match found
 }
