@@ -110,9 +110,8 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 			}
 			if devicePath == "" {
 				return nil, fmt.Errorf("error Finding PCI device: vendorID=%s, deviceID=%s", device.VendorID, device.DeviceID)
-			} else {
-				args = append(args, "path="+devicePath)
 			}
+			args = append(args, "path="+devicePath)
 		}
 	}
 	// Kernel and cmdline args
@@ -231,6 +230,12 @@ func (p *provider) ensureState(vmState State) error {
 	logFile.Close()
 
 	return nil
+}
+
+func (p *provider) createMacvtapArg(netInt *models.NetworkInterface,
+	status *models.NetworkInterfaceStatus,
+) (string, error) {
+
 }
 
 // findPCIDevice searches for a PCI device by a single vendor ID and device ID.
