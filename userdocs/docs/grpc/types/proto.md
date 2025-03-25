@@ -19,6 +19,7 @@
     - [NetworkInterface](#flintlock-types-NetworkInterface)
     - [NetworkInterfaceStatus](#flintlock-types-NetworkInterfaceStatus)
     - [NetworkOverrides](#flintlock-types-NetworkOverrides)
+    - [PCIDevice](#flintlock-types-PCIDevice)
     - [StaticAddress](#flintlock-types-StaticAddress)
     - [VirtioFSVolumeSource](#flintlock-types-VirtioFSVolumeSource)
     - [Volume](#flintlock-types-Volume)
@@ -146,6 +147,7 @@ MicroVMSpec represents the specification for a microvm.
 | deleted_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | DeletedAt indicates the time the microvm was marked as deleted. |
 | uid | [string](#string) | optional | UID is a globally unique identifier of the microvm. |
 | provider | [string](#string) | optional | Provider allows you to specify the name of the microvm provider to use. If this isn&#39;t supplied then the default provider will be used. |
+| pci_devices | [PCIDevice](#flintlock-types-PCIDevice) | repeated | PCI devices attached to the microvm. |
 
 
 
@@ -297,6 +299,22 @@ NetworkOverrides represents override values for a network interface.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | bridge_name | [string](#string) | optional | BridgeName is the name of the Linux bridge to attach TAP devices to. This overrides any value set at the overall flintlock level. |
+
+
+
+
+
+
+<a name="flintlock-types-PCIDevice"></a>
+
+### PCIDevice
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| VendorID | [string](#string) |  |  |
+| DeviceID | [string](#string) |  |  |
 
 
 
