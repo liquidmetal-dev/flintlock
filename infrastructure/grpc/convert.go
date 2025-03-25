@@ -86,14 +86,13 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		for _, device := range spec.PciDevices {
 			convertedModel.Spec.PCIDevices = append(convertedModel.Spec.PCIDevices, models.PCIDevice{
 				DeviceID: device.DeviceID,
-				VendorID:  device.VendorID,
+				VendorID: device.VendorID,
 			})
 		}
 	}
 
 	return convertedModel, nil
 }
-
 
 func convertNetworkInterfaceToModel(netInt *types.NetworkInterface) *models.NetworkInterface {
 	converted := &models.NetworkInterface{
