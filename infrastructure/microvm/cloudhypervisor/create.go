@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -18,9 +20,6 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
 
 	virtiofs "github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
-
-	"path/filepath"
-	"strings"
 )
 
 // Create will create a new microvm.
@@ -102,17 +101,11 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 
 	if len(vm.Spec.PCIDevices) > 0 {
-		args = append(args, "--device")
-		for _, device := range vm.Spec.PCIDevices {
-			devicePath, err := findPCIDevicePath(device.VendorID, device.DeviceID)
-			if err != nil {
-				return nil, fmt.Errorf("error with PCI device path: %w", err)
-			}
-			if devicePath == "" {
-				return nil, fmt.Errorf("error Finding PCI device: vendorID=%s, deviceID=%s", device.VendorID, device.DeviceID)
-			}
-			args = append(args, "path="+devicePath)
+		pciArgs, err := p.createPCIDeviceArgs(vm.Spec.PCIDevices)
+		if err != nil {
+			return nil, fmt.Errorf("failed finding devices: %w", err)
 		}
+		args = append(args, pciArgs...)
 	}
 	// Kernel and cmdline args
 	kernelCmdLine := DefaultKernelCmdLine()
@@ -230,6 +223,24 @@ func (p *provider) ensureState(vmState State) error {
 	logFile.Close()
 
 	return nil
+}
+
+func (p *provider) createPCIDeviceArgs(pciDevices []models.PCIDevice) ([]string, error) {
+	args := []string{
+		"--device",
+	}
+	for _, device := range pciDevices {
+		devicePath, err := findPCIDevicePath(device.VendorID, device.DeviceID)
+		if err != nil {
+			return nil, fmt.Errorf("error with PCI device path: %w", err)
+		}
+		if devicePath == "" {
+			return nil, fmt.Errorf("error Finding PCI device: vendorID=%s, deviceID=%s", device.VendorID, device.DeviceID)
+		}
+		args = append(args, "path="+devicePath)
+	}
+
+	return args, nil
 }
 
 // findPCIDevice searches for a PCI device by a single vendor ID and device ID.
