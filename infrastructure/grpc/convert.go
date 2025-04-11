@@ -17,6 +17,11 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		uid = *spec.Uid
 	}
 
+	if spec.Kernel == nil {
+		// Add the kernel to the spec if it's missing so that we can correctly progress to the validate step
+		spec.Kernel = &types.Kernel{}
+	}
+
 	vmid, err := models.NewVMID(spec.Id, spec.Namespace, uid)
 	if err != nil {
 		return nil, fmt.Errorf("creating vmid from spec: %w", err)
