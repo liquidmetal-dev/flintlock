@@ -55,6 +55,7 @@ type User struct {
 	Shell             string   `yaml:"shell,omitempty"`
 	LockPasswd        *bool    `yaml:"lock_passwd,omitempty"`
 	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys,omitempty"`
+	SSHImportIds      []string `yaml:"ssh_import_id,omitempty"`
 }
 
 type WriteFile struct {
