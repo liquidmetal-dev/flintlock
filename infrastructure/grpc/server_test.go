@@ -77,6 +77,78 @@ func TestServer_CreateMicroVM(t *testing.T) {
 				)
 			},
 		},
+		{
+			name: "sanitizes control characters before invoking usecase",
+			createReq: func() *mvm1.CreateMicroVMRequest {
+				filename := "kernel"
+				mac := "AA:FF:00:00:00:01"
+				rootSource := "\n ghcr.io/test/root:latest\r"
+				additionalSource := "\tghcr.io/test/additional:latest\n"
+				initrdImage := "\n ghcr.io/test/initrd:latest\n"
+
+				return &mvm1.CreateMicroVMRequest{
+					Microvm: &types.MicroVMSpec{
+						Id:         "mvm-sanitize",
+						Namespace:  "default",
+						Vcpu:       2,
+						MemoryInMb: 1024,
+						Kernel: &types.Kernel{
+							Image:    "\n ghcr.io/test/kernel:latest\t",
+							Filename: &filename,
+						},
+						Initrd: &types.Initrd{
+							Image: initrdImage,
+						},
+						Interfaces: []*types.NetworkInterface{
+							{
+								DeviceId: "eth0",
+								GuestMac: &mac,
+								Type:     types.NetworkInterface_MACVTAP,
+							},
+						},
+						RootVolume: &types.Volume{
+							Id: "root",
+							Source: &types.VolumeSource{
+								ContainerSource: &rootSource,
+							},
+						},
+						AdditionalVolumes: []*types.Volume{
+							{
+								Id: "extra",
+								Source: &types.VolumeSource{
+									ContainerSource: &additionalSource,
+								},
+							},
+						},
+					},
+				}
+			},
+			expectError: false,
+			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
+				vmid, _ := models.NewVMID("mvm-sanitize", "default", "uid")
+				cm.CreateMicroVM(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.AssignableToTypeOf(&models.MicroVM{}),
+				).DoAndReturn(func(_ context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
+					Expect(string(mvm.Spec.Kernel.Image)).To(Equal("ghcr.io/test/kernel:latest"))
+					Expect(mvm.Spec.Initrd).NotTo(BeNil())
+					Expect(string(mvm.Spec.Initrd.Image)).To(Equal("ghcr.io/test/initrd:latest"))
+					Expect(mvm.Spec.RootVolume.Source.Container).NotTo(BeNil())
+					Expect(string(mvm.Spec.RootVolume.Source.Container.Image)).To(Equal("ghcr.io/test/root:latest"))
+					Expect(len(mvm.Spec.AdditionalVolumes)).To(Equal(1))
+					Expect(string(mvm.Spec.AdditionalVolumes[0].Source.Container.Image)).To(Equal("ghcr.io/test/additional:latest"))
+
+					return &models.MicroVM{
+						ID:      *vmid,
+						Version: 0,
+						Spec:    mvm.Spec,
+						Status: models.MicroVMStatus{
+							State: models.CreatedState,
+						},
+					}, nil
+				})
+			},
+		},
 	}
 
 	for _, tc := range tt {
