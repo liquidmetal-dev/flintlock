@@ -79,7 +79,7 @@ func TestServer_CreateMicroVM(t *testing.T) {
 		},
 		{
 			name: "sanitizes control characters before invoking usecase",
-			createReq: func() *mvm1.CreateMicroVMRequest {
+			createReq: (func() *mvm1.CreateMicroVMRequest {
 				filename := "kernel"
 				mac := "AA:FF:00:00:00:01"
 				rootSource := "\n ghcr.io/test/root:latest\r"
@@ -122,7 +122,7 @@ func TestServer_CreateMicroVM(t *testing.T) {
 						},
 					},
 				}
-			},
+			})(),
 			expectError: false,
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
 				vmid, _ := models.NewVMID("mvm-sanitize", "default", "uid")
