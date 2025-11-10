@@ -13,11 +13,11 @@ jobs:
       PROJECT_NAME: "flintlock_nightly_e2e"
     name: e2e tests
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Get branch name
         id: branch-name
-        uses: tj-actions/branch-names@6871f53176ad61624f978536bbf089c574dc19a2 # v8.0.1
+        uses: tj-actions/branch-names@5250492686b253f06fa55861556d1027b067aeb5 # v9.0.2
 
       - name: Run tests
         env:
