@@ -22,6 +22,8 @@ func TestServer_CreateMicroVM(t *testing.T) {
 		createReq   *mvm1.CreateMicroVMRequest
 		expectError bool
 		expect      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder)
+		expectedID  string
+		expectedNS  string
 	}{
 		{
 			name:        "nil request should fail with error",
@@ -58,6 +60,8 @@ func TestServer_CreateMicroVM(t *testing.T) {
 			name:        "valid spec should not fail",
 			createReq:   createTestCreateRequest("mvm1", "default"),
 			expectError: false,
+			expectedID:  "mvm1",
+			expectedNS:  "default",
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
 				vmid, _ := models.NewVMID("mvm1", "default", "uid")
 
@@ -124,6 +128,8 @@ func TestServer_CreateMicroVM(t *testing.T) {
 				}
 			})(),
 			expectError: false,
+			expectedID:  "mvm-sanitize",
+			expectedNS:  "default",
 			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
 				vmid, _ := models.NewVMID("mvm-sanitize", "default", "uid")
 				cm.CreateMicroVM(
@@ -169,8 +175,12 @@ func TestServer_CreateMicroVM(t *testing.T) {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(resp.Microvm.Spec.Id).To(Equal("mvm1"))
-				Expect(resp.Microvm.Spec.Namespace).To(Equal("default"))
+				if tc.expectedID != "" {
+					Expect(resp.Microvm.Spec.Id).To(Equal(tc.expectedID))
+				}
+				if tc.expectedNS != "" {
+					Expect(resp.Microvm.Spec.Namespace).To(Equal(tc.expectedNS))
+				}
 			}
 		})
 	}
