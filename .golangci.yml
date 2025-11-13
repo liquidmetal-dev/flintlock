@@ -20,6 +20,8 @@ linters-settings:
     line-length: 120
   misspell:
     locale: UK
+    ignore-words:
+      - sanitized
   goimports:
     local-prefixes: github.com/liquidmetal-dev/flintlock
   nolintlint:
