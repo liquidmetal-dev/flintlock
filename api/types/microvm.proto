@@ -69,6 +69,10 @@ message MicroVMSpec {
   // Provider allows you to specify the name of the microvm provider to use. If this isn't supplied
   // then the default provider will be used.
   optional string provider = 16;
+
+  // PCI devices attached to the microvm.
+  repeated PCIDevice pci_devices = 17;
+
 }
 
 // Kernel represents the configuration for a kernel.
@@ -170,6 +174,12 @@ message ContainerVolumeSource {
     // Image specifies the conatiner image to use for the volume.
     string image = 1;
 }
+
+message PCIDevice {
+  string VendorID = 1;
+  string DeviceID = 2;
+}
+
 
 // MicroVMStatus contains the runtime status of the microvm.
 message MicroVMStatus {
