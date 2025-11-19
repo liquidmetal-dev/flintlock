@@ -10,6 +10,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 
 	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
 func NewEventService(cfg *Config) (ports.EventService, error) {
@@ -82,6 +83,8 @@ func (es *eventService) subscribe(ctx context.Context,
 		ctrErrs   <-chan error
 	)
 
+	logger := log.GetLogger(ctx).WithField("service", "containerd_event_service")
+
 	errs = evtErrCh
 	ch = evtCh
 	namespaceCtx := namespaces.WithNamespace(ctx, es.cfg.Namespace)
@@ -98,18 +101,23 @@ func (es *eventService) subscribe(ctx context.Context,
 		for {
 			select {
 			case <-ctx.Done():
+				logger.Debug("subscribe, context done")
 				if cerr := ctx.Err(); cerr != nil && !errors.Is(cerr, context.Canceled) {
+					logger.WithField("error", cerr).Error("error in context done")
 					evtErrCh <- cerr
 				}
 
 				return
 			case ctrEvt := <-ctrEvents:
+				logger.WithField("event", ctrEvt).Debug("event received")
 				converted, err := convertCtrEventEnvelope(ctrEvt)
 				if err != nil {
+					logger.WithField("error", err).Error("error converting event envelope")
 					evtErrCh <- fmt.Errorf("converting containerd event envelope: %w", err)
 				}
 				evtCh <- converted
 			case ctrErr := <-ctrErrs:
+				logger.WithField("error", ctrErr).Error("error from containerd event service")
 				evtErrCh <- ctrErr
 			}
 		}
