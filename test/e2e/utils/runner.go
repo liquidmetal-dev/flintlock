@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	ccfg "github.com/containerd/containerd/services/server/config"
 	"github.com/containerd/containerd/snapshots/devmapper/dmsetup"
+	ccfg "github.com/containerd/containerd/v2/cmd/containerd/server/config"
 	gk "github.com/onsi/ginkgo/v2"
 	gm "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -173,7 +173,7 @@ func (r *Runner) writeContainerdConfig() {
 		Debug: ccfg.Debug{
 			Level: r.params.ContainerdLogLevel,
 		},
-		Plugins: map[string]toml.Tree{
+		Plugins: map[string]interface{}{
 			"io.containerd.snapshotter.v1.devmapper": *pluginTree,
 		},
 	}
