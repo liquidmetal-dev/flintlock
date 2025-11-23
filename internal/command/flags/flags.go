@@ -33,6 +33,7 @@ const (
 	cloudHypervisorBinFlag    = "cloudhypervisor-bin"
 	cloudHypervisorDetachFlag = "cloudhypervisor-detach"
 	virtioFSBinFlag           = "virtiofs-bin"
+	dataPathFlag              = "data-path"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -46,6 +47,11 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"state-dir",
 		defaults.StateRootDir,
 		"The directory to use for the as the root for runtime state.")
+
+	cmd.Flags().StringVar(&cfg.DataPath,
+		"data-dir",
+		fmt.Sprintf("%s/data", defaults.StateRootDir),
+		"The directory to use for general data storage.")
 
 	cmd.Flags().DurationVar(&cfg.ResyncPeriod,
 		"resync-period",
