@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -98,6 +100,13 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		"-v",
 	}
 
+	if len(vm.Spec.PCIDevices) > 0 {
+		pciArgs, err := p.createPCIDeviceArgs(vm.Spec.PCIDevices)
+		if err != nil {
+			return nil, fmt.Errorf("failed finding devices: %w", err)
+		}
+		args = append(args, pciArgs...)
+	}
 	// Kernel and cmdline args
 	kernelCmdLine := DefaultKernelCmdLine()
 
@@ -214,4 +223,63 @@ func (p *provider) ensureState(vmState State) error {
 	logFile.Close()
 
 	return nil
+}
+
+func (p *provider) createPCIDeviceArgs(pciDevices []models.PCIDevice) ([]string, error) {
+	args := []string{
+		"--device",
+	}
+	for _, device := range pciDevices {
+		devicePath, err := findPCIDevicePath(device.VendorID, device.DeviceID)
+		if err != nil {
+			return nil, fmt.Errorf("error with PCI device path: %w", err)
+		}
+		if devicePath == "" {
+			return nil, fmt.Errorf("error Finding PCI device: vendorID=%s, deviceID=%s", device.VendorID, device.DeviceID)
+		}
+		args = append(args, "path="+devicePath)
+	}
+
+	return args, nil
+}
+
+// findPCIDevice searches for a PCI device by a single vendor ID and device ID.
+// It returns the path of the first matching device found.
+func findPCIDevicePath(vendorID, deviceID string) (string, error) {
+	basePath := "/sys/bus/pci/devices/"
+
+	// Read directory entries
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		return "", err
+	}
+
+	// Loop through each PCI device directory
+	for _, entry := range entries {
+		devicePath := filepath.Join(basePath, entry.Name())
+		vendorPath := filepath.Join(devicePath, "vendor")
+		deviceFilePath := filepath.Join(devicePath, "device")
+
+		// Read vendor ID
+		vendor, err := os.ReadFile(vendorPath)
+		if err != nil {
+			continue
+		}
+
+		// Read device ID
+		device, err := os.ReadFile(deviceFilePath)
+		if err != nil {
+			continue
+		}
+
+		// Clean up output (remove spaces and "0x" prefix)
+		vendorStr := strings.TrimPrefix(strings.TrimSpace(string(vendor)), "0x")
+		deviceStr := strings.TrimPrefix(strings.TrimSpace(string(device)), "0x")
+		// Check if vendorStr and deviceStr match the given vendor and device ID
+		if strings.Contains(vendorStr, vendorID) && strings.Contains(deviceStr, deviceID) {
+			return devicePath, nil // Return the first matching device path
+		}
+	}
+
+	return "", nil // Return an empty string if no match found
 }
