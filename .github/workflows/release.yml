@@ -27,11 +27,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
     - name: Set up Go
-      uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+      uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
       with:
         go-version-file: '${{ github.workspace }}/go.mod'
         check-latest: true
@@ -51,7 +51,7 @@ jobs:
       contents: write
     steps:
     - name: Checkout
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         fetch-depth: 0
     - name: Download flintlock binaries
@@ -60,7 +60,7 @@ jobs:
         name: flintlock-binaries
         path: bin
     - name: Release
-      uses: softprops/action-gh-release@aa05f9d77940d1a6b7a495c3264de51fabbf36d9 # v2.2.0
+      uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.2.0
       with:
         prerelease: false
         draft: true
