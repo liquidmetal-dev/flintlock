@@ -1,13 +1,13 @@
 module github.com/liquidmetal-dev/flintlock
 
-go 1.24.3
+go 1.25
 
 replace (
 	// We are pinning this for now, as one of our dependencies has this verison
 	// as a dependency, and was breaking thanks to another dependency's use of
 	// the v1.1.1 version. Ideally we should change this back asap.
-	github.com/containernetworking/cni => github.com/containernetworking/cni v1.1.2
-	github.com/containernetworking/plugins => github.com/containernetworking/plugins v1.1.1
+	//github.com/containernetworking/cni => github.com/containernetworking/cni v1.1.2
+	//github.com/containernetworking/plugins => github.com/containernetworking/plugins v1.1.1
 
 	github.com/liquidmetal-dev/flintlock/api => ./api
 	github.com/liquidmetal-dev/flintlock/client => ./client
@@ -27,7 +27,7 @@ require (
 	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/oklog/ulid v1.3.1
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.36.0
+	github.com/onsi/gomega v1.38.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/pelletier/go-toml v1.9.5
@@ -46,8 +46,8 @@ require (
 
 require (
 	github.com/carlmjohnson/requests v0.24.3
-	github.com/containerd/containerd v1.7.23
 	github.com/containerd/containerd/api v1.10.0
+	github.com/containerd/containerd/v2 v2.2.0
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/platforms v1.0.0-rc.2
 	github.com/containerd/typeurl/v2 v2.2.3
@@ -55,9 +55,9 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/gorilla/mux v1.8.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/liquidmetal-dev/flintlock/api v0.0.0-20230211152005-2177e42d0ee6
+	github.com/liquidmetal-dev/flintlock/api v0.0.0-20230211152005-2177e42d0ee
 	github.com/liquidmetal-dev/flintlock/client v0.0.0-20230211152005-2177e42d0ee6
-	github.com/onsi/ginkgo/v2 v2.22.0
+	github.com/onsi/ginkgo/v2 v2.25.1
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/yitsushi/file-tailor v1.0.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -74,7 +74,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/cgroups/v3 v3.1.0 // indirect
-	github.com/containerd/containerd/v2 v2.2.0 // indirect
 	github.com/containerd/continuity v0.4.5 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
@@ -108,7 +107,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
+	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -129,7 +128,7 @@ require (
 	github.com/opencontainers/selinux v1.13.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/pierrec/lz4/v4 v4.1.17 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -156,11 +155,10 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f // indirect
-	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
-	golang.org/x/tools v0.35.0 // indirect
+	golang.org/x/tools v0.36.0 // indirect
 	google.golang.org/genproto v0.0.0-20240227224415-6ceb2ff114de // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250804133106-a7a43d27e69b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
