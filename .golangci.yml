@@ -1,5 +1,5 @@
 run:
-  go: "1.22"
+  go: "1.25"
   timeout: 10m
   tests: false
   allow-parallel-runners: true

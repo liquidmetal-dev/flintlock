@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/v2/core/content"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
+	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/google/go-cmp/cmp"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
