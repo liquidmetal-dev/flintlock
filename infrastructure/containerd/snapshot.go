@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containerd/containerd/snapshots"
+	"github.com/containerd/containerd/v2/core/snapshots"
 )
 
 func snapshotKey(owner, ownerUsageID string) string {
