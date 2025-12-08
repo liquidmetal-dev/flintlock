@@ -58,6 +58,8 @@ type Config struct {
 	DebugEndpoint string
 	// DefaultVMProvider specifies the name of the microvm provider to use by default.
 	DefaultVMProvider string
+	// DataPath is the path to the data directory.
+	DataPath string
 }
 
 // TLSConfig holds the configuration for TLS.

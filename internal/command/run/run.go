@@ -24,7 +24,10 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/sqlite"
 	cmdflags "github.com/liquidmetal-dev/flintlock/internal/command/flags"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/internal/inject"
@@ -66,6 +69,16 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 				return fmt.Errorf("the provided default provider name %s isn't a supported provider", cfg.DefaultVMProvider)
 			}
 			logger.Infof("Default microvm provider: %s", cfg.DefaultVMProvider)
+
+			if _, err := os.Stat(cfg.DataPath); os.IsNotExist(err) {
+				logger.Infof("Data path %s does not exist, creating it", cfg.DataPath)
+				if err := os.MkdirAll(cfg.DataPath, 0o755); err != nil {
+					return fmt.Errorf("creating data path: %w", err)
+				}
+				if err := migrateData(c.Context(), cfg.CtrSocketPath, cfg.CtrNamespace, cfg.DataPath); err != nil {
+					return fmt.Errorf("migrating data: %w", err)
+				}
+			}
 
 			return nil
 		},
@@ -343,6 +356,61 @@ func serveHTTP(ctx context.Context, cfg *config.Config) error {
 
 	if err := server.ListenAndServe(); err != nil {
 		return fmt.Errorf("listening and serving http api: %w", err)
+	}
+
+	return nil
+}
+
+func migrateData(ctx context.Context, containerdSocketPath, containerDNS, sqliteDataPath string) error {
+	logger := log.GetLogger(ctx)
+	logger.Info("Starting migration from containerd to SQLite for microvms")
+
+	// Initialize containerd repository
+	containerdRepo, err := containerd.NewMicroVMRepo(&containerd.Config{
+		SocketPath: containerdSocketPath,
+		Namespace:  containerDNS,
+	})
+	if err != nil {
+		return fmt.Errorf("initializing containerd repository: %w", err)
+	}
+
+	// Initialize SQLite repository
+	sqliteRepo, err := sqlite.NewMicroVMRepo(&sqlite.Config{
+		DatabasePath: sqliteDataPath,
+	})
+	if err != nil {
+		return fmt.Errorf("initializing sqlite repository: %w", err)
+	}
+
+	// Get all microvms from containerd
+	microvms, err := containerdRepo.GetAll(ctx, models.ListMicroVMQuery{})
+	if err != nil {
+		return fmt.Errorf("getting microvms from containerd: %w", err)
+	}
+
+	logger.Infof("Found %d microvms to migrate", len(microvms))
+
+	// Migrate each microvm
+	for i, microvm := range microvms {
+		logger.Infof("Migrating microvm %d/%d: %s", i+1, len(microvms), microvm.ID)
+
+		// Check if it already exists in SQLite
+		exists, err := sqliteRepo.Exists(ctx, microvm.ID)
+		if err != nil {
+			return fmt.Errorf("checking if microvm exists in sqlite: %w", err)
+		}
+
+		if exists {
+			logger.Infof("MicroVM %s already exists in SQLite, skipping", microvm.ID)
+			continue
+		}
+
+		// Save to SQLite
+		if _, err := sqliteRepo.Save(ctx, microvm); err != nil {
+			return fmt.Errorf("saving microvm to sqlite: %w", err)
+		}
+
+		logger.Infof("Successfully migrated microvm: %s", microvm.ID)
 	}
 
 	return nil

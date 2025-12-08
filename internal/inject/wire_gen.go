@@ -15,6 +15,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/sqlite"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -26,8 +27,8 @@ import (
 // Injectors from wire.go:
 
 func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
-	config2 := containerdConfig(cfg)
-	microVMRepository, err := containerd.NewMicroVMRepo(config2)
+	config2 := sqliteConfig(cfg)
+	microVMRepository, err := sqlite.NewMicroVMRepo(config2)
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +40,13 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-	eventService, err := containerd.NewEventService(config2)
+	config4 := containerdConfig(cfg)
+	eventService, err := containerd.NewEventService(config4)
 	if err != nil {
 		return nil, err
 	}
 	idService := ulid.New()
-	imageService, err := containerd.NewImageService(config2)
+	imageService, err := containerd.NewImageService(config4)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +84,12 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
+	}
+}
+
+func sqliteConfig(cfg *config.Config) *sqlite.Config {
+	return &sqlite.Config{
+		DatabasePath: cfg.DataPath,
 	}
 }
 
