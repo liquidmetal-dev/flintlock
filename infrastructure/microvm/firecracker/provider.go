@@ -56,7 +56,7 @@ type fcProvider struct {
 
 // Capabilities returns a list of the capabilities the Firecracker provider supports.
 func (p *fcProvider) Capabilities() models.Capabilities {
-	return models.Capabilities{models.MetadataServiceCapability}
+	return models.Capabilities{models.MetadataServiceCapability, models.SnapshotCapability}
 }
 
 // Start will start a created microvm.

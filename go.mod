@@ -2,8 +2,6 @@ module github.com/liquidmetal-dev/flintlock
 
 go 1.23.0
 
-toolchain go1.23.1
-
 replace (
 	// We are pinning this for now, as one of our dependencies has this verison
 	// as a dependency, and was breaking thanks to another dependency's use of
@@ -32,7 +30,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.36.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.1.0
+	github.com/opencontainers/image-spec v1.1.1
 	github.com/pelletier/go-toml v1.9.5
 	github.com/prometheus/client_golang v1.20.5
 	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
@@ -63,6 +61,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/yitsushi/file-tailor v1.0.0
 	gopkg.in/yaml.v2 v2.4.0
+	oras.land/oras-go/v2 v2.5.0
 	sigs.k8s.io/yaml v1.4.0
 )
 

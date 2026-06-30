@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	errUIDRequired          = errors.New("uid is required")
-	errMacvtapNotSupported  = errors.New("macvtap network interfaces not supported by the microvm provider")
-	errVirtioFSNotSupported = errors.New("virtiofs not supported by the microvm provider")
+	errUIDRequired               = errors.New("uid is required")
+	errMacvtapNotSupported       = errors.New("macvtap network interfaces not supported by the microvm provider")
+	errVirtioFSNotSupported      = errors.New("virtiofs not supported by the microvm provider")
+	errSnapshotReferenceRequired = errors.New("reference is required for a snapshot")
 )
 
 type specAlreadyExistsError struct {

@@ -13,6 +13,8 @@
     - [ListMessage](#microvm-services-api-v1alpha1-ListMessage)
     - [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest)
     - [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse)
+    - [SnapshotMicroVMRequest](#microvm-services-api-v1alpha1-SnapshotMicroVMRequest)
+    - [SnapshotMicroVMResponse](#microvm-services-api-v1alpha1-SnapshotMicroVMResponse)
   
     - [MicroVM](#microvm-services-api-v1alpha1-MicroVM)
   
@@ -164,6 +166,38 @@
 
 
 
+
+<a name="microvm-services-api-v1alpha1-SnapshotMicroVMRequest"></a>
+
+### SnapshotMicroVMRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [string](#string) |  | uid is the unique identifier of the microvm to snapshot. |
+| reference | [string](#string) |  | reference is the full OCI image reference (e.g. myorg/snap:v1) to package the snapshot into. |
+
+
+
+
+
+
+<a name="microvm-services-api-v1alpha1-SnapshotMicroVMResponse"></a>
+
+### SnapshotMicroVMResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| image | [string](#string) |  | image is the OCI image reference the snapshot was packaged into. |
+| digest | [string](#string) |  | digest is the manifest digest of the packaged snapshot image. |
+
+
+
+
+
  
 
  
@@ -183,6 +217,7 @@ MicroVM providers a service to create and manage the lifecycle of microvms.
 | GetMicroVM | [GetMicroVMRequest](#microvm-services-api-v1alpha1-GetMicroVMRequest) | [GetMicroVMResponse](#microvm-services-api-v1alpha1-GetMicroVMResponse) |  |
 | ListMicroVMs | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse) |  |
 | ListMicroVMsStream | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMessage](#microvm-services-api-v1alpha1-ListMessage) stream |  |
+| SnapshotMicroVM | [SnapshotMicroVMRequest](#microvm-services-api-v1alpha1-SnapshotMicroVMRequest) | [SnapshotMicroVMResponse](#microvm-services-api-v1alpha1-SnapshotMicroVMResponse) |  |
 
  
 

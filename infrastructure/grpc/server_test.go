@@ -12,6 +12,7 @@ import (
 	mvm1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
 )
@@ -250,6 +251,93 @@ func TestServer_DeleteMicroVM(t *testing.T) {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestServer_SnapshotMicroVM(t *testing.T) {
+	tt := []struct {
+		name        string
+		snapshotReq *mvm1.SnapshotMicroVMRequest
+		expectError bool
+		expect      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder)
+	}{
+		{
+			name:        "nil request should fail with error",
+			expectError: true,
+			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
+		},
+		{
+			name:        "missing uid should fail with error",
+			snapshotReq: &mvm1.SnapshotMicroVMRequest{Uid: "", Reference: "myorg/snap:v1"},
+			expectError: true,
+			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
+		},
+		{
+			name:        "missing reference should fail with error",
+			snapshotReq: &mvm1.SnapshotMicroVMRequest{Uid: "testuid", Reference: ""},
+			expectError: true,
+			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
+		},
+		{
+			name:        "invalid reference should fail with error",
+			snapshotReq: &mvm1.SnapshotMicroVMRequest{Uid: "testuid", Reference: "not a valid ref!!"},
+			expectError: true,
+			expect:      func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {},
+		},
+		{
+			name:        "error from usecase should fail with error",
+			snapshotReq: &mvm1.SnapshotMicroVMRequest{Uid: "testuid", Reference: "myorg/snap:v1"},
+			expectError: true,
+			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
+				cm.SnapshotMicroVM(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Not(gomock.Eq("")),
+					gomock.Eq("myorg/snap:v1"),
+				).Return(
+					nil,
+					errors.New("a random error occurred"),
+				)
+			},
+		},
+		{
+			name:        "valid request should succeed and return image details",
+			snapshotReq: &mvm1.SnapshotMicroVMRequest{Uid: "testuid", Reference: "myorg/snap:v1"},
+			expectError: false,
+			expect: func(cm *mock.MockMicroVMCommandUseCasesMockRecorder, qm *mock.MockMicroVMQueryUseCasesMockRecorder) {
+				cm.SnapshotMicroVM(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq("testuid"),
+					gomock.Eq("myorg/snap:v1"),
+				).Return(
+					&ports.SnapshotImage{Reference: "myorg/snap:v1", Digest: "sha256:abc"},
+					nil,
+				)
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			mockCtrl := gomock.NewController(t)
+			cm := mock.NewMockMicroVMCommandUseCases(mockCtrl)
+			qm := mock.NewMockMicroVMQueryUseCases(mockCtrl)
+
+			tc.expect(cm.EXPECT(), qm.EXPECT())
+
+			ctx := context.Background()
+			svr := grpc.NewServer(cm, qm)
+			resp, err := svr.SnapshotMicroVM(ctx, tc.snapshotReq)
+
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(resp.Image).To(Equal("myorg/snap:v1"))
+				Expect(resp.Digest).To(Equal("sha256:abc"))
 			}
 		})
 	}

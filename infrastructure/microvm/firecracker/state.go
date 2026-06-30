@@ -25,6 +25,7 @@ type State interface {
 	MetricsPath() string
 	StdoutPath() string
 	StderrPath() string
+	SockPath() string
 
 	ConfigPath() string
 	Config() (VmmConfig, error)
@@ -73,6 +74,10 @@ func (s *fsState) StdoutPath() string {
 
 func (s *fsState) StderrPath() string {
 	return s.stateRoot + "/firecracker.stderr"
+}
+
+func (s *fsState) SockPath() string {
+	return s.stateRoot + "/firecracker.sock"
 }
 
 func (s *fsState) SetPid(pid int) error {

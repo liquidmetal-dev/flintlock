@@ -48,7 +48,8 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("saving firecracker metadata: %w", err)
 	}
 
-	args := []string{"--id", vm.ID.UID(), "--boot-timer", "--no-api"}
+	args := []string{"--id", vm.ID.UID(), "--boot-timer"}
+	args = append(args, "--api-sock", vmState.SockPath())
 	args = append(args, "--config-file", vmState.ConfigPath())
 	args = append(args, "--metadata", vmState.MetadataPath())
 

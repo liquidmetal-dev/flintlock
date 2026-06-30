@@ -18,6 +18,10 @@ const (
 	MacvtapCapability Capability = "macvtap"
 
 	VirtioFSCapability Capability = "virtiofs"
+
+	// SnapshotCapability is a capability that indicates the microvm provider
+	// supports taking point-in-time snapshots of a running microvm.
+	SnapshotCapability Capability = "snapshot"
 )
 
 // Capabilities represents a list of capabilities.

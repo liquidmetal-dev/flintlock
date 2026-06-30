@@ -17,4 +17,5 @@ type Collection struct {
 	FileSystem        afero.Fs
 	Clock             func() time.Time
 	VirtioFSService   VirtioFSService
+	SnapshotPackager  SnapshotPackager
 }

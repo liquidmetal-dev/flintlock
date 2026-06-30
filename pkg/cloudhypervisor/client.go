@@ -420,7 +420,7 @@ func (c *client) AddVdpaDevice(ctx context.Context, _ *VdpaConfig) (*PciDeviceIn
 }
 
 // Snapshot will create a snapshot of the VM.
-func (c *client) Snapshot(ctx context.Context, _ *VMSnapshotConfig) error {
+func (c *client) Snapshot(ctx context.Context, config *VMSnapshotConfig) error {
 	return c.
 		builder.
 		Clone().
@@ -430,6 +430,7 @@ func (c *client) Snapshot(ctx context.Context, _ *VMSnapshotConfig) error {
 			405: "The VM instance could not be snapshotted because it is not booted",
 		})).
 		Put().
+		BodyJSON(config).
 		Fetch(ctx)
 }
 

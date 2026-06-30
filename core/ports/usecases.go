@@ -12,6 +12,9 @@ type MicroVMCommandUseCases interface {
 	CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error)
 	// DeleteMicroVM is a use case for deleting a microvm.
 	DeleteMicroVM(ctx context.Context, vmid string) error
+	// SnapshotMicroVM is a use case for snapshotting a microvm and packaging the
+	// snapshot into an OCI image at the given reference.
+	SnapshotMicroVM(ctx context.Context, uid, reference string) (*SnapshotImage, error)
 }
 
 // MicroVMQueryUseCases is the interface for uses cases that are queries for microvms.
