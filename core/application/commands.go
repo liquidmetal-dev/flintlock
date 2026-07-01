@@ -94,12 +94,12 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 			}
 		}
 	}
-	if !provider.Capabilities().Has(models.VirtioFSCapability) {
-		for _, volume := range mvm.Spec.AdditionalVolumes {
-			if volume.Source.VirtioFS != nil {
-				return nil, errVirtioFSNotSupported
-			}
-		}
+	if !provider.Capabilities().Has(models.VirtioFSCapability) && anyVirtioFS(mvm.Spec.AdditionalVolumes) {
+		return nil, errVirtioFSNotSupported
+	}
+
+	if !provider.Capabilities().Has(models.PCIPassthroughCapability) && mvm.Spec.PCIDevices != nil {
+		return nil, errPCIDevicesPassthroughNotSupported
 	}
 
 	err = a.addInstanceData(mvm, logger)
@@ -232,4 +232,14 @@ func (a *app) addMetadataInterface(mvm *models.MicroVM) {
 	}
 	interfaces = append(interfaces, mvm.Spec.NetworkInterfaces...)
 	mvm.Spec.NetworkInterfaces = interfaces
+}
+
+func anyVirtioFS(volumes []models.Volume) bool {
+	for _, volume := range volumes {
+		if volume.Source.VirtioFS != nil {
+			return true
+		}
+	}
+
+	return false
 }

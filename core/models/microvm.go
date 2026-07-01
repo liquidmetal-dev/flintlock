@@ -50,6 +50,8 @@ type MicroVMSpec struct {
 	UpdatedAt int64 `json:"updated_at" validate:"omitempty,datetimeInPast"`
 	// DeletedAt indicates the time the microvm was marked as deleted.
 	DeletedAt int64 `json:"deleted_at" validate:"omitempty,datetimeInPast"`
+	// PCIDevices specifies the PCI devices attached to the machine.
+	PCIDevices []PCIDevice `json:"pci_devices" validate:"omitempty"`
 }
 
 // MicroVMStatus contains the runtime status of the microvm.
@@ -68,6 +70,13 @@ type MicroVMStatus struct {
 	Retry int `json:"retry"`
 	// NotBefore tells the system to do not reconcile until given timestamp.
 	NotBefore int64 `json:"not_before" validate:"omitempty"`
+}
+
+type PCIDevice struct {
+	// Vendor ID for the PCI Device
+	VendorID string
+	// Device ID for the PCI Device
+	DeviceID string
 }
 
 type Initrd struct {

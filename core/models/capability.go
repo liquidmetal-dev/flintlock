@@ -18,6 +18,9 @@ const (
 	MacvtapCapability Capability = "macvtap"
 
 	VirtioFSCapability Capability = "virtiofs"
+
+	// PCIPassthroughCapability is a capability that indicates the microvm provider can pass through PCI devices.
+	PCIPassthroughCapability Capability = "pci-passthrough"
 )
 
 // Capabilities represents a list of capabilities.
