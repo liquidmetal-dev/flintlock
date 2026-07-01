@@ -48,11 +48,10 @@ The `hosted e2e` workflow runs the e2e suite directly on `ubuntu-latest` GitHub
 hosted runners. It is available via `workflow_dispatch` and also runs nightly.
 
 The workflow prepares the runner by installing the host packages required by the
-test harness, installing Firecracker, checking that `/dev/kvm` exists, and
-relaxing `/dev/kvm` permissions for the duration of the job. The tests are run
-with `sudo` because they create loop devices and devicemapper thinpools, write
-containerd configuration under `/etc`, and manage runtime state under `/run` and
-`/var/lib`.
+test harness, installing Firecracker, and checking that `/dev/kvm` exists. The
+tests are run with `sudo` because they create loop devices and devicemapper
+thinpools, write containerd configuration under `/etc`, and manage runtime state
+under `/run` and `/var/lib`.
 
 ### Configuration
 
