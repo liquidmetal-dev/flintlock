@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	sdk "github.com/firecracker-microvm/firecracker-go-sdk"
 	fcmodels "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
@@ -17,8 +18,13 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
 )
 
+const snapshotResumeTimeout = 10 * time.Second
+
 // Snapshot pauses a running microvm, captures a full snapshot to disk and resumes it.
-func (p *fcProvider) Snapshot(ctx context.Context, input ports.SnapshotInput) (result *ports.SnapshotResult, retErr error) {
+func (p *fcProvider) Snapshot(
+	ctx context.Context,
+	input ports.SnapshotInput,
+) (result *ports.SnapshotResult, retErr error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "firecracker_microvm",
 		"vmid":    input.VMID.String(),
@@ -54,8 +60,11 @@ func (p *fcProvider) Snapshot(ctx context.Context, input ports.SnapshotInput) (r
 
 	// Always resume the VM, even if the snapshot fails, so it is never left paused.
 	defer func() {
+		resumeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), snapshotResumeTimeout)
+		defer cancel()
+
 		resumedState := fcmodels.VMStateResumed
-		if _, resumeErr := fcClient.PatchVM(ctx, &fcmodels.VM{State: &resumedState}); resumeErr != nil {
+		if _, resumeErr := fcClient.PatchVM(resumeCtx, &fcmodels.VM{State: &resumedState}); resumeErr != nil {
 			retErr = errors.Join(retErr, fmt.Errorf("resuming microvm: %w", resumeErr))
 		}
 	}()

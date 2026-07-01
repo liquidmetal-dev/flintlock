@@ -4,6 +4,7 @@ package snapshot
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -49,7 +50,7 @@ type packager struct {
 // written to the on-disk layout and returns the resulting image details.
 func (p *packager) Build(ctx context.Context, input ports.SnapshotPackageInput) (*ports.SnapshotImage, error) {
 	if len(input.Artifacts) == 0 {
-		return nil, fmt.Errorf("no snapshot artifacts to package")
+		return nil, errors.New("no snapshot artifacts to package")
 	}
 
 	// The artifacts share a scratch directory; use it as the file store root.
@@ -90,10 +91,16 @@ func (p *packager) Build(ctx context.Context, input ports.SnapshotPackageInput) 
 		layers = append(layers, desc)
 	}
 
-	manifestDesc, err := oras.PackManifest(ctx, fileStore, oras.PackManifestVersion1_1, ArtifactType, oras.PackManifestOptions{
-		Layers:           layers,
-		ConfigDescriptor: &configDesc,
-	})
+	manifestDesc, err := oras.PackManifest(
+		ctx,
+		fileStore,
+		oras.PackManifestVersion1_1,
+		ArtifactType,
+		oras.PackManifestOptions{
+			Layers:           layers,
+			ConfigDescriptor: &configDesc,
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("packing snapshot manifest: %w", err)
 	}
@@ -111,7 +118,14 @@ func (p *packager) Build(ctx context.Context, input ports.SnapshotPackageInput) 
 		return nil, fmt.Errorf("creating oci layout store: %w", err)
 	}
 
-	if _, err := oras.Copy(ctx, fileStore, input.Reference, ociStore, input.Reference, oras.DefaultCopyOptions); err != nil {
+	if _, err := oras.Copy(
+		ctx,
+		fileStore,
+		input.Reference,
+		ociStore,
+		input.Reference,
+		oras.DefaultCopyOptions,
+	); err != nil {
 		return nil, fmt.Errorf("copying snapshot image to layout: %w", err)
 	}
 

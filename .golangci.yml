@@ -21,6 +21,8 @@ linters-settings:
   misspell:
     locale: UK
     ignore-words:
+      - artifact
+      - artifacts
       - sanitized
   goimports:
     local-prefixes: github.com/liquidmetal-dev/flintlock

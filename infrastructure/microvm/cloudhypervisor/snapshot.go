@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -14,8 +15,13 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
+const snapshotResumeTimeout = 10 * time.Second
+
 // Snapshot pauses a running microvm, captures a snapshot to disk and resumes it.
-func (p *provider) Snapshot(ctx context.Context, input ports.SnapshotInput) (result *ports.SnapshotResult, retErr error) {
+func (p *provider) Snapshot(
+	ctx context.Context,
+	input ports.SnapshotInput,
+) (result *ports.SnapshotResult, retErr error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"service": "cloudhypervisor_microvm",
 		"vmid":    input.VMID.String(),
@@ -46,7 +52,10 @@ func (p *provider) Snapshot(ctx context.Context, input ports.SnapshotInput) (res
 
 	// Always resume the VM, even if the snapshot fails, so it is never left paused.
 	defer func() {
-		if resumeErr := chClient.Resume(ctx); resumeErr != nil {
+		resumeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), snapshotResumeTimeout)
+		defer cancel()
+
+		if resumeErr := chClient.Resume(resumeCtx); resumeErr != nil {
 			retErr = errors.Join(retErr, fmt.Errorf("resuming microvm: %w", resumeErr))
 		}
 	}()
@@ -61,9 +70,9 @@ func (p *provider) Snapshot(ctx context.Context, input ports.SnapshotInput) (res
 	return &ports.SnapshotResult{
 		Directory: scratch,
 		Artifacts: []ports.SnapshotArtifact{
-			{Kind: ports.SnapshotState, Path: fmt.Sprintf("%s/state.json", scratch)},
-			{Kind: ports.SnapshotMemory, Path: fmt.Sprintf("%s/memory-ranges", scratch)},
-			{Kind: ports.SnapshotConfig, Path: fmt.Sprintf("%s/config.json", scratch)},
+			{Kind: ports.SnapshotState, Path: scratch + "/state.json"},
+			{Kind: ports.SnapshotMemory, Path: scratch + "/memory-ranges"},
+			{Kind: ports.SnapshotConfig, Path: scratch + "/config.json"},
 		},
 	}, nil
 }
