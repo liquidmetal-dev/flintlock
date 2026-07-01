@@ -42,6 +42,18 @@ This exact command will run tests against main of the upstream branch, and only 
 minimal configuration. Read the tool [usage docs](/test/tools/README.md) for information
 on how to configure and use the tool in your development.
 
+### In GitHub Actions on hosted runners
+
+The `hosted e2e` workflow runs the e2e suite directly on `ubuntu-latest` GitHub
+hosted runners. It is available via `workflow_dispatch` and also runs nightly.
+
+The workflow prepares the runner by installing the host packages required by the
+test harness, installing Firecracker, checking that `/dev/kvm` exists, and
+relaxing `/dev/kvm` permissions for the duration of the job. The tests are run
+with `sudo` because they create loop devices and devicemapper thinpools, write
+containerd configuration under `/etc`, and manage runtime state under `/run` and
+`/var/lib`.
+
 ### Configuration
 
 There are a couple of custom test flags which you can set to alter the behaviour
