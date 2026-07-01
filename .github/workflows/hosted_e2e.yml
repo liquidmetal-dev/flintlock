@@ -7,8 +7,6 @@ on:
         description: "Firecracker release tag to install"
         required: false
         default: "v1.15.1"
-  schedule:
-    - cron: "0 2 * * *"
 
 permissions:
   contents: read
