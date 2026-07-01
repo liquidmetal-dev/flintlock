@@ -61,8 +61,11 @@ func (p *provider) Snapshot(
 	}()
 
 	destURL := "file://" + scratch
+	const fileAbsPrefix = "file:////"
+	if len(destURL) >= len(fileAbsPrefix) && destURL[:len(fileAbsPrefix)] == fileAbsPrefix {
+		destURL = "file:///" + destURL[len(fileAbsPrefix):]
+	}
 	if err := chClient.Snapshot(ctx, &cloudhypervisor.VMSnapshotConfig{DestinationURL: &destURL}); err != nil {
-		return nil, fmt.Errorf("creating snapshot: %w", err)
 	}
 
 	logger.Info("snapshot taken")
