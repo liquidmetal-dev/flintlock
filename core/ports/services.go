@@ -23,6 +23,70 @@ type MicroVMService interface {
 	State(ctx context.Context, id string) (MicroVMState, error)
 	// Metrics returns with the metrics of a microvm.
 	Metrics(ctx context.Context, id models.VMID) (MachineMetrics, error)
+	// Snapshot pauses a running microvm, captures a point-in-time snapshot to
+	// disk and resumes it, returning the paths to the raw snapshot artifacts.
+	Snapshot(ctx context.Context, input SnapshotInput) (*SnapshotResult, error)
+}
+
+// SnapshotArtifactKind identifies the role of a file produced by a snapshot.
+type SnapshotArtifactKind string
+
+const (
+	// SnapshotMemory is the guest memory file.
+	SnapshotMemory SnapshotArtifactKind = "memory"
+	// SnapshotState is the VMM state/device file.
+	SnapshotState SnapshotArtifactKind = "state"
+	// SnapshotConfig is an additional VMM config file (cloud-hypervisor config.json).
+	SnapshotConfig SnapshotArtifactKind = "config"
+)
+
+// SnapshotInput is the input for taking a microvm snapshot.
+type SnapshotInput struct {
+	// VMID identifies the microvm to snapshot.
+	VMID models.VMID
+}
+
+// SnapshotArtifact is a single file produced by a snapshot.
+type SnapshotArtifact struct {
+	// Kind is the role of the artifact.
+	Kind SnapshotArtifactKind
+	// Path is the filesystem path to the artifact.
+	Path string
+}
+
+// SnapshotResult is the result of taking a microvm snapshot.
+type SnapshotResult struct {
+	// Artifacts are the raw files produced by the snapshot.
+	Artifacts []SnapshotArtifact
+	// Directory is the scratch directory containing the artifacts.
+	Directory string
+}
+
+// SnapshotPackager is a port for a service that packages snapshot artifacts
+// into an OCI image.
+type SnapshotPackager interface {
+	// Build packages the snapshot artifacts and the microvm spec into an OCI
+	// image at the given reference and returns the resulting image details.
+	Build(ctx context.Context, input SnapshotPackageInput) (*SnapshotImage, error)
+}
+
+// SnapshotPackageInput is the input for packaging a snapshot into an OCI image.
+type SnapshotPackageInput struct {
+	// Reference is the full OCI image reference to package the snapshot into.
+	Reference string
+	// Artifacts are the raw snapshot files to include as layers.
+	Artifacts []SnapshotArtifact
+	// Spec is the microvm spec, included as a config blob so the image is
+	// self-describing.
+	Spec *models.MicroVM
+}
+
+// SnapshotImage describes a packaged snapshot OCI image.
+type SnapshotImage struct {
+	// Reference is the OCI image reference the snapshot was packaged into.
+	Reference string
+	// Digest is the manifest digest of the packaged image.
+	Digest string
 }
 
 // This state represents the state of the Firecracker MVM process itself

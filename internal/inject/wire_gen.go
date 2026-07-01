@@ -15,6 +15,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/snapshot"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -49,7 +50,9 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 		return nil, err
 	}
 	virtioFSService := virtiofs.New(cfg, fs)
-	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs, diskService, virtioFSService)
+	snapshotConfig := packagerConfig(cfg)
+	snapshotPackager := snapshot.New(snapshotConfig)
+	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs, diskService, virtioFSService, snapshotPackager)
 	return collection, nil
 }
 
@@ -85,6 +88,12 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 	}
 }
 
+func packagerConfig(cfg *config.Config) *snapshot.Config {
+	return &snapshot.Config{
+		SnapshotRoot: cfg.StateRootDir + "/snapshots",
+	}
+}
+
 func networkConfig(cfg *config.Config) *network.Config {
 	return &network.Config{
 		ParentDeviceName: cfg.ParentIface,
@@ -100,7 +109,7 @@ func appConfig(cfg *config.Config) *application.Config {
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService, sp ports.SnapshotPackager) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
 		MicrovmProviders:  providers,
@@ -112,6 +121,7 @@ func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMSe
 		Clock:             time.Now,
 		DiskService:       ds,
 		VirtioFSService:   vfs,
+		SnapshotPackager:  sp,
 	}
 }
 

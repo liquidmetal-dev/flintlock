@@ -45,7 +45,6 @@
           },
           {
             "name": "metadata",
-            "description": "This is a request variable of the map type. The query format is \"map_name[key]=value\", e.g. If the map name is Age, the key type is string, and the value type is integer, the query parameter is expressed as Age[\"bob\"]=18",
             "in": "query",
             "required": false
           }
@@ -149,9 +148,57 @@
           "MicroVM"
         ]
       }
+    },
+    "/v1alpha1/microvm/{uid}/snapshot": {
+      "post": {
+        "operationId": "MicroVM_SnapshotMicroVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1SnapshotMicroVMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "uid",
+            "description": "uid is the unique identifier of the microvm to snapshot.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MicroVMSnapshotMicroVMBody"
+            }
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
     }
   },
   "definitions": {
+    "MicroVMSnapshotMicroVMBody": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string",
+          "description": "reference is the full OCI image reference (e.g. myorg/snap:v1) to package\nthe snapshot into."
+        }
+      }
+    },
     "MicroVMStatusMicroVMState": {
       "type": "string",
       "enum": [
@@ -567,6 +614,19 @@
             "type": "object",
             "$ref": "#/definitions/typesMicroVM"
           }
+        }
+      }
+    },
+    "v1alpha1SnapshotMicroVMResponse": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "image is the OCI image reference the snapshot was packaged into."
+        },
+        "digest": {
+          "type": "string",
+          "description": "digest is the manifest digest of the packaged snapshot image."
         }
       }
     }

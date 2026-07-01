@@ -25,6 +25,7 @@ const (
 	MicroVM_GetMicroVM_FullMethodName         = "/microvm.services.api.v1alpha1.MicroVM/GetMicroVM"
 	MicroVM_ListMicroVMs_FullMethodName       = "/microvm.services.api.v1alpha1.MicroVM/ListMicroVMs"
 	MicroVM_ListMicroVMsStream_FullMethodName = "/microvm.services.api.v1alpha1.MicroVM/ListMicroVMsStream"
+	MicroVM_SnapshotMicroVM_FullMethodName    = "/microvm.services.api.v1alpha1.MicroVM/SnapshotMicroVM"
 )
 
 // MicroVMClient is the client API for MicroVM service.
@@ -38,6 +39,7 @@ type MicroVMClient interface {
 	GetMicroVM(ctx context.Context, in *GetMicroVMRequest, opts ...grpc.CallOption) (*GetMicroVMResponse, error)
 	ListMicroVMs(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (*ListMicroVMsResponse, error)
 	ListMicroVMsStream(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListMessage], error)
+	SnapshotMicroVM(ctx context.Context, in *SnapshotMicroVMRequest, opts ...grpc.CallOption) (*SnapshotMicroVMResponse, error)
 }
 
 type microVMClient struct {
@@ -107,6 +109,16 @@ func (c *microVMClient) ListMicroVMsStream(ctx context.Context, in *ListMicroVMs
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type MicroVM_ListMicroVMsStreamClient = grpc.ServerStreamingClient[ListMessage]
 
+func (c *microVMClient) SnapshotMicroVM(ctx context.Context, in *SnapshotMicroVMRequest, opts ...grpc.CallOption) (*SnapshotMicroVMResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SnapshotMicroVMResponse)
+	err := c.cc.Invoke(ctx, MicroVM_SnapshotMicroVM_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MicroVMServer is the server API for MicroVM service.
 // All implementations should embed UnimplementedMicroVMServer
 // for forward compatibility.
@@ -118,6 +130,7 @@ type MicroVMServer interface {
 	GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error)
 	ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error)
 	ListMicroVMsStream(*ListMicroVMsRequest, grpc.ServerStreamingServer[ListMessage]) error
+	SnapshotMicroVM(context.Context, *SnapshotMicroVMRequest) (*SnapshotMicroVMResponse, error)
 }
 
 // UnimplementedMicroVMServer should be embedded to have
@@ -141,6 +154,9 @@ func (UnimplementedMicroVMServer) ListMicroVMs(context.Context, *ListMicroVMsReq
 }
 func (UnimplementedMicroVMServer) ListMicroVMsStream(*ListMicroVMsRequest, grpc.ServerStreamingServer[ListMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method ListMicroVMsStream not implemented")
+}
+func (UnimplementedMicroVMServer) SnapshotMicroVM(context.Context, *SnapshotMicroVMRequest) (*SnapshotMicroVMResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SnapshotMicroVM not implemented")
 }
 func (UnimplementedMicroVMServer) testEmbeddedByValue() {}
 
@@ -245,6 +261,24 @@ func _MicroVM_ListMicroVMsStream_Handler(srv interface{}, stream grpc.ServerStre
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type MicroVM_ListMicroVMsStreamServer = grpc.ServerStreamingServer[ListMessage]
 
+func _MicroVM_SnapshotMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SnapshotMicroVMRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MicroVMServer).SnapshotMicroVM(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MicroVM_SnapshotMicroVM_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MicroVMServer).SnapshotMicroVM(ctx, req.(*SnapshotMicroVMRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MicroVM_ServiceDesc is the grpc.ServiceDesc for MicroVM service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -267,6 +301,10 @@ var MicroVM_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMicroVMs",
 			Handler:    _MicroVM_ListMicroVMs_Handler,
+		},
+		{
+			MethodName: "SnapshotMicroVM",
+			Handler:    _MicroVM_SnapshotMicroVM_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

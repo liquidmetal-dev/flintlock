@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containerd/containerd/reference"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -87,6 +88,48 @@ func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequ
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (s *server) SnapshotMicroVM(
+	ctx context.Context,
+	req *mvmv1.SnapshotMicroVMRequest,
+) (*mvmv1.SnapshotMicroVMResponse, error) {
+	logger := log.GetLogger(ctx)
+
+	if req == nil || req.Uid == "" {
+		logger.Error("invalid snapshot microvm request: uid required")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request: uid required")
+	}
+
+	if req.Reference == "" {
+		logger.Error("invalid snapshot microvm request: reference required")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request: reference required")
+	}
+
+	if _, err := reference.Parse(req.Reference); err != nil {
+		logger.Errorf("invalid snapshot microvm request: invalid reference: %s", err)
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request: reference is not a valid OCI image reference")
+	}
+
+	logger.Infof("snapshotting microvm %s into %s", req.Uid, req.Reference)
+
+	image, err := s.commandUC.SnapshotMicroVM(ctx, req.Uid, req.Reference)
+	if err != nil {
+		logger.Errorf("failed to snapshot microvm: %s", err)
+
+		return nil, fmt.Errorf("snapshotting microvm: %w", err)
+	}
+
+	return &mvmv1.SnapshotMicroVMResponse{
+		Image:  image.Reference,
+		Digest: image.Digest,
+	}, nil
 }
 
 func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (*mvmv1.GetMicroVMResponse, error) {

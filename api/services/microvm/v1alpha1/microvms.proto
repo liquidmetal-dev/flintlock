@@ -45,6 +45,12 @@ service MicroVM {
     };
   }
   rpc ListMicroVMsStream(ListMicroVMsRequest) returns (stream ListMessage);
+  rpc SnapshotMicroVM(SnapshotMicroVMRequest) returns (SnapshotMicroVMResponse) {
+    option (google.api.http) = {
+      post: "/v1alpha1/microvm/{uid}/snapshot"
+      body: "*"
+    };
+  }
 }
 
 message CreateMicroVMRequest {
@@ -79,4 +85,19 @@ message ListMicroVMsResponse {
 
 message ListMessage {
   flintlock.types.MicroVM microvm = 1;
+}
+
+message SnapshotMicroVMRequest {
+  // uid is the unique identifier of the microvm to snapshot.
+  string uid = 1;
+  // reference is the full OCI image reference (e.g. myorg/snap:v1) to package
+  // the snapshot into.
+  string reference = 2;
+}
+
+message SnapshotMicroVMResponse {
+  // image is the OCI image reference the snapshot was packaged into.
+  string image = 1;
+  // digest is the manifest digest of the packaged snapshot image.
+  string digest = 2;
 }

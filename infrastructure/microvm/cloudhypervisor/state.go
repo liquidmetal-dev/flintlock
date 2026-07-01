@@ -16,6 +16,7 @@ const (
 	stdErrFileName    = "cloudhypervisor.stderr"
 	socketFileName    = "cloudhypervisor.sock"
 	cloudInitFileName = "cloud-init.img"
+	snapshotDirName   = "snapshot"
 )
 
 type State interface {
@@ -29,6 +30,7 @@ type State interface {
 	StdoutPath() string
 	StderrPath() string
 	SockPath() string
+	SnapshotPath() string
 
 	CloudInitImage() string
 }
@@ -71,6 +73,10 @@ func (s *fsState) StderrPath() string {
 
 func (s *fsState) SockPath() string {
 	return fmt.Sprintf("%s/%s", s.stateRoot, socketFileName)
+}
+
+func (s *fsState) SnapshotPath() string {
+	return fmt.Sprintf("%s/%s", s.stateRoot, snapshotDirName)
 }
 
 func (s *fsState) CloudInitImage() string {

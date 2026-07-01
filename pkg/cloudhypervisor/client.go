@@ -2,6 +2,7 @@ package cloudhypervisor
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 
@@ -420,7 +421,15 @@ func (c *client) AddVdpaDevice(ctx context.Context, _ *VdpaConfig) (*PciDeviceIn
 }
 
 // Snapshot will create a snapshot of the VM.
-func (c *client) Snapshot(ctx context.Context, _ *VMSnapshotConfig) error {
+func (c *client) Snapshot(ctx context.Context, config *VMSnapshotConfig) error {
+	if config == nil {
+		return errors.New("snapshot config is required")
+	}
+
+	if config.DestinationURL == nil || *config.DestinationURL == "" {
+		return errors.New("snapshot destination_url is required")
+	}
+
 	return c.
 		builder.
 		Clone().
@@ -430,6 +439,7 @@ func (c *client) Snapshot(ctx context.Context, _ *VMSnapshotConfig) error {
 			405: "The VM instance could not be snapshotted because it is not booted",
 		})).
 		Put().
+		BodyJSON(config).
 		Fetch(ctx)
 }
 
