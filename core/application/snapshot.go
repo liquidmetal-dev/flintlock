@@ -52,6 +52,15 @@ func (a *app) SnapshotMicroVM(ctx context.Context, uid, reference string) (*port
 		return nil, fmt.Errorf("taking snapshot of microvm: %w", err)
 	}
 
+	// The OCI image is the durable artifact; raw scratch files are best-effort.
+	if result.Directory != "" {
+		defer func() {
+			if rmErr := a.ports.FileSystem.RemoveAll(result.Directory); rmErr != nil {
+				logger.Warnf("failed to clean up snapshot scratch dir %s: %s", result.Directory, rmErr)
+			}
+		}()
+	}
+
 	image, err := a.ports.SnapshotPackager.Build(ctx, ports.SnapshotPackageInput{
 		Reference: reference,
 		Artifacts: result.Artifacts,
@@ -59,13 +68,6 @@ func (a *app) SnapshotMicroVM(ctx context.Context, uid, reference string) (*port
 	})
 	if err != nil {
 		return nil, fmt.Errorf("packaging snapshot into image: %w", err)
-	}
-
-	// The OCI image is now the durable artifact; clean up the raw scratch files.
-	if result.Directory != "" {
-		if rmErr := a.ports.FileSystem.RemoveAll(result.Directory); rmErr != nil {
-			logger.Warnf("failed to clean up snapshot scratch dir %s: %s", result.Directory, rmErr)
-		}
 	}
 
 	return image, nil

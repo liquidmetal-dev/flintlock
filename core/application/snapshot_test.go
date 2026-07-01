@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -157,4 +158,112 @@ func TestApp_SnapshotMicroVM(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestApp_SnapshotMicroVM_CleansScratchDirectoryWhenPackagingFails(t *testing.T) {
+	RegisterTestingT(t)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	rm := mock.NewMockMicroVMRepository(mockCtrl)
+	pm := mock.NewMockMicroVMService(mockCtrl)
+	sp := mock.NewMockSnapshotPackager(mockCtrl)
+	fs := afero.NewMemMapFs()
+	Expect(fs.MkdirAll("/scratch", 0o755)).To(Succeed())
+	Expect(afero.WriteFile(fs, "/scratch/memory", []byte("memory"), 0o600)).To(Succeed())
+
+	rm.EXPECT().
+		Get(gomock.AssignableToTypeOf(context.Background()), gomock.Eq(ports.RepositoryGetOptions{UID: testUID})).
+		Return(testSnapshotSpec(), nil)
+	pm.EXPECT().Capabilities().Return(models.Capabilities{models.SnapshotCapability})
+	pm.EXPECT().
+		Snapshot(gomock.AssignableToTypeOf(context.Background()), gomock.Any()).
+		Return(&ports.SnapshotResult{
+			Directory: "/scratch",
+			Artifacts: []ports.SnapshotArtifact{
+				{Kind: ports.SnapshotMemory, Path: "/scratch/memory"},
+			},
+		}, nil)
+
+	packageErr := errors.New("packaging failed")
+	sp.EXPECT().
+		Build(gomock.AssignableToTypeOf(context.Background()), gomock.Any()).
+		Return(nil, packageErr)
+
+	app := application.New(&application.Config{DefaultProvider: "mock"}, snapshotTestPorts(rm, pm, sp, fs))
+	_, err := app.SnapshotMicroVM(context.Background(), testUID, "myorg/snap:v1")
+
+	Expect(errors.Is(err, packageErr)).To(BeTrue())
+	exists, statErr := afero.DirExists(fs, "/scratch")
+	Expect(statErr).NotTo(HaveOccurred())
+	Expect(exists).To(BeFalse())
+}
+
+func TestApp_SnapshotMicroVM_CleanupFailureDoesNotHidePackagingError(t *testing.T) {
+	RegisterTestingT(t)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	rm := mock.NewMockMicroVMRepository(mockCtrl)
+	pm := mock.NewMockMicroVMService(mockCtrl)
+	sp := mock.NewMockSnapshotPackager(mockCtrl)
+	fs := &removeAllFailFS{
+		Fs:  afero.NewMemMapFs(),
+		err: errors.New("cleanup failed"),
+	}
+
+	rm.EXPECT().
+		Get(gomock.AssignableToTypeOf(context.Background()), gomock.Eq(ports.RepositoryGetOptions{UID: testUID})).
+		Return(testSnapshotSpec(), nil)
+	pm.EXPECT().Capabilities().Return(models.Capabilities{models.SnapshotCapability})
+	pm.EXPECT().
+		Snapshot(gomock.AssignableToTypeOf(context.Background()), gomock.Any()).
+		Return(&ports.SnapshotResult{
+			Directory: "/scratch",
+			Artifacts: []ports.SnapshotArtifact{
+				{Kind: ports.SnapshotMemory, Path: "/scratch/memory"},
+			},
+		}, nil)
+
+	packageErr := errors.New("packaging failed")
+	sp.EXPECT().
+		Build(gomock.AssignableToTypeOf(context.Background()), gomock.Any()).
+		Return(nil, packageErr)
+
+	app := application.New(&application.Config{DefaultProvider: "mock"}, snapshotTestPorts(rm, pm, sp, fs))
+	_, err := app.SnapshotMicroVM(context.Background(), testUID, "myorg/snap:v1")
+
+	Expect(errors.Is(err, packageErr)).To(BeTrue())
+	Expect(fs.paths).To(Equal([]string{"/scratch"}))
+}
+
+func snapshotTestPorts(
+	rm ports.MicroVMRepository,
+	pm ports.MicroVMService,
+	sp ports.SnapshotPackager,
+	fs afero.Fs,
+) *ports.Collection {
+	return &ports.Collection{
+		Repo: rm,
+		MicrovmProviders: map[string]ports.MicroVMService{
+			"mock": pm,
+		},
+		FileSystem:       fs,
+		Clock:            time.Now,
+		SnapshotPackager: sp,
+	}
+}
+
+type removeAllFailFS struct {
+	afero.Fs
+	err   error
+	paths []string
+}
+
+func (f *removeAllFailFS) RemoveAll(path string) error {
+	f.paths = append(f.paths, path)
+
+	return f.err
 }

@@ -49,6 +49,22 @@ type packager struct {
 // Build packages the snapshot artifacts and microvm spec into an OCI image
 // written to the on-disk layout and returns the resulting image details.
 func (p *packager) Build(ctx context.Context, input ports.SnapshotPackageInput) (*ports.SnapshotImage, error) {
+	if p == nil || p.config == nil {
+		return nil, errors.New("snapshot packager config is required")
+	}
+
+	if p.config.SnapshotRoot == "" {
+		return nil, errors.New("snapshot root is required")
+	}
+
+	if input.Reference == "" {
+		return nil, errors.New("snapshot reference is required")
+	}
+
+	if input.Spec == nil {
+		return nil, errors.New("snapshot spec is required")
+	}
+
 	if len(input.Artifacts) == 0 {
 		return nil, errors.New("no snapshot artifacts to package")
 	}

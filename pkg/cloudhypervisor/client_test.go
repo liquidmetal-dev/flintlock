@@ -20,36 +20,88 @@ import (
 func TestClient_Snapshot_SendsDestinationURL(t *testing.T) {
 	RegisterTestingT(t)
 
-	sockPath := filepath.Join(t.TempDir(), "ch.sock")
-
-	listener, err := net.Listen("unix", sockPath)
-	Expect(err).NotTo(HaveOccurred())
-
 	var (
 		capturedMethod string
 		capturedBody   string
 	)
 
-	srv := &http.Server{
-		ReadHeaderTimeout: time.Second,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			capturedMethod = r.Method
-			body, _ := io.ReadAll(r.Body)
-			capturedBody = string(body)
-			w.WriteHeader(http.StatusNoContent)
-		}),
-	}
-
-	go func() { _ = srv.Serve(listener) }()
-	defer srv.Close()
-
-	client := cloudhypervisor.New(sockPath)
+	client, closeServer := snapshotTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		capturedMethod = r.Method
+		body, _ := io.ReadAll(r.Body)
+		capturedBody = string(body)
+		w.WriteHeader(http.StatusNoContent)
+	})
+	defer closeServer()
 
 	destURL := "file:///var/lib/flintlock/snapshots/vm1"
-	err = client.Snapshot(context.Background(), &cloudhypervisor.VMSnapshotConfig{DestinationURL: &destURL})
+	err := client.Snapshot(context.Background(), &cloudhypervisor.VMSnapshotConfig{DestinationURL: &destURL})
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(capturedMethod).To(Equal(http.MethodPut))
 	Expect(capturedBody).To(ContainSubstring("destination_url"))
 	Expect(capturedBody).To(ContainSubstring(destURL))
+}
+
+func TestClient_Snapshot_RejectsInvalidConfigWithoutRequest(t *testing.T) {
+	testCases := []struct {
+		name   string
+		config *cloudhypervisor.VMSnapshotConfig
+	}{
+		{
+			name:   "nil config",
+			config: nil,
+		},
+		{
+			name:   "nil destination url",
+			config: &cloudhypervisor.VMSnapshotConfig{},
+		},
+		{
+			name: "empty destination url",
+			config: &cloudhypervisor.VMSnapshotConfig{
+				DestinationURL: strPtr(""),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			requests := 0
+			client, closeServer := snapshotTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				w.WriteHeader(http.StatusNoContent)
+			})
+			defer closeServer()
+
+			err := client.Snapshot(context.Background(), tc.config)
+
+			Expect(err).To(HaveOccurred())
+			Expect(requests).To(Equal(0))
+		})
+	}
+}
+
+func snapshotTestClient(t *testing.T, handler http.HandlerFunc) (cloudhypervisor.Client, func()) {
+	t.Helper()
+
+	sockPath := filepath.Join(t.TempDir(), "ch.sock")
+
+	listener, err := net.Listen("unix", sockPath)
+	Expect(err).NotTo(HaveOccurred())
+
+	srv := &http.Server{
+		ReadHeaderTimeout: time.Second,
+		Handler:           handler,
+	}
+
+	go func() { _ = srv.Serve(listener) }()
+
+	return cloudhypervisor.New(sockPath), func() {
+		_ = srv.Close()
+	}
+}
+
+func strPtr(value string) *string {
+	return &value
 }

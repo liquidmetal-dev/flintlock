@@ -82,6 +82,83 @@ func TestPackager_Build_NoArtifacts(t *testing.T) {
 	Expect(err).To(HaveOccurred())
 }
 
+func TestPackager_Build_InvalidConfig(t *testing.T) {
+	testCases := []struct {
+		name     string
+		packager ports.SnapshotPackager
+	}{
+		{
+			name:     "nil config",
+			packager: snapshot.New(nil),
+		},
+		{
+			name:     "empty snapshot root",
+			packager: snapshot.New(&snapshot.Config{}),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			_, err := tc.packager.Build(context.Background(), ports.SnapshotPackageInput{
+				Reference: "myorg/snap:v1",
+				Spec:      &models.MicroVM{},
+				Artifacts: []ports.SnapshotArtifact{
+					{Kind: ports.SnapshotState, Path: filepath.Join(t.TempDir(), "state")},
+				},
+			})
+
+			Expect(err).To(HaveOccurred())
+		})
+	}
+}
+
+func TestPackager_Build_InvalidInput(t *testing.T) {
+	RegisterTestingT(t)
+
+	scratch := t.TempDir()
+	artifactPath := filepath.Join(scratch, "vmstate")
+	Expect(os.WriteFile(artifactPath, []byte("state-bytes"), 0o600)).To(Succeed())
+
+	testCases := []struct {
+		name  string
+		input ports.SnapshotPackageInput
+	}{
+		{
+			name: "empty reference",
+			input: ports.SnapshotPackageInput{
+				Spec: &models.MicroVM{},
+				Artifacts: []ports.SnapshotArtifact{
+					{Kind: ports.SnapshotState, Path: artifactPath},
+				},
+			},
+		},
+		{
+			name: "nil spec",
+			input: ports.SnapshotPackageInput{
+				Reference: "myorg/snap:v1",
+				Artifacts: []ports.SnapshotArtifact{
+					{Kind: ports.SnapshotState, Path: artifactPath},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			packager := snapshot.New(&snapshot.Config{SnapshotRoot: t.TempDir()})
+
+			_, err := packager.Build(context.Background(), tc.input)
+
+			Expect(err).To(HaveOccurred())
+			Expect(filepath.Join(scratch, "spec.json")).NotTo(BeAnExistingFile())
+		})
+	}
+}
+
 func fetchManifest(ctx context.Context, store oras.ReadOnlyTarget, desc ocispec.Descriptor) ocispec.Manifest {
 	rc, err := store.Fetch(ctx, desc)
 	Expect(err).NotTo(HaveOccurred())
