@@ -69,6 +69,8 @@ jobs:
       - name: Cleanup e2e resources
         if: always()
         run: |
+          sudo ip link delete fl-e2e-br0 type bridge || true
+
           sudo dmsetup remove --force dev-thinpool-e2e || true
 
           while IFS=: read -r device _; do

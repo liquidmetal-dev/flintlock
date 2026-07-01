@@ -103,7 +103,7 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 		Interfaces: []*types.NetworkInterface{
 			{
 				DeviceId: "eth1",
-				Type:     0,
+				Type:     types.NetworkInterface_TAP,
 			},
 		},
 		Metadata: map[string]string{

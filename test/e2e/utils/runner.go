@@ -33,6 +33,7 @@ const (
 	devMapperRoot      = containerdRootDir + "/snapshotter/devmapper"
 	grpcDialTarget     = "127.0.0.1:9090"
 	loopDeviceTag      = "e2e"
+	bridgeName         = "fl-e2e-br0"
 )
 
 // Runner holds test runner configuration.
@@ -64,6 +65,7 @@ func NewRunner(params *Params) Runner {
 func (r *Runner) Setup() v1alpha1.MicroVMClient {
 	makeDirectories()
 	r.createThinPools()
+	r.createBridge()
 	r.writeContainerdConfig()
 	r.buildFLBinary()
 	r.startContainerd()
@@ -101,6 +103,7 @@ func (r *Runner) Teardown() {
 		r.containerdSession.Terminate().Wait()
 	}
 
+	deleteBridge()
 	r.cleanupThinPools()
 	cleanupDirectories()
 
@@ -148,6 +151,37 @@ func (r *Runner) cleanupThinPools() {
 		gm.Expect(err).NotTo(gm.HaveOccurred())
 		gm.Eventually(session).Should(gexec.Exit(0))
 	}
+}
+
+func (r *Runner) createBridge() {
+	if !bridgeExists() {
+		addCmd := exec.Command("ip", "link", "add", bridgeName, "type", "bridge")
+		addSession, err := gexec.Start(addCmd, gk.GinkgoWriter, gk.GinkgoWriter)
+		gm.Expect(err).NotTo(gm.HaveOccurred())
+		gm.Eventually(addSession).Should(gexec.Exit(0))
+	}
+
+	upCmd := exec.Command("ip", "link", "set", bridgeName, "up")
+	upSession, err := gexec.Start(upCmd, gk.GinkgoWriter, gk.GinkgoWriter)
+	gm.Expect(err).NotTo(gm.HaveOccurred())
+	gm.Eventually(upSession).Should(gexec.Exit(0))
+}
+
+func bridgeExists() bool {
+	cmd := exec.Command("ip", "link", "show", bridgeName)
+
+	return cmd.Run() == nil
+}
+
+func deleteBridge() {
+	if !bridgeExists() {
+		return
+	}
+
+	command := exec.Command("ip", "link", "delete", bridgeName, "type", "bridge")
+	session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
+	gm.Expect(err).NotTo(gm.HaveOccurred())
+	gm.Eventually(session).Should(gexec.Exit(0))
 }
 
 func (r *Runner) writeContainerdConfig() {
@@ -209,6 +243,7 @@ func (r *Runner) startFlintlockd() {
 	flCmd := exec.Command(r.flintlockdBin, "run",
 		"--containerd-socket", containerdSocket,
 		"--parent-iface", parentIface,
+		"--bridge-name", bridgeName,
 		"--verbosity", r.params.FlintlockdLogLevel,
 		"--insecure",
 	)
