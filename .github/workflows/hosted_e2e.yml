@@ -1,0 +1,83 @@
+name: hosted e2e
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosted-e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: e2e tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: "${{ github.workspace }}/go.mod"
+          check-latest: true
+          cache: false
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc \
+            containerd \
+            curl \
+            lvm2 \
+            thin-provisioning-tools \
+            wget
+
+      - name: Install Firecracker
+        run: sudo ./hack/scripts/provision.sh firecracker
+
+      - name: Prepare KVM access
+        run: |
+          if [[ ! -c /dev/kvm ]]; then
+            echo "/dev/kvm not found. GitHub-hosted e2e tests require KVM." >&2
+            exit 1
+          fi
+
+          ls -l /dev/kvm
+          sudo chmod 0666 /dev/kvm
+          ls -l /dev/kvm
+
+          if command -v lscpu >/dev/null 2>&1; then
+            lscpu | grep -E "Virtualization|Hypervisor|Vendor ID|Model name" || true
+          fi
+
+      - name: Run e2e tests
+        run: |
+          sudo env \
+            "PATH=$PATH" \
+            "HOME=$HOME" \
+            "GOCACHE=$GOCACHE" \
+            "GOMODCACHE=$GOMODCACHE" \
+            make test-e2e
+
+      - name: Cleanup e2e resources
+        if: always()
+        run: |
+          sudo dmsetup remove --force dev-thinpool-e2e || true
+
+          while IFS=: read -r device _; do
+            if [[ -n "$device" ]]; then
+              sudo losetup -d "$device" || true
+            fi
+          done < <(losetup -a | grep -E "/var/lib/containerd-dev/snapshotter/devmapper/(data|metadata)-e2e" || true)
+
+          sudo rm -rf \
+            /run/containerd-e2e \
+            /var/lib/containerd-e2e \
+            /var/lib/containerd-dev/snapshotter/devmapper/data-e2e \
+            /var/lib/containerd-dev/snapshotter/devmapper/metadata-e2e \
+            /var/lib/flintlock
