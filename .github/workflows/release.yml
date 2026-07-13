@@ -60,7 +60,7 @@ jobs:
         name: flintlock-binaries
         path: bin
     - name: Release
-      uses: softprops/action-gh-release@132dbbba49e22bd4837f09b46d32a8edaf6baa58 # v2.2.0
+      uses: softprops/action-gh-release@d100e75a4539892f655c79a9f6e8783e0ee22471 # v2.2.0
       with:
         prerelease: false
         draft: true
