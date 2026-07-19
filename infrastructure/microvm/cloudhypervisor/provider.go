@@ -104,28 +104,36 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 		return ports.MicroVMStatePending, nil
 	}
 
+	// The pid file exists and the process is alive, so this microvm is ours. From
+	// here we never report Pending: doing so would let the create step's ShouldDo
+	// re-fire Create() and spawn a second cloud-hypervisor on the same API socket
+	// (Address in use) while the first, healthy process is still coming up. This
+	// mirrors the firecracker provider, which treats "pid alive" as Running.
 	sockExists, err := afero.Exists(p.fs, vmState.SockPath())
 	if err != nil {
 		return ports.MicroVMStateUnknown, fmt.Errorf("checking sock file exists: %w", err)
 	}
 
 	if !sockExists {
-		return ports.MicroVMStatePending, nil
+		// Process is up but has not bound its API socket yet (still booting).
+		return ports.MicroVMStateRunning, nil
 	}
 
 	chClient := cloudhypervisor.New(vmState.SockPath())
 
 	vmInfo, err := chClient.Info(ctx)
 	if err != nil {
-		return ports.MicroVMStateUnknown, fmt.Errorf("querying cloud-hypervisor for info: %w", err)
+		// Transient error while the process is coming up (e.g. socket not yet
+		// serving). Trust process liveness rather than re-firing the create.
+		logger.WithError(err).Warn("querying cloud-hypervisor for info, assuming running as process is alive")
+
+		return ports.MicroVMStateRunning, nil
 	}
 
 	// NOTE: we can support paused/unpause in the future
 	switch vmInfo.State {
-	case cloudhypervisor.VMStateRunning:
+	case cloudhypervisor.VMStateRunning, cloudhypervisor.VMStateCreated:
 		return ports.MicroVMStateRunning, nil
-	case cloudhypervisor.VMStateCreated:
-		return ports.MicroVMStatePending, nil
 	default:
 		return ports.MicroVMStateUnknown, fmt.Errorf("cloud-hypervisor in an unsupported state: %s", vmInfo.State)
 	}
