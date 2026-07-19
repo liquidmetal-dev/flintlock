@@ -66,6 +66,8 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 
 	if vm.Spec.AllowGuestAgent {
 		vm.Status.VSockPath = vmState.VSockPath()
+	} else {
+		vm.Status.VSockPath = ""
 	}
 
 	proc, err := p.startCloudHypervisor(ctx, vm, vmState, p.config.RunDetached, logger)

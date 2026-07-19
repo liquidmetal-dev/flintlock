@@ -38,6 +38,8 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 
 	if vm.Spec.AllowGuestAgent {
 		vm.Status.VSockPath = vmState.VSockPath()
+	} else {
+		vm.Status.VSockPath = ""
 	}
 
 	if err = vmState.SetConfig(config); err != nil {
