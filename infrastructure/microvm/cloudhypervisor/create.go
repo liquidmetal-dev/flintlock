@@ -28,6 +28,34 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 	})
 	logger.Debugf("creating microvm")
 	vmState := NewState(vm.ID, p.config.StateRoot, p.fs)
+
+	// Never re-create over a live cloud-hypervisor. The State()-based create guard
+	// should already prevent this, but this is a belt-and-suspenders check against a
+	// double-spawn (Address in use) or orphaning a running process by deleting its
+	// socket in ensureState.
+	pidExists, err := afero.Exists(p.fs, vmState.PIDPath())
+	if err != nil {
+		return fmt.Errorf("checking pid file exists: %w", err)
+	}
+
+	if pidExists {
+		pid, err := vmState.PID()
+		if err != nil {
+			return fmt.Errorf("getting pid from file: %w", err)
+		}
+
+		live, err := process.Exists(pid)
+		if err != nil {
+			return fmt.Errorf("checking if cloudhypervisor process is running: %w", err)
+		}
+
+		if live {
+			logger.Debug("cloud-hypervisor already running for this microvm, skipping create")
+
+			return nil
+		}
+	}
+
 	if err := p.ensureState(vmState); err != nil {
 		return fmt.Errorf("ensuring state dir: %w", err)
 	}
@@ -83,7 +111,7 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	}
 
 	if startErr != nil {
-		return nil, fmt.Errorf("starting cloud hypervisor process: %w", err)
+		return nil, fmt.Errorf("starting cloud hypervisor process: %w", startErr)
 	}
 
 	return cmd.Process, nil
@@ -202,7 +230,7 @@ func (p *provider) ensureState(vmState State) error {
 
 	if sockExists {
 		if delErr := p.fs.Remove(vmState.SockPath()); delErr != nil {
-			return fmt.Errorf("deleting existing sock file: %w", err)
+			return fmt.Errorf("deleting existing sock file: %w", delErr)
 		}
 	}
 
