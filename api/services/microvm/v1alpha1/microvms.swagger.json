@@ -45,7 +45,6 @@
           },
           {
             "name": "metadata",
-            "description": "This is a request variable of the map type. The query format is \"map_name[key]=value\", e.g. If the map name is Age, the key type is string, and the value type is integer, the query parameter is expressed as Age[\"bob\"]=18",
             "in": "query",
             "required": false
           }
@@ -351,6 +350,10 @@
         "provider": {
           "type": "string",
           "description": "Provider allows you to specify the name of the microvm provider to use. If this isn't supplied\nthen the default provider will be used."
+        },
+        "allowGuestAgent": {
+          "type": "boolean",
+          "description": "AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest\nguest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host."
         }
       },
       "description": "MicroVMSpec represents the specification for a microvm."
@@ -388,6 +391,10 @@
           "type": "integer",
           "format": "int32",
           "description": "Retry is a counter about how many times we retried to reconcile."
+        },
+        "vsockPath": {
+          "type": "string",
+          "description": "VsockPath is the host unix-domain socket path for the guest-agent vsock device.\nEmpty unless allow_guest_agent is set on the spec. Use with the vsock-connect host helper."
         }
       },
       "description": "MicroVMStatus contains the runtime status of the microvm."

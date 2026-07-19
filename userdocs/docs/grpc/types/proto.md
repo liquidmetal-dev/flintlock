@@ -146,6 +146,7 @@ MicroVMSpec represents the specification for a microvm.
 | deleted_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | DeletedAt indicates the time the microvm was marked as deleted. |
 | uid | [string](#string) | optional | UID is a globally unique identifier of the microvm. |
 | provider | [string](#string) | optional | Provider allows you to specify the name of the microvm provider to use. If this isn&#39;t supplied then the default provider will be used. |
+| allow_guest_agent | [bool](#bool) |  | AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest guest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host. |
 
 
 
@@ -198,6 +199,7 @@ MicroVMStatus contains the runtime status of the microvm.
 | initrd_mount | [Mount](#flintlock-types-Mount) |  | InitrdMount holds the status of the initrd mount point. |
 | network_interfaces | [MicroVMStatus.NetworkInterfacesEntry](#flintlock-types-MicroVMStatus-NetworkInterfacesEntry) | repeated | NetworkInterfaces holds the status of the network interfaces. |
 | retry | [int32](#int32) |  | Retry is a counter about how many times we retried to reconcile. |
+| vsock_path | [string](#string) |  | VsockPath is the host unix-domain socket path for the guest-agent vsock device. Empty unless allow_guest_agent is set on the spec. Use with the vsock-connect host helper. |
 
 
 

@@ -8,6 +8,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
 const (
@@ -165,6 +166,25 @@ func DefaultKernelCmdLine() config.KernelCmdLine {
 		"i8042.nopnp":   "",
 		"i8042.dumbkbd": "",
 		"ds":            "nocloud-net;s=http://169.254.169.254/latest/",
+	}
+}
+
+// WithVsock adds a vsock device to the config when the microvm has the guest-agent enabled.
+func WithVsock(vm *models.MicroVM, vmState State) ConfigOption {
+	return func(cfg *VmmConfig) error {
+		if vm == nil {
+			return errors.ErrSpecRequired
+		}
+
+		if vm.Spec.AllowGuestAgent {
+			cfg.VsockDevice = &VsockDeviceConfig{
+				ID:       "guest-agent",
+				GuestCID: defaults.GuestAgentVsockCID,
+				UDSPath:  vmState.VSockPath(),
+			}
+		}
+
+		return nil
 	}
 }
 

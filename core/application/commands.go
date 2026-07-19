@@ -87,19 +87,8 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		}
 	}
 
-	if !provider.Capabilities().Has(models.MacvtapCapability) {
-		for _, netInt := range mvm.Spec.NetworkInterfaces {
-			if netInt.Type == models.IfaceTypeMacvtap {
-				return nil, errMacvtapNotSupported
-			}
-		}
-	}
-	if !provider.Capabilities().Has(models.VirtioFSCapability) {
-		for _, volume := range mvm.Spec.AdditionalVolumes {
-			if volume.Source.VirtioFS != nil {
-				return nil, errVirtioFSNotSupported
-			}
-		}
+	if err := checkProviderCapabilities(mvm, provider); err != nil {
+		return nil, err
 	}
 
 	err = a.addInstanceData(mvm, logger)
@@ -129,6 +118,34 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	}
 
 	return createdMVM, nil
+}
+
+// checkProviderCapabilities rejects a spec that requests features the selected
+// provider does not support.
+func checkProviderCapabilities(mvm *models.MicroVM, provider ports.MicroVMService) error {
+	caps := provider.Capabilities()
+
+	if !caps.Has(models.MacvtapCapability) {
+		for _, netInt := range mvm.Spec.NetworkInterfaces {
+			if netInt.Type == models.IfaceTypeMacvtap {
+				return errMacvtapNotSupported
+			}
+		}
+	}
+
+	if !caps.Has(models.VirtioFSCapability) {
+		for _, volume := range mvm.Spec.AdditionalVolumes {
+			if volume.Source.VirtioFS != nil {
+				return errVirtioFSNotSupported
+			}
+		}
+	}
+
+	if mvm.Spec.AllowGuestAgent && !caps.Has(models.VSockCapability) {
+		return errGuestAgentNotSupported
+	}
+
+	return nil
 }
 
 func (a *app) DeleteMicroVM(ctx context.Context, uid string) error {

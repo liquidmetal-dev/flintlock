@@ -31,9 +31,15 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("ensuring state dir: %w", err)
 	}
 
-	config, err := CreateConfig(WithMicroVM(vm), WithState(vmState))
+	config, err := CreateConfig(WithMicroVM(vm), WithState(vmState), WithVsock(vm, vmState))
 	if err != nil {
 		return fmt.Errorf("creating firecracker config: %w", err)
+	}
+
+	if vm.Spec.AllowGuestAgent {
+		vm.Status.VSockPath = vmState.VSockPath()
+	} else {
+		vm.Status.VSockPath = ""
 	}
 
 	if err = vmState.SetConfig(config); err != nil {
@@ -108,6 +114,17 @@ func (p *fcProvider) ensureState(vmState State) error {
 	if !exists {
 		if err = p.fs.MkdirAll(vmState.Root(), defaults.DataDirPerm); err != nil {
 			return fmt.Errorf("creating state directory %s: %w", vmState.Root(), err)
+		}
+	}
+
+	// Remove any stale guest-agent vsock socket so the VMM can bind on (re)create.
+	vsockExists, err := afero.Exists(p.fs, vmState.VSockPath())
+	if err != nil {
+		return fmt.Errorf("checking if vsock socket exists: %w", err)
+	}
+	if vsockExists {
+		if delErr := p.fs.Remove(vmState.VSockPath()); delErr != nil {
+			return fmt.Errorf("deleting existing vsock socket: %w", delErr)
 		}
 	}
 

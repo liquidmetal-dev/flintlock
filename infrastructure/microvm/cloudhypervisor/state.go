@@ -7,6 +7,7 @@ import (
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
 const (
@@ -29,6 +30,7 @@ type State interface {
 	StdoutPath() string
 	StderrPath() string
 	SockPath() string
+	VSockPath() string
 
 	CloudInitImage() string
 }
@@ -71,6 +73,10 @@ func (s *fsState) StderrPath() string {
 
 func (s *fsState) SockPath() string {
 	return fmt.Sprintf("%s/%s", s.stateRoot, socketFileName)
+}
+
+func (s *fsState) VSockPath() string {
+	return fmt.Sprintf("%s/%s", s.stateRoot, defaults.GuestAgentVsockName)
 }
 
 func (s *fsState) CloudInitImage() string {

@@ -18,6 +18,10 @@ const (
 	MacvtapCapability Capability = "macvtap"
 
 	VirtioFSCapability Capability = "virtiofs"
+
+	// VSockCapability indicates the microvm provider supports attaching a vsock device
+	// (used by the guest-agent).
+	VSockCapability Capability = "vsock"
 )
 
 // Capabilities represents a list of capabilities.
