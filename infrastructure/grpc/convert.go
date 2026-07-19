@@ -36,9 +36,10 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 				CmdLine:          spec.Kernel.Cmdline,
 				AddNetworkConfig: spec.Kernel.AddNetworkConfig,
 			},
-			VCPU:       int64(spec.Vcpu),
-			MemoryInMb: int64(spec.MemoryInMb),
-			Metadata:   instance.New(),
+			VCPU:            int64(spec.Vcpu),
+			MemoryInMb:      int64(spec.MemoryInMb),
+			Metadata:        instance.New(),
+			AllowGuestAgent: spec.AllowGuestAgent,
 		},
 	}
 
@@ -163,8 +164,9 @@ func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 		Namespace: mvm.ID.Namespace(),
 		Uid:       ptr.String(mvm.ID.UID()),
 		// Labels: ,
-		Vcpu:       int32(mvm.Spec.VCPU),
-		MemoryInMb: int32(mvm.Spec.MemoryInMb),
+		Vcpu:            int32(mvm.Spec.VCPU),
+		MemoryInMb:      int32(mvm.Spec.MemoryInMb),
+		AllowGuestAgent: mvm.Spec.AllowGuestAgent,
 		Kernel: &types.Kernel{
 			Image:            string(mvm.Spec.Kernel.Image),
 			Cmdline:          mvm.Spec.Kernel.CmdLine,
@@ -259,7 +261,8 @@ func convertModelToNetworkInterface(modelNetInt *models.NetworkInterface) *types
 
 func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 	converted := &types.MicroVMStatus{
-		Retry: int32(mvm.Status.Retry),
+		Retry:     int32(mvm.Status.Retry),
+		VsockPath: mvm.Status.VSockPath,
 	}
 
 	switch mvm.Status.State {

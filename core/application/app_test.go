@@ -190,6 +190,23 @@ func TestApp_CreateMicroVM(t *testing.T) {
 				)
 			},
 		},
+		{
+			name:         "allow guest agent but provider lacks vsock capability, should fail",
+			specToCreate: createTestSpecWithGuestAgent("id1234", "default", testUID),
+			expectError:  true,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability, models.MacvtapCapability}).AnyTimes()
+				im.GenerateRandom().Return(testUID, nil).Times(1)
+				rm.Get(
+					gomock.AssignableToTypeOf(context.Background()),
+					gomock.Eq(ports.RepositoryGetOptions{
+						Name:      "id1234",
+						Namespace: "default",
+						UID:       testUID,
+					}),
+				).Return(nil, nil)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -617,6 +634,13 @@ func TestApp_GetAllMicroVM(t *testing.T) {
 
 func createTestSpec(name, ns, uid string) *models.MicroVM {
 	return createTestSpecWithMetadata(name, ns, uid, map[string]string{})
+}
+
+func createTestSpecWithGuestAgent(name, ns, uid string) *models.MicroVM {
+	spec := createTestSpecWithMetadata(name, ns, uid, map[string]string{})
+	spec.Spec.AllowGuestAgent = true
+
+	return spec
 }
 
 func createTestSpecWithMetadata(name, ns, uid string, metadata map[string]string) *models.MicroVM {

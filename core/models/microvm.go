@@ -44,6 +44,9 @@ type MicroVMSpec struct {
 	// Metadata allows you to specify data to be added to the metadata service. The key is the name
 	// of the metadata item and the value is the base64 encoded contents of the metadata.
 	Metadata map[string]string `json:"metadata"`
+	// AllowGuestAgent, when true, attaches a vsock device so the in-guest guest-agent
+	// can communicate with the host.
+	AllowGuestAgent bool `json:"allow_guest_agent"`
 	// CreatedAt indicates the time the microvm was created at.
 	CreatedAt int64 `json:"created_at" validate:"omitempty,datetimeInPast"`
 	// UpdatedAt indicates the time the microvm was last updated.
@@ -68,6 +71,9 @@ type MicroVMStatus struct {
 	Retry int `json:"retry"`
 	// NotBefore tells the system to do not reconcile until given timestamp.
 	NotBefore int64 `json:"not_before" validate:"omitempty"`
+	// VSockPath is the host unix-domain socket path for the guest-agent vsock device.
+	// Empty unless the spec has AllowGuestAgent set.
+	VSockPath string `json:"vsock_path"`
 }
 
 type Initrd struct {

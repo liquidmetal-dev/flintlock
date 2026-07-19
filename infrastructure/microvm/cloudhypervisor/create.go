@@ -64,6 +64,10 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("creating metadata image: %w", err)
 	}
 
+	if vm.Spec.AllowGuestAgent {
+		vm.Status.VSockPath = vmState.VSockPath()
+	}
+
 	proc, err := p.startCloudHypervisor(ctx, vm, vmState, p.config.RunDetached, logger)
 	if err != nil {
 		return fmt.Errorf("starting cloudhypervisor process: %w", err)
@@ -191,6 +195,12 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		}
 	}
 
+	// Vsock device for the guest-agent.
+	if vm.Spec.AllowGuestAgent {
+		args = append(args, "--vsock",
+			fmt.Sprintf("cid=%d,socket=%s", defaults.GuestAgentVsockCID, state.VSockPath()))
+	}
+
 	return args, nil
 }
 
@@ -231,6 +241,18 @@ func (p *provider) ensureState(vmState State) error {
 	if sockExists {
 		if delErr := p.fs.Remove(vmState.SockPath()); delErr != nil {
 			return fmt.Errorf("deleting existing sock file: %w", delErr)
+		}
+	}
+
+	// Remove any stale guest-agent vsock socket so cloud-hypervisor can bind on (re)create.
+	vsockExists, err := afero.Exists(p.fs, vmState.VSockPath())
+	if err != nil {
+		return fmt.Errorf("checking if vsock socket exists: %w", err)
+	}
+
+	if vsockExists {
+		if delErr := p.fs.Remove(vmState.VSockPath()); delErr != nil {
+			return fmt.Errorf("deleting existing vsock socket: %w", delErr)
 		}
 	}
 

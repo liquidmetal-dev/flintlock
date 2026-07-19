@@ -101,6 +101,9 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 			}
 		}
 	}
+	if mvm.Spec.AllowGuestAgent && !provider.Capabilities().Has(models.VSockCapability) {
+		return nil, errGuestAgentNotSupported
+	}
 
 	err = a.addInstanceData(mvm, logger)
 	if err != nil {

@@ -78,4 +78,11 @@ const (
 
 	// MemoryInMb is the default amount of RAM for a MicroVM if one is not provided by the user.
 	MemoryInMb = 1024
+
+	// GuestAgentVsockCID is the guest context id (CID) used for the guest-agent vsock device.
+	// The host is always CID 2; guests start at 3.
+	GuestAgentVsockCID = 3
+
+	// GuestAgentVsockName is the host unix-socket filename for the guest-agent vsock device.
+	GuestAgentVsockName = "guest-agent.vsock"
 )

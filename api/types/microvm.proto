@@ -69,6 +69,10 @@ message MicroVMSpec {
   // Provider allows you to specify the name of the microvm provider to use. If this isn't supplied
   // then the default provider will be used.
   optional string provider = 16;
+
+  // AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest
+  // guest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host.
+  bool allow_guest_agent = 17;
 }
 
 // Kernel represents the configuration for a kernel.
@@ -192,6 +196,9 @@ message MicroVMStatus {
   map<string, NetworkInterfaceStatus> network_interfaces = 5;
   // Retry is a counter about how many times we retried to reconcile.
   int32 retry = 6;
+  // VsockPath is the host unix-domain socket path for the guest-agent vsock device.
+  // Empty unless allow_guest_agent is set on the spec. Use with the vsock-connect host helper.
+  string vsock_path = 7;
 }
 
 message VolumeStatus {
