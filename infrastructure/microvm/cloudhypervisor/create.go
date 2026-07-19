@@ -33,13 +33,26 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 	// should already prevent this, but this is a belt-and-suspenders check against a
 	// double-spawn (Address in use) or orphaning a running process by deleting its
 	// socket in ensureState.
-	if pidExists, _ := afero.Exists(p.fs, vmState.PIDPath()); pidExists {
-		if pid, perr := vmState.PID(); perr == nil {
-			if live, _ := process.Exists(pid); live {
-				logger.Debug("cloud-hypervisor already running for this microvm, skipping create")
+	pidExists, err := afero.Exists(p.fs, vmState.PIDPath())
+	if err != nil {
+		return fmt.Errorf("checking pid file exists: %w", err)
+	}
 
-				return nil
-			}
+	if pidExists {
+		pid, err := vmState.PID()
+		if err != nil {
+			return fmt.Errorf("getting pid from file: %w", err)
+		}
+
+		live, err := process.Exists(pid)
+		if err != nil {
+			return fmt.Errorf("checking if cloudhypervisor process is running: %w", err)
+		}
+
+		if live {
+			logger.Debug("cloud-hypervisor already running for this microvm, skipping create")
+
+			return nil
 		}
 	}
 
