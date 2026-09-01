@@ -68,6 +68,10 @@ nfpms:
     contents:
       - src: flintlockd.service
         dst: /lib/systemd/system/flintlockd.service
+        packager: deb
+      - src: flintlockd.service
+        dst: /usr/lib/systemd/system/flintlockd.service
+        packager: rpm
     scripts:
       postinstall: hack/packaging/flintlockd-postinstall.sh
   - id: flintlock-metrics
