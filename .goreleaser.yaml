@@ -40,13 +40,13 @@ archives:
       - flintlockd
     formats:
       - binary
-    name_template: "flintlockd_{{ .Os }}_{{ .Arch }}"
+    name_template: "flintlockd_{{ .Arch }}"
   - id: flintlock-metrics
     ids:
       - flintlock-metrics
     formats:
       - binary
-    name_template: "flintlock-metrics_{{ .Os }}_{{ .Arch }}"
+    name_template: "flintlock-metrics_{{ .Arch }}"
 
 nfpms:
   - id: flintlockd
