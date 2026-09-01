@@ -285,10 +285,12 @@ highlights some tools you can use to interact with the service.
 
 #### Go
 
-This project is written in Go. To be able to contribute you will need:
+This project is written in Go and uses [mise](https://mise.jdx.dev/) to pin the Go
+toolchain version so that local development and CI use the same version. To be able to
+contribute you will need:
 
-1. A working Go installation of go 1.18. You can check the
-   [official installation guide](https://golang.org/doc/install).
+1. [mise installed](https://mise.jdx.dev/getting-started.html), then run `mise install`
+   from the repo root to provision the pinned Go toolchain (see `mise.toml`).
 
 2. Make sure that `$(go env GOPATH)/bin` is in your shell's `PATH`. You can do so by
    running `export PATH="$(go env GOPATH)/bin:$PATH"`
