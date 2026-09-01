@@ -78,6 +78,10 @@ build-release-flintlock-metrics: $(BIN_DIR) ## Build flintlock-metrics release b
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlock-metrics_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlock-metrics_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
 
+.PHONY: release-snapshot
+release-snapshot: ## Build a local goreleaser snapshot release (binaries + deb/rpm packages), no publishing
+	goreleaser release --snapshot --clean
+
 ##@ Generate
 
 .PHONY: generate
