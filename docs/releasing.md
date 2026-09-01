@@ -68,6 +68,26 @@ buf push --tag "${RELEASE_VERSION}"
 If you get the message `The latest commit has the same content; not creating a new commit.`
 then it means there hasn't been changes to the API so you didn't need to do this.
 
+## Package artifacts
+
+As well as the raw `flintlockd`/`flintlock-metrics` binaries, the release workflow (via
+[goreleaser](https://goreleaser.com/) and its [nfpm](https://nfpm.goreleaser.com/) integration)
+builds `.deb` and `.rpm` packages for both binaries, for `amd64` and `arm64`.
+
+The `flintlockd` package also installs the `flintlockd.service` systemd unit. It does **not**
+declare `containerd` or `firecracker` as package dependencies — their package names and
+availability vary too much across distros (firecracker in particular is rarely packaged), so this
+is enforced by neither `apt`/`dnf`. Make sure user-facing docs (e.g. the quick-start guide) keep
+calling out that both must be installed separately for `flintlockd` to run.
+
+You can test the packaging locally without publishing a release by running:
+
+```bash
+make release-snapshot
+```
+
+which populates `dist/` with the binaries and `.deb`/`.rpm` packages.
+
 ## Announce release
 
 When the release is available announce it in the #liquid-metal slack channel.

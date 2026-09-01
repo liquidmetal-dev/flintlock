@@ -10,6 +10,9 @@ out/
 # Bin
 bin/
 
+# goreleaser output
+dist/
+
 # direnv files:
 .envrc
 
