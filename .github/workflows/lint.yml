@@ -11,3 +11,10 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       - name: Lint
         run: make lint
+        env:
+          # golangci-lint's full type-check (--fast=false, 88 linters) over the
+          # dependency graph pulled in by containerd/v2 can exceed the runner's
+          # memory at default concurrency; cap concurrency and let the Go
+          # runtime GC more aggressively to avoid the OOM kill.
+          GOLANGCI_LINT_EXTRA_ARGS: --concurrency=2
+          GOGC: "50"
