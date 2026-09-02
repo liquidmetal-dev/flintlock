@@ -15,11 +15,14 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/repository"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/sqlite"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
+	"path/filepath"
 	"time"
 )
 
@@ -27,12 +30,13 @@ import (
 
 func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	config2 := containerdConfig(cfg)
-	microVMRepository, err := containerd.NewMicroVMRepo(config2)
+	config3 := repositoryConfig(cfg, config2)
+	microVMRepository, err := repository.New(config3)
 	if err != nil {
 		return nil, err
 	}
-	config3 := networkConfig(cfg)
-	networkService := network.New(config3)
+	config4 := networkConfig(cfg)
+	networkService := network.New(config4)
 	fs := afero.NewOsFs()
 	diskService := godisk.New(fs)
 	v, err := microvm.NewFromConfig(cfg, networkService, diskService, fs)
@@ -83,6 +87,23 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
 	}
+}
+
+func repositoryConfig(cfg *config.Config, ctrCfg *containerd.Config) *repository.Config {
+	return &repository.Config{
+		Store:      cfg.RepositoryStore,
+		Containerd: ctrCfg,
+		Sqlite:     sqliteConfig(cfg),
+	}
+}
+
+func sqliteConfig(cfg *config.Config) *sqlite.Config {
+	path := cfg.SqliteDataPath
+	if path == "" {
+		path = filepath.Join(cfg.StateRootDir, defaults.SqliteDataPath)
+	}
+
+	return &sqlite.Config{DatabasePath: path}
 }
 
 func networkConfig(cfg *config.Config) *network.Config {

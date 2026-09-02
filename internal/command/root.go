@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/liquidmetal-dev/flintlock/internal/command/migraterepo"
 	"github.com/liquidmetal-dev/flintlock/internal/command/run"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/internal/version"
@@ -71,6 +72,7 @@ func addRootSubCommands(cmd *cobra.Command, cfg *config.Config) error {
 
 	cmd.AddCommand(runCmd)
 	cmd.AddCommand(versionCommand())
+	cmd.AddCommand(migraterepo.NewCommand(cfg))
 
 	return nil
 }

@@ -20,6 +20,12 @@ const (
 	// ContainerdKernelSnapshotter is the name of the default snapshotter to use for kernek/initrd.
 	ContainerdKernelSnapshotter = "native"
 
+	// RepositoryStore is the default backing store to use for microvm spec/status definitions.
+	RepositoryStore = "containerd"
+
+	// SqliteDataPath is the default path to the sqlite database file, relative to the state root dir.
+	SqliteDataPath = "flintlock.db"
+
 	// FirecrackerBin is the name of the firecracker binary.
 	FirecrackerBin = "firecracker"
 

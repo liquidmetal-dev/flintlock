@@ -40,6 +40,11 @@ type Config struct {
 	CtrSocketPath string
 	// CtrNamespace is the default containerd namespace to use
 	CtrNamespace string
+	// RepositoryStore is the name of the backing store to use for microvm spec/status
+	// definitions: "containerd" or "sqlite".
+	RepositoryStore string
+	// SqliteDataPath is the path to the sqlite database file to use when RepositoryStore is "sqlite".
+	SqliteDataPath string
 	// DisableReconcile is used to stop the reconcile part from running.
 	DisableReconcile bool
 	// DisableAPI is used to disable the api server.

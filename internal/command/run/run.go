@@ -78,6 +78,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddAuthFlagsToCommand(cmd, cfg)
 	cmdflags.AddTLSFlagsToCommand(cmd, cfg)
 	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
+	cmdflags.AddRepositoryFlagsToCommand(cmd, cfg)
 	cmdflags.AddMicrovmProviderFlagsToCommand(cmd, cfg)
 	cmdflags.AddDebugFlagsToCommand(cmd, cfg)
 	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
