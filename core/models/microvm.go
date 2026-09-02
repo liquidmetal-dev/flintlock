@@ -60,7 +60,12 @@ type MicroVMSpec struct {
 
 // CPUConfig represents CPU feature configuration for a microvm.
 type CPUConfig struct {
+	// FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,
+	// but the accepted values are provider specific (e.g. named features such as "amx" for
+	// Cloud Hypervisor, or numeric KVM capability IDs for Firecracker). The "!" prefix is
+	// reserved for KVMCapabilitiesToDisable and is not allowed here.
 	FeaturesToEnable []string `json:"features_to_enable,omitempty" validate:"omitempty,dive,min=1,excludesall=!"`
+	// KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by
 	// providers that declare the KVMCapabilitiesDisableCapability (currently Firecracker only).
 	KVMCapabilitiesToDisable []string `json:"kvm_capabilities_to_disable,omitempty" validate:"omitempty,dive,kvmCapability"` //nolint: lll // struct tag can't be split
 }

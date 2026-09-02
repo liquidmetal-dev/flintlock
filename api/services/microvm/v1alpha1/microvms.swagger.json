@@ -216,7 +216,7 @@
           "items": {
             "type": "string"
           },
-          "description": "FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,\nbut the accepted values are provider specific (e.g. named features such as \"amx\" for\nCloud Hypervisor, or numeric KVM capability IDs for Firecracker)."
+          "description": "FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,\nbut the accepted values are provider specific (e.g. named features such as \"amx\" for\nCloud Hypervisor, or numeric KVM capability IDs for Firecracker). The \"!\" prefix is\nreserved for KVMCapabilitiesToDisable and is not allowed here."
         },
         "kvmCapabilitiesToDisable": {
           "type": "array",

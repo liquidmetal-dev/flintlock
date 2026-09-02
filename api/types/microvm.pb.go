@@ -442,7 +442,8 @@ type CPUConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,
 	// but the accepted values are provider specific (e.g. named features such as "amx" for
-	// Cloud Hypervisor, or numeric KVM capability IDs for Firecracker).
+	// Cloud Hypervisor, or numeric KVM capability IDs for Firecracker). The "!" prefix is
+	// reserved for KVMCapabilitiesToDisable and is not allowed here.
 	FeaturesToEnable []string `protobuf:"bytes,1,rep,name=features_to_enable,json=featuresToEnable,proto3" json:"features_to_enable,omitempty"`
 	// KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by
 	// providers that declare the KVMCapabilitiesDisable capability (currently Firecracker only).

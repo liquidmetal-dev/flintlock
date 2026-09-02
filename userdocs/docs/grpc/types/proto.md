@@ -49,7 +49,7 @@ CPUConfig represents CPU feature configuration for a microvm.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| features_to_enable | [string](#string) | repeated | FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers, but the accepted values are provider specific (e.g. named features such as &#34;amx&#34; for Cloud Hypervisor, or numeric KVM capability IDs for Firecracker). |
+| features_to_enable | [string](#string) | repeated | FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers, but the accepted values are provider specific (e.g. named features such as &#34;amx&#34; for Cloud Hypervisor, or numeric KVM capability IDs for Firecracker). The &#34;!&#34; prefix is reserved for KVMCapabilitiesToDisable and is not allowed here. |
 | kvm_capabilities_to_disable | [string](#string) | repeated | KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by providers that declare the KVMCapabilitiesDisable capability (currently Firecracker only). |
 
 

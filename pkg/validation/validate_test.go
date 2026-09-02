@@ -63,6 +63,11 @@ func TestValidation_Invalid(t *testing.T) {
 		KVMCapabilitiesToDisable: []string{"!56"},
 	}
 
+	invalidFeatureToEnable := basicMicroVM
+	invalidFeatureToEnable.Spec.CPUConfig = &models.CPUConfig{
+		FeaturesToEnable: []string{"!56"},
+	}
+
 	tt := []struct {
 		name      string
 		numErrors int
@@ -97,6 +102,11 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "invalid kvm capability to disable should fail validation",
 			numErrors: 1,
 			vmspec:    invalidKVMCapability,
+		},
+		{
+			name:      "feature to enable with ! prefix should fail validation",
+			numErrors: 1,
+			vmspec:    invalidFeatureToEnable,
 		},
 	}
 
