@@ -21,8 +21,6 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
 TEST_E2E_DIR := test/e2e
 
-PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
-
 $(TOOLS_BIN_DIR):
 	mkdir -p $@
 
@@ -36,16 +34,7 @@ $(OUT_DIR):
 	mkdir -p $@
 
 # Binaries
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
-GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 BUF := $(TOOLS_BIN_DIR)/buf
-MOCKGEN:= $(TOOLS_BIN_DIR)/mockgen
-PROTOC_GEN_DOC := $(TOOLS_BIN_DIR)/protoc-gen-doc
-PROTOC_GEN_GO := $(TOOLS_BIN_DIR)/protoc-gen-go
-PROTOC_GEN_GO_GRPC := $(TOOLS_BIN_DIR)/protoc-gen-go-grpc
-PROTO_GEN_GRPC_GW := $(TOOLS_BIN_DIR)/protoc-gen-grpc-gateway
-PROTO_GEN_GRPC_OAPI := $(TOOLS_BIN_DIR)/protoc-gen-openapiv2
-WIRE := $(TOOLS_BIN_DIR)/wire
 
 # Useful things
 test_image = liquidmetal-dev/flintlock-e2e
@@ -85,33 +74,33 @@ release-snapshot: ## Build a local goreleaser snapshot release (binaries + deb/r
 ##@ Generate
 
 .PHONY: generate
-generate: $(BUF) $(MOCKGEN) $(WIRE)
+generate: $(BUF)
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-proto
 	$(MAKE) generate-di
 
 .PHONY: generate-go
-generate-go: $(MOCKGEN) ## Generate Go Code
-	go generate ./infrastructure/mock
+generate-go: ## Generate Go Code
+	mise exec -- go generate ./infrastructure/mock
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
-generate-proto: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(PROTO_GEN_GRPC_GW) $(PROTO_GEN_GRPC_OAPI) $(PROTOC_GEN_DOC)
+generate-proto: $(BUF)
 	$(BUF) mod update
 	$(BUF) generate
 
 .PHONY: generate-di ## Generate the dependency injection code
-generate-di: $(WIRE)
-	$(WIRE) gen github.com/liquidmetal-dev/flintlock/internal/inject
+generate-di:
+	wire gen github.com/liquidmetal-dev/flintlock/internal/inject
 
 ##@ Linting
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT)  ## Lint code
-	$(GOLANGCI_LINT) run -v --fast=false $(GOLANGCI_LINT_EXTRA_ARGS)
+lint:  ## Lint code
+	golangci-lint run -v --fast=false $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-fix
-lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
+lint-fix: ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 .PHONY: proto-lint
@@ -164,33 +153,6 @@ docker-push: docker-build ## Push the e2e docker image to liquidmetal-dev/fl-e2e
 	docker push $(test_image):latest
 
 ##@ Tools binaries
-
-$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Get and build golangci-lint
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golangci/golangci-lint/cmd/golangci-lint
-
-$(GINKGO): $(TOOLS_DIR)/go.mod  # Get and build gginkgo
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/v2/ginkgo
-
-$(MOCKGEN): $(TOOLS_DIR)/go.mod  # Get and build mockgen
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golang/mock/mockgen
-
-$(PROTOC_GEN_GO): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) google.golang.org/protobuf/cmd/protoc-gen-go
-
-$(PROTOC_GEN_DOC): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
-
-$(PROTOC_GEN_GO_GRPC): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) google.golang.org/grpc/cmd/protoc-gen-go-grpc
-
-$(PROTO_GEN_GRPC_GW): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
-
-$(PROTO_GEN_GRPC_OAPI): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
-
-$(WIRE): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/google/wire/cmd/wire
 
 BUF_TARGET := buf-Linux-x86_64.tar.gz
 
