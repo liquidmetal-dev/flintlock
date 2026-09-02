@@ -1,11 +1,10 @@
-version: v1beta1
-name: buf.build/liquidmetal-dev/flintlock
+version: v2
+modules:
+  - path: api
+    name: buf.build/liquidmetal-dev/flintlock
 deps:
   - buf.build/googleapis/googleapis
   - buf.build/grpc-ecosystem/grpc-gateway
-build:
-  roots:
-    - api
 lint:
   use:
     - BASIC
@@ -13,8 +12,16 @@ lint:
   except:
     - ENUM_NO_ALLOW_ALIAS
     - IMPORT_NO_PUBLIC
-    - PACKAGE_AFFINITY
+    - IMPORT_USED
     - PACKAGE_DIRECTORY_MATCH
     - PACKAGE_SAME_DIRECTORY
+    - PACKAGE_SAME_CSHARP_NAMESPACE
+    - PACKAGE_SAME_GO_PACKAGE
+    - PACKAGE_SAME_JAVA_MULTIPLE_FILES
+    - PACKAGE_SAME_JAVA_PACKAGE
+    - PACKAGE_SAME_PHP_NAMESPACE
+    - PACKAGE_SAME_RUBY_PACKAGE
+    - PACKAGE_SAME_SWIFT_PREFIX
 breaking:
   use:
+    - FILE
