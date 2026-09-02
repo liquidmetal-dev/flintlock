@@ -22,7 +22,6 @@ import (
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
-	"path/filepath"
 	"time"
 )
 
@@ -98,12 +97,7 @@ func repositoryConfig(cfg *config.Config, ctrCfg *containerd.Config) *repository
 }
 
 func sqliteConfig(cfg *config.Config) *sqlite.Config {
-	path := cfg.SqliteDataPath
-	if path == "" {
-		path = filepath.Join(cfg.StateRootDir, defaults.SqliteDataPath)
-	}
-
-	return &sqlite.Config{DatabasePath: path}
+	return &sqlite.Config{DatabasePath: cfg.ResolvedSqliteDataPath()}
 }
 
 func networkConfig(cfg *config.Config) *network.Config {

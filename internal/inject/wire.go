@@ -4,7 +4,6 @@
 package inject
 
 import (
-	"path/filepath"
 	"time"
 
 	"github.com/google/wire"
@@ -80,12 +79,7 @@ func repositoryConfig(cfg *config.Config, ctrCfg *containerd.Config) *repository
 }
 
 func sqliteConfig(cfg *config.Config) *sqlite.Config {
-	path := cfg.SqliteDataPath
-	if path == "" {
-		path = filepath.Join(cfg.StateRootDir, defaults.SqliteDataPath)
-	}
-
-	return &sqlite.Config{DatabasePath: path}
+	return &sqlite.Config{DatabasePath: cfg.ResolvedSqliteDataPath()}
 }
 
 func networkConfig(cfg *config.Config) *network.Config {

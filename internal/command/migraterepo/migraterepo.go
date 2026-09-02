@@ -7,7 +7,6 @@ package migraterepo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -37,6 +36,7 @@ func NewCommand(cfg *config.Config) *cobra.Command {
 		},
 	}
 
+	cmdflags.AddStateDirFlagToCommand(cmd, cfg)
 	cmdflags.AddContainerDFlagsToCommand(cmd, cfg)
 	cmdflags.AddRepositoryFlagsToCommand(cmd, cfg)
 
@@ -45,10 +45,6 @@ func NewCommand(cfg *config.Config) *cobra.Command {
 
 func migrate(ctx context.Context, cfg *config.Config) error {
 	logger := log.GetLogger(ctx).WithField("command", "migrate-repository")
-
-	if cfg.SqliteDataPath == "" {
-		return errors.New("--sqlite-data-path must be supplied")
-	}
 
 	from, err := containerd.NewMicroVMRepo(&containerd.Config{
 		SnapshotterKernel: cfg.CtrSnapshotterKernel,
@@ -60,7 +56,7 @@ func migrate(ctx context.Context, cfg *config.Config) error {
 	}
 
 	to, err := sqlite.NewMicroVMRepo(&sqlite.Config{
-		DatabasePath: cfg.SqliteDataPath,
+		DatabasePath: cfg.ResolvedSqliteDataPath(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating sqlite microvm repository: %w", err)

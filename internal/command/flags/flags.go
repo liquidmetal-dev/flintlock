@@ -35,6 +35,7 @@ const (
 	virtioFSBinFlag           = "virtiofs-bin"
 	repositoryStoreFlag       = "repository-store"
 	sqliteDataPathFlag        = "sqlite-data-path"
+	stateDirFlag              = "state-dir"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -44,10 +45,7 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		defaults.GRPCAPIEndpoint,
 		"The endpoint for the gRPC server to listen on.")
 
-	cmd.Flags().StringVar(&cfg.StateRootDir,
-		"state-dir",
-		defaults.StateRootDir,
-		"The directory to use for the as the root for runtime state.")
+	AddStateDirFlagToCommand(cmd, cfg)
 
 	cmd.Flags().DurationVar(&cfg.ResyncPeriod,
 		"resync-period",
@@ -183,6 +181,14 @@ func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"The name of the containerd namespace to use.")
 }
 
+// AddStateDirFlagToCommand will add the --state-dir flag to the supplied command.
+func AddStateDirFlagToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().StringVar(&cfg.StateRootDir,
+		stateDirFlag,
+		defaults.StateRootDir,
+		"The directory to use for the as the root for runtime state.")
+}
+
 // AddRepositoryFlagsToCommand will add the microvm repository backing-store flags to the supplied command.
 func AddRepositoryFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().StringVar(&cfg.RepositoryStore,
@@ -194,7 +200,7 @@ func AddRepositoryFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		sqliteDataPathFlag,
 		"",
 		"The path to the sqlite database file to use when --"+repositoryStoreFlag+"=sqlite. "+
-			"Defaults to a file under --state-dir.")
+			"Defaults to a file under --"+stateDirFlag+".")
 }
 
 func AddDebugFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {

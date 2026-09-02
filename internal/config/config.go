@@ -1,8 +1,10 @@
 package config
 
 import (
+	"path/filepath"
 	"time"
 
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
@@ -63,6 +65,16 @@ type Config struct {
 	DebugEndpoint string
 	// DefaultVMProvider specifies the name of the microvm provider to use by default.
 	DefaultVMProvider string
+}
+
+// ResolvedSqliteDataPath returns SqliteDataPath if set, otherwise the
+// default sqlite database path under StateRootDir.
+func (c *Config) ResolvedSqliteDataPath() string {
+	if c.SqliteDataPath != "" {
+		return c.SqliteDataPath
+	}
+
+	return filepath.Join(c.StateRootDir, defaults.SqliteDataPath)
 }
 
 // TLSConfig holds the configuration for TLS.

@@ -20,6 +20,12 @@ func TestMicroVMRepo(t *testing.T) {
 	reposcontract.Run(context.Background(), t, repo, "sqlite-repo-test", "sqlite-repo-test-ns")
 }
 
+func TestMicroVMRepo_NilConfig(t *testing.T) {
+	if _, err := sqlite.NewMicroVMRepo(nil); err == nil {
+		t.Fatal("expected an error for a nil config, got nil")
+	}
+}
+
 func TestMicroVMRepo_MultipleSave(t *testing.T) {
 	repo, err := sqlite.NewMicroVMRepo(&sqlite.Config{
 		DatabasePath: filepath.Join(t.TempDir(), "flintlock.db"),

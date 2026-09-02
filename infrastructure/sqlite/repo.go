@@ -25,6 +25,10 @@ import (
 // parent directory) if it doesn't already exist, and apply any pending
 // schema migrations.
 func NewMicroVMRepo(cfg *Config) (ports.MicroVMRepository, error) {
+	if cfg == nil {
+		return nil, stderrors.New("sqlite repository config must not be nil")
+	}
+
 	if err := os.MkdirAll(filepath.Dir(cfg.DatabasePath), 0o750); err != nil {
 		return nil, fmt.Errorf("creating directory for sqlite database: %w", err)
 	}
@@ -39,6 +43,8 @@ func NewMicroVMRepo(cfg *Config) (ports.MicroVMRepository, error) {
 	db.SetMaxOpenConns(1)
 
 	if err := runMigrations(db, migrations); err != nil {
+		_ = db.Close()
+
 		return nil, fmt.Errorf("running sqlite migrations: %w", err)
 	}
 
