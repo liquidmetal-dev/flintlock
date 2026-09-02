@@ -41,6 +41,8 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			SMT:        runtime.GOARCH == "amd64",
 		}
 
+		cfg.CPUConfig = buildCPUConfig(vm.Spec.CPUConfig)
+
 		mmdsNetDevices := []string{}
 		cfg.NetDevices = []NetworkInterfaceConfig{}
 
@@ -126,6 +128,32 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 
 		return nil
 	}
+}
+
+// buildCPUConfig merges the enable/disable lists from the microvm spec into a single
+// Firecracker kvm_capabilities list, prefixing disabled capabilities with "!". Returns nil
+// when there's nothing to configure.
+func buildCPUConfig(modelCPUConfig *models.CPUConfig) *CPUConfig {
+	if modelCPUConfig == nil {
+		return nil
+	}
+
+	kvmCapabilities := make(
+		[]string,
+		0,
+		len(modelCPUConfig.FeaturesToEnable)+len(modelCPUConfig.KVMCapabilitiesToDisable),
+	)
+	kvmCapabilities = append(kvmCapabilities, modelCPUConfig.FeaturesToEnable...)
+
+	for _, capability := range modelCPUConfig.KVMCapabilitiesToDisable {
+		kvmCapabilities = append(kvmCapabilities, "!"+capability)
+	}
+
+	if len(kvmCapabilities) == 0 {
+		return nil
+	}
+
+	return &CPUConfig{KvmCapabilities: kvmCapabilities}
 }
 
 // DefaultKernelCmdLine is the default recommended kernel parameter list.

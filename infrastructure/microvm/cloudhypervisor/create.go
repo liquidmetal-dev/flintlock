@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -143,7 +144,11 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	args = append(args, "--kernel", fmt.Sprintf("%s/%s", vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename))
 
 	// CPU and memory
-	args = append(args, "--cpus", fmt.Sprintf("boot=%d", vm.Spec.VCPU))
+	cpusArg := fmt.Sprintf("boot=%d", vm.Spec.VCPU)
+	if vm.Spec.CPUConfig != nil && slices.Contains(vm.Spec.CPUConfig.FeaturesToEnable, "amx") {
+		cpusArg += ",features=amx"
+	}
+	args = append(args, "--cpus", cpusArg)
 
 	// Volumes (root, additional, metadata)
 	rootVolumeStatus, volumeStatusFound := vm.Status.Volumes[vm.Spec.RootVolume.ID]

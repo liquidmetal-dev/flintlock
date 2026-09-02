@@ -22,6 +22,10 @@ const (
 	// VSockCapability indicates the microvm provider supports attaching a vsock device
 	// (used by the guest-agent).
 	VSockCapability Capability = "vsock"
+
+	// KVMCapabilitiesDisableCapability indicates the microvm provider supports disabling
+	// specific KVM capabilities via CPUConfig.KVMCapabilitiesToDisable.
+	KVMCapabilitiesDisableCapability Capability = "kvm-capabilities-disable"
 )
 
 // Capabilities represents a list of capabilities.

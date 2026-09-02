@@ -4,6 +4,7 @@
 ## Table of Contents
 
 - [types/microvm.proto](#types_microvm-proto)
+    - [CPUConfig](#flintlock-types-CPUConfig)
     - [ContainerVolumeSource](#flintlock-types-ContainerVolumeSource)
     - [Initrd](#flintlock-types-Initrd)
     - [Kernel](#flintlock-types-Kernel)
@@ -37,6 +38,22 @@
 <p align="right"><a href="#top">Top</a></p>
 
 ## types/microvm.proto
+
+
+
+<a name="flintlock-types-CPUConfig"></a>
+
+### CPUConfig
+CPUConfig represents CPU feature configuration for a microvm.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| features_to_enable | [string](#string) | repeated | FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers, but the accepted values are provider specific (e.g. named features such as &#34;amx&#34; for Cloud Hypervisor, or numeric KVM capability IDs for Firecracker). The &#34;!&#34; prefix is reserved for KVMCapabilitiesToDisable and is not allowed here. |
+| kvm_capabilities_to_disable | [string](#string) | repeated | KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by providers that declare the KVMCapabilitiesDisable capability (currently Firecracker only). |
+
+
+
 
 
 
@@ -147,6 +164,7 @@ MicroVMSpec represents the specification for a microvm.
 | uid | [string](#string) | optional | UID is a globally unique identifier of the microvm. |
 | provider | [string](#string) | optional | Provider allows you to specify the name of the microvm provider to use. If this isn&#39;t supplied then the default provider will be used. |
 | allow_guest_agent | [bool](#bool) |  | AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest guest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host. |
+| cpu_config | [CPUConfig](#flintlock-types-CPUConfig) | optional | CPUConfig allows you to customise the CPU features presented to the guest. Support and semantics vary by provider. |
 
 
 

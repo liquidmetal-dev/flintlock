@@ -208,6 +208,26 @@
         }
       }
     },
+    "typesCPUConfig": {
+      "type": "object",
+      "properties": {
+        "featuresToEnable": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,\nbut the accepted values are provider specific (e.g. named features such as \"amx\" for\nCloud Hypervisor, or numeric KVM capability IDs for Firecracker). The \"!\" prefix is\nreserved for KVMCapabilitiesToDisable and is not allowed here."
+        },
+        "kvmCapabilitiesToDisable": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by\nproviders that declare the KVMCapabilitiesDisable capability (currently Firecracker only)."
+        }
+      },
+      "description": "CPUConfig represents CPU feature configuration for a microvm."
+    },
     "typesInitrd": {
       "type": "object",
       "properties": {
@@ -354,6 +374,10 @@
         "allowGuestAgent": {
           "type": "boolean",
           "description": "AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest\nguest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host."
+        },
+        "cpuConfig": {
+          "$ref": "#/definitions/typesCPUConfig",
+          "description": "CPUConfig allows you to customise the CPU features presented to the guest. Support and\nsemantics vary by provider."
         }
       },
       "description": "MicroVMSpec represents the specification for a microvm."

@@ -19,6 +19,21 @@ func TestValidation_Valid(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func TestValidation_Valid_CPUConfig(t *testing.T) {
+	RegisterTestingT(t)
+	val := NewValidator()
+
+	vm := basicMicroVM
+	vm.Spec.CPUConfig = &models.CPUConfig{
+		FeaturesToEnable:         []string{"amx"},
+		KVMCapabilitiesToDisable: []string{"56"},
+	}
+
+	err := val.ValidateStruct(vm)
+
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func TestValidation_Invalid(t *testing.T) {
 	invalidImageUri := basicMicroVM
 	invalidImageUri.Spec.Kernel.Image = "://invalidImage@"
@@ -42,6 +57,16 @@ func TestValidation_Invalid(t *testing.T) {
 
 	invalidVolumes := basicMicroVM
 	invalidVolumes.Spec.RootVolume = models.Volume{}
+
+	invalidKVMCapability := basicMicroVM
+	invalidKVMCapability.Spec.CPUConfig = &models.CPUConfig{
+		KVMCapabilitiesToDisable: []string{"!56"},
+	}
+
+	invalidFeatureToEnable := basicMicroVM
+	invalidFeatureToEnable.Spec.CPUConfig = &models.CPUConfig{
+		FeaturesToEnable: []string{"!56"},
+	}
 
 	tt := []struct {
 		name      string
@@ -72,6 +97,16 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "should fail validation when there is no root volume",
 			numErrors: 1,
 			vmspec:    invalidVolumes,
+		},
+		{
+			name:      "invalid kvm capability to disable should fail validation",
+			numErrors: 1,
+			vmspec:    invalidKVMCapability,
+		},
+		{
+			name:      "feature to enable with ! prefix should fail validation",
+			numErrors: 1,
+			vmspec:    invalidFeatureToEnable,
 		},
 	}
 

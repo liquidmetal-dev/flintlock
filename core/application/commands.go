@@ -145,6 +145,12 @@ func checkProviderCapabilities(mvm *models.MicroVM, provider ports.MicroVMServic
 		return errGuestAgentNotSupported
 	}
 
+	if mvm.Spec.CPUConfig != nil &&
+		len(mvm.Spec.CPUConfig.KVMCapabilitiesToDisable) > 0 &&
+		!caps.Has(models.KVMCapabilitiesDisableCapability) {
+		return errKVMCapabilitiesDisableNotSupported
+	}
+
 	return nil
 }
 

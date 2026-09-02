@@ -46,3 +46,58 @@ func TestWithVsock_Disabled(t *testing.T) {
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(cfg.VsockDevice).To(g.BeNil())
 }
+
+// vmForMicroVM builds a minimal-but-valid microvm (kernel + root volume mounted, no
+// network interfaces) so WithMicroVM runs to completion.
+func vmForMicroVM(cpuConfig *models.CPUConfig) *models.MicroVM {
+	return &models.MicroVM{
+		Spec: models.MicroVMSpec{
+			VCPU:       1,
+			MemoryInMb: 1024,
+			Kernel:     models.Kernel{Filename: "vmlinux"},
+			RootVolume: models.Volume{ID: "root"},
+			CPUConfig:  cpuConfig,
+		},
+		Status: models.MicroVMStatus{
+			KernelMount: &models.Mount{Source: "/kernel"},
+			Volumes: models.VolumeStatuses{
+				"root": &models.VolumeStatus{Mount: models.Mount{Source: "/root.img"}},
+			},
+		},
+	}
+}
+
+func TestWithMicroVM_CPUConfig_EnableAndDisable(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(&models.CPUConfig{
+		FeaturesToEnable:         []string{"171"},
+		KVMCapabilitiesToDisable: []string{"56"},
+	})
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(cfg.CPUConfig).NotTo(g.BeNil())
+	g.Expect(cfg.CPUConfig.KvmCapabilities).To(g.ConsistOf("171", "!56"))
+}
+
+func TestWithMicroVM_CPUConfig_Nil(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(nil)
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cfg.CPUConfig).To(g.BeNil())
+}
+
+func TestWithMicroVM_CPUConfig_Empty(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(&models.CPUConfig{})
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cfg.CPUConfig).To(g.BeNil())
+}

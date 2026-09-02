@@ -47,12 +47,27 @@ type MicroVMSpec struct {
 	// AllowGuestAgent, when true, attaches a vsock device so the in-guest guest-agent
 	// can communicate with the host.
 	AllowGuestAgent bool `json:"allow_guest_agent"`
+	// CPUConfig allows you to customise the CPU features presented to the guest. Support and
+	// semantics vary by provider.
+	CPUConfig *CPUConfig `json:"cpu_config,omitempty" validate:"omitempty"`
 	// CreatedAt indicates the time the microvm was created at.
 	CreatedAt int64 `json:"created_at" validate:"omitempty,datetimeInPast"`
 	// UpdatedAt indicates the time the microvm was last updated.
 	UpdatedAt int64 `json:"updated_at" validate:"omitempty,datetimeInPast"`
 	// DeletedAt indicates the time the microvm was marked as deleted.
 	DeletedAt int64 `json:"deleted_at" validate:"omitempty,datetimeInPast"`
+}
+
+// CPUConfig represents CPU feature configuration for a microvm.
+type CPUConfig struct {
+	// FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,
+	// but the accepted values are provider specific (e.g. named features such as "amx" for
+	// Cloud Hypervisor, or numeric KVM capability IDs for Firecracker). The "!" prefix is
+	// reserved for KVMCapabilitiesToDisable and is not allowed here.
+	FeaturesToEnable []string `json:"features_to_enable,omitempty" validate:"omitempty,dive,min=1,excludesall=!"`
+	// KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by
+	// providers that declare the KVMCapabilitiesDisableCapability (currently Firecracker only).
+	KVMCapabilitiesToDisable []string `json:"kvm_capabilities_to_disable,omitempty" validate:"omitempty,dive,kvmCapability"` //nolint: lll // struct tag can't be split
 }
 
 // MicroVMStatus contains the runtime status of the microvm.
