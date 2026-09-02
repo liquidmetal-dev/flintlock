@@ -62,7 +62,7 @@ type MicroVMSpec struct {
 type CPUConfig struct {
 	FeaturesToEnable []string `json:"features_to_enable,omitempty" validate:"omitempty,dive,min=1,excludesall=!"`
 	// providers that declare the KVMCapabilitiesDisableCapability (currently Firecracker only).
-	KVMCapabilitiesToDisable []string `json:"kvm_capabilities_to_disable,omitempty" validate:"omitempty,dive,kvmCapability"`
+	KVMCapabilitiesToDisable []string `json:"kvm_capabilities_to_disable,omitempty" validate:"omitempty,dive,kvmCapability"` //nolint: lll // struct tag can't be split
 }
 
 // MicroVMStatus contains the runtime status of the microvm.
