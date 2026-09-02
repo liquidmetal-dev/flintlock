@@ -46,4 +46,10 @@ As a result, it is possible to leak resources, when the MicroVM deletion failed
 and we lost track of a network device status from MicroVMSpec. For that reason,
 [Resource cleanup ADR #90][issue-90] priority might be raised to higher priority.
 
+This decision only covers the *host* side device name. The *guest* side
+device name (`device_id` on a `NetworkInterface` in the API) is set by the
+caller, and must not be set to `eth0` — see
+[Troubleshooting: network-interfaces error caused by eth0][ts-eth0] for why.
+
 [issue-90]: https://github.com/liquidmetal-dev/flintlock/issues/90
+[ts-eth0]: ../../userdocs/docs/troubleshooting/network-interface-eth0.md
