@@ -88,7 +88,7 @@ lint-fix: ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 .PHONY: proto-lint
-proto-lint: ## Lint protobuf/frpc
+proto-lint: ## Lint protobuf/grpc
 	buf lint
 
 ##@ Testing
