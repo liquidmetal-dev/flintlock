@@ -13,19 +13,6 @@ updates:
         patterns:
           - "*"
 
-  - package-ecosystem: "gomod"
-    directories:
-      - "./hack/tools"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "kind/cleanup"
-      - "area/dependency"
-    groups:
-      dependencies:
-        patterns:
-          - "*"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
