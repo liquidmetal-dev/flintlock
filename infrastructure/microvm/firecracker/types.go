@@ -8,7 +8,7 @@ type VmmConfig struct {
 	Balloon *BalloonDeviceConfig `json:"balloon,omitempty"`
 	// BlockDevices is the configuration for the drives.
 	BlockDevices []BlockDeviceConfig `json:"drives"`
-	// BootSourec is the boot source configuration for the microvm.
+	// BootSource is the boot source configuration for the microvm.
 	BootSource BootSourceConfig `json:"boot-source"`
 	// CPUConfig is the custom CPU configuration for the microvm.
 	CPUConfig *CPUConfig `json:"cpu-config,omitempty"`
