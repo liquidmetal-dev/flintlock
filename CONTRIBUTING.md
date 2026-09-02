@@ -469,23 +469,20 @@ changes into more than one PR.
 
 ### Commit message formatting
 
-_For more on how to write great commit messages, and why you should, check out
+We use [Conventional Commits](https://www.conventionalcommits.org/) for
+commit messages and PR titles. This is checked in CI. The subject line
+should feature the _what_, tagged with a _type_ (and optional _scope_), and
+the body of the commit should describe the _why_ and _how_. If you
+encountered any weirdness along the way, this is a good place to note what
+you discovered and how you solved it.
+
+_For more on why well-written commit messages matter, check out
 [this excellent blog post](https://chris.beams.io/posts/git-commit/)._
-
-We follow a rough convention for commit messages that is designed to answer three
-questions: what changed, why was the change made, and how did you make it.
-
-The subject line should feature the _what_ and
-the body of the commit should describe the _why_ and _how_.
-If you encountered any weirdness along the way, this is a good place
-to note what you discovered and how you solved it.
-
-An example of a stellar commit message can be found [here](https://github.com/liquidmetal-dev/flintlock/commit/7a30dd99dc7c05827ba11050505c476799bb2932).
 
 The format can be described more formally as follows:
 
 ```text
-<short title for what changed>
+<type>[optional scope]: <short description of what changed>
 <BLANK LINE>
 <why this change was made and what changed>
 <BLANK LINE>
@@ -493,11 +490,16 @@ The format can be described more formally as follows:
 <footer>
 ```
 
-The first line is the subject and should be no longer than 70 characters, the
-second line is always blank, and other lines should be wrapped at a max of 80 characters.
-This allows the message to be easier to read on GitHub as well as in various git tools.
+`<type>` is one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+`test`, `build`, `ci`, `chore`, `revert`. `<scope>` is optional and should
+name the area touched, e.g. `firecracker`, `cloudhypervisor`, `api`, `docs`.
 
-There is a template recommend for use [here](https://gist.github.com/yitsushi/656e68c7db141743e81b7dcd23362f1a).
+An example header: `feat(cloudhypervisor): add virtiofs support`.
+
+The first line (header) should be no longer than 70 characters, the second
+line is always blank, and other lines should be wrapped at a max of 80
+characters. This allows the message to be easier to read on GitHub as well
+as in various git tools.
 
 # How the Maintainers process contributions
 
