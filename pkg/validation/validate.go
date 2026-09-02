@@ -29,6 +29,7 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("novirtiofs", customNoVirtioFSValidator, false)
 	_ = validator.RegisterValidation("onlyOneVirtioFS", customOnlyOneVirtioFSValidator, false)
 	_ = validator.RegisterValidation("multipleVolSources", customMultipleVolSources, false)
+	_ = validator.RegisterValidation("kvmCapability", customKVMCapabilityValidator, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
 
 	return &validate{
@@ -101,6 +102,15 @@ func customOnlyOneVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) b
 	}
 
 	return !(virtioFSCount > 1)
+}
+
+// customKVMCapabilityValidator ensures a KVM capability ID is a plain non-negative
+// integer. The "!" disable prefix is added internally and must not be supplied by the caller.
+func customKVMCapabilityValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	value := fieldLevel.Field().String()
+	re := regexp.MustCompile(`^\d+$`)
+
+	return re.MatchString(value)
 }
 
 func customMultipleVolSources(fieldLevel playgroundValidator.FieldLevel) bool {

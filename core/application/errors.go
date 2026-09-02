@@ -8,10 +8,13 @@ import (
 )
 
 var (
-	errUIDRequired            = errors.New("uid is required")
-	errMacvtapNotSupported    = errors.New("macvtap network interfaces not supported by the microvm provider")
-	errVirtioFSNotSupported   = errors.New("virtiofs not supported by the microvm provider")
-	errGuestAgentNotSupported = errors.New("guest agent (vsock) not supported by the microvm provider")
+	errUIDRequired                        = errors.New("uid is required")
+	errMacvtapNotSupported                = errors.New("macvtap network interfaces not supported by the microvm provider")
+	errVirtioFSNotSupported               = errors.New("virtiofs not supported by the microvm provider")
+	errGuestAgentNotSupported             = errors.New("guest agent (vsock) not supported by the microvm provider")
+	errKVMCapabilitiesDisableNotSupported = errors.New(
+		"disabling kvm capabilities not supported by the microvm provider",
+	)
 )
 
 type specAlreadyExistsError struct {

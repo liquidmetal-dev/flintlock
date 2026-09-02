@@ -87,6 +87,13 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		convertedModel.Spec.Provider = *spec.Provider
 	}
 
+	if spec.CpuConfig != nil {
+		convertedModel.Spec.CPUConfig = &models.CPUConfig{
+			FeaturesToEnable:         spec.CpuConfig.FeaturesToEnable,
+			KVMCapabilitiesToDisable: spec.CpuConfig.KvmCapabilitiesToDisable,
+		}
+	}
+
 	return convertedModel, nil
 }
 
@@ -200,6 +207,13 @@ func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 
 	for metadataKey, metadataValue := range mvm.Spec.Metadata {
 		converted.Metadata[metadataKey] = metadataValue
+	}
+
+	if mvm.Spec.CPUConfig != nil {
+		converted.CpuConfig = &types.CPUConfig{
+			FeaturesToEnable:         mvm.Spec.CPUConfig.FeaturesToEnable,
+			KvmCapabilitiesToDisable: mvm.Spec.CPUConfig.KVMCapabilitiesToDisable,
+		}
 	}
 
 	return converted

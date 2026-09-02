@@ -10,6 +10,8 @@ type VmmConfig struct {
 	BlockDevices []BlockDeviceConfig `json:"drives"`
 	// BootSourec is the boot source configuration for the microvm.
 	BootSource BootSourceConfig `json:"boot-source"`
+	// CPUConfig is the custom CPU configuration for the microvm.
+	CPUConfig *CPUConfig `json:"cpu-config,omitempty"`
 	// Logger is the logger configuration.
 	Logger *LoggerConfig `json:"logger,omitempty"`
 	// MachineConfig contains the microvm machine config.
@@ -35,6 +37,13 @@ type MachineConfig struct {
 	CPUTemplate *string `json:"cpu_template,omitempty"`
 	// TrackDirtyPages enables or disables dirty page tracking. Enabling allows incremental snapshots.
 	TrackDirtyPages bool `json:"track_dirty_pages"`
+}
+
+// CPUConfig is the custom CPU configuration for the microvm.
+// https://github.com/firecracker-microvm/firecracker/blob/main/docs/cpu_templates/cpu-templates.md
+type CPUConfig struct {
+	// KvmCapabilities is a list of KVM capability IDs to add/enable, or (prefixed with "!") remove/disable.
+	KvmCapabilities []string `json:"kvm_capabilities,omitempty"`
 }
 
 type CacheType string

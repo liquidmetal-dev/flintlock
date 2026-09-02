@@ -54,3 +54,41 @@ func TestBuildArgs_NoVsockWhenGuestAgentDisabled(t *testing.T) {
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(strings.Join(args, " ")).NotTo(g.ContainSubstring("--vsock"))
 }
+
+func TestBuildArgs_CPUFeaturesEnabled(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(false)
+	vm.Spec.CPUConfig = &models.CPUConfig{FeaturesToEnable: []string{"amx"}}
+
+	args, err := p.buildArgs(vm, state, nil)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(strings.Join(args, " ")).To(g.ContainSubstring("--cpus boot=1,features=amx"))
+}
+
+func TestBuildArgs_CPUFeaturesUnrecognisedIgnored(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(false)
+	vm.Spec.CPUConfig = &models.CPUConfig{FeaturesToEnable: []string{"171"}}
+
+	args, err := p.buildArgs(vm, state, nil)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(strings.Join(args, " ")).To(g.ContainSubstring("--cpus boot=1"))
+	g.Expect(strings.Join(args, " ")).NotTo(g.ContainSubstring("features"))
+}
+
+func TestBuildArgs_CPUConfigNil(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	args, err := p.buildArgs(vmForArgs(false), state, nil)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(strings.Join(args, " ")).To(g.ContainSubstring("--cpus boot=1"))
+	g.Expect(strings.Join(args, " ")).NotTo(g.ContainSubstring("features"))
+}

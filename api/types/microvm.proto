@@ -73,6 +73,22 @@ message MicroVMSpec {
   // AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest
   // guest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host.
   bool allow_guest_agent = 17;
+
+  // CPUConfig allows you to customise the CPU features presented to the guest. Support and
+  // semantics vary by provider.
+  optional CPUConfig cpu_config = 18;
+}
+
+// CPUConfig represents CPU feature configuration for a microvm.
+message CPUConfig {
+  // FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,
+  // but the accepted values are provider specific (e.g. named features such as "amx" for
+  // Cloud Hypervisor, or numeric KVM capability IDs for Firecracker).
+  repeated string features_to_enable = 1;
+
+  // KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by
+  // providers that declare the KVMCapabilitiesDisable capability (currently Firecracker only).
+  repeated string kvm_capabilities_to_disable = 2;
 }
 
 // Kernel represents the configuration for a kernel.

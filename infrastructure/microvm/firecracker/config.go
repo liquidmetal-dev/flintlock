@@ -41,6 +41,25 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			SMT:        runtime.GOARCH == "amd64",
 		}
 
+		if vm.Spec.CPUConfig != nil {
+			kvmCapabilities := make(
+				[]string,
+				0,
+				len(vm.Spec.CPUConfig.FeaturesToEnable)+len(vm.Spec.CPUConfig.KVMCapabilitiesToDisable),
+			)
+			kvmCapabilities = append(kvmCapabilities, vm.Spec.CPUConfig.FeaturesToEnable...)
+
+			for _, capability := range vm.Spec.CPUConfig.KVMCapabilitiesToDisable {
+				kvmCapabilities = append(kvmCapabilities, "!"+capability)
+			}
+
+			if len(kvmCapabilities) > 0 {
+				cfg.CPUConfig = &CPUConfig{
+					KvmCapabilities: kvmCapabilities,
+				}
+			}
+		}
+
 		mmdsNetDevices := []string{}
 		cfg.NetDevices = []NetworkInterfaceConfig{}
 
