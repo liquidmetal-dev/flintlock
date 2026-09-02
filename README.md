@@ -1,8 +1,9 @@
 # Flintlock - Create and manage the lifecycle of MicroVMs, backed by containerd.
 
 [![GitHub](https://img.shields.io/github/license/liquidmetal-dev/flintlock)](https://img.shields.io/github/license/liquidmetal-dev/flintlock)
-[![codecov](https://codecov.io/gh/liquidmetal-dev/flintlock/branch/main/graph/badge.svg?token=ZNPNRDI8Z0)](https://codecov.io/gh/liquidmetal-dev/flintlock)
-[![Go Report Card](https://goreportcard.com/badge/github.com/liquidmetal-dev/flintlock)](https://goreportcard.com/report/github.com/liquidmetal-dev/flintlock)
+[![Tests](https://github.com/liquidmetal-dev/flintlock/actions/workflows/test.yml/badge.svg)](https://github.com/liquidmetal-dev/flintlock/actions/workflows/test.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/liquidmetal-dev/flintlock.svg)](https://pkg.go.dev/github.com/liquidmetal-dev/flintlock)
+[![GitHub release](https://img.shields.io/github/v/release/liquidmetal-dev/flintlock)](https://github.com/liquidmetal-dev/flintlock/releases/latest)
 
 ## What is flintlock?
 
