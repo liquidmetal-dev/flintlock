@@ -1,2 +1,3 @@
 [tools]
 go = "1.24.0"
+goreleaser = "2.18.0"
