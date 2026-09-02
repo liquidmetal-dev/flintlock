@@ -20,6 +20,12 @@ const (
 	// ContainerdKernelSnapshotter is the name of the default snapshotter to use for kernek/initrd.
 	ContainerdKernelSnapshotter = "native"
 
+	// ContainerdHostsDir is the default path to a directory of per-registry
+	// hosts.toml files (containerd's certs.d layout) used to configure
+	// registry auth/mirrors for image pulls. Empty disables this and relies
+	// solely on the containerd daemon's own registry configuration.
+	ContainerdHostsDir = ""
+
 	// FirecrackerBin is the name of the firecracker binary.
 	FirecrackerBin = "firecracker"
 

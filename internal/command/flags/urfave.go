@@ -32,6 +32,13 @@ func WithContainerDFlags() WithFlagsFunc {
 				Value: defaults.ContainerdNamespace,
 				Usage: "The name of the containerd namespace to use.",
 			},
+			&cli.StringFlag{
+				Name:  containerdHostsDirFlag,
+				Value: defaults.ContainerdHostsDir,
+				Usage: "The path to a directory of per-registry hosts.toml files (containerd's certs.d layout) " +
+					"used to configure registry auth/mirrors for image pulls. Leave empty to rely on the " +
+					"containerd daemon's own registry configuration.",
+			},
 		}
 	}
 }
@@ -66,6 +73,7 @@ func ParseFlags(cfg *config.Config) cli.BeforeFunc {
 
 		cfg.CtrSocketPath = ctx.String(containerdSocketFlag)
 		cfg.CtrNamespace = ctx.String(containerdNamespace)
+		cfg.CtrHostsDir = ctx.String(containerdHostsDirFlag)
 
 		cfg.StateRootDir = ctx.String("state-dir")
 

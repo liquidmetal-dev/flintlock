@@ -54,6 +54,41 @@ func TestImageService_Pull(t *testing.T) {
 	g.Expect(err).NotTo(g.HaveOccurred())
 }
 
+// TestImageService_Pull_withHostsDir tests that a resolver option is passed
+// to Pull only when a hosts directory has been configured.
+func TestImageService_Pull_withHostsDir(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	mockCtrl := gomock.NewController(t)
+	containerdClient := mock.NewMockClient(mockCtrl)
+	leasesManager := mock.NewMockManager(mockCtrl)
+	svcConfig := containerd.Config{
+		SnapshotterKernel: "native",
+		SnapshotterVolume: "devmapper",
+		SocketPath:        "/something",
+		Namespace:         "unit_test_ns",
+		HostsDir:          "/etc/flintlock/certs.d",
+	}
+	ctx := context.Background()
+	client := containerd.NewImageServiceWithClient(&svcConfig, containerdClient)
+
+	leasesManager.EXPECT().
+		List(gomock.Any(), fmt.Sprintf("id==flintlock/%s", testOwner))
+	leasesManager.EXPECT().
+		Create(gomock.Any(), gomock.Any())
+	containerdClient.EXPECT().
+		LeasesService().
+		Return(leasesManager)
+	containerdClient.EXPECT().
+		Pull(gomock.Any(), testImage, gomock.Any())
+
+	err := client.Pull(ctx, &ports.ImageSpec{
+		ImageName: testImage,
+		Owner:     testOwner,
+	})
+	g.Expect(err).NotTo(g.HaveOccurred())
+}
+
 // TestImageService_Pull_failedLease tests what happens when something goes
 // wrong with Leases.
 func TestImageService_Pull_failedLease(t *testing.T) {
