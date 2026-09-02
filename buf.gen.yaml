@@ -1,19 +1,19 @@
-version: v1beta1
+version: v2
 plugins:
-  - name: go
+  - local: protoc-gen-go
     out: api
     opt: paths=source_relative
-  - name: go-grpc
+  - local: protoc-gen-go-grpc
     out: api
     opt: paths=source_relative,require_unimplemented_servers=false
-  - name: grpc-gateway
+  - local: protoc-gen-grpc-gateway
     out: api
     opt:
       - paths=source_relative
       - generate_unbound_methods=true
-  - name: openapiv2
+  - local: protoc-gen-openapiv2
     out: api
-  - name: doc
+  - local: protoc-gen-doc
     out: userdocs/docs/grpc/
     opt:
       - markdown

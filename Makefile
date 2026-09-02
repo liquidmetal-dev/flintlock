@@ -7,34 +7,19 @@ OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 UNAME := $(shell uname -s)
 
-# Versions
-BUF_VERSION := v1.5.0
-
 # Directories
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 BIN_DIR := bin
 OUT_DIR := out
 FLINTLOCKD_CMD := cmd/flintlockd
 FLINTLOCK_METRICS_CMD := cmd/flintlock-metrics
-TOOLS_DIR := hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
-TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
 TEST_E2E_DIR := test/e2e
-
-$(TOOLS_BIN_DIR):
-	mkdir -p $@
-
-$(TOOLS_SHARE_DIR):
-	mkdir -p $@
 
 $(BIN_DIR):
 	mkdir -p $@
 
 $(OUT_DIR):
 	mkdir -p $@
-
-# Binaries
-BUF := $(TOOLS_BIN_DIR)/buf
 
 # Useful things
 test_image = liquidmetal-dev/flintlock-e2e
@@ -74,7 +59,6 @@ release-snapshot: ## Build a local goreleaser snapshot release (binaries + deb/r
 ##@ Generate
 
 .PHONY: generate
-generate: $(BUF)
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-proto
@@ -85,9 +69,9 @@ generate-go: ## Generate Go Code
 	mise exec -- go generate ./infrastructure/mock
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
-generate-proto: $(BUF)
-	$(BUF) mod update
-	$(BUF) generate
+generate-proto:
+	buf dep update
+	buf generate
 
 .PHONY: generate-di ## Generate the dependency injection code
 generate-di:
@@ -104,8 +88,8 @@ lint-fix: ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 .PHONY: proto-lint
-proto-lint: $(BUF) ## Lint protobuf/frpc
-	$(BUF) lint
+proto-lint: ## Lint protobuf/grpc
+	buf lint
 
 ##@ Testing
 
@@ -151,23 +135,6 @@ docker-build: ## Build the e2e docker image
 .PHONY: docker-push
 docker-push: docker-build ## Push the e2e docker image to liquidmetal-dev/fl-e2e
 	docker push $(test_image):latest
-
-##@ Tools binaries
-
-BUF_TARGET := buf-Linux-x86_64.tar.gz
-
-ifeq ($(OS), darwin)
-BUF_TARGET := buf-Darwin-x86_64.tar.gz
-endif
-
-BUF_SHARE := $(TOOLS_SHARE_DIR)/buf.tar.gz
-$(BUF_SHARE): $(TOOLS_SHARE_DIR)
-	curl -sL -o $(BUF_SHARE) "https://github.com/bufbuild/buf/releases/download/$(BUF_VERSION)/$(BUF_TARGET)"
-
-$(BUF): $(TOOLS_BIN_DIR) $(BUF_SHARE)
-	tar xfvz $(TOOLS_SHARE_DIR)/buf.tar.gz  -C $(TOOLS_SHARE_DIR) buf/bin
-	cp $(TOOLS_SHARE_DIR)/buf/bin/* $(TOOLS_BIN_DIR)
-	rm -rf $(TOOLS_SHARE_DIR)/buf
 
 ##@ Utility
 
