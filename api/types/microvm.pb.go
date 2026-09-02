@@ -561,8 +561,13 @@ func (x *Initrd) GetFilename() string {
 
 type NetworkInterface struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// DeviceID is the ID of the interface. There is no relation between the ID
-	// and the name of the interface device on the quest machine.
+	// DeviceID is the ID of the interface. If guest_mac is not set, this value
+	// is also used to match the interface by name inside the guest, so it
+	// effectively becomes the guest interface name. Do not set this to `eth0`:
+	// Firecracker reserves that name for its own use, which causes a
+	// misleading network-interfaces error when creating the microvm. Use a
+	// different device_id (e.g. `eth1`) or set guest_mac to match by MAC
+	// address instead.
 	DeviceId string `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	// IfaceType specifies the type of network interface to create for use by the guest.
 	Type NetworkInterface_IfaceType `protobuf:"varint,2,opt,name=type,proto3,enum=flintlock.types.NetworkInterface_IfaceType" json:"type,omitempty"`

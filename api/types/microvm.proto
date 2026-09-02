@@ -106,8 +106,13 @@ message NetworkInterface {
     // TAP represents a network interface that is a tap.
     TAP = 1;
   }
-  // DeviceID is the ID of the interface. There is no relation between the ID
-  // and the name of the interface device on the quest machine.
+  // DeviceID is the ID of the interface. If guest_mac is not set, this value
+  // is also used to match the interface by name inside the guest, so it
+  // effectively becomes the guest interface name. Do not set this to `eth0`:
+  // Firecracker reserves that name for its own use, which causes a
+  // misleading network-interfaces error when creating the microvm. Use a
+  // different device_id (e.g. `eth1`) or set guest_mac to match by MAC
+  // address instead.
   string device_id = 1;
   // IfaceType specifies the type of network interface to create for use by the guest.
   IfaceType type = 2;

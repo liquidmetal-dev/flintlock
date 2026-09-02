@@ -50,6 +50,7 @@ const sidebars = {
       },
       items: [
         'troubleshooting/failed-to-reconcile-vmid',
+        'troubleshooting/network-interface-eth0',
       ],
     },
     {

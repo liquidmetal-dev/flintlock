@@ -418,7 +418,7 @@
       "properties": {
         "deviceId": {
           "type": "string",
-          "description": "DeviceID is the ID of the interface. There is no relation between the ID\nand the name of the interface device on the quest machine."
+          "description": "DeviceID is the ID of the interface. If guest_mac is not set, this value\nis also used to match the interface by name inside the guest, so it\neffectively becomes the guest interface name. Do not set this to `eth0`:\nFirecracker reserves that name for its own use, which causes a\nmisleading network-interfaces error when creating the microvm. Use a\ndifferent device_id (e.g. `eth1`) or set guest_mac to match by MAC\naddress instead."
         },
         "type": {
           "$ref": "#/definitions/NetworkInterfaceIfaceType",
