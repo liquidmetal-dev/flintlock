@@ -82,7 +82,7 @@ generate: ## Generate code
 
 .PHONY: generate-go
 generate-go: ## Generate Go Code
-	go generate ./infrastructure/mock
+	mise exec -- go generate ./infrastructure/mock
 
 .PHONY: generate-proto ## Generate protobuf/grpc code
 generate-proto: $(BUF)
