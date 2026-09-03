@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/liquidmetal-dev/flintlock/api/events"
+	coreerrors "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
@@ -142,6 +143,12 @@ func (r *MicroVMController) processQueueItem(ctx context.Context) bool {
 
 	err = r.reconcileUC.ReconcileMicroVM(ctx, *vmid)
 	if err != nil {
+		if coreerrors.IsSpecNotFound(err) {
+			logger.Debugf("vmid %s no longer exists, dropping from queue: %s", vmid, err)
+
+			return true
+		}
+
 		logger.Errorf("failed to reconcile vmid %s: %s", vmid, err)
 		r.queue.Enqueue(item)
 
