@@ -13,6 +13,7 @@ import (
 	lgrtest "github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/liquidmetal-dev/flintlock/api/events"
+	coreerrors "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/controllers"
@@ -101,6 +102,21 @@ func TestMicroVMController(t *testing.T) {
 				failed := uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(errors.New("something bad happened"))
 
 				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).Return(nil).After(failed)
+			},
+		},
+		{
+			name: "reconcile fails with spec not found is not requeued",
+			eventsToSend: []*ports.EventEnvelope{
+				createdEvent(vmID, vmNS),
+			},
+			expectError:  false,
+			expectLogErr: false,
+			expect: func(em *mock.MockEventServiceMockRecorder, uc *mock.MockReconcileMicroVMsUseCaseMockRecorder, evtChan chan *ports.EventEnvelope, evtErrCh chan error) {
+				em.SubscribeTopic(gomock.Any(), gomock.Eq(defaults.TopicMicroVMEvents)).Return(evtChan, evtErrCh)
+
+				uc.ReconcileMicroVM(gomock.Any(), gomock.Eq(*models.NewVMIDForce(vmID, vmNS, vmUID))).
+					Return(coreerrors.NewSpecNotFound(vmID, vmNS, "", vmUID)).
+					Times(1)
 			},
 		},
 	}
