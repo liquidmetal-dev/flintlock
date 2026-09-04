@@ -13,6 +13,7 @@ BIN_DIR := bin
 OUT_DIR := out
 FLINTLOCKD_CMD := cmd/flintlockd
 FLINTLOCK_METRICS_CMD := cmd/flintlock-metrics
+FLINTLOCK_PROVISION_CMD := cmd/flintlock-provision
 TEST_E2E_DIR := test/e2e
 
 $(BIN_DIR):
@@ -29,7 +30,7 @@ test_image = liquidmetal-dev/flintlock-e2e
 ##@ Build
 
 .PHONY: build
-build: build-flintlockd build-flintlock-metrics ## Build the binaries
+build: build-flintlockd build-flintlock-metrics build-flintlock-provision ## Build the binaries
 
 .PHONY: build-flintlockd
 build-flintlockd: $(BIN_DIR) ## Build flintlockd binary
@@ -39,8 +40,12 @@ build-flintlockd: $(BIN_DIR) ## Build flintlockd binary
 build-flintlock-metrics: $(BIN_DIR)
 	go build -o $(BIN_DIR)/flintlock-metrics ./$(FLINTLOCK_METRICS_CMD)
 
+.PHONY: build-flintlock-provision ## Build flintlock-provision binary
+build-flintlock-provision: $(BIN_DIR)
+	go build -o $(BIN_DIR)/flintlock-provision ./$(FLINTLOCK_PROVISION_CMD)
+
 .PHONY: build-release
-build-release: build-release-flintlockd build-release-flintlock-metrics ## Build the release binaries
+build-release: build-release-flintlockd build-release-flintlock-metrics build-release-flintlock-provision ## Build the release binaries
 
 .PHONY: build-release-flintlockd
 build-release-flintlockd: $(BIN_DIR) ## Build flintlockd release binaries
@@ -51,6 +56,11 @@ build-release-flintlockd: $(BIN_DIR) ## Build flintlockd release binaries
 build-release-flintlock-metrics: $(BIN_DIR) ## Build flintlock-metrics release binaries
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlock-metrics_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlock-metrics_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
+
+.PHONY: build-release-flintlock-provision
+build-release-flintlock-provision: $(BIN_DIR) ## Build flintlock-provision release binaries
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlock-provision_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_PROVISION_CMD)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlock-provision_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_PROVISION_CMD)
 
 .PHONY: release-snapshot
 release-snapshot: ## Build a local goreleaser snapshot release (binaries + deb/rpm packages), no publishing
