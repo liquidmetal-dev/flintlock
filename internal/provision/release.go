@@ -152,12 +152,11 @@ func ExtractTarGz(ctx context.Context, url, destDir string) error {
 }
 
 func extractTarEntry(tr *tar.Reader, header *tar.Header, destDir string) error {
-	cleanDestDir := filepath.Clean(destDir)
-	dest := filepath.Join(cleanDestDir, header.Name)
-
-	if dest != cleanDestDir && !strings.HasPrefix(dest, cleanDestDir+string(os.PathSeparator)) {
-		return fmt.Errorf("extracting tar entry %q: escapes destination directory %q", header.Name, destDir)
+	if strings.Contains(header.Name, "..") || filepath.IsAbs(header.Name) {
+		return fmt.Errorf("extracting tar entry %q: illegal file path", header.Name)
 	}
+
+	dest := filepath.Join(destDir, header.Name)
 
 	switch header.Typeflag {
 	case tar.TypeDir:
