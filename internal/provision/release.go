@@ -187,10 +187,10 @@ func extractTarEntry(tr *tar.Reader, header *tar.Header, destDir string) error {
 // extractTarEntry against maliciously or accidentally crafted tar entries
 // (a "Zip Slip" style path traversal).
 func safeJoin(destDir, name string) (string, error) {
-	dest := filepath.Join(destDir, name)
+	cleanDestDir := filepath.Clean(destDir)
+	dest := filepath.Join(cleanDestDir, name)
 
-	rel, err := filepath.Rel(destDir, dest)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+	if dest != cleanDestDir && !strings.HasPrefix(dest, cleanDestDir+string(os.PathSeparator)) {
 		return "", fmt.Errorf("%q escapes destination directory %q", name, destDir)
 	}
 
