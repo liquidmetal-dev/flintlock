@@ -13,6 +13,9 @@ import (
 	"strings"
 )
 
+// userAgent is sent on every outbound HTTP request this package makes.
+const userAgent = "flintlock-provision"
+
 // release is the subset of the GitHub releases API response used to find
 // the tag of the latest release of a repository.
 type release struct {
@@ -28,6 +31,9 @@ func LatestReleaseTag(ctx context.Context, repo string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("building request for %s: %w", url, err)
 	}
+
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -49,6 +55,17 @@ func LatestReleaseTag(ctx context.Context, repo string) (string, error) {
 	}
 
 	return rel.TagName, nil
+}
+
+// VersionFromEnv returns the value of envVar if set, otherwise DefaultVersion.
+// It matches provision.sh's use of e.g. FIRECRACKER_VERSION="${FIRECRACKER:=$DEFAULT_VERSION}"
+// to let a component's default version be overridden via an environment variable.
+func VersionFromEnv(envVar string) string {
+	if v := os.Getenv(envVar); v != "" {
+		return v
+	}
+
+	return DefaultVersion
 }
 
 // ResolveTag returns tag as-is unless it is DefaultVersion, in which case
@@ -135,8 +152,10 @@ func ExtractTarGz(ctx context.Context, url, destDir string) error {
 }
 
 func extractTarEntry(tr *tar.Reader, header *tar.Header, destDir string) error {
-	// #nosec G305 -- header.Name comes from a GitHub release tarball we control the URL of.
-	dest := filepath.Join(destDir, header.Name)
+	dest, err := safeJoin(destDir, header.Name)
+	if err != nil {
+		return fmt.Errorf("extracting tar entry %q: %w", header.Name, err)
+	}
 
 	switch header.Typeflag {
 	case tar.TypeDir:
@@ -163,11 +182,28 @@ func extractTarEntry(tr *tar.Reader, header *tar.Header, destDir string) error {
 	return nil
 }
 
+// safeJoin joins destDir and name, returning an error if the result would
+// escape destDir (e.g. via a ".." or absolute path in name). This guards
+// extractTarEntry against maliciously or accidentally crafted tar entries
+// (a "Zip Slip" style path traversal).
+func safeJoin(destDir, name string) (string, error) {
+	dest := filepath.Join(destDir, name)
+
+	rel, err := filepath.Rel(destDir, dest)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("%q escapes destination directory %q", name, destDir)
+	}
+
+	return dest, nil
+}
+
 func get(ctx context.Context, url string) (io.ReadCloser, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building request for %s: %w", url, err)
 	}
+
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

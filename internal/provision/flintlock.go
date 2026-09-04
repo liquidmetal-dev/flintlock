@@ -175,8 +175,12 @@ func AllFlintlock(ctx context.Context, runner *Runner, opts AllFlintlockOptions)
 		return err
 	}
 
+	// The interface is resolved whenever it's empty, even when a bridge is
+	// supplied - it's still needed below to auto-detect the gRPC address.
+	// BuildFlintlockdSettings prefers BridgeName over ParentIface when both
+	// are set, so this doesn't affect which one ends up in the config.
 	parentIface := opts.ParentIface
-	if parentIface == "" && opts.BridgeName == "" {
+	if parentIface == "" {
 		iface, err := LookupInterface(runner)
 		if err != nil {
 			return err

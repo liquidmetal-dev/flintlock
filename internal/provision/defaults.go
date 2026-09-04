@@ -21,21 +21,33 @@ const (
 	FirecrackerBin = "firecracker"
 	// FirecrackerRepo is the GitHub repository firecracker releases are published to.
 	FirecrackerRepo = "firecracker-microvm/firecracker"
+	// FirecrackerVersionEnv is the environment variable used to override the
+	// default firecracker version to install.
+	FirecrackerVersionEnv = "FIRECRACKER"
 
 	// CloudHypervisorBin is the name of the cloud-hypervisor binary.
 	CloudHypervisorBin = "cloud-hypervisor-static"
 	// CloudHypervisorRepo is the GitHub repository cloud-hypervisor releases are published to.
 	CloudHypervisorRepo = "cloud-hypervisor/cloud-hypervisor"
+	// CloudHypervisorVersionEnv is the environment variable used to override
+	// the default cloud-hypervisor version to install.
+	CloudHypervisorVersionEnv = "CLOUD_HYPERVISOR"
 
 	// ContainerdBin is the name of the containerd binary.
 	ContainerdBin = "containerd"
 	// ContainerdRepo is the GitHub repository containerd releases are published to.
 	ContainerdRepo = "containerd/containerd"
+	// ContainerdVersionEnv is the environment variable used to override the
+	// default containerd version to install.
+	ContainerdVersionEnv = "CONTAINERD"
 
 	// FlintlockBin is the name of the flintlockd binary.
 	FlintlockBin = "flintlockd"
 	// FlintlockRepo is the GitHub repository flintlock releases are published to.
 	FlintlockRepo = "liquidmetal-dev/flintlock"
+	// FlintlockVersionEnv is the environment variable used to override the
+	// default flintlockd version to install.
+	FlintlockVersionEnv = "FLINTLOCK"
 
 	// FlintlockdServiceFile is the path the flintlockd systemd unit is installed to.
 	FlintlockdServiceFile = "/etc/systemd/system/flintlockd.service"

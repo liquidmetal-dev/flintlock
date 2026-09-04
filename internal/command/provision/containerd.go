@@ -38,7 +38,7 @@ func newContainerdCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&version, "version", "v", provision.DefaultVersion, "Version to install")
+	cmd.Flags().StringVarP(&version, "version", "v", provision.VersionFromEnv(provision.ContainerdVersionEnv), "Version to install")
 	cmd.Flags().StringVarP(&thinpool, "thinpool", "t", provision.DefaultThinpool,
 		"Name of thinpool to include in config toml")
 	cmd.Flags().BoolVar(&dev, "dev", false,

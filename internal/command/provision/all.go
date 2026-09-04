@@ -73,21 +73,25 @@ func newAllCommand() *cobra.Command {
 				}
 			}
 
-			if err := provision.InstallFirecracker(cmd.Context(), runner, provision.DefaultVersion, arch); err != nil {
+			fcVersion := provision.VersionFromEnv(provision.FirecrackerVersionEnv)
+			if err := provision.InstallFirecracker(cmd.Context(), runner, fcVersion, arch); err != nil {
 				return err
 			}
 
-			if err := provision.InstallCloudHypervisor(cmd.Context(), runner, provision.DefaultVersion, arch); err != nil {
+			chVersion := provision.VersionFromEnv(provision.CloudHypervisorVersionEnv)
+			if err := provision.InstallCloudHypervisor(cmd.Context(), runner, chVersion, arch); err != nil {
 				return err
 			}
 
-			containerdPaths, err := provision.AllContainerd(cmd.Context(), runner, provision.DefaultVersion, thinpool, arch, dev)
+			ctrdVersion := provision.VersionFromEnv(provision.ContainerdVersionEnv)
+
+			containerdPaths, err := provision.AllContainerd(cmd.Context(), runner, ctrdVersion, thinpool, arch, dev)
 			if err != nil {
 				return err
 			}
 
 			if err := provision.AllFlintlock(cmd.Context(), runner, provision.AllFlintlockOptions{
-				Version:              provision.DefaultVersion,
+				Version:              provision.VersionFromEnv(provision.FlintlockVersionEnv),
 				Address:              address,
 				ParentIface:          iface,
 				BridgeName:           bridgeName,

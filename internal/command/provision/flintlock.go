@@ -55,7 +55,7 @@ func newFlintlockCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&version, "version", "v", provision.DefaultVersion, "Version to install")
+	cmd.Flags().StringVarP(&version, "version", "v", provision.VersionFromEnv(provision.FlintlockVersionEnv), "Version to install")
 	cmd.Flags().StringVarP(&address, "grpc-address", "a", "",
 		"Address on which to start the GRPC server (default: local ipv4 address)")
 	cmd.Flags().StringVarP(&port, "grpc-port", "p", "", "Port on which to start the GRPC server (default: 9090)")

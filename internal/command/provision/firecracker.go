@@ -28,7 +28,7 @@ func newFirecrackerCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&version, "version", "v", provision.DefaultVersion, "Version to install")
+	cmd.Flags().StringVarP(&version, "version", "v", provision.VersionFromEnv(provision.FirecrackerVersionEnv), "Version to install")
 
 	return cmd
 }

@@ -48,12 +48,16 @@ func LookupAddress(runner *Runner, iface string) (string, error) {
 // ParseAddressForInterface extracts the private IPv4 "src" address of the
 // route belonging to iface from the output of "ip route show".
 func ParseAddressForInterface(ipRouteShowOutput, iface string) string {
+	if iface == "" {
+		return ""
+	}
+
 	for _, line := range strings.Split(ipRouteShowOutput, "\n") {
-		if !strings.Contains(line, iface) {
+		fields := strings.Fields(line)
+		if !hasField(fields, "dev", iface) {
 			continue
 		}
 
-		fields := strings.Fields(line)
 		for i, field := range fields {
 			if field != "src" || i+1 >= len(fields) {
 				continue
@@ -66,4 +70,15 @@ func ParseAddressForInterface(ipRouteShowOutput, iface string) string {
 	}
 
 	return ""
+}
+
+// hasField reports whether fields contains key immediately followed by value.
+func hasField(fields []string, key, value string) bool {
+	for i, field := range fields {
+		if field == key && i+1 < len(fields) && fields[i+1] == value {
+			return true
+		}
+	}
+
+	return false
 }

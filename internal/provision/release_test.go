@@ -8,6 +8,17 @@ import (
 	"github.com/liquidmetal-dev/flintlock/internal/provision"
 )
 
+func TestVersionFromEnv(t *testing.T) {
+	g := NewWithT(t)
+
+	const envVar = "FLINTLOCK_PROVISION_TEST_VERSION"
+
+	g.Expect(provision.VersionFromEnv(envVar)).To(Equal(provision.DefaultVersion))
+
+	t.Setenv(envVar, "v1.2.3")
+	g.Expect(provision.VersionFromEnv(envVar)).To(Equal("v1.2.3"))
+}
+
 func TestDownloadURL(t *testing.T) {
 	g := NewWithT(t)
 
