@@ -152,9 +152,11 @@ func ExtractTarGz(ctx context.Context, url, destDir string) error {
 }
 
 func extractTarEntry(tr *tar.Reader, header *tar.Header, destDir string) error {
-	dest, err := safeJoin(destDir, header.Name)
-	if err != nil {
-		return fmt.Errorf("extracting tar entry %q: %w", header.Name, err)
+	cleanDestDir := filepath.Clean(destDir)
+	dest := filepath.Join(cleanDestDir, header.Name)
+
+	if dest != cleanDestDir && !strings.HasPrefix(dest, cleanDestDir+string(os.PathSeparator)) {
+		return fmt.Errorf("extracting tar entry %q: escapes destination directory %q", header.Name, destDir)
 	}
 
 	switch header.Typeflag {
@@ -180,21 +182,6 @@ func extractTarEntry(tr *tar.Reader, header *tar.Header, destDir string) error {
 	}
 
 	return nil
-}
-
-// safeJoin joins destDir and name, returning an error if the result would
-// escape destDir (e.g. via a ".." or absolute path in name). This guards
-// extractTarEntry against maliciously or accidentally crafted tar entries
-// (a "Zip Slip" style path traversal).
-func safeJoin(destDir, name string) (string, error) {
-	cleanDestDir := filepath.Clean(destDir)
-	dest := filepath.Join(cleanDestDir, name)
-
-	if dest != cleanDestDir && !strings.HasPrefix(dest, cleanDestDir+string(os.PathSeparator)) {
-		return "", fmt.Errorf("%q escapes destination directory %q", name, destDir)
-	}
-
-	return dest, nil
 }
 
 func get(ctx context.Context, url string) (io.ReadCloser, error) {
