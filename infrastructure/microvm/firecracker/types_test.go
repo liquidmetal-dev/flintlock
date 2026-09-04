@@ -26,6 +26,18 @@ func TestUnmarshallWithFCSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	if cfg.MachineConfig.VcpuCount != 2 {
+		t.Fatalf("expected vcpu_count to be 2, got: %d", cfg.MachineConfig.VcpuCount)
+	}
+
+	if cfg.MachineConfig.MemSizeMib != 1024 {
+		t.Fatalf("expected mem_size_mib to be 1024, got: %d", cfg.MachineConfig.MemSizeMib)
+	}
+
+	if cfg.MachineConfig.SMT {
+		t.Fatalf("expected smt to be false, got: %t", cfg.MachineConfig.SMT)
+	}
 }
 
 func TestVmmConfig_CPUConfigMarshalling(t *testing.T) {
