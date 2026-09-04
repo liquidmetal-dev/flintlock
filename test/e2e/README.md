@@ -49,9 +49,10 @@ hosted runners. It is available via `workflow_dispatch` and also runs nightly.
 
 The workflow prepares the runner by installing the host packages required by the
 test harness, installing Firecracker, and checking that `/dev/kvm` exists. The
-tests are run with `sudo` because they create loop devices and devicemapper
-thinpools, write containerd configuration under `/etc`, and manage runtime state
-under `/run` and `/var/lib`.
+tests are run with `sudo` because they create loop devices, devicemapper
+thinpools and a `fl-e2e-br0` bridge for the microVM TAP interfaces, write
+containerd configuration under `/etc`, and manage runtime state under `/run`
+and `/var/lib`.
 
 ### Configuration
 
@@ -64,6 +65,7 @@ At the time of writing these are:
 - `skip.delete`: skip the Delete step of the tests and leave the mVMs around for debugging.
   This will also leave containerd and flintlockd running. All cleanup will be manual.
 - `skip.teardown`: skip stopping containerd and flintlockd processes.
+  Like `skip.delete`, this also leaves the `fl-e2e-br0` bridge behind.
 - `level.containerd`: set the containerd log level.
 - `level.flintlockd`: set the flintlockd log level.
 
