@@ -1,5 +1,5 @@
 [tools]
-go = "1.25.0"
+go = "1.26.2"
 goreleaser = "2.18.0"
 "go:github.com/golangci/golangci-lint/cmd/golangci-lint" = "1.63.4"
 "protoc-gen-go" = "1.36.5"

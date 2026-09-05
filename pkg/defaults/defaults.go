@@ -85,4 +85,10 @@ const (
 
 	// GuestAgentVsockName is the host unix-socket filename for the guest-agent vsock device.
 	GuestAgentVsockName = "guest-agent.vsock"
+
+	// GuestAgentControlPort is the guest-agent's control-channel vsock port (exec/ping/info).
+	GuestAgentControlPort = 1024
+
+	// GuestAgentSSHPort is the guest-agent's ssh-proxy vsock port.
+	GuestAgentSSHPort = 1025
 )

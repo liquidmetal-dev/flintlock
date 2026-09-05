@@ -33,6 +33,8 @@ const (
 	cloudHypervisorBinFlag    = "cloudhypervisor-bin"
 	cloudHypervisorDetachFlag = "cloudhypervisor-detach"
 	virtioFSBinFlag           = "virtiofs-bin"
+	enableExecAPIFlag         = "enable-exec-api"
+	enableSSHProxyAPIFlag     = "enable-ssh-proxy-api"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -153,6 +155,23 @@ func AddHiddenFlagsToCommand(cmd *cobra.Command, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+// AddGuestAgentAPIFlagsToCommand will add the flags gating the guest-agent-backed
+// gRPC services (exec, ssh proxy) to the supplied command. Both are off by
+// default: exec runs arbitrary commands inside a guest, and ssh proxying tunnels
+// a client to the guest's sshd, so operators must opt in explicitly on top of a
+// microvm's own AllowGuestAgent spec flag.
+func AddGuestAgentAPIFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().BoolVar(&cfg.EnableExecAPI,
+		enableExecAPIFlag,
+		false,
+		"Should the MicroVMExec gRPC API (run commands in a guest via the guest-agent) be exposed.")
+
+	cmd.Flags().BoolVar(&cfg.EnableSSHProxyAPI,
+		enableSSHProxyAPIFlag,
+		false,
+		"Should the MicroVMSSHProxy gRPC API (tunnel ssh to a guest via the guest-agent) be exposed.")
 }
 
 // AddMicrovmProviderFlagsToCommand will add the microvm provider flags to the supplied command.
