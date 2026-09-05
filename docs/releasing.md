@@ -42,31 +42,15 @@ git push origin "${RELEASE_VERSION}"
 - If this is a pre-release tick `This is a pre-release`
 - Publish the draft release and when asked say yes to creating a discussion.
 
-## Commit a new `buf` tag
+## Buf Schema Registry publish
 
 We have gRPC API docs hosted on [buf.build](https://buf.build/liquidmetal-dev/flintlock).
-If the API has changed, you'll need to update these.
+The [release](https://github.com/liquidmetal-dev/flintlock/actions/workflows/release.yml) workflow
+automatically logs in to the Buf Schema Registry and runs `buf push --tag "${RELEASE_VERSION}"` for
+every tag push, so no manual step is required here.
 
-Log in creds can be found in the shared Team Quicksilver 1Pass vault.
-
-Generate a new token.
-
-Log in locally:
-
-```
-buf registry login
-# username is liquidmetal-dev
-# key is the token you generated
-```
-
-Push a new tag:
-
-```
-buf push --tag "${RELEASE_VERSION}"
-```
-
-If you get the message `The latest commit has the same content; not creating a new commit.`
-then it means there hasn't been changes to the API so you didn't need to do this.
+If you see `The latest commit has the same content; not creating a new commit.` in the workflow
+logs, it just means there were no proto changes to publish for this release.
 
 ## Package artifacts
 

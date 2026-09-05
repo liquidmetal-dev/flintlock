@@ -38,3 +38,7 @@ jobs:
       run: goreleaser release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Log in to Buf Schema Registry
+      run: buf registry login --username liquidmetal-dev --token "${{ secrets.BUF_TOKEN }}"
+    - name: Push schema to Buf Schema Registry
+      run: buf push --tag "${{ github.ref_name }}"

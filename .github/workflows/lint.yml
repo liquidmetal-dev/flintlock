@@ -11,3 +11,14 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       - name: Lint
         run: make lint
+      - name: Lint protobuf/grpc
+        run: make proto-lint
+      # buf breaking needs BSR auth to resolve the module, and secrets aren't
+      # available to fork-originated pull requests, so only run it for PRs
+      # from branches within this repo.
+      - name: Log in to Buf Schema Registry
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: buf registry login --username liquidmetal-dev --token "${{ secrets.BUF_TOKEN }}"
+      - name: Check for breaking protobuf/grpc changes
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: make proto-breaking
