@@ -35,12 +35,11 @@ type VMConfig struct {
 	Balloon  *BalloonConfig  `json:"balloon,omitempty"`
 	Fs       []FsConfig      `json:"fs,omitempty"`
 	Pmem     []PmemConfig    `json:"pmem,omitempty"`
-	Serial   *ConsoleConfig  `json:"serial,omitempty"`
+	Serial   *SerialConfig   `json:"serial,omitempty"`
 	Console  *ConsoleConfig  `json:"console,omitempty"`
 	Devices  []DeviceConfig  `json:"devices,omitempty"`
 	Vdpa     []VdpaConfig    `json:"vdpa,omitempty"`
 	Vsock    *VsockConfig    `json:"vsock,omitempty"`
-	SgxEpc   []SgxEpcConfig  `json:"sgx_epc,omitempty"`
 	Tdx      *TdxConfig      `json:"tdx,omitempty"`
 	Numa     []NumaConfig    `json:"numa,omitempty"`
 	Iommu    *bool           `json:"iommu,omitempty"`
@@ -59,11 +58,12 @@ type BalloonConfig struct {
 type ConsoleMode string
 
 var (
-	ConsoleModeOff  ConsoleMode = "Off"
-	ConsoleModePty  ConsoleMode = "Pty"
-	ConsoleModeTty  ConsoleMode = "Tty"
-	ConsoleModeFile ConsoleMode = "File"
-	ConsoleModeNull ConsoleMode = "Null"
+	ConsoleModeOff    ConsoleMode = "Off"
+	ConsoleModePty    ConsoleMode = "Pty"
+	ConsoleModeTty    ConsoleMode = "Tty"
+	ConsoleModeFile   ConsoleMode = "File"
+	ConsoleModeSocket ConsoleMode = "Socket"
+	ConsoleModeNull   ConsoleMode = "Null"
 )
 
 // ConsoleConfig represents the configuration for the console.
@@ -71,6 +71,14 @@ type ConsoleConfig struct {
 	File  *string     `json:"file,omitempty"`
 	Mode  ConsoleMode `json:"mode"`
 	Iommu *bool       `json:"iommu,omitempty"`
+}
+
+// SerialConfig represents the configuration for the serial device.
+type SerialConfig struct {
+	File   *string     `json:"file,omitempty"`
+	Mode   ConsoleMode `json:"mode"`
+	Iommu  *bool       `json:"iommu,omitempty"`
+	Socket *string     `json:"socket,omitempty"`
 }
 
 // CPUAffinity is used to specify CPU affinity.
@@ -192,11 +200,10 @@ type NetConfig struct {
 
 // NumaConfig is the NUMA configuration for a VM.
 type NumaConfig struct {
-	GuestNumaID    int32          `json:"guest_numa_id"`
-	Cpus           []int32        `json:"cpus,omitempty"`
-	Distances      []NumaDistance `json:"distances,omitempty"`
-	MemoryZones    []string       `json:"memory_zones,omitempty"`
-	SgxEpcSections []string       `json:"sgx_epc_sections,omitempty"`
+	GuestNumaID int32          `json:"guest_numa_id"`
+	Cpus        []int32        `json:"cpus,omitempty"`
+	Distances   []NumaDistance `json:"distances,omitempty"`
+	MemoryZones []string       `json:"memory_zones,omitempty"`
 }
 
 // NumaDistance represents the NUMA distance.
@@ -265,13 +272,6 @@ type RngConfig struct {
 type SendMigrationData struct {
 	DestinationURL string `json:"destination_url"`
 	Local          *bool  `json:"local,omitempty"`
-}
-
-// SgxEpcConfig is the SGX configuration.
-type SgxEpcConfig struct {
-	ID       string `json:"id"`
-	Size     int64  `json:"size"`
-	Prefault *bool  `json:"prefault,omitempty"`
 }
 
 // TdxConfig is the TDX configuration.
