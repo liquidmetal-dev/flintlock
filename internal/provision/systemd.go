@@ -17,7 +17,7 @@ var (
 func FetchServiceFile(ctx context.Context, runner *Runner, repo, service, dest string) error {
 	url := RawURL(repo, service)
 
-	if err := DownloadFile(ctx, url, dest, 0o664); err != nil {
+	if err := DownloadFile(ctx, url, dest, 0o644); err != nil {
 		return fmt.Errorf("fetching service file %s: %w", service, err)
 	}
 
@@ -53,7 +53,8 @@ func ReplaceRequires(path, service string) error {
 
 	updated := replaceRequiresLine(string(content), service)
 
-	if err := os.WriteFile(path, []byte(updated), 0o664); err != nil {
+	//nolint:gosec // systemd units must be world-readable
+	if err := os.WriteFile(path, []byte(updated), 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", path, err)
 	}
 
@@ -74,7 +75,8 @@ func appendExecStartArg(path, arg string) error {
 
 	updated := execStartLineRE.ReplaceAllString(string(content), "${1} "+arg)
 
-	if err := os.WriteFile(path, []byte(updated), 0o664); err != nil {
+	//nolint:gosec // systemd units must be world-readable
+	if err := os.WriteFile(path, []byte(updated), 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", path, err)
 	}
 

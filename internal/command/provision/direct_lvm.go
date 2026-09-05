@@ -35,7 +35,7 @@ func newDirectLVMCommand() *cobra.Command {
 					"flintlock-provision will attempt to detect a free disk for formatting. Any data will be lost.")
 
 				if !unattended && !provision.Confirm(cmd.InOrStdin(), cmd.OutOrStdout(), "Are you sure you wish to continue? (y/n) ") {
-					return fmt.Errorf("aborted")
+					return errAborted
 				}
 
 				found, err := provision.FindFreeDisk(runner)
@@ -52,7 +52,7 @@ func newDirectLVMCommand() *cobra.Command {
 			fmt.Fprintf(cmd.ErrOrStderr(), "WARNING: all existing data on %s will be overwritten.\n", diskPath)
 
 			if !unattended && !provision.Confirm(cmd.InOrStdin(), cmd.OutOrStdout(), "") {
-				return fmt.Errorf("aborted")
+				return errAborted
 			}
 
 			if err := provision.AllDirectLVM(runner, diskPath, thinpool); err != nil {

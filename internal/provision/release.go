@@ -156,7 +156,7 @@ func extractTarEntry(tr *tar.Reader, header *tar.Header, destDir string) error {
 		return fmt.Errorf("extracting tar entry %q: illegal file path", header.Name)
 	}
 
-	dest := filepath.Join(destDir, header.Name)
+	dest := filepath.Join(destDir, header.Name) //nolint:gosec // header.Name is checked for traversal above
 
 	switch header.Typeflag {
 	case tar.TypeDir:

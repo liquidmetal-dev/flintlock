@@ -21,14 +21,14 @@ func InstallCloudHypervisor(ctx context.Context, runner *Runner, version, normal
 	}
 
 	binName := CloudHypervisorBin
-	if unameArch == "aarch64" {
-		binName = CloudHypervisorBin + "-aarch64"
+	if unameArch == unameARM64 {
+		binName = CloudHypervisorBin + "-" + unameARM64
 	}
 
 	url := DownloadURL(CloudHypervisorRepo, tag, binName)
 	dest := filepath.Join(InstallPath, CloudHypervisorBin)
 
-	if err := DownloadFile(ctx, url, dest, 0o755); err != nil { //nolint:gosec // binaries must be executable
+	if err := DownloadFile(ctx, url, dest, 0o755); err != nil {
 		return fmt.Errorf("installing cloud-hypervisor %s: %w", tag, err)
 	}
 

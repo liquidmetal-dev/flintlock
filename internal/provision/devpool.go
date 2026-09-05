@@ -1,6 +1,7 @@
 package provision
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -35,12 +36,13 @@ func CreateSparseFile(path, size string) error {
 // parseSize parses a truncate(1) style size such as "100G" or "10G" into bytes.
 func parseSize(size string) (int64, error) {
 	if size == "" {
-		return 0, fmt.Errorf("empty size")
+		return 0, errors.New("empty size")
 	}
 
 	unit := size[len(size)-1]
 
-	multiplier := int64(1)
+	var multiplier int64
+
 	numeric := size
 
 	switch unit {

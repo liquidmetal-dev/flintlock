@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ func InstallFlintlockd(ctx context.Context, runner *Runner, version, arch string
 	url := DownloadURL(FlintlockRepo, tag, binName)
 	dest := filepath.Join(InstallPath, FlintlockBin)
 
-	if err := DownloadFile(ctx, url, dest, 0o755); err != nil { //nolint:gosec // binaries must be executable
+	if err := DownloadFile(ctx, url, dest, 0o755); err != nil {
 		return fmt.Errorf("installing flintlockd %s: %w", tag, err)
 	}
 
@@ -50,7 +51,7 @@ func BuildFlintlockdSettings(s FlintlockdSettings) map[string]string {
 		"containerd-socket": s.ContainerdSocket,
 		"grpc-endpoint":     fmt.Sprintf("%s:%s", s.Address, s.Port),
 		"verbosity":         "9",
-		"insecure":          fmt.Sprintf("%t", s.Insecure),
+		"insecure":          strconv.FormatBool(s.Insecure),
 	}
 
 	if s.BridgeName != "" {
@@ -129,7 +130,8 @@ func WriteFlintlockdConfig(settings map[string]string, configFile string) error 
 
 	content := BuildFlintlockdConfig(settings)
 
-	if err := os.WriteFile(FlintlockdConfigPath, []byte(content), 0o644); err != nil { //nolint:gosec // config is not sensitive
+	//nolint:gosec // config is not sensitive
+	if err := os.WriteFile(FlintlockdConfigPath, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", FlintlockdConfigPath, err)
 	}
 

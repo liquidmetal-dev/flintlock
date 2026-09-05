@@ -15,7 +15,7 @@ func InstallFirecracker(ctx context.Context, runner *Runner, version, normalised
 		return fmt.Errorf("resolving firecracker version: %w", err)
 	}
 
-	// firecracker's own release artifacts use uname -m style naming
+	// firecracker's own release artefacts use uname -m style naming
 	// (x86_64/aarch64), not the amd64/arm64 naming used elsewhere.
 	arch, err := FirecrackerArch(normalisedArch)
 	if err != nil {
@@ -35,7 +35,9 @@ func InstallFirecracker(ctx context.Context, runner *Runner, version, normalised
 		return fmt.Errorf("installing firecracker %s: %w", tag, err)
 	}
 
-	downloaded := filepath.Join(tempDir, fmt.Sprintf("release-%s-%s", tag, arch), fmt.Sprintf("firecracker-%s-%s", tag, arch))
+	releaseDir := "release-" + tag + "-" + arch
+	binFile := "firecracker-" + tag + "-" + arch
+	downloaded := filepath.Join(tempDir, releaseDir, binFile)
 	dest := filepath.Join(InstallPath, FirecrackerBin)
 
 	if err := copyExecutable(downloaded, dest); err != nil {

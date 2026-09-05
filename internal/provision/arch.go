@@ -2,28 +2,36 @@ package provision
 
 import "fmt"
 
+const (
+	archAMD64 = "amd64"
+	archARM64 = "arm64"
+
+	unameAMD64 = "x86_64"
+	unameARM64 = "aarch64"
+)
+
 // NormaliseArch maps a uname -m style architecture name to the amd64/arm64
-// naming used by flintlock/cloud-hypervisor/containerd release artifacts.
+// naming used by flintlock/cloud-hypervisor/containerd release artefacts.
 func NormaliseArch(unameArch string) (string, error) {
 	switch unameArch {
-	case "x86_64", "amd64":
-		return "amd64", nil
-	case "aarch64", "arm64":
-		return "arm64", nil
+	case unameAMD64, archAMD64:
+		return archAMD64, nil
+	case unameARM64, archARM64:
+		return archARM64, nil
 	default:
 		return "", fmt.Errorf("unknown or unsupported architecture: %s", unameArch)
 	}
 }
 
 // FirecrackerArch maps a normalised amd64/arm64 architecture name to the
-// uname -m style naming firecracker's own release artifacts use
+// uname -m style naming firecracker's own release artefacts use
 // (e.g. firecracker-v1.7.0-x86_64.tgz).
 func FirecrackerArch(normalisedArch string) (string, error) {
 	switch normalisedArch {
-	case "amd64":
-		return "x86_64", nil
-	case "arm64":
-		return "aarch64", nil
+	case archAMD64:
+		return unameAMD64, nil
+	case archARM64:
+		return unameARM64, nil
 	default:
 		return "", fmt.Errorf("unknown or unsupported architecture: %s", normalisedArch)
 	}

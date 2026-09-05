@@ -1,6 +1,7 @@
 package provision
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,7 @@ func FindFreeDisk(runner *Runner) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("could not detect a free disk")
+	return "", errors.New("could not detect a free disk")
 }
 
 func isMounted(runner *Runner, deviceName string) bool {
@@ -75,11 +76,15 @@ func CreateLogicalVolume(runner *Runner, volumeGroup string) error {
 		return nil
 	}
 
-	if err := runner.Run("lvcreate", "-q", "--wipesignatures", "y", "-n", "thinpool", volumeGroup, "-l", "95%VG"); err != nil {
+	if err := runner.Run(
+		"lvcreate", "-q", "--wipesignatures", "y", "-n", "thinpool", volumeGroup, "-l", "95%VG",
+	); err != nil {
 		return fmt.Errorf("creating logical volume for %s thinpool data: %w", volumeGroup, err)
 	}
 
-	if err := runner.Run("lvcreate", "-q", "--wipesignatures", "y", "-n", "thinpoolmeta", volumeGroup, "-l", "1%VG"); err != nil {
+	if err := runner.Run(
+		"lvcreate", "-q", "--wipesignatures", "y", "-n", "thinpoolmeta", volumeGroup, "-l", "1%VG",
+	); err != nil {
 		return fmt.Errorf("creating logical volume for %s thinpool metadata: %w", volumeGroup, err)
 	}
 
@@ -124,7 +129,7 @@ func ApplyLVMProfile(runner *Runner, thinpool string) error {
 // MonitorLVMProfile tries (up to 5 times) to ensure the lvm profile for
 // thinpool is monitored, matching the script's monitor_lvm_profile.
 func MonitorLVMProfile(runner *Runner, thinpool string) error {
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		if !runner.Contains("not monitored", "lvs", "-o+seg_monitor") {
 			return nil
 		}

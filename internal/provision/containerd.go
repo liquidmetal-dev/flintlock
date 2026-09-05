@@ -29,15 +29,15 @@ func BuildContainerdPaths(dev bool) ContainerdPaths {
 		tag = "-dev"
 	}
 
-	rootDir := fmt.Sprintf("/var/lib/containerd%s", tag)
+	rootDir := "/var/lib/containerd" + tag
 	devMapperDir := filepath.Join(rootDir, "snapshotter", "devmapper")
 
 	return ContainerdPaths{
-		ConfigPath:   fmt.Sprintf("/etc/containerd/config%s.toml", tag),
+		ConfigPath:   "/etc/containerd/config" + tag + ".toml",
 		RootDir:      rootDir,
-		StateDir:     fmt.Sprintf("/run/containerd%s", tag),
-		ServiceFile:  fmt.Sprintf("/etc/systemd/system/containerd%s.service", tag),
-		SystemdSvc:   fmt.Sprintf("containerd%s.service", tag),
+		StateDir:     "/run/containerd" + tag,
+		ServiceFile:  "/etc/systemd/system/containerd" + tag + ".service",
+		SystemdSvc:   "containerd" + tag + ".service",
 		DevMapperDir: devMapperDir,
 		PoolMetadata: filepath.Join(devMapperDir, "metadata"),
 		PoolData:     filepath.Join(devMapperDir, "data"),
@@ -110,7 +110,8 @@ state = "%s"
 func WriteContainerdConfig(paths ContainerdPaths, thinpool string) error {
 	content := BuildContainerdConfig(paths, thinpool)
 
-	if err := os.WriteFile(paths.ConfigPath, []byte(content), 0o644); err != nil { //nolint:gosec // config is not sensitive
+	//nolint:gosec // config is not sensitive
+	if err := os.WriteFile(paths.ConfigPath, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("writing containerd config %s: %w", paths.ConfigPath, err)
 	}
 
@@ -120,7 +121,8 @@ func WriteContainerdConfig(paths ContainerdPaths, thinpool string) error {
 // StartContainerdService fetches the containerd systemd unit, points it at
 // paths.ConfigPath and starts it.
 func StartContainerdService(ctx context.Context, runner *Runner, paths ContainerdPaths) error {
-	if err := FetchServiceFile(ctx, runner, ContainerdRepo, fmt.Sprintf("%s.service", ContainerdBin), paths.ServiceFile); err != nil {
+	service := ContainerdBin + ".service"
+	if err := FetchServiceFile(ctx, runner, ContainerdRepo, service, paths.ServiceFile); err != nil {
 		return err
 	}
 
@@ -133,7 +135,9 @@ func StartContainerdService(ctx context.Context, runner *Runner, paths Container
 
 // AllContainerd installs, configures and starts containerd for the given
 // version and thinpool, tagging state paths with "-dev" when dev is true.
-func AllContainerd(ctx context.Context, runner *Runner, version, thinpool, arch string, dev bool) (ContainerdPaths, error) {
+func AllContainerd(
+	ctx context.Context, runner *Runner, version, thinpool, arch string, dev bool,
+) (ContainerdPaths, error) {
 	paths := BuildContainerdPaths(dev)
 
 	if err := MakeContainerdDirs(paths); err != nil {

@@ -2,6 +2,7 @@ package provision
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,7 +35,7 @@ func EnsureKVM() error {
 	}
 
 	if info.Mode()&os.ModeCharDevice == 0 {
-		return fmt.Errorf("/dev/kvm is not a character device")
+		return errors.New("/dev/kvm is not a character device")
 	}
 
 	return nil
