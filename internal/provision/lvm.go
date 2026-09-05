@@ -110,20 +110,32 @@ thin_pool_autoextend_percent=20
 // ApplyLVMProfile creates (if necessary) and applies the LVM profile for thinpool.
 func ApplyLVMProfile(runner *Runner, thinpool string) error {
 	profile := filepath.Join(ThinpoolProfilePath, thinpool+"-thinpool.profile")
+	profileName := thinpool + "-thinpool"
 
 	if err := writeFileIfMissing(profile, LVMProfile); err != nil {
 		return err
 	}
 
-	if runner.Contains(thinpool, "lvs") {
+	if hasLVMProfile(runner, thinpool, profileName) {
 		return nil
 	}
 
-	if err := runner.Run("lvchange", "-q", "--metadataprofile", thinpool+"-thinpool", thinpool+"/thinpool"); err != nil {
+	if err := runner.Run("lvchange", "-q", "--metadataprofile", profileName, thinpool+"/thinpool"); err != nil {
 		return fmt.Errorf("applying lvm profile %s: %w", profile, err)
 	}
 
 	return nil
+}
+
+// hasLVMProfile reports whether thinpool's logical volume already has
+// profileName assigned as its configuration profile.
+func hasLVMProfile(runner *Runner, thinpool, profileName string) bool {
+	out, err := runner.Output("lvs", "--noheadings", "-o", "profile", thinpool+"/thinpool")
+	if err != nil {
+		return false
+	}
+
+	return strings.TrimSpace(out) == profileName
 }
 
 // MonitorLVMProfile tries (up to 5 times) to ensure the lvm profile for

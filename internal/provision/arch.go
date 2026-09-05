@@ -23,10 +23,11 @@ func NormaliseArch(unameArch string) (string, error) {
 	}
 }
 
-// FirecrackerArch maps a normalised amd64/arm64 architecture name to the
-// uname -m style naming firecracker's own release artefacts use
-// (e.g. firecracker-v1.7.0-x86_64.tgz).
-func FirecrackerArch(normalisedArch string) (string, error) {
+// UnameArch maps a normalised amd64/arm64 architecture name back to the
+// uname -m style naming used in firecracker's and cloud-hypervisor's own
+// release artefacts (e.g. firecracker-v1.7.0-x86_64.tgz,
+// cloud-hypervisor-static-aarch64).
+func UnameArch(normalisedArch string) (string, error) {
 	switch normalisedArch {
 	case archAMD64:
 		return unameAMD64, nil

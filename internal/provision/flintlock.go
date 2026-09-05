@@ -143,11 +143,15 @@ func WriteFlintlockdConfig(settings map[string]string, configFile string) error 
 func StartFlintlockdService(ctx context.Context, runner *Runner, containerdSystemdSvc string) error {
 	service := filepath.Base(FlintlockdServiceFile)
 
-	if err := FetchServiceFile(ctx, runner, FlintlockRepo, service, FlintlockdServiceFile); err != nil {
+	if err := FetchServiceFile(ctx, FlintlockRepo, service, FlintlockdServiceFile); err != nil {
 		return err
 	}
 
 	if err := ReplaceRequires(FlintlockdServiceFile, containerdSystemdSvc); err != nil {
+		return err
+	}
+
+	if err := ReloadSystemd(runner); err != nil {
 		return err
 	}
 

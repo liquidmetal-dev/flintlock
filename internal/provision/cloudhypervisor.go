@@ -15,7 +15,7 @@ func InstallCloudHypervisor(ctx context.Context, runner *Runner, version, normal
 		return fmt.Errorf("resolving cloud-hypervisor version: %w", err)
 	}
 
-	unameArch, err := FirecrackerArch(normalisedArch)
+	unameArch, err := UnameArch(normalisedArch)
 	if err != nil {
 		return err
 	}

@@ -122,11 +122,15 @@ func WriteContainerdConfig(paths ContainerdPaths, thinpool string) error {
 // paths.ConfigPath and starts it.
 func StartContainerdService(ctx context.Context, runner *Runner, paths ContainerdPaths) error {
 	service := ContainerdBin + ".service"
-	if err := FetchServiceFile(ctx, runner, ContainerdRepo, service, paths.ServiceFile); err != nil {
+	if err := FetchServiceFile(ctx, ContainerdRepo, service, paths.ServiceFile); err != nil {
 		return err
 	}
 
 	if err := appendExecStartArg(paths.ServiceFile, "--config "+paths.ConfigPath); err != nil {
+		return err
+	}
+
+	if err := ReloadSystemd(runner); err != nil {
 		return err
 	}
 

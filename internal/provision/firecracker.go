@@ -17,7 +17,7 @@ func InstallFirecracker(ctx context.Context, runner *Runner, version, normalised
 
 	// firecracker's own release artefacts use uname -m style naming
 	// (x86_64/aarch64), not the amd64/arm64 naming used elsewhere.
-	arch, err := FirecrackerArch(normalisedArch)
+	arch, err := UnameArch(normalisedArch)
 	if err != nil {
 		return err
 	}
