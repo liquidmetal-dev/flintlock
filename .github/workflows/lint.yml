@@ -18,7 +18,7 @@ jobs:
       # from branches within this repo.
       - name: Log in to Buf Schema Registry
         if: github.event.pull_request.head.repo.full_name == github.repository
-        run: buf registry login --username liquidmetal-dev --token "${{ secrets.BUF_TOKEN }}"
+        run: echo "${{ secrets.BUF_TOKEN }}" | buf registry login --token-stdin
       - name: Check for breaking protobuf/grpc changes
         if: github.event.pull_request.head.repo.full_name == github.repository
         run: make proto-breaking

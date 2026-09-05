@@ -39,6 +39,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Log in to Buf Schema Registry
-      run: buf registry login --username liquidmetal-dev --token "${{ secrets.BUF_TOKEN }}"
+      run: echo "${{ secrets.BUF_TOKEN }}" | buf registry login --token-stdin
     - name: Push schema to Buf Schema Registry
       run: buf push --tag "${{ github.ref_name }}"
