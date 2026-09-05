@@ -1,6 +1,6 @@
 module github.com/liquidmetal-dev/flintlock
 
-go 1.25.0
+go 1.26
 
 replace (
 	// We are pinning this for now, as one of our dependencies has this verison
@@ -57,6 +57,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/liquidmetal-dev/flintlock/api v0.0.0-20230211152005-2177e42d0ee6
 	github.com/liquidmetal-dev/flintlock/client v0.0.0-20230211152005-2177e42d0ee6
+	github.com/liquidmetal-dev/guest-agent v0.2.0
 	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/yitsushi/file-tailor v1.0.0

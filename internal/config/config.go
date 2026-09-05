@@ -58,6 +58,10 @@ type Config struct {
 	DebugEndpoint string
 	// DefaultVMProvider specifies the name of the microvm provider to use by default.
 	DefaultVMProvider string
+	// EnableExecAPI indicates that the MicroVMExec gRPC service should be registered.
+	EnableExecAPI bool
+	// EnableSSHProxyAPI indicates that the MicroVMSSHProxy gRPC service should be registered.
+	EnableSSHProxyAPI bool
 }
 
 // TLSConfig holds the configuration for TLS.

@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package microvmexec.services.api.v1alpha1;
+
+option go_package = "github.com/liquidmetal-dev/flintlock/api/services/microvmexec/v1alpha1";
+
+// MicroVMExec runs commands inside a microvm's guest-agent over vsock,
+// streaming stdin in and stdout/stderr/exit back out. It requires the target
+// microvm to have been created with AllowGuestAgent set, to be in the
+// created state, and for the server to have been started with exec enabled.
+service MicroVMExec {
+  rpc ExecCommand(stream ExecCommandRequest) returns (stream ExecCommandResponse);
+}
+
+// ExecCommandRequest is one message in the client->server stream. The first
+// message on a stream must carry start; all following messages carry stdin
+// (only meaningful if start.has_stdin was set) or stdin_eof.
+message ExecCommandRequest {
+  oneof payload {
+    ExecStart start = 1;
+    bytes stdin = 2;
+    bool stdin_eof = 3;
+  }
+}
+
+// ExecStart describes the microvm to target and the command to run, mirroring
+// the guest-agent's own exec request fields.
+message ExecStart {
+  // uid is the microvm identifier, as used by MicroVM.GetMicroVM/DeleteMicroVM.
+  string uid = 1;
+  string cmd = 2;
+  repeated string args = 3;
+  // cwd is the working directory; empty means the guest-agent's cwd.
+  string cwd = 4;
+  // env entries are added to (and override) the guest-agent's environment.
+  map<string, string> env = 5;
+  // shell runs "sh -c <cmd + args joined>" instead of a direct exec.
+  bool shell = 6;
+  // user, if set, runs the command as that guest system user.
+  string user = 7;
+  // timeout_seconds bounds the run; 0 means unbounded.
+  int32 timeout_seconds = 8;
+  // has_stdin tells the server to expect streamed stdin messages.
+  bool has_stdin = 9;
+}
+
+// ExecCommandResponse is one message in the server->client stream. Only
+// exit_code terminates the stream; error may be sent (typically followed by
+// exit_code) without ending the exchange.
+message ExecCommandResponse {
+  oneof payload {
+    bytes stdout = 1;
+    bytes stderr = 2;
+    int32 exit_code = 3;
+    string error = 4;
+  }
+}

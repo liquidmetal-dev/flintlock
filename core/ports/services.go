@@ -5,6 +5,8 @@ import (
 	"time"
 
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	mvmexecv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmexec/v1alpha1"
+	mvmsshproxyv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmsshproxy/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
@@ -44,6 +46,16 @@ const (
 // MicroVMGRPCService is a port for a microvm grpc service.
 type MicroVMGRPCService interface {
 	mvmv1.MicroVMServer
+}
+
+// MicroVMExecGRPCService is a port for the microvm exec-over-guest-agent grpc service.
+type MicroVMExecGRPCService interface {
+	mvmexecv1.MicroVMExecServer
+}
+
+// MicroVMSSHProxyGRPCService is a port for the microvm ssh-proxy-over-guest-agent grpc service.
+type MicroVMSSHProxyGRPCService interface {
+	mvmsshproxyv1.MicroVMSSHProxyServer
 }
 
 // IDService is a port for a service for working with identifiers.
