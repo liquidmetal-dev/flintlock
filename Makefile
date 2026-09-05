@@ -103,7 +103,7 @@ proto-lint: ## Lint protobuf/grpc
 
 .PHONY: proto-breaking
 proto-breaking: ## Check protobuf/grpc for breaking changes against the published BSR schema
-	buf breaking --against buf.build/liquidmetal-dev/flintlock
+	buf breaking --against buf.build/liquidmetal-dev/flintlock:main
 
 ##@ Testing
 
