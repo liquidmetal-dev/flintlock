@@ -17,6 +17,8 @@ import (
 	microvmgrpc "github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/repository"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/sqlite"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -26,13 +28,14 @@ import (
 func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 	wire.Build(containerd.NewEventService,
 		containerd.NewImageService,
-		containerd.NewMicroVMRepo,
+		repository.New,
 		ulid.New,
 		microvm.NewFromConfig,
 		network.New,
 		godisk.New,
 		appPorts,
 		containerdConfig,
+		repositoryConfig,
 		networkConfig,
 		afero.NewOsFs,
 		virtiofs.New)
@@ -65,6 +68,18 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
 	}
+}
+
+func repositoryConfig(cfg *config.Config, ctrCfg *containerd.Config) *repository.Config {
+	return &repository.Config{
+		Store:      cfg.RepositoryStore,
+		Containerd: ctrCfg,
+		Sqlite:     sqliteConfig(cfg),
+	}
+}
+
+func sqliteConfig(cfg *config.Config) *sqlite.Config {
+	return &sqlite.Config{DatabasePath: cfg.ResolvedSqliteDataPath()}
 }
 
 func networkConfig(cfg *config.Config) *network.Config {

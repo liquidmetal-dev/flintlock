@@ -1,8 +1,10 @@
 package config
 
 import (
+	"path/filepath"
 	"time"
 
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
@@ -40,6 +42,11 @@ type Config struct {
 	CtrSocketPath string
 	// CtrNamespace is the default containerd namespace to use
 	CtrNamespace string
+	// RepositoryStore is the name of the backing store to use for microvm spec/status
+	// definitions: "containerd" or "sqlite".
+	RepositoryStore string
+	// SqliteDataPath is the path to the sqlite database file to use when RepositoryStore is "sqlite".
+	SqliteDataPath string
 	// DisableReconcile is used to stop the reconcile part from running.
 	DisableReconcile bool
 	// DisableAPI is used to disable the api server.
@@ -58,6 +65,16 @@ type Config struct {
 	DebugEndpoint string
 	// DefaultVMProvider specifies the name of the microvm provider to use by default.
 	DefaultVMProvider string
+}
+
+// ResolvedSqliteDataPath returns SqliteDataPath if set, otherwise the
+// default sqlite database path under StateRootDir.
+func (c *Config) ResolvedSqliteDataPath() string {
+	if c.SqliteDataPath != "" {
+		return c.SqliteDataPath
+	}
+
+	return filepath.Join(c.StateRootDir, defaults.SqliteDataPath)
 }
 
 // TLSConfig holds the configuration for TLS.
