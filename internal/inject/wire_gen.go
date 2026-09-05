@@ -74,6 +74,18 @@ func InitializeGRPCServer(app application.App) ports.MicroVMGRPCService {
 	return microVMGRPCService
 }
 
+func InitializeExecGRPCServer(app application.App) ports.MicroVMExecGRPCService {
+	microVMQueryUseCases := queryUCFromApp(app)
+	microVMExecGRPCService := grpc.NewExecServer(microVMQueryUseCases)
+	return microVMExecGRPCService
+}
+
+func InitializeSSHProxyGRPCServer(app application.App) ports.MicroVMSSHProxyGRPCService {
+	microVMQueryUseCases := queryUCFromApp(app)
+	microVMSSHProxyGRPCService := grpc.NewSSHProxyServer(microVMQueryUseCases)
+	return microVMSSHProxyGRPCService
+}
+
 // wire.go:
 
 func containerdConfig(cfg *config.Config) *containerd.Config {
