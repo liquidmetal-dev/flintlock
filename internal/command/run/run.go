@@ -174,6 +174,7 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 }
 
 func serveAPI(ctx context.Context, cfg *config.Config) error {
+	startTime := time.Now()
 	logger := log.GetLogger(ctx)
 
 	if err := cfg.TLS.Validate(); err != nil {
@@ -186,7 +187,7 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	}
 
 	app := inject.InitializeApp(cfg, ports)
-	server := inject.InitializeGRPCServer(app)
+	server := inject.InitializeGRPCServer(cfg, app, startTime)
 
 	serverOpts, err := generateOpts(ctx, cfg)
 	if err != nil {

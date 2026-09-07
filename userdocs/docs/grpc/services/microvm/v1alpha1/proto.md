@@ -10,9 +10,12 @@
     - [DeleteMicroVMRequest](#microvm-services-api-v1alpha1-DeleteMicroVMRequest)
     - [GetMicroVMRequest](#microvm-services-api-v1alpha1-GetMicroVMRequest)
     - [GetMicroVMResponse](#microvm-services-api-v1alpha1-GetMicroVMResponse)
+    - [GuestAgentServiceInfo](#microvm-services-api-v1alpha1-GuestAgentServiceInfo)
     - [ListMessage](#microvm-services-api-v1alpha1-ListMessage)
     - [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest)
     - [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse)
+    - [ServerInfoResponse](#microvm-services-api-v1alpha1-ServerInfoResponse)
+    - [VersionInfo](#microvm-services-api-v1alpha1-VersionInfo)
   
     - [MicroVM](#microvm-services-api-v1alpha1-MicroVM)
   
@@ -119,6 +122,23 @@
 
 
 
+<a name="microvm-services-api-v1alpha1-GuestAgentServiceInfo"></a>
+
+### GuestAgentServiceInfo
+GuestAgentServiceInfo describes an optional gRPC service that shares the
+main API listener. address is only populated when enabled is true.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| enabled | [bool](#bool) |  |  |
+| address | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="microvm-services-api-v1alpha1-ListMessage"></a>
 
 ### ListMessage
@@ -164,6 +184,41 @@
 
 
 
+
+<a name="microvm-services-api-v1alpha1-ServerInfoResponse"></a>
+
+### ServerInfoResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| version | [VersionInfo](#microvm-services-api-v1alpha1-VersionInfo) |  |  |
+| uptime | [google.protobuf.Duration](#google-protobuf-Duration) |  |  |
+| exec | [GuestAgentServiceInfo](#microvm-services-api-v1alpha1-GuestAgentServiceInfo) |  |  |
+| ssh_proxy | [GuestAgentServiceInfo](#microvm-services-api-v1alpha1-GuestAgentServiceInfo) |  |  |
+
+
+
+
+
+
+<a name="microvm-services-api-v1alpha1-VersionInfo"></a>
+
+### VersionInfo
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| version | [string](#string) |  |  |
+| build_date | [string](#string) |  |  |
+| commit_hash | [string](#string) |  |  |
+
+
+
+
+
  
 
  
@@ -183,6 +238,7 @@ MicroVM providers a service to create and manage the lifecycle of microvms.
 | GetMicroVM | [GetMicroVMRequest](#microvm-services-api-v1alpha1-GetMicroVMRequest) | [GetMicroVMResponse](#microvm-services-api-v1alpha1-GetMicroVMResponse) |  |
 | ListMicroVMs | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse) |  |
 | ListMicroVMsStream | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMessage](#microvm-services-api-v1alpha1-ListMessage) stream |  |
+| ServerInfo | [.google.protobuf.Empty](#google-protobuf-Empty) | [ServerInfoResponse](#microvm-services-api-v1alpha1-ServerInfoResponse) |  |
 
  
 

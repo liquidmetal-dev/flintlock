@@ -67,10 +67,11 @@ func InializeController(app application.App, ports2 *ports.Collection) *controll
 	return microVMController
 }
 
-func InitializeGRPCServer(app application.App) ports.MicroVMGRPCService {
+func InitializeGRPCServer(cfg *config.Config, app application.App, startTime time.Time) ports.MicroVMGRPCService {
 	microVMCommandUseCases := commandUCFromApp(app)
 	microVMQueryUseCases := queryUCFromApp(app)
-	microVMGRPCService := grpc.NewServer(microVMCommandUseCases, microVMQueryUseCases)
+	infoConfig2 := infoConfig(cfg, startTime)
+	microVMGRPCService := grpc.NewServer(microVMCommandUseCases, microVMQueryUseCases, infoConfig2)
 	return microVMGRPCService
 }
 
@@ -94,6 +95,15 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
+	}
+}
+
+func infoConfig(cfg *config.Config, startTime time.Time) grpc.InfoConfig {
+	return grpc.InfoConfig{
+		StartTime:       startTime,
+		ExecEnabled:     cfg.EnableExecAPI,
+		SSHProxyEnabled: cfg.EnableSSHProxyAPI,
+		GRPCAPIEndpoint: cfg.GRPCAPIEndpoint,
 	}
 }
 

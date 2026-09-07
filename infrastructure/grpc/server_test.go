@@ -4,16 +4,19 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	grpcPkg "google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	mvm1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
+	"github.com/liquidmetal-dev/flintlock/internal/version"
 )
 
 func TestServer_CreateMicroVM(t *testing.T) {
@@ -168,7 +171,7 @@ func TestServer_CreateMicroVM(t *testing.T) {
 			tc.expect(cm.EXPECT(), qm.EXPECT())
 
 			ctx := context.Background()
-			svr := grpc.NewServer(cm, qm)
+			svr := grpc.NewServer(cm, qm, grpc.InfoConfig{})
 			resp, err := svr.CreateMicroVM(ctx, tc.createReq)
 
 			if tc.expectError {
@@ -243,7 +246,7 @@ func TestServer_DeleteMicroVM(t *testing.T) {
 			tc.expect(cm.EXPECT(), qm.EXPECT())
 
 			ctx := context.Background()
-			svr := grpc.NewServer(cm, qm)
+			svr := grpc.NewServer(cm, qm, grpc.InfoConfig{})
 			_, err := svr.DeleteMicroVM(ctx, tc.deleteReq)
 
 			if tc.expectError {
@@ -323,7 +326,7 @@ func TestServer_GetMicroVM(t *testing.T) {
 			tc.expect(cm.EXPECT(), qm.EXPECT())
 
 			ctx := context.Background()
-			svr := grpc.NewServer(cm, qm)
+			svr := grpc.NewServer(cm, qm, grpc.InfoConfig{})
 			resp, err := svr.GetMicroVM(ctx, tc.getReq)
 
 			if tc.expectError {
@@ -429,7 +432,7 @@ func TestServer_ListMicroVMs(t *testing.T) {
 			tc.expect(cm.EXPECT(), qm.EXPECT())
 
 			ctx := context.Background()
-			svr := grpc.NewServer(cm, qm)
+			svr := grpc.NewServer(cm, qm, grpc.InfoConfig{})
 			resp, err := svr.ListMicroVMs(ctx, tc.listReq)
 
 			if tc.expectError {
@@ -520,7 +523,7 @@ func TestServer_ListMicroVMsStream(t *testing.T) {
 			tc.expect(cm.EXPECT(), qm.EXPECT())
 			mockStreamServer := makeMockListStream(ctx, sendChan)
 
-			svr := grpc.NewServer(cm, qm)
+			svr := grpc.NewServer(cm, qm, grpc.InfoConfig{})
 			err := svr.ListMicroVMsStream(tc.listReq, mockStreamServer)
 
 			close(sendChan)
@@ -534,6 +537,65 @@ func TestServer_ListMicroVMsStream(t *testing.T) {
 					Expect(msg.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
 				}
 			}
+		})
+	}
+}
+
+func TestServer_ServerInfo(t *testing.T) {
+	tt := []struct {
+		name           string
+		info           grpc.InfoConfig
+		expectExec     *mvm1.GuestAgentServiceInfo
+		expectSSHProxy *mvm1.GuestAgentServiceInfo
+		minUptime      time.Duration
+	}{
+		{
+			name: "exec and ssh-proxy disabled",
+			info: grpc.InfoConfig{
+				StartTime:       time.Now().Add(-5 * time.Second),
+				ExecEnabled:     false,
+				SSHProxyEnabled: false,
+				GRPCAPIEndpoint: "127.0.0.1:9090",
+			},
+			expectExec:     &mvm1.GuestAgentServiceInfo{Enabled: false, Address: ""},
+			expectSSHProxy: &mvm1.GuestAgentServiceInfo{Enabled: false, Address: ""},
+			minUptime:      5 * time.Second,
+		},
+		{
+			name: "exec and ssh-proxy enabled",
+			info: grpc.InfoConfig{
+				StartTime:       time.Now().Add(-5 * time.Second),
+				ExecEnabled:     true,
+				SSHProxyEnabled: true,
+				GRPCAPIEndpoint: "127.0.0.1:9090",
+			},
+			expectExec:     &mvm1.GuestAgentServiceInfo{Enabled: true, Address: "127.0.0.1:9090"},
+			expectSSHProxy: &mvm1.GuestAgentServiceInfo{Enabled: true, Address: "127.0.0.1:9090"},
+			minUptime:      5 * time.Second,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			mockCtrl := gomock.NewController(t)
+			cm := mock.NewMockMicroVMCommandUseCases(mockCtrl)
+			qm := mock.NewMockMicroVMQueryUseCases(mockCtrl)
+
+			svr := grpc.NewServer(cm, qm, tc.info)
+
+			resp, err := svr.ServerInfo(context.Background(), &emptypb.Empty{})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resp.GetVersion().GetVersion()).To(Equal(version.Version))
+			Expect(resp.GetVersion().GetBuildDate()).To(Equal(version.BuildDate))
+			Expect(resp.GetVersion().GetCommitHash()).To(Equal(version.CommitHash))
+
+			Expect(resp.GetUptime().AsDuration()).To(BeNumerically(">=", tc.minUptime))
+
+			Expect(resp.GetExec()).To(Equal(tc.expectExec))
+			Expect(resp.GetSshProxy()).To(Equal(tc.expectSSHProxy))
 		})
 	}
 }
