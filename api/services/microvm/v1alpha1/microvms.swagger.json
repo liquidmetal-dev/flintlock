@@ -148,6 +148,28 @@
           "MicroVM"
         ]
       }
+    },
+    "/v1alpha1/serverinfo": {
+      "get": {
+        "operationId": "MicroVM_ServerInfo",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1ServerInfoResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "MicroVM"
+        ]
+      }
     }
   },
   "definitions": {
@@ -581,6 +603,18 @@
         }
       }
     },
+    "v1alpha1GuestAgentServiceInfo": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "description": "GuestAgentServiceInfo describes an optional gRPC service that shares the\nmain API listener. address is only populated when enabled is true."
+    },
     "v1alpha1ListMessage": {
       "type": "object",
       "properties": {
@@ -598,6 +632,37 @@
             "type": "object",
             "$ref": "#/definitions/typesMicroVM"
           }
+        }
+      }
+    },
+    "v1alpha1ServerInfoResponse": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "$ref": "#/definitions/v1alpha1VersionInfo"
+        },
+        "uptime": {
+          "type": "string"
+        },
+        "exec": {
+          "$ref": "#/definitions/v1alpha1GuestAgentServiceInfo"
+        },
+        "sshProxy": {
+          "$ref": "#/definitions/v1alpha1GuestAgentServiceInfo"
+        }
+      }
+    },
+    "v1alpha1VersionInfo": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "buildDate": {
+          "type": "string"
+        },
+        "commitHash": {
+          "type": "string"
         }
       }
     }

@@ -4,6 +4,7 @@ package microvm.services.api.v1alpha1;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/field_mask.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
@@ -45,6 +46,11 @@ service MicroVM {
     };
   }
   rpc ListMicroVMsStream(ListMicroVMsRequest) returns (stream ListMessage);
+  rpc ServerInfo(google.protobuf.Empty) returns (ServerInfoResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/serverinfo"
+    };
+  }
 }
 
 message CreateMicroVMRequest {
@@ -79,4 +85,24 @@ message ListMicroVMsResponse {
 
 message ListMessage {
   flintlock.types.MicroVM microvm = 1;
+}
+
+message ServerInfoResponse {
+  VersionInfo version = 1;
+  google.protobuf.Duration uptime = 2;
+  GuestAgentServiceInfo exec = 3;
+  GuestAgentServiceInfo ssh_proxy = 4;
+}
+
+message VersionInfo {
+  string version = 1;
+  string build_date = 2;
+  string commit_hash = 3;
+}
+
+// GuestAgentServiceInfo describes an optional gRPC service that shares the
+// main API listener. address is only populated when enabled is true.
+message GuestAgentServiceInfo {
+  bool enabled = 1;
+  string address = 2;
 }

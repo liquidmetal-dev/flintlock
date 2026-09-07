@@ -3,29 +3,51 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/internal/version"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
+// InfoConfig carries the runtime facts ServerInfo needs beyond what's
+// already available as internal/version package vars: when the server
+// started, and whether/where the guest-agent exec and ssh-proxy services
+// are registered.
+type InfoConfig struct {
+	StartTime       time.Time
+	ExecEnabled     bool
+	SSHProxyEnabled bool
+	// GRPCAPIEndpoint is the listen address shared by the exec and ssh-proxy
+	// services, when enabled.
+	GRPCAPIEndpoint string
+}
+
 // NewServer creates a new server instance.
-func NewServer(commandUC ports.MicroVMCommandUseCases, queryUC ports.MicroVMQueryUseCases) ports.MicroVMGRPCService {
+func NewServer(
+	commandUC ports.MicroVMCommandUseCases,
+	queryUC ports.MicroVMQueryUseCases,
+	info InfoConfig,
+) ports.MicroVMGRPCService {
 	return &server{
 		commandUC: commandUC,
 		queryUC:   queryUC,
+		info:      info,
 	}
 }
 
 type server struct {
 	commandUC ports.MicroVMCommandUseCases
 	queryUC   ports.MicroVMQueryUseCases
+	info      InfoConfig
 }
 
 func (s *server) CreateMicroVM(
@@ -211,4 +233,37 @@ func (s *server) ListMicroVMsStream(
 	}
 
 	return nil
+}
+
+func (s *server) ServerInfo(_ context.Context, _ *emptypb.Empty) (*mvmv1.ServerInfoResponse, error) {
+	// StartTime may be unset (e.g. a server constructed directly rather than
+	// via the usual wiring) or, in principle, in the future; guard against
+	// both so we never report a bogus multi-decade or negative uptime.
+	var uptime time.Duration
+	if !s.info.StartTime.IsZero() {
+		if elapsed := time.Since(s.info.StartTime); elapsed > 0 {
+			uptime = elapsed
+		}
+	}
+
+	resp := &mvmv1.ServerInfoResponse{
+		Version: &mvmv1.VersionInfo{
+			Version:    version.Version,
+			BuildDate:  version.BuildDate,
+			CommitHash: version.CommitHash,
+		},
+		Uptime:   durationpb.New(uptime),
+		Exec:     &mvmv1.GuestAgentServiceInfo{Enabled: s.info.ExecEnabled},
+		SshProxy: &mvmv1.GuestAgentServiceInfo{Enabled: s.info.SSHProxyEnabled},
+	}
+
+	if s.info.ExecEnabled {
+		resp.Exec.Address = s.info.GRPCAPIEndpoint
+	}
+
+	if s.info.SSHProxyEnabled {
+		resp.SshProxy.Address = s.info.GRPCAPIEndpoint
+	}
+
+	return resp, nil
 }

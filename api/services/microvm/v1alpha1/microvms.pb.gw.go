@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // Suppress "imported and not used" errors
@@ -215,6 +216,24 @@ func request_MicroVM_ListMicroVMsStream_0(ctx context.Context, marshaler runtime
 	return stream, metadata, nil
 }
 
+func request_MicroVM_ServerInfo_0(ctx context.Context, marshaler runtime.Marshaler, client MicroVMClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq emptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	msg, err := client.ServerInfo(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_MicroVM_ServerInfo_0(ctx context.Context, marshaler runtime.Marshaler, server MicroVMServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq emptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	msg, err := server.ServerInfo(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 // RegisterMicroVMHandlerServer registers the http handlers for service MicroVM to "mux".
 // UnaryRPC     :call MicroVMServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -307,6 +326,26 @@ func RegisterMicroVMHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
+	})
+	mux.Handle(http.MethodGet, pattern_MicroVM_ServerInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/microvm.services.api.v1alpha1.MicroVM/ServerInfo", runtime.WithHTTPPathPattern("/v1alpha1/serverinfo"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_MicroVM_ServerInfo_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MicroVM_ServerInfo_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 
 	return nil
@@ -433,6 +472,23 @@ func RegisterMicroVMHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		}
 		forward_MicroVM_ListMicroVMsStream_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodGet, pattern_MicroVM_ServerInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/microvm.services.api.v1alpha1.MicroVM/ServerInfo", runtime.WithHTTPPathPattern("/v1alpha1/serverinfo"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_MicroVM_ServerInfo_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MicroVM_ServerInfo_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	return nil
 }
 
@@ -442,6 +498,7 @@ var (
 	pattern_MicroVM_GetMicroVM_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1alpha1", "microvm", "uid"}, ""))
 	pattern_MicroVM_ListMicroVMs_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1alpha1", "microvm", "namespace"}, ""))
 	pattern_MicroVM_ListMicroVMsStream_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"microvm.services.api.v1alpha1.MicroVM", "ListMicroVMsStream"}, ""))
+	pattern_MicroVM_ServerInfo_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1alpha1", "serverinfo"}, ""))
 )
 
 var (
@@ -450,4 +507,5 @@ var (
 	forward_MicroVM_GetMicroVM_0         = runtime.ForwardResponseMessage
 	forward_MicroVM_ListMicroVMs_0       = runtime.ForwardResponseMessage
 	forward_MicroVM_ListMicroVMsStream_0 = runtime.ForwardResponseStream
+	forward_MicroVM_ServerInfo_0         = runtime.ForwardResponseMessage
 )
