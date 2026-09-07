@@ -972,6 +972,7 @@ cmd_flintlock() {
 	local bridge_name=""
 	local insecure=false
 	local config_file=""
+	local binary_only=false
 
 	while [ $# -gt 0 ]; do
 		case "$1" in
@@ -1009,6 +1010,9 @@ cmd_flintlock() {
 		"--dev")
 			DEVELOPMENT=true
 			;;
+		"-B" | "--binary-only")
+			binary_only=true
+			;;
 		*)
 			die "Unknown argument: $1. Please use --help for help."
 			;;
@@ -1017,6 +1021,12 @@ cmd_flintlock() {
 	done
 
 	set_arch
+
+	if [[ "$binary_only" == true ]]; then
+		install_flintlockd "$version"
+		return 0
+	fi
+
 	prepare_dirs
 	do_all_flintlock "$version" "$address" "$parent_iface" "$bridge_name" "$insecure" "$config_file" "$port"
 }
@@ -1158,6 +1168,7 @@ cmd_flintlock_help() {
       --insecure, -k     Start flintlockd without basic auth or certs
       --dev              Assumes containerd has been provisioned in a dev environment
       --config-file, -f  Path to a valid flintlockd configuration file with overriding config
+      --binary-only, -B  Only install the flintlockd binary; skip config and systemd setup
 
 EOF
 }
