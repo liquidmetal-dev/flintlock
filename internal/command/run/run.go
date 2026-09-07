@@ -24,6 +24,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	mvmexecv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmexec/v1alpha1"
+	mvmsshproxyv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmsshproxy/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	cmdflags "github.com/liquidmetal-dev/flintlock/internal/command/flags"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -82,6 +84,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddDebugFlagsToCommand(cmd, cfg)
 	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
 	cmdflags.AddVirtioFSFlagsToCommand(cmd, cfg)
+	cmdflags.AddGuestAgentAPIFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)
@@ -193,6 +196,17 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 	grpcServer := grpc.NewServer(serverOpts...)
 
 	mvmv1.RegisterMicroVMServer(grpcServer, server)
+
+	if cfg.EnableExecAPI {
+		execServer := inject.InitializeExecGRPCServer(app)
+		mvmexecv1.RegisterMicroVMExecServer(grpcServer, execServer)
+	}
+
+	if cfg.EnableSSHProxyAPI {
+		sshProxyServer := inject.InitializeSSHProxyGRPCServer(app)
+		mvmsshproxyv1.RegisterMicroVMSSHProxyServer(grpcServer, sshProxyServer)
+	}
+
 	grpc_prometheus.Register(grpcServer)
 	http.Handle("/metrics", promhttp.Handler())
 
@@ -209,6 +223,14 @@ func serveAPI(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("setting up gRPC api listener: %w", err)
 	}
 	defer listener.Close()
+
+	if cfg.EnableExecAPI {
+		logger.Infof("microvm exec api listening on %s", listener.Addr().String())
+	}
+
+	if cfg.EnableSSHProxyAPI {
+		logger.Infof("microvm ssh proxy api listening on %s", listener.Addr().String())
+	}
 
 	reflection.Register(grpcServer)
 

@@ -58,6 +58,18 @@ func InitializeGRPCServer(app application.App) ports.MicroVMGRPCService {
 	return nil
 }
 
+func InitializeExecGRPCServer(app application.App) ports.MicroVMExecGRPCService {
+	wire.Build(microvmgrpc.NewExecServer, queryUCFromApp)
+
+	return nil
+}
+
+func InitializeSSHProxyGRPCServer(app application.App) ports.MicroVMSSHProxyGRPCService {
+	wire.Build(microvmgrpc.NewSSHProxyServer, queryUCFromApp)
+
+	return nil
+}
+
 func containerdConfig(cfg *config.Config) *containerd.Config {
 	return &containerd.Config{
 		SnapshotterKernel: cfg.CtrSnapshotterKernel,

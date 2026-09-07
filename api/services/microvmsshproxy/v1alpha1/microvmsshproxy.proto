@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package microvmsshproxy.services.api.v1alpha1;
+
+option go_package = "github.com/liquidmetal-dev/flintlock/api/services/microvmsshproxy/v1alpha1";
+
+// MicroVMSSHProxy tunnels a raw byte stream to a microvm's guest-agent ssh
+// port, which itself proxies straight to the guest's local sshd - the agent
+// performs no authentication of its own; sshd owns auth, PTY and SFTP. It
+// requires the target microvm to have been created with AllowGuestAgent set,
+// to be in the created state, and for the server to have been started with
+// ssh proxying enabled.
+service MicroVMSSHProxy {
+  rpc SSHProxy(stream SSHProxyRequest) returns (stream SSHProxyResponse);
+}
+
+// SSHProxyRequest is one message in the client->server stream. The first
+// message on a stream must carry uid; all following messages carry data
+// bytes to forward toward the guest's sshd.
+message SSHProxyRequest {
+  oneof payload {
+    // uid is the microvm identifier, as used by MicroVM.GetMicroVM/DeleteMicroVM.
+    string uid = 1;
+    bytes data = 2;
+  }
+}
+
+// SSHProxyResponse carries raw bytes received from the guest's sshd.
+message SSHProxyResponse {
+  bytes data = 1;
+}
