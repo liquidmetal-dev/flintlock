@@ -98,6 +98,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 }
 
 func runServer(ctx context.Context, cfg *config.Config) error {
+	startTime := time.Now()
 	logger := log.GetLogger(ctx)
 	logger.Info("flintlockd grpc api server starting")
 
@@ -127,7 +128,7 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 		go func() {
 			defer wg.Done()
 
-			if err := serveAPI(ctx, cfg); err != nil {
+			if err := serveAPI(ctx, cfg, startTime); err != nil {
 				logger.Errorf("failed serving api: %v", err)
 				// Cancel all processes if at least one fails.
 				cancel()
@@ -173,8 +174,7 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func serveAPI(ctx context.Context, cfg *config.Config) error {
-	startTime := time.Now()
+func serveAPI(ctx context.Context, cfg *config.Config, startTime time.Time) error {
 	logger := log.GetLogger(ctx)
 
 	if err := cfg.TLS.Validate(); err != nil {

@@ -548,6 +548,7 @@ func TestServer_ServerInfo(t *testing.T) {
 		expectExec     *mvm1.GuestAgentServiceInfo
 		expectSSHProxy *mvm1.GuestAgentServiceInfo
 		minUptime      time.Duration
+		wantZeroUptime bool
 	}{
 		{
 			name: "exec and ssh-proxy disabled",
@@ -573,6 +574,22 @@ func TestServer_ServerInfo(t *testing.T) {
 			expectSSHProxy: &mvm1.GuestAgentServiceInfo{Enabled: true, Address: "127.0.0.1:9090"},
 			minUptime:      5 * time.Second,
 		},
+		{
+			name:           "zero StartTime reports zero uptime rather than a bogus value",
+			info:           grpc.InfoConfig{},
+			expectExec:     &mvm1.GuestAgentServiceInfo{Enabled: false, Address: ""},
+			expectSSHProxy: &mvm1.GuestAgentServiceInfo{Enabled: false, Address: ""},
+			wantZeroUptime: true,
+		},
+		{
+			name: "StartTime in the future reports zero uptime rather than a negative value",
+			info: grpc.InfoConfig{
+				StartTime: time.Now().Add(time.Hour),
+			},
+			expectExec:     &mvm1.GuestAgentServiceInfo{Enabled: false, Address: ""},
+			expectSSHProxy: &mvm1.GuestAgentServiceInfo{Enabled: false, Address: ""},
+			wantZeroUptime: true,
+		},
 	}
 
 	for _, tc := range tt {
@@ -592,7 +609,11 @@ func TestServer_ServerInfo(t *testing.T) {
 			Expect(resp.GetVersion().GetBuildDate()).To(Equal(version.BuildDate))
 			Expect(resp.GetVersion().GetCommitHash()).To(Equal(version.CommitHash))
 
-			Expect(resp.GetUptime().AsDuration()).To(BeNumerically(">=", tc.minUptime))
+			if tc.wantZeroUptime {
+				Expect(resp.GetUptime().AsDuration()).To(Equal(time.Duration(0)))
+			} else {
+				Expect(resp.GetUptime().AsDuration()).To(BeNumerically(">=", tc.minUptime))
+			}
 
 			Expect(resp.GetExec()).To(Equal(tc.expectExec))
 			Expect(resp.GetSshProxy()).To(Equal(tc.expectSSHProxy))

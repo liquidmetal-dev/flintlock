@@ -236,13 +236,23 @@ func (s *server) ListMicroVMsStream(
 }
 
 func (s *server) ServerInfo(_ context.Context, _ *emptypb.Empty) (*mvmv1.ServerInfoResponse, error) {
+	// StartTime may be unset (e.g. a server constructed directly rather than
+	// via the usual wiring) or, in principle, in the future; guard against
+	// both so we never report a bogus multi-decade or negative uptime.
+	var uptime time.Duration
+	if !s.info.StartTime.IsZero() {
+		if elapsed := time.Since(s.info.StartTime); elapsed > 0 {
+			uptime = elapsed
+		}
+	}
+
 	resp := &mvmv1.ServerInfoResponse{
 		Version: &mvmv1.VersionInfo{
 			Version:    version.Version,
 			BuildDate:  version.BuildDate,
 			CommitHash: version.CommitHash,
 		},
-		Uptime:   durationpb.New(time.Since(s.info.StartTime)),
+		Uptime:   durationpb.New(uptime),
 		Exec:     &mvmv1.GuestAgentServiceInfo{Enabled: s.info.ExecEnabled},
 		SshProxy: &mvmv1.GuestAgentServiceInfo{Enabled: s.info.SSHProxyEnabled},
 	}
