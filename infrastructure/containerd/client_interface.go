@@ -3,26 +3,25 @@ package containerd
 import (
 	"context"
 
-	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/api/services/tasks/v1"
 	versionservice "github.com/containerd/containerd/api/services/version/v1"
-	"github.com/containerd/containerd/containers"
-	"github.com/containerd/containerd/content"
-	"github.com/containerd/containerd/events"
-	"github.com/containerd/containerd/images"
-	"github.com/containerd/containerd/leases"
-	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/services/introspection"
-	"github.com/containerd/containerd/snapshots"
+	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/core/containers"
+	"github.com/containerd/containerd/v2/core/content"
+	"github.com/containerd/containerd/v2/core/events"
+	"github.com/containerd/containerd/v2/core/images"
+	"github.com/containerd/containerd/v2/core/introspection"
+	"github.com/containerd/containerd/v2/core/leases"
+	"github.com/containerd/containerd/v2/core/snapshots"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
 	"github.com/containerd/platforms"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type Client interface {
 	Close() error
-	Conn() *grpc.ClientConn
+	Conn() any
 	Containers(ctx context.Context, filters ...string) ([]containerd.Container, error)
 	ContainerService() containers.Store
 	ContentStore() content.Store

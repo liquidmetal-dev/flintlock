@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/containerd/containerd/reference"
+	"github.com/containerd/containerd/v2/pkg/reference"
 	playgroundValidator "github.com/go-playground/validator/v10"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
