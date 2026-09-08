@@ -151,8 +151,8 @@ func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 	}
 	defer session.Close()
 
-	// Override the real heartbeat-based deadline so the test doesn't have
-	// to wait out the full 15s.
+	// Override the real TimeoutSec-derived deadline (1s + 30s grace) so the
+	// test doesn't have to wait out the full period.
 	session.SetIdleTimeout(100 * time.Millisecond)
 
 	event, err := session.Next()
@@ -259,6 +259,105 @@ func TestSession_Next_HeartbeatNotSurfacedAsEvent(t *testing.T) {
 	}
 	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
 		t.Fatalf("unexpected event: %+v", event)
+	}
+}
+
+// TestSession_Next_LegacyAgentWithoutHeartbeatsUsesTimeoutSecDeadline is a
+// regression test for a guest-agent that predates heartbeat support
+// (pre-v0.4.0): it never sends FrameHeartbeat, so the session must keep the
+// legacy TimeoutSec-derived deadline for its entire life instead of
+// switching to (or ever having been on) the much tighter
+// defaults.ExecSessionIdleTimeout. Without this, bumping the host's
+// guest-agent client library alone — without upgrading the agent binary
+// already running inside existing VMs — turns an ordinary quiet command
+// into a false timeout.
+func TestSession_Next_LegacyAgentWithoutHeartbeatsUsesTimeoutSecDeadline(t *testing.T) {
+	const port = 1024
+
+	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
+		defer conn.Close()
+
+		if _, err := vsockclient.ReadFrame(conn); err != nil {
+			return
+		}
+
+		// Quiet interval that would blow the flat heartbeat deadline but
+		// sits comfortably inside the TimeoutSec-derived one. No heartbeat
+		// is ever sent, as a legacy guest-agent never would.
+		time.Sleep(250 * time.Millisecond)
+		vsockclient.WriteExit(conn, 0)
+	})
+
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "sleep", TimeoutSec: 5})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer session.Close()
+
+	// Shrink only the post-heartbeat deadline; if the session ever switched
+	// to it despite no heartbeat arriving, the quiet interval above would
+	// trip it and this test would fail.
+	session.SetHeartbeatIdleTimeout(50 * time.Millisecond)
+
+	event, err := session.Next()
+	if err != nil {
+		t.Fatalf("Next: %v", err)
+	}
+	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
+		t.Fatalf("unexpected event: %+v", event)
+	}
+}
+
+// TestSession_Next_HeartbeatSwitchesToShortDeadline proves the switch from
+// the legacy TimeoutSec-derived deadline to the tight heartbeat deadline
+// actually takes effect, rather than being latent: once a heartbeat has
+// arrived, a subsequently wedged connection must time out on the short
+// post-heartbeat deadline, not the much larger legacy one.
+func TestSession_Next_HeartbeatSwitchesToShortDeadline(t *testing.T) {
+	const port = 1024
+
+	stuck := make(chan struct{})
+
+	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
+		if _, err := vsockclient.ReadFrame(conn); err != nil {
+			return
+		}
+
+		vsockclient.WriteFrame(conn, vsockclient.FrameHeartbeat, nil)
+
+		// Simulate a guest-agent that has gone quiet after proving
+		// heartbeat support, without closing the connection or sending an
+		// exit frame.
+		<-stuck
+	})
+	t.Cleanup(func() { close(stuck) })
+
+	// A large legacy deadline that would never fire within this test's
+	// timeout on its own, isolating the assertion to the post-heartbeat one.
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "uname", TimeoutSec: 3600})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer session.Close()
+
+	session.SetHeartbeatIdleTimeout(100 * time.Millisecond)
+
+	done := make(chan struct{})
+	var nextErr error
+
+	go func() {
+		defer close(done)
+		_, nextErr = session.Next()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Next() blocked forever instead of timing out on the post-heartbeat deadline")
+	}
+
+	if nextErr == nil {
+		t.Fatal("Next: expected a timeout error, got nil")
 	}
 }
 
