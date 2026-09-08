@@ -57,7 +57,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/liquidmetal-dev/flintlock/api v0.0.0-20230211152005-2177e42d0ee6
 	github.com/liquidmetal-dev/flintlock/client v0.0.0-20230211152005-2177e42d0ee6
-	github.com/liquidmetal-dev/guest-agent v0.3.0
+	github.com/liquidmetal-dev/guest-agent v0.4.0
 	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/yitsushi/file-tailor v1.0.0

@@ -121,11 +121,12 @@ func TestSession_ExecStdoutStderrExit(t *testing.T) {
 
 // TestSession_Next_TimesOutWhenGuestAgentGoesQuiet reproduces the hang from
 // https://github.com/liquidmetal-dev/flintlock/issues/1200: the guest-agent
-// responds to the exec request and then never sends an exit frame and never
-// closes the connection (as observed with some vsock-over-UDS transports
-// after a guest-side RST that never reaches the host as EOF). For a bounded
-// request (TimeoutSec > 0), Next() must return an error within the idle
-// deadline instead of blocking forever.
+// responds to the exec request and then never sends another frame (no
+// heartbeat, no exit frame) and never closes the connection (as observed
+// with some vsock-over-UDS transports after a guest-side RST that never
+// reaches the host as EOF). Next() must return an error within the idle
+// deadline instead of blocking forever, regardless of the request's
+// TimeoutSec.
 func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 	const port = 1024
 
@@ -139,7 +140,7 @@ func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 		vsockclient.WriteFrame(conn, vsockclient.FrameStdout, []byte("hello stdout"))
 
 		// Simulate a guest-agent that has gone quiet without closing the
-		// connection or sending an exit frame.
+		// connection, sending a heartbeat, or sending an exit frame.
 		<-stuck
 	})
 	t.Cleanup(func() { close(stuck) })
@@ -151,7 +152,7 @@ func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 	defer session.Close()
 
 	// Override the real TimeoutSec-derived deadline (1s + 30s grace) so the
-	// test doesn't have to wait over 30 seconds for it to fire.
+	// test doesn't have to wait out the full period.
 	session.SetIdleTimeout(100 * time.Millisecond)
 
 	event, err := session.Next()
@@ -181,13 +182,55 @@ func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 	}
 }
 
-// TestSession_Next_HealthyQuietCommandDoesNotTimeOut guards against the
-// idle deadline killing a healthy command that simply produces no output
-// for a while (e.g. `sleep`) but finishes well within its own TimeoutSec.
-// Before deriving the deadline from TimeoutSec, a flat idle timeout shorter
-// than the quiet interval would fail this the same way it fails a genuinely
-// wedged connection.
-func TestSession_Next_HealthyQuietCommandDoesNotTimeOut(t *testing.T) {
+// TestSession_Next_HeartbeatsKeepQuietSessionAlive guards against the idle
+// deadline killing a healthy command that produces no stdout/stderr for a
+// while (e.g. `sleep`) as long as the guest-agent's periodic FrameHeartbeat
+// keeps arriving. Run with both a bounded and an unbounded TimeoutSec to
+// confirm the deadline no longer depends on it.
+func TestSession_Next_HeartbeatsKeepQuietSessionAlive(t *testing.T) {
+	for _, timeoutSec := range []int{5, 0} {
+		t.Run(fmt.Sprintf("TimeoutSec=%d", timeoutSec), func(t *testing.T) {
+			const port = 1024
+
+			udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
+				defer conn.Close()
+
+				if _, err := vsockclient.ReadFrame(conn); err != nil {
+					return
+				}
+
+				// Quiet interval (no stdout/stderr) longer than the shrunk
+				// idle timeout below, bridged entirely by heartbeats.
+				for i := 0; i < 5; i++ {
+					time.Sleep(30 * time.Millisecond)
+					vsockclient.WriteFrame(conn, vsockclient.FrameHeartbeat, nil)
+				}
+				vsockclient.WriteExit(conn, 0)
+			})
+
+			session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "sleep", TimeoutSec: timeoutSec})
+			if err != nil {
+				t.Fatalf("Start: %v", err)
+			}
+			defer session.Close()
+
+			session.SetIdleTimeout(50 * time.Millisecond)
+
+			event, err := session.Next()
+			if err != nil {
+				t.Fatalf("Next: %v", err)
+			}
+			if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
+				t.Fatalf("unexpected event: %+v", event)
+			}
+		})
+	}
+}
+
+// TestSession_Next_HeartbeatNotSurfacedAsEvent confirms FrameHeartbeat is
+// consumed internally to re-arm the idle deadline and never returned as an
+// Event of its own — callers only ever see stdout/stderr/exit/error events.
+func TestSession_Next_HeartbeatNotSurfacedAsEvent(t *testing.T) {
 	const port = 1024
 
 	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
@@ -197,8 +240,50 @@ func TestSession_Next_HealthyQuietCommandDoesNotTimeOut(t *testing.T) {
 			return
 		}
 
-		// Quiet interval intentionally longer than the idle timeout that
-		// would apply if it weren't derived from a generous TimeoutSec.
+		vsockclient.WriteFrame(conn, vsockclient.FrameHeartbeat, nil)
+		vsockclient.WriteFrame(conn, vsockclient.FrameHeartbeat, nil)
+		vsockclient.WriteExit(conn, 0)
+	})
+
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "sleep"})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer session.Close()
+
+	// The two heartbeats must be swallowed internally: the very next event
+	// observed by the caller is the exit, not something derived from them.
+	event, err := session.Next()
+	if err != nil {
+		t.Fatalf("Next: %v", err)
+	}
+	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
+		t.Fatalf("unexpected event: %+v", event)
+	}
+}
+
+// TestSession_Next_LegacyAgentWithoutHeartbeatsUsesTimeoutSecDeadline is a
+// regression test for a guest-agent that predates heartbeat support
+// (pre-v0.4.0): it never sends FrameHeartbeat, so the session must keep the
+// legacy TimeoutSec-derived deadline for its entire life instead of
+// switching to (or ever having been on) the much tighter
+// defaults.ExecSessionIdleTimeout. Without this, bumping the host's
+// guest-agent client library alone — without upgrading the agent binary
+// already running inside existing VMs — turns an ordinary quiet command
+// into a false timeout.
+func TestSession_Next_LegacyAgentWithoutHeartbeatsUsesTimeoutSecDeadline(t *testing.T) {
+	const port = 1024
+
+	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
+		defer conn.Close()
+
+		if _, err := vsockclient.ReadFrame(conn); err != nil {
+			return
+		}
+
+		// Quiet interval that would blow the flat heartbeat deadline but
+		// sits comfortably inside the TimeoutSec-derived one. No heartbeat
+		// is ever sent, as a legacy guest-agent never would.
 		time.Sleep(250 * time.Millisecond)
 		vsockclient.WriteExit(conn, 0)
 	})
@@ -209,6 +294,11 @@ func TestSession_Next_HealthyQuietCommandDoesNotTimeOut(t *testing.T) {
 	}
 	defer session.Close()
 
+	// Shrink only the post-heartbeat deadline; if the session ever switched
+	// to it despite no heartbeat arriving, the quiet interval above would
+	// trip it and this test would fail.
+	session.SetHeartbeatIdleTimeout(50 * time.Millisecond)
+
 	event, err := session.Next()
 	if err != nil {
 		t.Fatalf("Next: %v", err)
@@ -218,38 +308,56 @@ func TestSession_Next_HealthyQuietCommandDoesNotTimeOut(t *testing.T) {
 	}
 }
 
-// TestSession_Next_UnboundedTimeoutSecToleratesAQuietCommand confirms a
-// request with TimeoutSec == 0 (documented as unbounded) still completes
-// normally through a short quiet interval, rather than falling back to a
-// deadline tight enough to fire on ordinary quiet output gaps. The much
-// larger circuit-breaker ceiling for this case is covered directly by
-// TestIdleTimeoutFor.
-func TestSession_Next_UnboundedTimeoutSecToleratesAQuietCommand(t *testing.T) {
+// TestSession_Next_HeartbeatSwitchesToShortDeadline proves the switch from
+// the legacy TimeoutSec-derived deadline to the tight heartbeat deadline
+// actually takes effect, rather than being latent: once a heartbeat has
+// arrived, a subsequently wedged connection must time out on the short
+// post-heartbeat deadline, not the much larger legacy one.
+func TestSession_Next_HeartbeatSwitchesToShortDeadline(t *testing.T) {
 	const port = 1024
 
-	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
-		defer conn.Close()
+	stuck := make(chan struct{})
 
+	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
 		if _, err := vsockclient.ReadFrame(conn); err != nil {
 			return
 		}
 
-		time.Sleep(250 * time.Millisecond)
-		vsockclient.WriteExit(conn, 0)
-	})
+		vsockclient.WriteFrame(conn, vsockclient.FrameHeartbeat, nil)
 
-	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "sleep"})
+		// Simulate a guest-agent that has gone quiet after proving
+		// heartbeat support, without closing the connection or sending an
+		// exit frame.
+		<-stuck
+	})
+	t.Cleanup(func() { close(stuck) })
+
+	// A large legacy deadline that would never fire within this test's
+	// timeout on its own, isolating the assertion to the post-heartbeat one.
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "uname", TimeoutSec: 3600})
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	defer session.Close()
 
-	event, err := session.Next()
-	if err != nil {
-		t.Fatalf("Next: %v", err)
+	session.SetHeartbeatIdleTimeout(100 * time.Millisecond)
+
+	done := make(chan struct{})
+	var nextErr error
+
+	go func() {
+		defer close(done)
+		_, nextErr = session.Next()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Next() blocked forever instead of timing out on the post-heartbeat deadline")
 	}
-	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
-		t.Fatalf("unexpected event: %+v", event)
+
+	if nextErr == nil {
+		t.Fatal("Next: expected a timeout error, got nil")
 	}
 }
 

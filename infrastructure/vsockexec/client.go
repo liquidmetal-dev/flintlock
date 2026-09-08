@@ -43,13 +43,22 @@ type Event struct {
 // channel, reached by dialling a vsock UDS multiplexer path.
 type Session struct {
 	conn net.Conn
-	// idleTimeout is the deadline Next() applies to each read; see
-	// idleTimeoutFor for how it's derived.
+	// idleTimeout is the deadline Next() applies to each read. It starts at
+	// the legacy TimeoutSec-derived value (see idleTimeoutFor) and switches
+	// to heartbeatIdleTimeout the first time a FrameHeartbeat is observed,
+	// proving this session's guest-agent supports heartbeat-based liveness.
+	// A guest-agent that never sends one (pre-v0.4.0) keeps the
+	// TimeoutSec-derived value for the life of the session.
 	idleTimeout time.Duration
+	// heartbeatIdleTimeout is the deadline idleTimeout switches to once a
+	// FrameHeartbeat has been observed; see defaults.ExecSessionIdleTimeout
+	// for how it's sized.
+	heartbeatIdleTimeout time.Duration
 }
 
-// idleTimeoutFor derives the idle read deadline for an exec session from the
-// request's TimeoutSec:
+// idleTimeoutFor derives the idle read deadline an exec session starts with,
+// from the request's TimeoutSec, before its guest-agent has proven (via a
+// FrameHeartbeat) that it supports heartbeat-based liveness:
 //
 //   - TimeoutSec > 0: the guest-agent enforces it itself and is expected to
 //     report an outcome by then, so TimeoutSec-plus-grace bounds how long the
@@ -86,14 +95,27 @@ func Start(ctx context.Context, udsPath string, controlPort uint32, exec *vsockc
 		return nil, fmt.Errorf("sending exec request: %w", err)
 	}
 
-	return &Session{conn: conn, idleTimeout: idleTimeoutFor(exec.TimeoutSec)}, nil
+	return &Session{
+		conn:                 conn,
+		idleTimeout:          idleTimeoutFor(exec.TimeoutSec),
+		heartbeatIdleTimeout: defaults.ExecSessionIdleTimeout,
+	}, nil
 }
 
-// SetIdleTimeout overrides the idle deadline Next() applies to each read.
-// Mainly useful for tests that need to exercise the timeout path without
-// waiting out the real one derived from the exec request's TimeoutSec.
+// SetIdleTimeout overrides the idle deadline Next() applies to each read
+// before a FrameHeartbeat has been observed. Mainly useful for tests that
+// need to exercise the pre-heartbeat timeout path without waiting out the
+// real one derived from the exec request's TimeoutSec.
 func (s *Session) SetIdleTimeout(d time.Duration) {
 	s.idleTimeout = d
+}
+
+// SetHeartbeatIdleTimeout overrides the idle deadline Next() switches to
+// once a FrameHeartbeat has been observed. Mainly useful for tests that need
+// to exercise the post-heartbeat timeout path without waiting out the real
+// one.
+func (s *Session) SetHeartbeatIdleTimeout(d time.Duration) {
+	s.heartbeatIdleTimeout = d
 }
 
 // SendStdin forwards p to the running command's stdin.
@@ -117,10 +139,16 @@ func (s *Session) CloseStdin() error {
 // Next blocks for the next frame from the guest-agent and translates it into
 // an Event. EventExit always ends the exchange.
 //
-// Each read carries an idle deadline (see idleTimeoutFor) so a wedged
-// connection surfaces as an error instead of blocking forever — some vsock
-// transports don't reliably deliver EOF/RST to the host side when the
-// guest-agent closes its end.
+// Each read carries an idle deadline so a wedged connection surfaces as an
+// error instead of blocking forever — some vsock transports don't reliably
+// deliver EOF/RST to the host side when the guest-agent closes its end. That
+// deadline starts out derived from the exec request's TimeoutSec (see
+// idleTimeoutFor) and switches, the first time a FrameHeartbeat arrives, to
+// the much tighter defaults.ExecSessionIdleTimeout — a heartbeat proves this
+// session's guest-agent supports that liveness signal (v0.4.0+), whereas an
+// older guest-agent that never sends one keeps the TimeoutSec-derived
+// deadline for the life of the session. Heartbeats are never surfaced as an
+// Event.
 func (s *Session) Next() (Event, error) {
 	for {
 		if s.idleTimeout > 0 {
@@ -159,6 +187,14 @@ func (s *Session) Next() (Event, error) {
 			}
 
 			return Event{Type: EventError, Message: em.Msg}, nil
+		case vsockclient.FrameHeartbeat:
+			// Proves this session's guest-agent supports heartbeat-based
+			// liveness; switch to the tighter post-heartbeat deadline from
+			// here on instead of the legacy TimeoutSec-derived one. Never
+			// surfaced as an Event.
+			s.idleTimeout = s.heartbeatIdleTimeout
+
+			continue
 		default:
 			// Unexpected frame type on this channel; skip it rather than fail
 			// the whole session over a forward-compatible addition.
