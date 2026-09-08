@@ -6,10 +6,14 @@ package vsockexec
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/liquidmetal-dev/guest-agent/pkg/vsockclient"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
 // EventType identifies what a Session.Next event carries.
@@ -39,6 +43,31 @@ type Event struct {
 // channel, reached by dialling a vsock UDS multiplexer path.
 type Session struct {
 	conn net.Conn
+	// idleTimeout is the deadline Next() applies to each read; see
+	// idleTimeoutFor for how it's derived.
+	idleTimeout time.Duration
+}
+
+// idleTimeoutFor derives the idle read deadline for an exec session from the
+// request's TimeoutSec:
+//
+//   - TimeoutSec > 0: the guest-agent enforces it itself and is expected to
+//     report an outcome by then, so TimeoutSec-plus-grace bounds how long the
+//     guest-agent should legitimately take to respond, not how long the
+//     command may stay quiet.
+//   - TimeoutSec == 0 ("unbounded" per the exec protocol): there's no
+//     declared budget to derive a deadline from, and no protocol-level way
+//     to tell a healthy quiet command (e.g. a long sleep) from a wedged
+//     connection. Rather than leave the read able to block forever — which
+//     is the failure mode being guarded against — fall back to a generous
+//     ceiling: a last-resort circuit breaker, not a liveness check, so it's
+//     sized to basically never trip a real quiet workload.
+func idleTimeoutFor(timeoutSec int) time.Duration {
+	if timeoutSec > 0 {
+		return time.Duration(timeoutSec)*time.Second + defaults.ExecSessionIdleGrace
+	}
+
+	return defaults.ExecSessionUnboundedIdleCeiling
 }
 
 // Start dials udsPath (a Firecracker/Cloud Hypervisor vsock UDS multiplexer)
@@ -57,7 +86,14 @@ func Start(ctx context.Context, udsPath string, controlPort uint32, exec *vsockc
 		return nil, fmt.Errorf("sending exec request: %w", err)
 	}
 
-	return &Session{conn: conn}, nil
+	return &Session{conn: conn, idleTimeout: idleTimeoutFor(exec.TimeoutSec)}, nil
+}
+
+// SetIdleTimeout overrides the idle deadline Next() applies to each read.
+// Mainly useful for tests that need to exercise the timeout path without
+// waiting out the real one derived from the exec request's TimeoutSec.
+func (s *Session) SetIdleTimeout(d time.Duration) {
+	s.idleTimeout = d
 }
 
 // SendStdin forwards p to the running command's stdin.
@@ -80,10 +116,26 @@ func (s *Session) CloseStdin() error {
 
 // Next blocks for the next frame from the guest-agent and translates it into
 // an Event. EventExit always ends the exchange.
+//
+// Each read carries an idle deadline (see idleTimeoutFor) so a wedged
+// connection surfaces as an error instead of blocking forever — some vsock
+// transports don't reliably deliver EOF/RST to the host side when the
+// guest-agent closes its end.
 func (s *Session) Next() (Event, error) {
 	for {
+		if s.idleTimeout > 0 {
+			if err := s.conn.SetReadDeadline(time.Now().Add(s.idleTimeout)); err != nil {
+				return Event{}, fmt.Errorf("setting exec session read deadline: %w", err)
+			}
+		}
+
 		f, err := vsockclient.ReadFrame(s.conn)
 		if err != nil {
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				return Event{}, fmt.Errorf("guest-agent exec session timed out waiting for next frame: %w", err)
+			}
+
 			return Event{}, fmt.Errorf("reading guest-agent frame: %w", err)
 		}
 
