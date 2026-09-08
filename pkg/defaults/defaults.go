@@ -91,4 +91,10 @@ const (
 
 	// GuestAgentSSHPort is the guest-agent's ssh-proxy vsock port.
 	GuestAgentSSHPort = 1025
+
+	// ExecSessionIdleTimeout is the default maximum time to wait for the next
+	// frame from the guest-agent on an exec session before giving up. It
+	// guards against the guest-agent's end of the vsock connection closing
+	// without the host ever observing an EOF/error on the read.
+	ExecSessionIdleTimeout time.Duration = 30 * time.Second
 )

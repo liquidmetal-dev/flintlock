@@ -6,10 +6,14 @@ package vsockexec
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/liquidmetal-dev/guest-agent/pkg/vsockclient"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
 // EventType identifies what a Session.Next event carries.
@@ -38,7 +42,8 @@ type Event struct {
 // Session is one exec request/response exchange with a guest-agent's control
 // channel, reached by dialling a vsock UDS multiplexer path.
 type Session struct {
-	conn net.Conn
+	conn        net.Conn
+	idleTimeout time.Duration
 }
 
 // Start dials udsPath (a Firecracker/Cloud Hypervisor vsock UDS multiplexer)
@@ -57,7 +62,14 @@ func Start(ctx context.Context, udsPath string, controlPort uint32, exec *vsockc
 		return nil, fmt.Errorf("sending exec request: %w", err)
 	}
 
-	return &Session{conn: conn}, nil
+	return &Session{conn: conn, idleTimeout: defaults.ExecSessionIdleTimeout}, nil
+}
+
+// SetIdleTimeout overrides the default idle deadline Next() applies to each
+// read. Mainly useful for tests that need to exercise the timeout path
+// without waiting out the real default.
+func (s *Session) SetIdleTimeout(d time.Duration) {
+	s.idleTimeout = d
 }
 
 // SendStdin forwards p to the running command's stdin.
@@ -80,10 +92,23 @@ func (s *Session) CloseStdin() error {
 
 // Next blocks for the next frame from the guest-agent and translates it into
 // an Event. EventExit always ends the exchange.
+//
+// The underlying read carries an idle deadline: some vsock transports don't
+// reliably deliver EOF/RST to the host side when the guest-agent closes its
+// end, which would otherwise block this call forever.
 func (s *Session) Next() (Event, error) {
 	for {
+		if err := s.conn.SetReadDeadline(time.Now().Add(s.idleTimeout)); err != nil {
+			return Event{}, fmt.Errorf("setting exec session read deadline: %w", err)
+		}
+
 		f, err := vsockclient.ReadFrame(s.conn)
 		if err != nil {
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				return Event{}, fmt.Errorf("guest-agent exec session timed out waiting for next frame: %w", err)
+			}
+
 			return Event{}, fmt.Errorf("reading guest-agent frame: %w", err)
 		}
 

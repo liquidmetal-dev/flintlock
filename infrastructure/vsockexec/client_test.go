@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/liquidmetal-dev/guest-agent/pkg/vsockclient"
 
@@ -115,6 +116,65 @@ func TestSession_ExecStdoutStderrExit(t *testing.T) {
 	}
 	if gotExit != 7 {
 		t.Errorf("exit code = %d, want 7", gotExit)
+	}
+}
+
+// TestSession_Next_TimesOutWhenGuestAgentGoesQuiet reproduces the hang from
+// https://github.com/liquidmetal-dev/flintlock/issues/1200: the guest-agent
+// responds to the exec request and then never sends an exit frame and never
+// closes the connection (as observed with some vsock-over-UDS transports
+// after a guest-side RST that never reaches the host as EOF). Next() must
+// return an error within the idle timeout instead of blocking forever.
+func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
+	const port = 1024
+
+	stuck := make(chan struct{})
+
+	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
+		if _, err := vsockclient.ReadFrame(conn); err != nil {
+			return
+		}
+
+		vsockclient.WriteFrame(conn, vsockclient.FrameStdout, []byte("hello stdout"))
+
+		// Simulate a guest-agent that has gone quiet without closing the
+		// connection or sending an exit frame.
+		<-stuck
+	})
+	t.Cleanup(func() { close(stuck) })
+
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "uname"})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer session.Close()
+
+	session.SetIdleTimeout(100 * time.Millisecond)
+
+	event, err := session.Next()
+	if err != nil {
+		t.Fatalf("Next: unexpected error on first frame: %v", err)
+	}
+	if event.Type != vsockexec.EventStdout {
+		t.Fatalf("unexpected first event: %+v", event)
+	}
+
+	done := make(chan struct{})
+	var nextErr error
+
+	go func() {
+		defer close(done)
+		_, nextErr = session.Next()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Next() blocked forever instead of timing out")
+	}
+
+	if nextErr == nil {
+		t.Fatal("Next: expected a timeout error, got nil")
 	}
 }
 
