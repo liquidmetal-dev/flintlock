@@ -76,6 +76,7 @@ func containerdConfig(cfg *config.Config) *containerd.Config {
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
 		SocketPath:        cfg.CtrSocketPath,
 		Namespace:         cfg.CtrNamespace,
+		HostsDir:          cfg.CtrHostsDir,
 	}
 }
 
