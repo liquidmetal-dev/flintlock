@@ -8,6 +8,7 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -416,5 +417,122 @@ func TestSession_SendStdinAndCloseStdin(t *testing.T) {
 	}
 	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
 		t.Fatalf("unexpected final event: %+v", event)
+	}
+}
+
+// TestSession_Start_RetriesTransientHandshakeFailure reproduces
+// https://github.com/liquidmetal-dev/flintlock/issues/1205: a CONNECT
+// handshake that occasionally gets EOF instead of the OK reply, well below
+// the guest-agent protocol layer. Start() must retry the dial instead of
+// failing the whole exec RPC on what's usually a one-off blip.
+func TestSession_Start_RetriesTransientHandshakeFailure(t *testing.T) {
+	const port = 1024
+	const failuresBeforeSuccess = 2
+
+	var attempts int32
+
+	dir := t.TempDir()
+	udsPath := filepath.Join(dir, "vm.vsock")
+
+	l, err := net.Listen("unix", udsPath)
+	if err != nil {
+		t.Fatalf("listen unix: %v", err)
+	}
+	t.Cleanup(func() { l.Close() })
+
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				return
+			}
+
+			if atomic.AddInt32(&attempts, 1) <= failuresBeforeSuccess {
+				// Simulate the reported failure: close before any handshake
+				// reply, so the client's read gets EOF.
+				conn.Close()
+
+				continue
+			}
+
+			go func(conn net.Conn) {
+				defer conn.Close()
+
+				r := bufio.NewReader(conn)
+				line, err := r.ReadString('\n')
+				if err != nil || strings.TrimSpace(line) != fmt.Sprintf("CONNECT %d", port) {
+					return
+				}
+				fmt.Fprintf(conn, "OK 0\n")
+
+				if _, err := vsockclient.ReadFrame(conn); err != nil {
+					return
+				}
+				vsockclient.WriteExit(conn, 0)
+			}(conn)
+		}
+	}()
+
+	restore := vsockexec.SetDialRetryParams(failuresBeforeSuccess+1, 10*time.Millisecond)
+	defer restore()
+
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "true"})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer session.Close()
+
+	event, err := session.Next()
+	if err != nil {
+		t.Fatalf("Next: %v", err)
+	}
+	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
+		t.Fatalf("unexpected final event: %+v", event)
+	}
+
+	if got := atomic.LoadInt32(&attempts); got != failuresBeforeSuccess+1 {
+		t.Fatalf("dial attempts = %d, want %d", got, failuresBeforeSuccess+1)
+	}
+}
+
+// TestSession_Start_GivesUpAfterRetriesExhausted confirms Start() surfaces
+// an error once the handshake keeps failing past the configured retry
+// count, rather than retrying forever.
+func TestSession_Start_GivesUpAfterRetriesExhausted(t *testing.T) {
+	const port = 1024
+	const retries = 2
+
+	var attempts int32
+
+	dir := t.TempDir()
+	udsPath := filepath.Join(dir, "vm.vsock")
+
+	l, err := net.Listen("unix", udsPath)
+	if err != nil {
+		t.Fatalf("listen unix: %v", err)
+	}
+	t.Cleanup(func() { l.Close() })
+
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				return
+			}
+
+			atomic.AddInt32(&attempts, 1)
+			conn.Close()
+		}
+	}()
+
+	restore := vsockexec.SetDialRetryParams(retries, 5*time.Millisecond)
+	defer restore()
+
+	if _, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "true"}); err == nil {
+		t.Fatal("Start: expected error, got nil")
+	}
+
+	if got, want := atomic.LoadInt32(&attempts), int32(retries+1); got != want {
+		t.Fatalf("dial attempts = %d, want %d", got, want)
 	}
 }
