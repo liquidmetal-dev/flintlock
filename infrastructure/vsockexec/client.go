@@ -42,7 +42,11 @@ type Event struct {
 // Session is one exec request/response exchange with a guest-agent's control
 // channel, reached by dialling a vsock UDS multiplexer path.
 type Session struct {
-	conn        net.Conn
+	conn net.Conn
+	// idleTimeout is the deadline Next() applies to each read. Zero means no
+	// deadline: the request's TimeoutSec was unbounded (0), so there's no
+	// budget to derive one from and imposing an arbitrary one would risk
+	// cutting off a healthy, merely quiet command.
 	idleTimeout time.Duration
 }
 
@@ -62,12 +66,17 @@ func Start(ctx context.Context, udsPath string, controlPort uint32, exec *vsockc
 		return nil, fmt.Errorf("sending exec request: %w", err)
 	}
 
-	return &Session{conn: conn, idleTimeout: defaults.ExecSessionIdleTimeout}, nil
+	var idleTimeout time.Duration
+	if exec.TimeoutSec > 0 {
+		idleTimeout = time.Duration(exec.TimeoutSec)*time.Second + defaults.ExecSessionIdleGrace
+	}
+
+	return &Session{conn: conn, idleTimeout: idleTimeout}, nil
 }
 
-// SetIdleTimeout overrides the default idle deadline Next() applies to each
-// read. Mainly useful for tests that need to exercise the timeout path
-// without waiting out the real default.
+// SetIdleTimeout overrides the idle deadline Next() applies to each read.
+// Mainly useful for tests that need to exercise the timeout path without
+// waiting out the real one derived from the exec request's TimeoutSec.
 func (s *Session) SetIdleTimeout(d time.Duration) {
 	s.idleTimeout = d
 }
@@ -93,13 +102,19 @@ func (s *Session) CloseStdin() error {
 // Next blocks for the next frame from the guest-agent and translates it into
 // an Event. EventExit always ends the exchange.
 //
-// The underlying read carries an idle deadline: some vsock transports don't
-// reliably deliver EOF/RST to the host side when the guest-agent closes its
-// end, which would otherwise block this call forever.
+// When the exec request set a TimeoutSec, each read carries a deadline of
+// TimeoutSec-plus-grace: the guest-agent enforces TimeoutSec itself and
+// should respond by then, so a read timing out past that means the
+// connection is wedged (some vsock transports don't reliably deliver
+// EOF/RST to the host side when the guest-agent closes its end) rather than
+// the command just being quiet. Requests with no TimeoutSec get no deadline,
+// since there's then no way to tell a healthy quiet command from a dead one.
 func (s *Session) Next() (Event, error) {
 	for {
-		if err := s.conn.SetReadDeadline(time.Now().Add(s.idleTimeout)); err != nil {
-			return Event{}, fmt.Errorf("setting exec session read deadline: %w", err)
+		if s.idleTimeout > 0 {
+			if err := s.conn.SetReadDeadline(time.Now().Add(s.idleTimeout)); err != nil {
+				return Event{}, fmt.Errorf("setting exec session read deadline: %w", err)
+			}
 		}
 
 		f, err := vsockclient.ReadFrame(s.conn)

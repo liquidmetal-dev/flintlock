@@ -92,9 +92,13 @@ const (
 	// GuestAgentSSHPort is the guest-agent's ssh-proxy vsock port.
 	GuestAgentSSHPort = 1025
 
-	// ExecSessionIdleTimeout is the default maximum time to wait for the next
-	// frame from the guest-agent on an exec session before giving up. It
-	// guards against the guest-agent's end of the vsock connection closing
-	// without the host ever observing an EOF/error on the read.
-	ExecSessionIdleTimeout time.Duration = 30 * time.Second
+	// ExecSessionIdleGrace is added on top of an exec request's own
+	// TimeoutSec to get the idle deadline for reads on its exec session: the
+	// guest-agent enforces TimeoutSec itself and is expected to respond by
+	// then, so this is just a buffer for it to report that outcome (plus
+	// network latency) before the host gives up on a wedged connection. Only
+	// applied when TimeoutSec is set; a request with no timeout (0, meaning
+	// unbounded) gets no idle deadline at all, since a healthy quiet command
+	// is indistinguishable from a dead transport without one.
+	ExecSessionIdleGrace time.Duration = 30 * time.Second
 )

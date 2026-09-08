@@ -123,8 +123,9 @@ func TestSession_ExecStdoutStderrExit(t *testing.T) {
 // https://github.com/liquidmetal-dev/flintlock/issues/1200: the guest-agent
 // responds to the exec request and then never sends an exit frame and never
 // closes the connection (as observed with some vsock-over-UDS transports
-// after a guest-side RST that never reaches the host as EOF). Next() must
-// return an error within the idle timeout instead of blocking forever.
+// after a guest-side RST that never reaches the host as EOF). For a bounded
+// request (TimeoutSec > 0), Next() must return an error within the idle
+// deadline instead of blocking forever.
 func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 	const port = 1024
 
@@ -143,12 +144,14 @@ func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 	})
 	t.Cleanup(func() { close(stuck) })
 
-	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "uname"})
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "uname", TimeoutSec: 1})
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	defer session.Close()
 
+	// Override the real TimeoutSec-derived deadline (1s + 30s grace) so the
+	// test doesn't have to wait over 30 seconds for it to fire.
 	session.SetIdleTimeout(100 * time.Millisecond)
 
 	event, err := session.Next()
@@ -175,6 +178,75 @@ func TestSession_Next_TimesOutWhenGuestAgentGoesQuiet(t *testing.T) {
 
 	if nextErr == nil {
 		t.Fatal("Next: expected a timeout error, got nil")
+	}
+}
+
+// TestSession_Next_HealthyQuietCommandDoesNotTimeOut guards against the
+// idle deadline killing a healthy command that simply produces no output
+// for a while (e.g. `sleep`) but finishes well within its own TimeoutSec.
+// Before deriving the deadline from TimeoutSec, a flat idle timeout shorter
+// than the quiet interval would fail this the same way it fails a genuinely
+// wedged connection.
+func TestSession_Next_HealthyQuietCommandDoesNotTimeOut(t *testing.T) {
+	const port = 1024
+
+	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
+		defer conn.Close()
+
+		if _, err := vsockclient.ReadFrame(conn); err != nil {
+			return
+		}
+
+		// Quiet interval intentionally longer than the idle timeout that
+		// would apply if it weren't derived from a generous TimeoutSec.
+		time.Sleep(250 * time.Millisecond)
+		vsockclient.WriteExit(conn, 0)
+	})
+
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "sleep", TimeoutSec: 5})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer session.Close()
+
+	event, err := session.Next()
+	if err != nil {
+		t.Fatalf("Next: %v", err)
+	}
+	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
+		t.Fatalf("unexpected event: %+v", event)
+	}
+}
+
+// TestSession_Next_UnboundedTimeoutSecAppliesNoDeadline confirms a request
+// with TimeoutSec == 0 (documented as unbounded) gets no idle deadline at
+// all, since there's no declared budget to derive one from.
+func TestSession_Next_UnboundedTimeoutSecAppliesNoDeadline(t *testing.T) {
+	const port = 1024
+
+	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {
+		defer conn.Close()
+
+		if _, err := vsockclient.ReadFrame(conn); err != nil {
+			return
+		}
+
+		time.Sleep(250 * time.Millisecond)
+		vsockclient.WriteExit(conn, 0)
+	})
+
+	session, err := vsockexec.Start(context.Background(), udsPath, port, &vsockclient.Exec{Cmd: "sleep"})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer session.Close()
+
+	event, err := session.Next()
+	if err != nil {
+		t.Fatalf("Next: %v", err)
+	}
+	if event.Type != vsockexec.EventExit || event.ExitCode != 0 {
+		t.Fatalf("unexpected event: %+v", event)
 	}
 }
 
