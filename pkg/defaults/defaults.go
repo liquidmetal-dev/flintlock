@@ -96,9 +96,16 @@ const (
 	// TimeoutSec to get the idle deadline for reads on its exec session: the
 	// guest-agent enforces TimeoutSec itself and is expected to respond by
 	// then, so this is just a buffer for it to report that outcome (plus
-	// network latency) before the host gives up on a wedged connection. Only
-	// applied when TimeoutSec is set; a request with no timeout (0, meaning
-	// unbounded) gets no idle deadline at all, since a healthy quiet command
-	// is indistinguishable from a dead transport without one.
+	// network latency) before the host gives up on a wedged connection.
 	ExecSessionIdleGrace time.Duration = 30 * time.Second
+
+	// ExecSessionUnboundedIdleCeiling is the idle read deadline for an exec
+	// request with no TimeoutSec (0, "unbounded"). There's no declared
+	// budget to derive a deadline from in that case, and no protocol-level
+	// way to tell a healthy quiet command from a wedged connection, so this
+	// is a last-resort circuit breaker rather than a liveness check: sized
+	// generously so it's not expected to trip a real quiet workload, while
+	// still guaranteeing the session eventually gives up on a dead
+	// transport instead of blocking forever.
+	ExecSessionUnboundedIdleCeiling time.Duration = 15 * time.Minute
 )

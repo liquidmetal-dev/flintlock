@@ -218,10 +218,13 @@ func TestSession_Next_HealthyQuietCommandDoesNotTimeOut(t *testing.T) {
 	}
 }
 
-// TestSession_Next_UnboundedTimeoutSecAppliesNoDeadline confirms a request
-// with TimeoutSec == 0 (documented as unbounded) gets no idle deadline at
-// all, since there's no declared budget to derive one from.
-func TestSession_Next_UnboundedTimeoutSecAppliesNoDeadline(t *testing.T) {
+// TestSession_Next_UnboundedTimeoutSecToleratesAQuietCommand confirms a
+// request with TimeoutSec == 0 (documented as unbounded) still completes
+// normally through a short quiet interval, rather than falling back to a
+// deadline tight enough to fire on ordinary quiet output gaps. The much
+// larger circuit-breaker ceiling for this case is covered directly by
+// TestIdleTimeoutFor.
+func TestSession_Next_UnboundedTimeoutSecToleratesAQuietCommand(t *testing.T) {
 	const port = 1024
 
 	udsPath := fakeGuestAgent(t, port, func(conn net.Conn) {

@@ -43,11 +43,31 @@ type Event struct {
 // channel, reached by dialling a vsock UDS multiplexer path.
 type Session struct {
 	conn net.Conn
-	// idleTimeout is the deadline Next() applies to each read. Zero means no
-	// deadline: the request's TimeoutSec was unbounded (0), so there's no
-	// budget to derive one from and imposing an arbitrary one would risk
-	// cutting off a healthy, merely quiet command.
+	// idleTimeout is the deadline Next() applies to each read; see
+	// idleTimeoutFor for how it's derived.
 	idleTimeout time.Duration
+}
+
+// idleTimeoutFor derives the idle read deadline for an exec session from the
+// request's TimeoutSec:
+//
+//   - TimeoutSec > 0: the guest-agent enforces it itself and is expected to
+//     report an outcome by then, so TimeoutSec-plus-grace bounds how long the
+//     guest-agent should legitimately take to respond, not how long the
+//     command may stay quiet.
+//   - TimeoutSec == 0 ("unbounded" per the exec protocol): there's no
+//     declared budget to derive a deadline from, and no protocol-level way
+//     to tell a healthy quiet command (e.g. a long sleep) from a wedged
+//     connection. Rather than leave the read able to block forever — which
+//     is the failure mode being guarded against — fall back to a generous
+//     ceiling: a last-resort circuit breaker, not a liveness check, so it's
+//     sized to basically never trip a real quiet workload.
+func idleTimeoutFor(timeoutSec int) time.Duration {
+	if timeoutSec > 0 {
+		return time.Duration(timeoutSec)*time.Second + defaults.ExecSessionIdleGrace
+	}
+
+	return defaults.ExecSessionUnboundedIdleCeiling
 }
 
 // Start dials udsPath (a Firecracker/Cloud Hypervisor vsock UDS multiplexer)
@@ -66,12 +86,7 @@ func Start(ctx context.Context, udsPath string, controlPort uint32, exec *vsockc
 		return nil, fmt.Errorf("sending exec request: %w", err)
 	}
 
-	var idleTimeout time.Duration
-	if exec.TimeoutSec > 0 {
-		idleTimeout = time.Duration(exec.TimeoutSec)*time.Second + defaults.ExecSessionIdleGrace
-	}
-
-	return &Session{conn: conn, idleTimeout: idleTimeout}, nil
+	return &Session{conn: conn, idleTimeout: idleTimeoutFor(exec.TimeoutSec)}, nil
 }
 
 // SetIdleTimeout overrides the idle deadline Next() applies to each read.
@@ -102,13 +117,10 @@ func (s *Session) CloseStdin() error {
 // Next blocks for the next frame from the guest-agent and translates it into
 // an Event. EventExit always ends the exchange.
 //
-// When the exec request set a TimeoutSec, each read carries a deadline of
-// TimeoutSec-plus-grace: the guest-agent enforces TimeoutSec itself and
-// should respond by then, so a read timing out past that means the
-// connection is wedged (some vsock transports don't reliably deliver
-// EOF/RST to the host side when the guest-agent closes its end) rather than
-// the command just being quiet. Requests with no TimeoutSec get no deadline,
-// since there's then no way to tell a healthy quiet command from a dead one.
+// Each read carries an idle deadline (see idleTimeoutFor) so a wedged
+// connection surfaces as an error instead of blocking forever — some vsock
+// transports don't reliably deliver EOF/RST to the host side when the
+// guest-agent closes its end.
 func (s *Session) Next() (Event, error) {
 	for {
 		if s.idleTimeout > 0 {
