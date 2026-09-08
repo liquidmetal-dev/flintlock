@@ -83,7 +83,7 @@ func idleTimeoutFor(timeoutSec int) time.Duration {
 // on the guest-agent's control port and sends an exec request. Callers must
 // call Close when done.
 func Start(ctx context.Context, udsPath string, controlPort uint32, exec *vsockclient.Exec) (*Session, error) {
-	conn, err := vsockclient.Dial(ctx, udsPath, controlPort)
+	conn, err := dialWithRetry(ctx, udsPath, controlPort)
 	if err != nil {
 		return nil, fmt.Errorf("dialling guest-agent control channel: %w", err)
 	}
@@ -100,6 +100,55 @@ func Start(ctx context.Context, udsPath string, controlPort uint32, exec *vsockc
 		idleTimeout:          idleTimeoutFor(exec.TimeoutSec),
 		heartbeatIdleTimeout: defaults.ExecSessionIdleTimeout,
 	}, nil
+}
+
+// dialRetries and dialRetryDelay back dialWithRetry; they default to the
+// package defaults but are overridable by tests via SetDialRetryParams so
+// retry-exhaustion cases don't have to sleep through the real delay.
+var (
+	dialRetries    = defaults.GuestAgentDialRetries
+	dialRetryDelay = defaults.GuestAgentDialRetryDelay
+)
+
+// SetDialRetryParams overrides the retry count/delay dialWithRetry uses,
+// returning a func that restores the previous values. Mainly useful for
+// tests that need to exercise retry exhaustion without waiting out the real
+// delay.
+func SetDialRetryParams(retries int, delay time.Duration) (restore func()) {
+	prevRetries, prevDelay := dialRetries, dialRetryDelay
+	dialRetries, dialRetryDelay = retries, delay
+
+	return func() { dialRetries, dialRetryDelay = prevRetries, prevDelay }
+}
+
+// dialWithRetry dials udsPath/controlPort, retrying up to dialRetries times
+// (with dialRetryDelay between attempts) on failure. Rapid repeated dials
+// against the same vsock port have been observed to occasionally get EOF
+// instead of the CONNECT handshake's OK reply — most likely a transient
+// vsock multiplexer hiccup rather than a genuine failure to connect — so a
+// few quick retries let the handshake ride that out. See
+// defaults.GuestAgentDialRetries.
+func dialWithRetry(ctx context.Context, udsPath string, controlPort uint32) (net.Conn, error) {
+	var lastErr error
+
+	for attempt := 0; attempt <= dialRetries; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, lastErr
+			case <-time.After(dialRetryDelay):
+			}
+		}
+
+		conn, err := vsockclient.Dial(ctx, udsPath, controlPort)
+		if err == nil {
+			return conn, nil
+		}
+
+		lastErr = err
+	}
+
+	return nil, lastErr
 }
 
 // SetIdleTimeout overrides the idle deadline Next() applies to each read

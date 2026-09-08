@@ -128,4 +128,23 @@ const (
 	// TimeoutSec-derived deadline (ExecSessionIdleGrace /
 	// ExecSessionUnboundedIdleCeiling above) for the life of the session.
 	ExecSessionIdleTimeout time.Duration = 15 * time.Second
+
+	// GuestAgentDialRetries is how many extra attempts a guest-agent
+	// control-channel dial (the Firecracker/Cloud Hypervisor vsock-UDS
+	// CONNECT handshake) gets after an initial failure, before giving up.
+	// Rapid repeated dials against the same vsock port (e.g. a caller
+	// polling readiness with a no-op exec) have been observed to
+	// occasionally get EOF instead of the handshake's OK reply, well
+	// below the guest-agent protocol layer — most likely a transient
+	// vsock multiplexer hiccup rather than a real failure to connect. A
+	// few quick retries let the handshake ride that out instead of
+	// failing the whole exec RPC on what's usually a one-off blip.
+	GuestAgentDialRetries = 3
+
+	// GuestAgentDialRetryDelay is the delay between guest-agent
+	// control-channel dial attempts; see GuestAgentDialRetries. Kept
+	// short and fixed: this only needs to survive a brief transient
+	// hiccup within a single RPC's lifetime, not implement a general
+	// backoff policy.
+	GuestAgentDialRetryDelay time.Duration = 200 * time.Millisecond
 )
