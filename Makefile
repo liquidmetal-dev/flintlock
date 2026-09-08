@@ -97,6 +97,10 @@ lint:  ## Lint code
 lint-fix: ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
+.PHONY: lint-new
+lint-new: ## Lint only files changed vs main (fast local iteration)
+	golangci-lint run -v --new-from-rev=main $(GOLANGCI_LINT_EXTRA_ARGS)
+
 .PHONY: proto-lint
 proto-lint: ## Lint protobuf/grpc
 	buf lint

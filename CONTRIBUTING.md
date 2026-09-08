@@ -339,6 +339,22 @@ export CTR_SOCK_PATH=</path/to/containerd.sock>
 make test
 ```
 
+### Linting
+
+To run the full lint suite (the same one CI runs), run:
+
+```bash
+make lint
+```
+
+Since this lints the whole repository with every linter enabled, it can be
+slow. For faster local iteration, `make lint-new` only lints files that have
+changed versus `main`:
+
+```bash
+make lint-new
+```
+
 ### Running the end to end tests
 
 See the dedicated docs for the end to end tests [here](test/e2e/README.md).
