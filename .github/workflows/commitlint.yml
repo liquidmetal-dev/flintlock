@@ -24,6 +24,9 @@ jobs:
   commit-messages:
     name: Check commit messages follow Conventional Commits
     runs-on: ubuntu-latest
+    # Dependabot's generated commit subjects (e.g. "Bump foo from 1.0 to 2.0")
+    # always trip the subject-case rule, so this check is meaningless for it.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
         with:
