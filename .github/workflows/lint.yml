@@ -16,11 +16,13 @@ jobs:
       - name: Lint protobuf/grpc
         run: make proto-lint
       # buf breaking needs BSR auth to resolve the module, and secrets aren't
-      # available to fork-originated pull requests, so only run it for PRs
-      # from branches within this repo.
+      # available to fork-originated pull requests, or to PRs opened by
+      # dependabot[bot] (even from a same-repo branch), so only run it for
+      # PRs from branches within this repo opened by someone other than
+      # dependabot.
       - name: Log in to Buf Schema Registry
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
         run: echo "${{ secrets.BUF_TOKEN }}" | buf registry login --token-stdin
       - name: Check for breaking protobuf/grpc changes
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
         run: make proto-breaking
