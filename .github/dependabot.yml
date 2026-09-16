@@ -3,6 +3,8 @@ updates:
   - package-ecosystem: "gomod"
     directories:
       - "/"
+      - "/api"
+      - "/client"
     schedule:
       interval: "weekly"
     labels:
