@@ -14,4 +14,9 @@ type Config struct {
 	SocketPath string
 	// Namespace is the default containerd namespace to use
 	Namespace string
+	// HostsDir is the path to a directory containing per-registry hosts.toml
+	// files (in containerd's certs.d layout) used to configure registry
+	// auth/mirrors for image pulls. Empty disables this and relies solely on
+	// the containerd daemon's own registry configuration.
+	HostsDir string
 }

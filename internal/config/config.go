@@ -40,6 +40,10 @@ type Config struct {
 	CtrSocketPath string
 	// CtrNamespace is the default containerd namespace to use
 	CtrNamespace string
+	// CtrHostsDir is the path to a directory of per-registry hosts.toml files
+	// (containerd's certs.d layout) used to configure registry auth/mirrors
+	// for image pulls. Empty disables this.
+	CtrHostsDir string
 	// DisableReconcile is used to stop the reconcile part from running.
 	DisableReconcile bool
 	// DisableAPI is used to disable the api server.

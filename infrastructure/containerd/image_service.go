@@ -6,10 +6,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/mount"
-	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/snapshots"
+	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/core/mount"
+	"github.com/containerd/containerd/v2/core/remotes/docker"
+	dockerconfig "github.com/containerd/containerd/v2/core/remotes/docker/config"
+	"github.com/containerd/containerd/v2/core/snapshots"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
 	"github.com/containerd/errdefs"
 	"github.com/opencontainers/image-spec/identity"
 
@@ -145,12 +147,33 @@ func (im *imageService) pullImage(ctx context.Context, imageName string, owner s
 		return nil, fmt.Errorf("getting lease for owner: %w", err)
 	}
 
-	image, err := im.client.Pull(leaseCtx, imageName)
+	image, err := im.client.Pull(leaseCtx, imageName, im.pullOpts(leaseCtx)...)
 	if err != nil {
 		return nil, fmt.Errorf("pulling image using containerd: %w", err)
 	}
 
 	return image, nil
+}
+
+// pullOpts builds the remote options used for image pulls. When a hosts
+// directory has been configured, images are resolved using the certs.d/
+// hosts.toml layout under that directory (see containerd's hosts.toml
+// registry configuration docs), allowing per-registry auth without editing
+// the containerd daemon's global config. When unset, no options are used and
+// pulling behaves exactly as it always has, relying on the daemon's own
+// registry configuration.
+func (im *imageService) pullOpts(ctx context.Context) []containerd.RemoteOpt {
+	if im.config.HostsDir == "" {
+		return nil
+	}
+
+	hosts := dockerconfig.ConfigureHosts(ctx, dockerconfig.HostOptions{
+		HostDir: dockerconfig.HostDirFromRoot(im.config.HostsDir),
+	})
+
+	resolver := docker.NewResolver(docker.ResolverOptions{Hosts: hosts})
+
+	return []containerd.RemoteOpt{containerd.WithResolver(resolver)}
 }
 
 func (im *imageService) snapshotAndMount(ctx context.Context,
