@@ -95,7 +95,7 @@ type Initrd struct {
 	// Image is the container image to use for the initrd.
 	Image ContainerImage `json:"image" validate:"imageURI"`
 	// Filename is the name of the initrd filename in the container.
-	Filename string
+	Filename string `validate:"required,imageFilePath"`
 }
 
 // ContainerImage represents the address of a OCI image.

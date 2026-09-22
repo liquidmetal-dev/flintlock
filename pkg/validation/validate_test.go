@@ -34,6 +34,66 @@ func TestValidation_Valid_CPUConfig(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func TestValidation_ImageFilePath(t *testing.T) {
+	tt := []struct {
+		name     string
+		filename string
+		valid    bool
+	}{
+		{name: "plain filename", filename: "vmlinux", valid: true},
+		{name: "nested filename", filename: "boot/vmlinux", valid: true},
+		{name: "nested with inner parent ref", filename: "boot/../vmlinux", valid: true},
+		{name: "empty", filename: "", valid: false},
+		{name: "absolute path", filename: "/etc/shadow", valid: false},
+		{name: "parent traversal", filename: "../vmlinux", valid: false},
+		{name: "deep parent traversal", filename: "../../../../root/target-file", valid: false},
+		{name: "nested parent traversal", filename: "boot/../../vmlinux", valid: false},
+		{name: "parent dir only", filename: "..", valid: false},
+		{name: "nul byte", filename: "vmlinux\x00", valid: false},
+	}
+
+	val := NewValidator()
+
+	for _, tc := range tt {
+		t.Run("kernel "+tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			vm := basicMicroVM
+			vm.Spec.Kernel.Filename = tc.filename
+
+			assertImageFilePathResult(val.ValidateStruct(vm), tc.valid)
+		})
+
+		t.Run("initrd "+tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			vm := basicMicroVM
+			vm.Spec.Initrd = &models.Initrd{
+				Image:    "docker.io/richardcase/ubuntu-bionic-kernel:0.0.11",
+				Filename: tc.filename,
+			}
+
+			assertImageFilePathResult(val.ValidateStruct(vm), tc.valid)
+		})
+	}
+}
+
+func assertImageFilePathResult(err error, valid bool) {
+	if valid {
+		Expect(err).NotTo(HaveOccurred())
+
+		return
+	}
+
+	Expect(err).To(HaveOccurred())
+
+	var valErrors validator.ValidationErrors
+
+	Expect(errors.As(err, &valErrors)).To(BeTrue())
+	Expect(valErrors).To(HaveLen(1))
+	Expect(valErrors[0].Field()).To(Equal("Filename"))
+}
+
 func TestValidation_Invalid(t *testing.T) {
 	invalidImageUri := basicMicroVM
 	invalidImageUri.Spec.Kernel.Image = "://invalidImage@"
