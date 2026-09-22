@@ -96,6 +96,9 @@ as quickly as possible.
 
 _See below for [how issues are prioritized](#prioritizing-issues)_.
 
+**Security vulnerabilities** must not be reported as public issues. Please follow
+the [security policy](SECURITY.md) instead.
+
 **General rules**:
 
 1. Before opening anything, take a good look through existing issues.
