@@ -56,6 +56,10 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 				return errors.New("you must supply at least one of parent interface, bridge name")
 			}
 
+			if err := config.ValidateSocketDir(cfg.SocketDir); err != nil {
+				return fmt.Errorf("validating socket dir: %w", err)
+			}
+
 			providerFound := false
 			for _, supportedProvider := range microvm.GetProviderNames() {
 				if supportedProvider == cfg.DefaultVMProvider {

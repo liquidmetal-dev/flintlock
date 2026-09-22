@@ -98,6 +98,7 @@ func networkConfig(cfg *config.Config) *network.Config {
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
 		RootStateDir:    cfg.StateRootDir,
+		SocketDir:       cfg.SocketDir,
 		MaximumRetry:    cfg.MaximumRetry,
 		DefaultProvider: cfg.DefaultVMProvider,
 	}

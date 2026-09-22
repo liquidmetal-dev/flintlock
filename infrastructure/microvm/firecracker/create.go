@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
@@ -25,7 +26,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	})
 	logger.Debugf("creating microvm")
 
-	vmState := NewState(vm.ID, p.config.StateRoot, p.fs)
+	vmState := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
 
 	if err := p.ensureState(vmState); err != nil {
 		return fmt.Errorf("ensuring state dir: %w", err)
@@ -117,15 +118,10 @@ func (p *fcProvider) ensureState(vmState State) error {
 		}
 	}
 
-	// Remove any stale guest-agent vsock socket so the VMM can bind on (re)create.
-	vsockExists, err := afero.Exists(p.fs, vmState.VSockPath())
-	if err != nil {
-		return fmt.Errorf("checking if vsock socket exists: %w", err)
-	}
-	if vsockExists {
-		if delErr := p.fs.Remove(vmState.VSockPath()); delErr != nil {
-			return fmt.Errorf("deleting existing vsock socket: %w", delErr)
-		}
+	// Remove any stale guest-agent vsock socket so the VMM can bind on (re)create. The VMM isn't
+	// running, so a socket left in the state dir by an older flintlock can go too.
+	if err := shared.RemoveStaleSockets(p.fs, vmState.VSockPath(), vmState.legacyVSockPath()); err != nil {
+		return fmt.Errorf("removing stale vsock socket: %w", err)
 	}
 
 	logFile, err := p.fs.OpenFile(vmState.LogPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)

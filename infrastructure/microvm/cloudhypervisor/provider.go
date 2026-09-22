@@ -29,6 +29,8 @@ type Config struct {
 
 	// StateRoot is the folder to store any required state (i.e. socks, pid, log files).
 	StateRoot string
+	// SocketDir is the folder to create the per-microvm unix sockets in.
+	SocketDir string
 	// RunDetached indicates that the cloud hypervisor processes
 	// should be run detached (a.k.a daemon) from the parent process.
 	RunDetached bool
@@ -83,7 +85,7 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 		return ports.MicroVMStateUnknown, fmt.Errorf("parsing vmid: %w", err)
 	}
 
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(*vmid, p.config.StateRoot, p.config.SocketDir, p.fs)
 	pidPath := vmState.PIDPath()
 
 	exists, err := afero.Exists(p.fs, pidPath)
@@ -114,7 +116,9 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 	// re-fire Create() and spawn a second cloud-hypervisor on the same API socket
 	// (Address in use) while the first, healthy process is still coming up. This
 	// mirrors the firecracker provider, which treats "pid alive" as Running.
-	sockExists, err := afero.Exists(p.fs, vmState.SockPath())
+	sockPath := vmState.ResolveSockPath()
+
+	sockExists, err := afero.Exists(p.fs, sockPath)
 	if err != nil {
 		return ports.MicroVMStateUnknown, fmt.Errorf("checking sock file exists: %w", err)
 	}
@@ -124,7 +128,7 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 		return ports.MicroVMStateRunning, nil
 	}
 
-	chClient := cloudhypervisor.New(vmState.SockPath())
+	chClient := cloudhypervisor.New(sockPath)
 
 	vmInfo, err := chClient.Info(ctx)
 	if err != nil {

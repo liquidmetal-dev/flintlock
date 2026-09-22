@@ -2,8 +2,10 @@ package config_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	. "github.com/onsi/gomega"
 )
@@ -139,6 +141,46 @@ func TestValidateTLSConfig(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.tlsConfig.Validate()
 			tc.expected(g, err)
+		})
+	}
+}
+
+func TestValidateSocketDir(t *testing.T) {
+	tt := []struct {
+		name      string
+		dir       string
+		expectErr bool
+	}{
+		{
+			name: "when the dir is the default, no error should occur",
+			dir:  "/run/flintlock",
+		},
+		{
+			name: "when the dir is at the maximum length, no error should occur",
+			dir:  "/" + strings.Repeat("a", models.MaxSocketDirLength()-1),
+		},
+		{
+			name:      "when the dir is over the maximum length, an error should be returned",
+			dir:       "/" + strings.Repeat("a", models.MaxSocketDirLength()),
+			expectErr: true,
+		},
+		{
+			name:      "when the dir is relative, an error should be returned",
+			dir:       "run/flintlock",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := config.ValidateSocketDir(tc.dir)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
 		})
 	}
 }

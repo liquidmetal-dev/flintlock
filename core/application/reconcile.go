@@ -43,16 +43,18 @@ func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) planner.Plan {
 	// Delete only if the spec was marked as deleted.
 	if spec.Spec.DeletedAt != 0 {
 		input := &plans.DeletePlanInput{
-			StateDirectory: a.cfg.RootStateDir,
-			VM:             spec,
+			StateDirectory:  a.cfg.RootStateDir,
+			SocketDirectory: a.cfg.SocketDir,
+			VM:              spec,
 		}
 
 		return plans.MicroVMDeletePlan(input)
 	}
 
 	input := &plans.CreateOrUpdatePlanInput{
-		StateDirectory: a.cfg.RootStateDir,
-		VM:             spec,
+		StateDirectory:  a.cfg.RootStateDir,
+		SocketDirectory: a.cfg.SocketDir,
+		VM:              spec,
 	}
 
 	return plans.MicroVMCreateOrUpdatePlan(input)

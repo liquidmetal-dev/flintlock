@@ -30,6 +30,8 @@ type Config struct {
 	CloudHypervisorDetatch bool
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
+	// SocketDir is the directory to act as the root for the per-microvm unix sockets.
+	SocketDir string
 	// ParentIface is the name of the network interface to use for the parent in macvtap interfaces.
 	ParentIface string
 	// BridgeName is the name of the Linux bridge to attach tap devices to be default.

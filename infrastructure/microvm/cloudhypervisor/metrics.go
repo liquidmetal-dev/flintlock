@@ -12,9 +12,9 @@ import (
 
 // Metrics returns with the metrics of a microvm.
 func (p *provider) Metrics(ctx context.Context, vmid models.VMID) (ports.MachineMetrics, error) {
-	vmState := NewState(vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(vmid, p.config.StateRoot, p.config.SocketDir, p.fs)
 
-	chClient := cloudhypervisor.New(vmState.SockPath())
+	chClient := cloudhypervisor.New(vmState.ResolveSockPath())
 	counters, err := chClient.Counters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting vm counters: %w", err)

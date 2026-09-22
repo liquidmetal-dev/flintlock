@@ -35,6 +35,7 @@ const (
 	virtioFSBinFlag           = "virtiofs-bin"
 	enableExecAPIFlag         = "enable-exec-api"
 	enableSSHProxyAPIFlag     = "enable-ssh-proxy-api"
+	socketDirFlag             = "socket-dir"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -48,6 +49,11 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"state-dir",
 		defaults.StateRootDir,
 		"The directory to use for the as the root for runtime state.")
+
+	cmd.Flags().StringVar(&cfg.SocketDir,
+		socketDirFlag,
+		defaults.SocketRootDir,
+		"The directory to use as the root for per-microvm unix sockets.")
 
 	cmd.Flags().DurationVar(&cfg.ResyncPeriod,
 		"resync-period",

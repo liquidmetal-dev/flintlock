@@ -16,6 +16,7 @@ import (
 
 type State interface {
 	Root() string
+	SocketRoot() string
 
 	PID() (int, error)
 	PIDPath() string
@@ -26,6 +27,7 @@ type State interface {
 	StdoutPath() string
 	StderrPath() string
 	VSockPath() string
+	legacyVSockPath() string
 
 	ConfigPath() string
 	Config() (VmmConfig, error)
@@ -36,20 +38,26 @@ type State interface {
 	SetMetadata(meta *Metadata) error
 }
 
-func NewState(vmid models.VMID, stateDir string, fs afero.Fs) State {
+func NewState(vmid models.VMID, stateDir, socketDir string, fs afero.Fs) State {
 	return &fsState{
-		stateRoot: fmt.Sprintf("%s/%s", stateDir, vmid.String()),
-		fs:        fs,
+		stateRoot:  fmt.Sprintf("%s/%s", stateDir, vmid.String()),
+		socketRoot: models.SocketRoot(socketDir, vmid),
+		fs:         fs,
 	}
 }
 
 type fsState struct {
-	stateRoot string
-	fs        afero.Fs
+	stateRoot  string
+	socketRoot string
+	fs         afero.Fs
 }
 
 func (s *fsState) Root() string {
 	return s.stateRoot
+}
+
+func (s *fsState) SocketRoot() string {
+	return s.socketRoot
 }
 
 func (s *fsState) PIDPath() string {
@@ -77,6 +85,12 @@ func (s *fsState) StderrPath() string {
 }
 
 func (s *fsState) VSockPath() string {
+	return s.socketRoot + "/" + defaults.GuestAgentVsockName
+}
+
+// legacyVSockPath is where the vsock socket lived before sockets moved out of the state dir.
+// Legacy fallback for #1226, to be removed in the next minor release.
+func (s *fsState) legacyVSockPath() string {
 	return s.stateRoot + "/" + defaults.GuestAgentVsockName
 }
 

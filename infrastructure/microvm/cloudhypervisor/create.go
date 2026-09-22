@@ -14,6 +14,7 @@ import (
 
 	cerrors "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
@@ -28,7 +29,7 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 		"vmid":    vm.ID.String(),
 	})
 	logger.Debugf("creating microvm")
-	vmState := NewState(vm.ID, p.config.StateRoot, p.fs)
+	vmState := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
 
 	// Never re-create over a live cloud-hypervisor. The State()-based create guard
 	// should already prevent this, but this is a belt-and-suspenders check against a
@@ -165,8 +166,9 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 			return nil, cerrors.NewVolumeNotMounted(vol.ID)
 		}
 		if vol.Source.VirtioFS != nil {
-			vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.fs)
-			args = append(args, "--fs", fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.VirtioFSPath()))
+			vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+			args = append(args, "--fs",
+				fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.ResolveVirtioFSPath()))
 			hasVirtioFS = true
 		} else {
 			args = append(args, "path="+status.Mount.Source)
@@ -240,27 +242,15 @@ func (p *provider) ensureState(vmState State) error {
 		}
 	}
 
-	sockExists, err := afero.Exists(p.fs, vmState.SockPath())
-	if err != nil {
-		return fmt.Errorf("checking if sock dir exists: %w", err)
-	}
-
-	if sockExists {
-		if delErr := p.fs.Remove(vmState.SockPath()); delErr != nil {
-			return fmt.Errorf("deleting existing sock file: %w", delErr)
-		}
-	}
-
-	// Remove any stale guest-agent vsock socket so cloud-hypervisor can bind on (re)create.
-	vsockExists, err := afero.Exists(p.fs, vmState.VSockPath())
-	if err != nil {
-		return fmt.Errorf("checking if vsock socket exists: %w", err)
-	}
-
-	if vsockExists {
-		if delErr := p.fs.Remove(vmState.VSockPath()); delErr != nil {
-			return fmt.Errorf("deleting existing vsock socket: %w", delErr)
-		}
+	// Remove any stale API and guest-agent vsock sockets so cloud-hypervisor can bind on
+	// (re)create. It isn't running, so sockets left in the state dir by an older flintlock can go too.
+	if err := shared.RemoveStaleSockets(p.fs,
+		vmState.SockPath(),
+		vmState.VSockPath(),
+		vmState.legacySockPath(),
+		vmState.legacyVSockPath(),
+	); err != nil {
+		return fmt.Errorf("removing stale sockets: %w", err)
 	}
 
 	logFile, err := p.fs.OpenFile(vmState.LogPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)

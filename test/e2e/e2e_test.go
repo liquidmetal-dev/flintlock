@@ -6,6 +6,9 @@ package e2e_test
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/liquidmetal-dev/flintlock/api/types"
@@ -31,9 +34,15 @@ func TestE2E(t *testing.T) {
 		secondMvmID = "mvm1"
 		mvmNS       = "ns0"
 		fcPath      = "/var/lib/flintlock/vm/%s/%s/%s"
+		socketDir   = "/run/flintlock"
+
+		// Long enough that sockets in the state dir would go over the unix socket path limit.
+		longMvmID = "mvm-" + strings.Repeat("n", 40)
+		longMvmNS = "ns-" + strings.Repeat("s", 40)
 
 		mvmPid1 int
 		mvmPid2 int
+		mvmPid3 int
 	)
 
 	r := u.NewRunner(params)
@@ -98,6 +107,31 @@ func TestE2E(t *testing.T) {
 		return nil
 	}, "120s").Should(Succeed())
 
+	log.Println("TEST STEP: creating a MicroVM with a long namespace and name and the guest agent enabled")
+	createdLong := u.CreateGuestAgentMVM(flintlockClient, longMvmID, longMvmNS)
+	Expect(createdLong.Microvm.Spec.Id).To(Equal(longMvmID))
+
+	longMicroVMPath := fmt.Sprintf(fcPath, longMvmNS, longMvmID, *createdLong.Microvm.Spec.Uid)
+	longSocketRoot := filepath.Join(socketDir, *createdLong.Microvm.Spec.Uid)
+
+	Eventually(func(g Gomega) error {
+		g.Expect(longMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
+
+		mvmPid3 = u.ReadPID(longMicroVMPath)
+		g.Expect(u.PidRunning(mvmPid3)).To(BeTrue())
+
+		// verify that the vsock socket is under the socket dir and the VMM has bound to it
+		res := u.GetMVM(flintlockClient, *createdLong.Microvm.Spec.Uid)
+		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		g.Expect(res.Microvm.Status.VsockPath).To(HavePrefix(longSocketRoot + "/"))
+
+		info, err := os.Stat(res.Microvm.Status.VsockPath)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(info.Mode() & os.ModeSocket).NotTo(BeZero())
+
+		return nil
+	}, "120s").Should(Succeed())
+
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
 		return
@@ -106,18 +140,26 @@ func TestE2E(t *testing.T) {
 	log.Println("TEST STEP: deleting existing MicroVMs")
 	Expect(u.DeleteMVM(flintlockClient, *created.Microvm.Spec.Uid)).To(Succeed())
 	Expect(u.DeleteMVM(flintlockClient, *createdSecond.Microvm.Spec.Uid)).To(Succeed())
+	Expect(u.DeleteMVM(flintlockClient, *createdLong.Microvm.Spec.Uid)).To(Succeed())
 
 	Eventually(func(g Gomega) error {
 		// verify that the vm state dirs have been removed
 		g.Expect(firstMicroVMPath).ToNot(BeAnExistingFile())
 		g.Expect(secondMicroVMPath).ToNot(BeAnExistingFile())
+		g.Expect(longMicroVMPath).ToNot(BeAnExistingFile())
+
+		// verify that the socket dir has been removed
+		g.Expect(longSocketRoot).ToNot(BeAnExistingFile())
 
 		// verify that the firecracker processes are no longer running
 		g.Expect(u.PidRunning(mvmPid1)).To(BeFalse())
 		g.Expect(u.PidRunning(mvmPid2)).To(BeFalse())
+		g.Expect(u.PidRunning(mvmPid3)).To(BeFalse())
 
 		// verify that the mVMs are no longer with us
 		res := u.ListMVMs(flintlockClient, mvmNS, nil)
+		g.Expect(res.Microvm).To(HaveLen(0))
+		res = u.ListMVMs(flintlockClient, longMvmNS, nil)
 		g.Expect(res.Microvm).To(HaveLen(0))
 		return nil
 	}, "120s").Should(Succeed())

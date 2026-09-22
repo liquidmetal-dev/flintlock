@@ -19,21 +19,24 @@ import (
 )
 
 type DeletePlanInput struct {
-	StateDirectory string
-	VM             *models.MicroVM
+	StateDirectory  string
+	SocketDirectory string
+	VM              *models.MicroVM
 }
 
 func MicroVMDeletePlan(input *DeletePlanInput) planner.Plan {
 	return &microvmDeletePlan{
-		vm:       input.VM,
-		stateDir: path.Join(input.StateDirectory, "vm", input.VM.ID.String()),
-		steps:    []planner.Procedure{},
+		vm:         input.VM,
+		stateDir:   path.Join(input.StateDirectory, "vm", input.VM.ID.String()),
+		socketRoot: models.SocketRoot(input.SocketDirectory, input.VM.ID),
+		steps:      []planner.Procedure{},
 	}
 }
 
 type microvmDeletePlan struct {
-	vm       *models.MicroVM
-	stateDir string
+	vm         *models.MicroVM
+	stateDir   string
+	socketRoot string
 
 	steps []planner.Procedure
 }
@@ -84,6 +87,10 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 
 	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.stateDir, ports.FileSystem)); err != nil {
 		return nil, fmt.Errorf("adding root dir step: %w", err)
+	}
+
+	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.socketRoot, ports.FileSystem)); err != nil {
+		return nil, fmt.Errorf("adding socket dir step: %w", err)
 	}
 
 	if len(p.steps) != 0 {

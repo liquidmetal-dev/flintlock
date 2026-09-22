@@ -25,8 +25,9 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 		mockedPorts,
 	)
 	plan := plans.MicroVMCreateOrUpdatePlan(&plans.CreateOrUpdatePlanInput{
-		VM:             testVM,
-		StateDirectory: "/tmp/path/to/vm",
+		VM:              testVM,
+		StateDirectory:  "/tmp/path/to/vm",
+		SocketDirectory: "/tmp/run",
 	})
 
 	mList.MicroVMService.
@@ -106,7 +107,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 	steps, createErr := plan.Create(ctx)
 
 	Expect(createErr).NotTo(HaveOccurred())
-	Expect(steps).To(HaveLen(7))
+	Expect(steps).To(HaveLen(8))
 
 	Expect(testVM.Status.State).To(Equal(models.MicroVMState(models.PendingState)))
 
@@ -143,8 +144,9 @@ func TestMicroVMPlanFinalise(t *testing.T) {
 		RegisterTestingT(t)
 		vm := createTestSpec("vmid", "namespace")
 		plan := plans.MicroVMCreateOrUpdatePlan(&plans.CreateOrUpdatePlanInput{
-			VM:             vm,
-			StateDirectory: "/tmp/path/to/vm",
+			VM:              vm,
+			StateDirectory:  "/tmp/path/to/vm",
+			SocketDirectory: "/tmp/run",
 		})
 
 		plan.Finalise(tc.state)

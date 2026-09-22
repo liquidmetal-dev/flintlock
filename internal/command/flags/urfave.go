@@ -56,6 +56,11 @@ func WithGlobalConfigFlags() WithFlagsFunc {
 				Value: defaults.StateRootDir,
 				Usage: "The directory to use for the as the root for runtime state.",
 			},
+			&cli.StringFlag{
+				Name:  socketDirFlag,
+				Value: defaults.SocketRootDir,
+				Usage: "The directory to use as the root for per-microvm unix sockets.",
+			},
 		}
 	}
 }
@@ -68,6 +73,7 @@ func ParseFlags(cfg *config.Config) cli.BeforeFunc {
 		cfg.CtrNamespace = ctx.String(containerdNamespace)
 
 		cfg.StateRootDir = ctx.String("state-dir")
+		cfg.SocketDir = ctx.String(socketDirFlag)
 
 		return nil
 	}

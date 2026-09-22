@@ -30,6 +30,8 @@ type Config struct {
 	FirecrackerBin string
 	// StateRoot is the folder to store any required firecracker state (i.e. socks, pid, log files).
 	StateRoot string
+	// SocketDir is the folder to create the per-microvm unix sockets in.
+	SocketDir string
 	// RunDetached indicates that the firecracker processes should be run detached (a.k.a daemon) from the parent process.
 	RunDetached bool
 	// DeleteVMTimeout is the timeout to wait for the microvm to be deleted.
@@ -95,7 +97,7 @@ func (p *fcProvider) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("parsing vmid: %w", err)
 	}
 
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(*vmid, p.config.StateRoot, p.config.SocketDir, p.fs)
 
 	pid, pidErr := vmState.PID()
 	if pidErr != nil {
@@ -134,7 +136,7 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 		return ports.MicroVMStateUnknown, fmt.Errorf("parsing vmid: %w", err)
 	}
 
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(*vmid, p.config.StateRoot, p.config.SocketDir, p.fs)
 	pidPath := vmState.PIDPath()
 
 	exists, err := afero.Exists(p.fs, pidPath)
@@ -171,7 +173,7 @@ func (p *fcProvider) Metrics(_ context.Context, vmid models.VMID) (ports.Machine
 		Data:        shared.Metrics{},
 	}
 
-	vmState := NewState(vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(vmid, p.config.StateRoot, p.config.SocketDir, p.fs)
 
 	file, err := os.Open(vmState.MetricsPath())
 	if err != nil {
