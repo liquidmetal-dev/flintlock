@@ -34,7 +34,7 @@ func (p *provider) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("parsing vmid: %w", err)
 	}
 
-	vmState := NewState(*vmid, p.config.StateRoot, p.fs)
+	vmState := NewState(*vmid, p.config.StateRoot, p.config.SocketDir, p.fs)
 
 	pid, pidErr := vmState.PID()
 	if pidErr != nil {
@@ -49,7 +49,7 @@ func (p *provider) Delete(ctx context.Context, id string) error {
 		return nil
 	}
 
-	chClient := cloudhypervisor.New(vmState.SockPath())
+	chClient := cloudhypervisor.New(vmState.ResolveSockPath())
 
 	if shutdownErr := chClient.Shutdown(ctx); shutdownErr != nil {
 		return fmt.Errorf("shutting down cloud-hypervisor vm: %w", shutdownErr)

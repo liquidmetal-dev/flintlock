@@ -28,11 +28,13 @@ func TestMicroVMDeletePlan(t *testing.T) {
 	spec := createTestSpec("vmid", "namespace")
 	spec.Spec.DeletedAt = 1
 	plan := plans.MicroVMDeletePlan(&plans.DeletePlanInput{
-		VM:             spec,
-		StateDirectory: "/tmp/path/to/vm",
+		VM:              spec,
+		StateDirectory:  "/tmp/path/to/vm",
+		SocketDirectory: "/tmp/run",
 	})
 
 	mockedPorts.FileSystem.MkdirAll("/tmp/path/to/vm/asd", os.ModeDir)
+	mockedPorts.FileSystem.MkdirAll("/tmp/run/"+testUID, os.ModeDir)
 
 	mList.MicroVMService.
 		EXPECT().
@@ -83,7 +85,7 @@ func TestMicroVMDeletePlan(t *testing.T) {
 	steps, createErr := plan.Create(ctx)
 
 	Expect(createErr).NotTo(HaveOccurred())
-	Expect(steps).To(HaveLen(4))
+	Expect(steps).To(HaveLen(5))
 
 	for _, step := range steps {
 		should, err := step.ShouldDo(ctx)

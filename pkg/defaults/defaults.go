@@ -43,6 +43,10 @@ const (
 	// StateRootDir is the default directory to use for state information.
 	StateRootDir = "/var/lib/flintlock"
 
+	// SocketRootDir is the default directory to use for per-microvm unix sockets. It's kept short
+	// so socket paths stay within the unix socket path length limit.
+	SocketRootDir = "/run/flintlock"
+
 	// GRPCEndpoint is the endpoint for the gRPC server.
 	GRPCAPIEndpoint = "localhost:9090"
 

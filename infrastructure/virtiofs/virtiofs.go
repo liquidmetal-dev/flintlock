@@ -40,7 +40,7 @@ func (s *vFSService) Create(ctx context.Context,
 	vmid *models.VMID,
 	input ports.VirtioFSCreateInput,
 ) (*models.Mount, error) {
-	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
+	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.config.SocketDir, s.fs)
 	if err := s.ensureState(state); err != nil {
 		return nil, fmt.Errorf("ensuring state dir: %w", err)
 	}
@@ -64,7 +64,7 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 		"service": "virtiofs_delete",
 		"vmid":    vmid.String(),
 	})
-	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
+	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.config.SocketDir, s.fs)
 	pid, _ := state.VirtioPID()
 	processExists, err := process.Exists(pid)
 	if err != nil {
@@ -91,7 +91,7 @@ func (s *vFSService) Delete(ctx context.Context, vmid *models.VMID) error {
 }
 
 func (s *vFSService) HasVirtioFSDProcess(_ context.Context, vmid *models.VMID) (bool, error) {
-	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.fs)
+	state := NewState(*vmid, s.config.StateRootDir+"/vm", s.config.SocketDir, s.fs)
 	pid, _ := state.VirtioPID()
 	if pid == -1 {
 		return false, nil

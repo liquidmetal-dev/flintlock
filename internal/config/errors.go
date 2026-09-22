@@ -27,3 +27,19 @@ func newCertMissingError(subject, target string) *certMissingError {
 		target:  target,
 	}
 }
+
+type socketDirError struct {
+	dir    string
+	reason string
+}
+
+func (e *socketDirError) Error() string {
+	return fmt.Sprintf("socket directory %s %s", e.dir, e.reason)
+}
+
+func newSocketDirError(dir, reason string) *socketDirError {
+	return &socketDirError{
+		dir:    dir,
+		reason: reason,
+	}
+}

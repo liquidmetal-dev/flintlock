@@ -37,15 +37,16 @@ func newTestProvider(t *testing.T) (*provider, string, State) {
 	t.Cleanup(func() { _ = os.RemoveAll(stateRoot) })
 
 	p := &provider{
-		config: &Config{StateRoot: stateRoot},
+		config: &Config{StateRoot: stateRoot, SocketDir: stateRoot},
 		fs:     fs,
 	}
 
 	vmid, err := models.NewVMID(testVMName, testVMNamespace, testVMUID)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
-	vmState := NewState(*vmid, stateRoot, fs)
+	vmState := NewState(*vmid, stateRoot, stateRoot, fs)
 	g.Expect(fs.MkdirAll(vmState.Root(), 0o755)).To(g.Succeed())
+	g.Expect(fs.MkdirAll(vmState.SocketRoot(), 0o755)).To(g.Succeed())
 
 	return p, vmid.String(), vmState
 }

@@ -18,7 +18,7 @@ func testVSockState(t *testing.T) firecracker.State {
 	vmid, err := models.NewVMID("test", "ns", "344780b0-6249-11ec-90d6-0242ac120003")
 	g.Expect(err).NotTo(g.HaveOccurred())
 
-	return firecracker.NewState(*vmid, "/var/lib/flintlock", afero.NewMemMapFs())
+	return firecracker.NewState(*vmid, "/var/lib/flintlock", "/run/flintlock", afero.NewMemMapFs())
 }
 
 func TestWithVsock_Enabled(t *testing.T) {

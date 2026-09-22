@@ -18,21 +18,24 @@ import (
 )
 
 type CreateOrUpdatePlanInput struct {
-	StateDirectory string
-	VM             *models.MicroVM
+	StateDirectory  string
+	SocketDirectory string
+	VM              *models.MicroVM
 }
 
 func MicroVMCreateOrUpdatePlan(input *CreateOrUpdatePlanInput) planner.Plan {
 	return &microvmCreateOrUpdatePlan{
-		vm:       input.VM,
-		stateDir: input.StateDirectory,
-		steps:    []planner.Procedure{},
+		vm:         input.VM,
+		stateDir:   input.StateDirectory,
+		socketRoot: models.SocketRoot(input.SocketDirectory, input.VM.ID),
+		steps:      []planner.Procedure{},
 	}
 }
 
 type microvmCreateOrUpdatePlan struct {
-	vm       *models.MicroVM
-	stateDir string
+	vm         *models.MicroVM
+	stateDir   string
+	socketRoot string
 
 	steps []planner.Procedure
 }
@@ -64,6 +67,11 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 
 	if err := p.addStep(ctx, runtime.NewCreateDirectory(p.stateDir, defaults.DataDirPerm, ports.FileSystem)); err != nil {
 		return nil, fmt.Errorf("adding root dir step: %w", err)
+	}
+
+	socketDirStep := runtime.NewCreateDirectory(p.socketRoot, defaults.DataDirPerm, ports.FileSystem)
+	if err := p.addStep(ctx, socketDirStep); err != nil {
+		return nil, fmt.Errorf("adding socket dir step: %w", err)
 	}
 
 	// MicroVM provider doesn't have virtiofs

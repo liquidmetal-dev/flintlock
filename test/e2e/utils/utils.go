@@ -25,6 +25,17 @@ func CreateMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateM
 	return created
 }
 
+// CreateGuestAgentMVM creates a microvm with the guest-agent vsock device attached.
+func CreateGuestAgentMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateMicroVMResponse {
+	spec := defaultTestMicroVM(name, ns)
+	spec.AllowGuestAgent = true
+
+	created, err := client.CreateMicroVM(context.Background(), &v1alpha1.CreateMicroVMRequest{Microvm: spec})
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	return created
+}
+
 func DeleteMVM(client v1alpha1.MicroVMClient, uid string) error {
 	deleteReq := v1alpha1.DeleteMicroVMRequest{
 		Uid: uid,

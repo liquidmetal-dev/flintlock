@@ -97,3 +97,20 @@ func testDirExists(t *testing.T, dir string, mode os.FileMode, fs afero.Fs) {
 	Expect(info.IsDir()).To(BeTrue())
 	Expect(info.Mode().String()).To(Equal(mode.String()))
 }
+
+func TestCreateDirectory_ParentNotExists(t *testing.T) {
+	RegisterTestingT(t)
+
+	testDir := t.TempDir() + "/parent/dir"
+	testMode := os.FileMode(0o755)
+
+	fs := afero.NewOsFs()
+	ctx := context.Background()
+
+	step := runtime.NewCreateDirectory(testDir, testMode, fs)
+	_, err := step.Do(ctx)
+
+	Expect(err).NotTo(HaveOccurred())
+
+	testDirExists(t, testDir, testMode|os.ModeDir, fs)
+}

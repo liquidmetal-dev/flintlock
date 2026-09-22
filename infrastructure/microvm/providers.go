@@ -64,6 +64,7 @@ func firecrackerConfig(cfg *config.Config) *firecracker.Config {
 		FirecrackerBin: cfg.FirecrackerBin,
 		RunDetached:    cfg.FirecrackerDetatch,
 		StateRoot:      cfg.StateRootDir + "/vm",
+		SocketDir:      cfg.SocketDir,
 	}
 }
 
@@ -72,5 +73,6 @@ func cloudHypervisorConfig(cfg *config.Config) *cloudhypervisor.Config {
 		CloudHypervisorBin: cfg.CloudHypervisorBin,
 		RunDetached:        cfg.CloudHypervisorDetatch,
 		StateRoot:          cfg.StateRootDir + "/vm",
+		SocketDir:          cfg.SocketDir,
 	}
 }

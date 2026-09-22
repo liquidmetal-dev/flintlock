@@ -83,7 +83,7 @@ func (s *createDirectory) Do(ctx context.Context) ([]planner.Procedure, error) {
 	if !exists {
 		logger.Trace("creating directory")
 
-		if err := s.fs.Mkdir(s.dir, s.mode); err != nil {
+		if err := s.fs.MkdirAll(s.dir, s.mode); err != nil {
 			return nil, fmt.Errorf("creating directory %s: %w", s.dir, err)
 		}
 	}
