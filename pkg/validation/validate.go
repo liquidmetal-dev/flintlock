@@ -2,7 +2,9 @@ package validation
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/containerd/containerd/reference"
@@ -30,6 +32,7 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("onlyOneVirtioFS", customOnlyOneVirtioFSValidator, false)
 	_ = validator.RegisterValidation("multipleVolSources", customMultipleVolSources, false)
 	_ = validator.RegisterValidation("kvmCapability", customKVMCapabilityValidator, false)
+	_ = validator.RegisterValidation("imageFilePath", customImageFilePathValidator, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
 
 	return &validate{
@@ -124,4 +127,12 @@ func customMultipleVolSources(fieldLevel playgroundValidator.FieldLevel) bool {
 	}
 
 	return true
+}
+
+// customImageFilePathValidator ensures a path to a file inside a container image is
+// relative and can't escape the image root (e.g. no absolute paths or ".." traversal).
+func customImageFilePathValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	path := fieldLevel.Field().String()
+
+	return filepath.IsLocal(path) && !strings.ContainsRune(path, 0)
 }

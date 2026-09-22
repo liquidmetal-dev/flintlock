@@ -42,6 +42,20 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			},
 		},
 		{
+			name:         "spec with kernel filename traversal, should fail",
+			specToCreate: createTestSpecWithKernelFilename("../../../../etc/shadow"),
+			expectError:  true,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
+		{
+			name:         "spec with absolute initrd filename, should fail",
+			specToCreate: createTestSpecWithInitrdFilename("/etc/shadow"),
+			expectError:  true,
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
+		{
 			name:         "spec with no id or namespace, create id/ns and create",
 			specToCreate: createTestSpec("", "", ""),
 			expectError:  false,
@@ -639,6 +653,23 @@ func createTestSpec(name, ns, uid string) *models.MicroVM {
 func createTestSpecWithGuestAgent(name, ns, uid string) *models.MicroVM {
 	spec := createTestSpecWithMetadata(name, ns, uid, map[string]string{})
 	spec.Spec.AllowGuestAgent = true
+
+	return spec
+}
+
+func createTestSpecWithKernelFilename(filename string) *models.MicroVM {
+	spec := createTestSpec("id1234", "default", testUID)
+	spec.Spec.Kernel.Filename = filename
+
+	return spec
+}
+
+func createTestSpecWithInitrdFilename(filename string) *models.MicroVM {
+	spec := createTestSpec("id1234", "default", testUID)
+	spec.Spec.Initrd = &models.Initrd{
+		Image:    "docker.io/linuxkit/kernel:5.4.129",
+		Filename: filename,
+	}
 
 	return spec
 }

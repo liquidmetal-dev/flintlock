@@ -141,8 +141,13 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		kernelCmdLine.Set(key, value)
 	}
 
+	kernelPath, err := shared.ResolveImageFile(vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("resolving kernel path: %w", err)
+	}
+
 	args = append(args, "--cmdline", kernelCmdLine.String())
-	args = append(args, "--kernel", fmt.Sprintf("%s/%s", vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename))
+	args = append(args, "--kernel", kernelPath)
 
 	// CPU and memory
 	cpusArg := fmt.Sprintf("boot=%d", vm.Spec.VCPU)
