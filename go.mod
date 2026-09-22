@@ -50,6 +50,7 @@ require (
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/platforms v0.2.1
 	github.com/containerd/typeurl/v2 v2.3.0
+	github.com/cyphar/filepath-securejoin v0.6.0
 	github.com/diskfs/go-diskfs v1.9.4
 	github.com/docker/go-units v0.5.0
 	github.com/gorilla/mux v1.8.1
@@ -82,7 +83,6 @@ require (
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/containernetworking/plugins v1.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/djherbis/times v1.6.0 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect

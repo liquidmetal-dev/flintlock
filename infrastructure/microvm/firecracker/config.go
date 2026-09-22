@@ -115,19 +115,40 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			kernelCmdLine.Set("network-config", networkConfig)
 		}
 
-		kernelArgs := kernelCmdLine.String()
-		cfg.BootSource = BootSourceConfig{
-			KernelImagePage: fmt.Sprintf("%s/%s", vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename),
-			BootArgs:        &kernelArgs,
+		bootSource, err := buildBootSource(vm, kernelCmdLine.String())
+		if err != nil {
+			return err
 		}
 
-		if vm.Spec.Initrd != nil {
-			initrdPath := fmt.Sprintf("%s/%s", vm.Status.InitrdMount.Source, vm.Spec.Initrd.Filename)
-			cfg.BootSource.InitrdPath = &initrdPath
-		}
+		cfg.BootSource = *bootSource
 
 		return nil
 	}
+}
+
+// buildBootSource resolves the kernel (and optional initrd) paths within their image
+// mounts, so a spec can't point the VMM at files outside the images.
+func buildBootSource(vm *models.MicroVM, kernelArgs string) (*BootSourceConfig, error) {
+	kernelPath, err := shared.ResolveImageFile(vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("resolving kernel path: %w", err)
+	}
+
+	bootSource := &BootSourceConfig{
+		KernelImagePage: kernelPath,
+		BootArgs:        &kernelArgs,
+	}
+
+	if vm.Spec.Initrd != nil {
+		initrdPath, err := shared.ResolveImageFile(vm.Status.InitrdMount.Source, vm.Spec.Initrd.Filename)
+		if err != nil {
+			return nil, fmt.Errorf("resolving initrd path: %w", err)
+		}
+
+		bootSource.InitrdPath = &initrdPath
+	}
+
+	return bootSource, nil
 }
 
 // buildCPUConfig merges the enable/disable lists from the microvm spec into a single

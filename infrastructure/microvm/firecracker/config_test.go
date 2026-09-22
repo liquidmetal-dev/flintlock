@@ -1,12 +1,15 @@
 package firecracker_test
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	g "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 
+	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/firecracker"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
@@ -49,7 +52,14 @@ func TestWithVsock_Disabled(t *testing.T) {
 
 // vmForMicroVM builds a minimal-but-valid microvm (kernel + root volume mounted, no
 // network interfaces) so WithMicroVM runs to completion.
-func vmForMicroVM(cpuConfig *models.CPUConfig) *models.MicroVM {
+func vmForMicroVM(t *testing.T, cpuConfig *models.CPUConfig) *models.MicroVM {
+	t.Helper()
+
+	kernelDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(kernelDir, "vmlinux"), []byte("kernel"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
 	return &models.MicroVM{
 		Spec: models.MicroVMSpec{
 			VCPU:       1,
@@ -59,7 +69,7 @@ func vmForMicroVM(cpuConfig *models.CPUConfig) *models.MicroVM {
 			CPUConfig:  cpuConfig,
 		},
 		Status: models.MicroVMStatus{
-			KernelMount: &models.Mount{Source: "/kernel"},
+			KernelMount: &models.Mount{Source: kernelDir},
 			Volumes: models.VolumeStatuses{
 				"root": &models.VolumeStatus{Mount: models.Mount{Source: "/root.img"}},
 			},
@@ -70,7 +80,7 @@ func vmForMicroVM(cpuConfig *models.CPUConfig) *models.MicroVM {
 func TestWithMicroVM_CPUConfig_EnableAndDisable(t *testing.T) {
 	g.RegisterTestingT(t)
 
-	vm := vmForMicroVM(&models.CPUConfig{
+	vm := vmForMicroVM(t, &models.CPUConfig{
 		FeaturesToEnable:         []string{"171"},
 		KVMCapabilitiesToDisable: []string{"56"},
 	})
@@ -85,7 +95,7 @@ func TestWithMicroVM_CPUConfig_EnableAndDisable(t *testing.T) {
 func TestWithMicroVM_CPUConfig_Nil(t *testing.T) {
 	g.RegisterTestingT(t)
 
-	vm := vmForMicroVM(nil)
+	vm := vmForMicroVM(t, nil)
 
 	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
 	g.Expect(err).NotTo(g.HaveOccurred())
@@ -95,9 +105,46 @@ func TestWithMicroVM_CPUConfig_Nil(t *testing.T) {
 func TestWithMicroVM_CPUConfig_Empty(t *testing.T) {
 	g.RegisterTestingT(t)
 
-	vm := vmForMicroVM(&models.CPUConfig{})
+	vm := vmForMicroVM(t, &models.CPUConfig{})
 
 	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(cfg.CPUConfig).To(g.BeNil())
+}
+
+func TestWithMicroVM_BootSourcePathsWithinMount(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+
+	initrdDir := t.TempDir()
+	g.Expect(os.WriteFile(filepath.Join(initrdDir, "initrd.img"), []byte("initrd"), 0o600)).To(g.Succeed())
+	vm.Spec.Initrd = &models.Initrd{Filename: "initrd.img"}
+	vm.Status.InitrdMount = &models.Mount{Source: initrdDir}
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cfg.BootSource.KernelImagePage).To(g.Equal(filepath.Join(vm.Status.KernelMount.Source, "vmlinux")))
+	g.Expect(cfg.BootSource.InitrdPath).To(g.HaveValue(g.Equal(filepath.Join(initrdDir, "initrd.img"))))
+}
+
+func TestWithMicroVM_KernelPathTraversalRejected(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.Kernel.Filename = "../../../../../../etc/passwd"
+
+	_, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).To(g.MatchError(errors.ErrInvalidImageFilePath))
+}
+
+func TestWithMicroVM_InitrdPathTraversalRejected(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.Initrd = &models.Initrd{Filename: "../../../../../../etc/passwd"}
+	vm.Status.InitrdMount = &models.Mount{Source: t.TempDir()}
+
+	_, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).To(g.MatchError(errors.ErrInvalidImageFilePath))
 }
