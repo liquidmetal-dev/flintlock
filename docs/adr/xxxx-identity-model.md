@@ -336,12 +336,12 @@ worth paying on a guess.
 `EnvKeyReplacer`, so viper looks up `FLINTLOCKD_TRUST-DOMAIN`, which is not a
 usable POSIX environment variable name. This affects every hyphenated flag
 flintlock already has, including `basic-auth-token` and `tls-client-ca`.
-Tracked separately.
+Tracked in #1243.
 
 **`VMID` becomes identity-bearing, and two escape hatches become
 security-relevant.** `NewVMIDForce` (`core/models/vmid.go:48`) bypasses all
 validation, and `SetUID` (`:110`) mutates a VMID after construction. Both are
-fine for a naming key and questionable for an identity. Tracked separately.
+fine for a naming key and questionable for an identity. Tracked in #1246.
 
 **No deployment changes behaviour on upgrade,** because `--authz-mode` defaults
 to `off`.
@@ -363,8 +363,13 @@ things to different callers.
 end up answered the same way. `reflection.Register` is unconditional
 (`internal/command/run/run.go:240`); gating it stays with #1238.
 
-**Issues created as a result of this ADR:** the viper environment-variable
-binding bug; the guest SVID issuance ADR; Cedar policy hot-reload; hardening
-`NewVMIDForce` and `SetUID`; correcting the stale ADR-numbering instruction in
-`CONTRIBUTING.md`; and correcting ADR 0003's status, which still reads
-`Proposed` although it was implemented.
+**Issues created as a result of this ADR:**
+
+- #1243 — hyphenated flags cannot be set via their `FLINTLOCKD_*` environment
+  variable, which blocks `FLINTLOCKD_TRUST_DOMAIN`
+- #1244 — ADR: issuing SPIFFE SVIDs to guest microVMs (deferred from decision 9)
+- #1245 — hot-reload the authorization policy without a restart (deferred from
+  decision 14)
+- #1246 — harden VMID construction now that it is identity-bearing
+- #1247 — `CONTRIBUTING.md` describes the wrong ADR numbering convention
+- #1248 — ADR 0003 still reads `Status: Proposed` although it was implemented
