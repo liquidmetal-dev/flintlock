@@ -1,7 +1,7 @@
 # 3. MicroVM Spec Validation
 
-- Status: Proposed
-- Date: 2021-10-14
+- Status: Accepted
+- Date: 2021-10-14 (approved on 2026-09-23)
 - Authors: @jmickey
 - Deciders: @jmickey @richardcase
 
