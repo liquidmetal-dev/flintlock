@@ -103,7 +103,7 @@ Today flintlock has no support for any part of this:
 | Disk snapshot API | None | None |
 | Memory backends | `File` (lazy, `MAP_PRIVATE`) or `Uffd` (external page-fault handler) | `copy` (default, eager), `ondemand` (userfaultfd), `copyonwrite` (shared page cache) |
 | Diff snapshots | Developer preview | Not supported |
-| Version rules | Each binary supports exactly one snapshot format version; snapshots are compatible only if the CPU features exposed to the guest are invariant (same vendor, same template or feature set); Intel to AMD is unsupported; host kernel changes are "unstable" | No documented guarantees |
+| Version rules | Each binary supports exactly one snapshot format version; snapshots are compatible only if the effective guest-visible CPU configuration is invariant (a matching template name is not enough); Intel to AMD is unsupported; host kernel changes are "unstable" | No documented guarantees |
 | Not captured | Disk contents, MMDS data store, network connections, logger/metrics config; vsock is reset | Disk contents |
 | Host resource remapping | `network_overrides`, `vsock_override` (no drive override) | `net_fds`, or editing `config.json` |
 | vhost-user block | Developer preview; snapshots are not supported for VMs with vhost-user devices | Supported (`vhost_user_block` is raw only) |
@@ -136,13 +136,13 @@ supporting research is in
 | SNAP-CRT-002 | Flintlock MUST reject a snapshot request for a microVM that is not running. |
 | SNAP-CRT-003 | Flintlock SHOULD reject, or warn about, a snapshot request made before the guest kernel has finished booting (Firecracker documents that such snapshots can crash the guest on resume). |
 | SNAP-CRT-004 | Flintlock MUST reject a snapshot request before pausing the microVM if the microVM has any device that cannot be snapshotted. Virtiofs volumes MUST be treated as unsupported. |
-| SNAP-CRT-005 | Snapshot creation MUST follow this order: optional quiesce (SNAP-QSC), pause, VMM snapshot, point-in-time block capture of every mounted volume (SNAP-VOL), then resume or stop the source VM. |
-| SNAP-CRT-006 | The client MUST be able to choose whether the source VM is resumed or stopped after the snapshot. The default MUST be to resume. The stop choice applies only when the snapshot succeeds (SNAP-CRT-011). |
-| SNAP-CRT-007 | Compression, packaging, and pushing MUST take place after the source VM has been resumed or stopped, so that they do not add to the pause time. |
+| SNAP-CRT-005 | Snapshot creation MUST follow this order: optional quiesce (SNAP-QSC), pause, VMM snapshot, point-in-time block capture of every mounted volume (SNAP-VOL). Then, if the client chose resume, flintlock MUST resume (and thaw) the source VM and package afterwards. If the client chose stop, the source VM MUST remain paused while the package is built in the local store, and MUST be stopped once the package is complete and verified (the stop point). |
+| SNAP-CRT-006 | The client MUST be able to choose whether the source VM is resumed or stopped after the snapshot. The default MUST be to resume. The stop takes effect at the stop point defined in SNAP-CRT-005, after the package is complete and verified in the local store (SNAP-PKG-011, SNAP-PKG-012), and not before (SNAP-CRT-011). |
+| SNAP-CRT-007 | When the source VM is to be resumed, compression and packaging MUST take place after the resume, so that they do not add to the pause time. When it is to be stopped, they take place while it is still paused (SNAP-CRT-005), and that time MUST NOT count against the maximum pause duration (SNAP-VOL-005). Pushing MUST take place after the resume or the stop in both cases. |
 | SNAP-CRT-008 | Snapshot creation MUST be asynchronous: the request MUST return a snapshot identifier, and the client MUST be able to observe progress and the final result. |
 | SNAP-CRT-009 | Flintlock MUST produce only full snapshots. |
 | SNAP-CRT-010 | Flintlock MUST NOT allow more than one snapshot of the same microVM to be in progress at a time. |
-| SNAP-CRT-011 | If snapshot creation fails at any point after the pause, flintlock MUST return the source VM to its prior running state (resumed, and thawed if it was quiesced), regardless of whether the client asked for it to be stopped. The client MAY stop it explicitly afterwards. |
+| SNAP-CRT-011 | If snapshot creation fails at any point after the pause and before the stop point (SNAP-CRT-005), flintlock MUST return the source VM to its prior running state (resumed, and thawed if it was quiesced), regardless of whether the client asked for it to be stopped; the client MAY stop it explicitly afterwards. If the push fails after the stop point, the snapshot MUST remain available from the local store with the failure reported, the push MAY be retried, and the source VM MUST NOT be restarted. |
 
 ### 5.3 Quiesce (SNAP-QSC)
 
@@ -151,7 +151,9 @@ is drained (SNAP-VOL). The captured blocks are therefore exactly what the guest
 kernel's memory expects, in the same way that a running VM is consistent with
 its own disk, so quiescing is not needed for filesystem consistency. It remains
 useful for *application* consistency (for example flushing a database before
-the snapshot) and is offered as an option.
+the snapshot) and is offered as an option. A quiesced source VM that is kept
+paused through packaging because the client chose stop (SNAP-CRT-005) stays
+frozen and is never thawed, since it is stopped rather than resumed.
 
 | ID | Requirement |
 | -- | ----------- |
@@ -171,7 +173,7 @@ the snapshot) and is offered as an option.
 | SNAP-VOL-002 | The kernel and initrd MUST NOT be copied into the snapshot package. They MUST be referenced by OCI image digest (SNAP-PKG-006). (Revised: read-only volumes are no longer exempt; see SNAP-VOL-010.) |
 | SNAP-VOL-003 | The source VM MUST remain paused until every mounted volume has been captured at the same point in time as the VMM snapshot. |
 | SNAP-VOL-004 | Flintlock SHOULD use the capture mechanism with the shortest pause that the VMM and storage backend support (see the capture options below). When the mechanism's pause grows with the size of the volume, flintlock SHOULD log a warning. |
-| SNAP-VOL-005 | Flintlock SHOULD support a configurable maximum pause duration. If the capture would exceed it, flintlock SHOULD abort the snapshot and resume the source VM. |
+| SNAP-VOL-005 | Flintlock SHOULD support a configurable maximum pause duration covering the VMM snapshot and volume capture. If the capture would exceed it, flintlock SHOULD abort the snapshot and resume the source VM. Packaging time for a source VM that will be stopped (SNAP-CRT-007) is not subject to this limit. |
 | SNAP-VOL-006 | On restore, flintlock MUST recreate each mounted volume, before starting the VMM, by obtaining its base block image (SNAP-VOL-011), verifying it, and applying the volume delta (or writing the full volume image when the package carries one). |
 | SNAP-VOL-007 | Restored volumes MUST be presented to the VMM with the device ordering and drive identifiers the snapshot expects. Every restore MUST create the restored VM's volumes at host paths unique to that VM, never reusing the source VM's or another clone's paths. For Cloud Hypervisor, flintlock MUST rewrite the disk paths in the saved configuration to those paths before restore. For Firecracker, which has no drive override at load time and reopens each block device at the path stored in the snapshot, the stored path MUST resolve, in the restored Firecracker process, to that VM's own volume. The mechanism (for example a relative path with a per-VM working directory, a per-VM mount namespace, or the jailer's chroot) is left to the design. |
 | SNAP-VOL-008 | After the capture, the source VM's volumes MUST remain usable by the source VM and MUST remain correctly tracked by containerd, so that the source VM can be snapshotted again and deleted normally. |
@@ -241,7 +243,7 @@ an artifact or building it deterministically, is also undecided.
 
 | ID | Requirement |
 | -- | ----------- |
-| SNAP-META-001 | The package MUST contain a plaintext compatibility descriptor with at least: VMM type; exact VMM version; VMM snapshot format version (Firecracker); flintlock version; package format version; host CPU architecture; CPU vendor, model, and feature flags, or the CPU template used; host kernel version; interrupt controller version (arm64 GIC); vCPU count and memory size; digests of the images the snapshot depends on; for each mounted volume, its drive identifier and order, size, block size, filesystem type, base block image digest, and delta format version; whether the snapshot was quiesced; creation time; source VM UID, name, and namespace; client-supplied labels; and the restore policy (SNAP-SEC-002), if any. |
+| SNAP-META-001 | The package MUST contain a plaintext compatibility descriptor with at least: VMM type; exact VMM version; VMM snapshot format version (Firecracker); flintlock version; package format version; host CPU architecture; CPU vendor and model; the CPU template used, if any; for Firecracker, the effective guest-visible CPU configuration captured on the source host (CPUID leaves and MSRs on x86_64, system registers on arm64), or a digest of it; host kernel version; interrupt controller version (arm64 GIC); vCPU count and memory size; digests of the images the snapshot depends on; for each mounted volume, its drive identifier and order, size, block size, filesystem type, base block image digest, and delta format version; whether the snapshot was quiesced; creation time; source VM UID, name, and namespace; client-supplied labels; and the restore policy (SNAP-SEC-002), if any. |
 | SNAP-META-002 | Flintlock MUST be able to read and evaluate the compatibility descriptor without reading the guest memory, VMM state, or volume layers. |
 | SNAP-META-003 | The package MUST include the full microVM spec of the source VM, including the `metadata` map, separately from the compatibility descriptor. Because the `metadata` map often holds secrets such as cloud-init user data, and is stored unencrypted in this version, the spec MUST be treated as sensitive (SNAP-SEC-001). |
 | SNAP-META-004 | The compatibility descriptor MUST NOT contain the source VM's `metadata` map or any other guest-supplied secret. |
@@ -254,8 +256,8 @@ an artifact or building it deterministically, is also undecided.
 | SNAP-RST-001 | A client MUST be able to create a microVM from a snapshot package in a registry or in the local store, through the same creation path as other microVMs (SNAP-API-003). |
 | SNAP-RST-002 | The client MAY override the restored VM's name, namespace, UID, labels, metadata, and host-side network devices. |
 | SNAP-RST-003 | Flintlock MUST reject a restore request that changes vCPU count, memory size, CPU configuration, or the set and order of devices. |
-| SNAP-RST-004 | Before starting the VMM, flintlock MUST check the compatibility descriptor against the host and MUST reject the restore, with an error naming the mismatch, if any of these differ: VMM type, CPU architecture, interrupt controller version; for Firecracker, the snapshot format version, the CPU vendor, and the set of CPU features exposed to the guest (the CPU template, or the host's guest-visible feature set when no template is used); for Cloud Hypervisor, the exact VMM version. Firecracker documents that snapshots are compatible only when the guest-visible CPU features are invariant and that Intel to AMD restores are unsupported, so these checks MUST NOT be skippable. |
-| SNAP-RST-005 | Flintlock SHOULD also reject the restore if the host kernel version differs (Firecracker documents restores across host kernels as unstable), if the CPU model name differs while the guest-visible features match, or, for Cloud Hypervisor, if the CPU vendor, model, or feature flags differ. The client MAY set a force flag to skip the checks in this requirement, but not those in SNAP-RST-004. |
+| SNAP-RST-004 | Before starting the VMM, flintlock MUST check the compatibility descriptor against the host and MUST reject the restore, with an error naming the mismatch, if any of these differ: VMM type, CPU architecture, interrupt controller version; for Firecracker, the snapshot format version, the CPU vendor, and the effective guest-visible CPU configuration recorded in the descriptor, which MUST match the target host's exactly; for Cloud Hypervisor, the exact VMM version. A matching CPU template name is not sufficient for the Firecracker check, because the configuration a template produces depends on the host's BIOS, CPU, kernel, and Firecracker version. Firecracker documents that snapshots are compatible only when the guest-visible CPU features are invariant and that Intel to AMD restores are unsupported, so these checks MUST NOT be skippable. |
+| SNAP-RST-005 | Flintlock SHOULD also reject the restore if the host kernel version differs (Firecracker documents restores across host kernels as unstable), if the CPU model name differs while the effective CPU configuration matches, or, for Cloud Hypervisor, if the CPU vendor, model, or feature flags differ. The client MAY set a force flag to skip the checks in this requirement, but not those in SNAP-RST-004. |
 | SNAP-RST-006 | Flintlock MUST check the restore policy (SNAP-SEC-002) and signature (SNAP-SEC-004) before pulling the guest memory, VMM state, or volume layers. |
 | SNAP-RST-007 | By default, flintlock MUST give the restored VM the source VM's metadata. The client MAY supply replacement metadata. |
 | SNAP-RST-008 | Flintlock MUST add restore markers to the restored VM's metadata: the snapshot identifier, the restored VM's UID, and a restore generation counter that is unique for each restore of the same snapshot. |
@@ -264,7 +266,7 @@ an artifact or building it deterministically, is also undecided.
 | SNAP-RST-011 | A restored VM MUST be managed like any other microVM: it MUST be reconciled, reported through `GetMicroVM` and `ListMicroVMs`, and deleted through `DeleteMicroVM`, including clean-up of its restored volumes and memory files. |
 | SNAP-RST-012 | A restored VM MUST be resumed after restore, and MUST be reported as created only after it has been resumed and, if the snapshot was quiesced, thawed (SNAP-QSC-007). |
 | SNAP-RST-013 | If a restore fails, flintlock MUST remove any partial state it created (VMM process, volumes, network devices, local copies of the package) and report the microVM as failed. |
-| SNAP-RST-014 | Flintlock MUST resolve the package reference to a manifest digest once, before any compatibility, policy, or signature check, MUST fetch the package's manifest, config, and layers by that digest for the rest of the restore, and MUST record it in the restore markers (SNAP-RST-008). Each dependency (images and base block images) is fetched by its own digest as recorded in the package (SNAP-PKG-006), never by tag. The client MAY supply a digest reference directly; a tag reference is resolved at this step and MUST NOT be re-read during the restore. |
+| SNAP-RST-014 | Flintlock MUST resolve the package reference to a manifest digest once, before any compatibility, policy, or signature check, MUST fetch the manifest by that digest, and MUST record it in the restore markers (SNAP-RST-008). The config and each layer are then fetched by the digests in that manifest's descriptors and verified (SNAP-PKG-012). Each dependency (images and base block images) is fetched by its own digest as recorded in the package (SNAP-PKG-006), never by tag. The client MAY supply a digest reference directly; a tag reference is resolved at this step and MUST NOT be re-read during the restore. |
 
 ### 5.8 Clones (SNAP-CLN)
 
@@ -309,12 +311,12 @@ restore policy only binds well-behaved flintlock hosts.
 | ID | Requirement |
 | -- | ----------- |
 | SNAP-API-001 | Snapshots MUST be exposed through a new `SnapshotService` in `snapshot.services.api.v1alpha1`, with operations to create a snapshot, get a snapshot, list snapshots, stream a list of snapshots, and delete a snapshot. Each operation MUST have a grpc-gateway REST mapping, following the pattern in `api/services/microvm/v1alpha1/microvms.proto`. |
-| SNAP-API-002 | A snapshot MUST be a first-class resource with an identifier, the source VM, the destination (registry reference or local store), labels, and a status. The status MUST include a phase (pending, quiescing, capturing, packaging, pushing, ready, failed), an error message on failure, and on success the package's reference and digest. |
+| SNAP-API-002 | A snapshot MUST be a first-class resource with an identifier, the source VM, the destination (registry reference or local store), labels, and a status. The status MUST include a phase (pending, quiescing, capturing, packaging, pushing, ready, failed), an error message on failure, and on success the package's reference and digest. A package that is complete in the local store but not yet pushed MUST keep its local reference in the status. |
 | SNAP-API-003 | `CreateMicroVM` MUST accept either a microVM spec (as today) or a snapshot source. A snapshot source MUST contain the package reference (a tag or a digest; see SNAP-RST-014), the overrides allowed by SNAP-RST-002, the memory restore mode, and the force flag (SNAP-RST-005). |
 | SNAP-API-004 | All API changes MUST be backwards compatible with existing `v1alpha1` clients. |
 | SNAP-API-005 | Deleting a snapshot MUST remove its record and any local package content that no restored VM references. Content still in use by a restored VM (the memory file in a lazy memory mode, SNAP-RST-010) MUST be retained under the lease or reference count that protects it and removed only when the last such VM is deleted. Flintlock MUST NOT delete snapshot packages from a remote registry. |
 | SNAP-API-006 | Deleting a snapshot MUST NOT affect restored VMs that are using its content; retained content is released only when those VMs have been deleted (SNAP-API-005, SNAP-RST-010). |
-| SNAP-API-007 | `ServerInfo` SHOULD report the VMM types and versions available on the host, and the host's compatibility descriptor fields, so clients can pick a compatible host before restoring. |
+| SNAP-API-007 | `ServerInfo` SHOULD report the VMM types and versions available on the host, the host's compatibility descriptor fields, and, for Firecracker, a digest of the host's effective guest-visible CPU configuration for each available CPU template, so clients can pick a compatible host before restoring. |
 
 ### 5.11 Operations (SNAP-OPS)
 
@@ -323,7 +325,7 @@ restore policy only binds well-behaved flintlock hosts.
 | SNAP-OPS-001 | Flintlock MUST publish events for snapshot phase changes and for restores. |
 | SNAP-OPS-002 | Flintlock SHOULD expose metrics for pause duration, snapshot size, packaging time, push time, and restore time. |
 | SNAP-OPS-003 | If a snapshot operation fails, flintlock MUST remove partial local artifacts. |
-| SNAP-OPS-004 | If flintlockd restarts while a snapshot is in progress, it MUST mark the snapshot as failed, remove partial artifacts, and thaw and resume the source VM if it is still frozen or paused, regardless of the client's stop choice (SNAP-CRT-011). |
+| SNAP-OPS-004 | If flintlockd restarts while a snapshot is in progress and the package is complete and verified in the local store, it MUST stop the source VM if the client chose stop, report the snapshot with its local reference, and MAY retry the push. Otherwise it MUST mark the snapshot as failed, remove partial artifacts, and thaw and resume the source VM if it is still frozen or paused, regardless of the client's stop choice (SNAP-CRT-011). |
 | SNAP-OPS-005 | Snapshot records MUST persist across flintlockd restarts. |
 
 ### 5.12 Future work: encryption (informative)
@@ -370,10 +372,13 @@ SNAP-SEC-008 keeps the package format open to this change.
   (SNAP-VOL-007). Flintlock runs Firecracker without the jailer today, so the
   design has to choose a mechanism (open question 8).
 * **Cross-host restore needs matching hosts.** Firecracker requires the same
-  snapshot format version, CPU vendor, and guest-visible CPU features, and
-  treats host kernel changes as unstable. Cloud Hypervisor gives no guarantees.
-  In practice, restore targets need to run the same hardware and software as
-  the source host.
+  snapshot format version, CPU vendor, and effective guest-visible CPU
+  configuration, and treats host kernel changes as unstable. Because the
+  effective configuration depends on BIOS, microcode, kernel, and Firecracker
+  version, an update on one side can break compatibility even between hosts
+  with identical hardware and CPU template. Cloud Hypervisor gives no
+  guarantees. In practice, restore targets need to run the same hardware and
+  software as the source host.
 * **Clones share guest identity.** Until per-clone network namespaces exist,
   clones that keep the source's MAC and IP need to be kept on separate networks or
   reconfigured by the guest. RNG reseeding depends on VMGenID support in the
@@ -410,6 +415,12 @@ SNAP-SEC-008 keeps the package format open to this change.
    per-VM working directory, a per-VM mount namespace, or the jailer's chroot?
    Snapshot load has no drive override, and flintlock runs Firecracker without
    the jailer today.
+9. How does flintlock obtain the effective guest-visible CPU configuration
+   for the compatibility descriptor (SNAP-META-001, SNAP-RST-004)?
+   `cpu-template-helper fingerprint dump` boots a throwaway microVM, so it is
+   a measurement per host, CPU template, kernel, and Firecracker version that
+   could be taken once and cached, invalidated when any of those change.
+   Reading the vCPU state from the snapshot state file is an alternative.
 
 ## 8. References
 
@@ -418,6 +429,8 @@ SNAP-SEC-008 keeps the package format open to this change.
   in particular `snapshot-support.md`,
   [`versioning.md` (CPU model)](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/versioning.md#cpu-model)
   and [(device model)](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/versioning.md#device-model),
+  [`cpu-template-helper.md`](https://github.com/firecracker-microvm/firecracker/blob/main/docs/cpu_templates/cpu-template-helper.md)
+  (fingerprint dump and compare),
   `network-for-clones.md`, and
   [`random-for-clones.md` (kernels with VMGenID)](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/random-for-clones.md#linux-kernels-with-vmgenid-support)
 * [OCI distribution specification](https://github.com/opencontainers/distribution-spec/blob/main/spec.md)
