@@ -15,9 +15,10 @@ answers one question:
 > Which embedded database libraries could hold flintlock's microVM records,
 > and how does each measure up against the STORE requirements?
 
-It does not choose. The choice is left to review and will be recorded as an
-ADR. Where a statement is my own judgement rather than a cited fact it is
-marked *assessment*.
+The survey was written neutrally. The decision taken on its basis is at the
+end of section 8 and in section 7 of the requirements document, and will be
+recorded as an ADR. Where a statement is my own judgement rather than a cited
+fact it is marked *assessment*.
 
 Every fact cites the source that owns it: the project's own documentation,
 its source at a tag, or pkg.go.dev. Versions and dates were observed on
@@ -343,6 +344,18 @@ Deciding criteria, in the order I would weigh them:
    binary. ncruces is the most modern pure-Go SQLite but is pre-1.0.
 4. **Binary size** (STORE-BLD-006) should be measured before the ADR, not
    estimated.
+
+### Decision
+
+Taken on 2026-09-25 (requirements, section 7): **SQLite through
+`modernc.org/sqlite`**. `flintlock-metrics` keeps reading the store directly
+while flintlockd is stopped, which needs a second read-only process
+(STORE-CONS-007) and rules out bbolt; the issue's motivation is queryability,
+which only SQLite provides without application-maintained indexes; and of the
+pure-Go SQLite drivers modernc is the mature one. Binary size is to be
+measured in the change that adds the dependency, and the `modernc.org/libc`
+pin documented in `CONTRIBUTING.md`. If the measured size is unacceptable,
+`ncruces/go-sqlite3` is the fallback with the same capabilities.
 
 ## 9. References
 

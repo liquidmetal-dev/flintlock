@@ -12,10 +12,10 @@
 This document describes one way to build the local store that satisfies the
 STORE requirements. Most of it is independent of the database: the port
 changes, the configuration, the shared handle, the save algorithm, the
-migration command and the tests are the same whichever library is chosen.
-Section 6 gives two storage layouts, one for a key-value store (bbolt) and one
-for SQLite, so that the database decision can be taken on the survey's terms
-without reopening the rest of the design.
+migration command and the tests are the same whichever library is used.
+Section 6 gives the SQLite layout, following the decision recorded in section
+7 of the requirements; the key-value layout that was considered is kept in
+section 6.2 for the record.
 
 Flintlock code is cited by path and line as of commit `b213882`. Requirement
 identifiers in brackets say which requirement a design element satisfies;
@@ -108,10 +108,10 @@ New fields on `internal/config.Config` [STORE-CFG-001, STORE-CFG-004,
 STORE-CFG-005]:
 
 ```go
-// StoreBackend selects where microvm records are kept: "containerd" or a
-// local store name.
+// StoreBackend selects where microvm records are kept: "containerd" or
+// "sqlite".
 StoreBackend string
-// StorePath is the local store file. Empty means <StateRootDir>/store/<backend>.db.
+// StorePath is the local store file. Empty means <StateRootDir>/store/flintlock.db.
 StorePath string
 // StoreHistory is the number of versions of each record the local store keeps.
 StoreHistory int
@@ -131,8 +131,8 @@ in [`run.go:83-91`](../../../internal/command/run/run.go) [STORE-CFG-001]:
 
 | Flag | Default | Description |
 | ---- | ------- | ----------- |
-| `--store-backend` | `containerd` | Backend for microvm records: `containerd` or `<local>`. |
-| `--store-path` | `<state-dir>/store/<backend>.db` | Path of the local store file. Ignored for `containerd`. |
+| `--store-backend` | `containerd` | Backend for microvm records: `containerd` or `sqlite`. |
+| `--store-path` | `<state-dir>/store/flintlock.db` | Path of the local store file. Ignored for `containerd`. |
 | `--store-history` | `10` | Versions of each record kept by the local store (minimum 1). |
 
 `internal/command/flags/urfave.go` gains `WithStoreFlags` for
@@ -162,12 +162,12 @@ infrastructure/store/
 ├── handle.go         # Handle interface: Repo() ports.MicroVMRepository, Close() error
 ├── conformance/      # Shared test suite (section 8)
 ├── export/           # JSON Lines export/import used by the migration (section 7)
-└── <backend>/        # One package per local store, e.g. bolt/ or sqlite/
+└── sqlite/           # The local store (section 6)
 ```
 
 The containerd repo stays in `infrastructure/containerd` and registers itself
-under the name `containerd`. Each local backend registers under its own name
-in an `init` or an explicit registry call from `internal/inject`.
+under the name `containerd`; the SQLite package registers under `sqlite`. The
+registry keeps the door open for another backend without touching the wiring.
 
 ### 4.2 One handle per process
 
@@ -206,24 +206,18 @@ containerd configuration [STORE-CFG-008]. Regenerate with `make generate-di`.
 ### 4.3 The reader process
 
 `flintlock-metrics` opens the store with `store.OpenReadOnly(ctx, cfg)`
-[STORE-CONS-008]. What that does depends on the backend:
+[STORE-CONS-008]: the SQLite file is opened with the read-only flag, WAL
+mode, a `busy_timeout` of a few seconds and a connection pool of one, and
+every HTTP request runs in its own short read transaction so that the WAL can
+still be checkpointed [STORE-CONS-007, STORE-CONS-009]. Because the reader
+only needs the file, `flintlock-metrics` keeps working while flintlockd is
+stopped, as it does today with the content store (decision 2 in the
+requirements). The reader never takes the write lock, so it cannot stop
+flintlockd from opening the store.
 
-* **SQLite:** opens the file with the read-only flag, WAL mode, a
-  `busy_timeout` of a few seconds, and a connection pool of one; every
-  request runs in its own short read transaction [STORE-CONS-007,
-  STORE-CONS-009].
-* **bbolt:** cannot open while flintlockd holds the file. `OpenReadOnly`
-  returns a repository that calls flintlockd's gRPC `GetMicroVM` and
-  `ListMicroVMs` instead, using the existing client package
-  ([`client/`](../../../client)). This needs the gRPC endpoint and TLS
-  flags on `flintlock-metrics`, which it does not have today
-  [STORE-CONS-007].
-
-Open question 2 in the requirements asks whether the gRPC route should be
-used for every backend. If it is, section 4.3 collapses to the second bullet
-and `flintlock-metrics` loses its store dependency altogether. That is the
-simpler end state; this candidate keeps the direct read so that the SQLite
-option can be used without touching the metrics binary's flags.
+The `-wal` and `-shm` files must be readable by the metrics process. Both
+binaries run as root today; if they are ever split into separate users, the
+`store/` directory needs a shared group with read permission on those files.
 
 ## 5. Save algorithm
 
@@ -264,50 +258,28 @@ because the latest row carries the counter and pruning never touches it
 STORE-DATA-004]. `Delete` removes the latest row and all version rows in one
 transaction and succeeds when there is nothing to remove [STORE-PORT-012].
 
-## 6. Storage layouts
+## 6. Storage layout
 
-Both layouts store the same JSON and the same derived fields
-[STORE-DATA-002, STORE-DATA-003]. Both carry a schema version and refuse to
-open a newer major version [STORE-DATA-005, STORE-DATA-006]. Both create the
-file with mode 0600 [STORE-DATA-009]; SQLite's `-wal` and `-shm` files
-inherit the directory's permissions, so the `store/` directory is created
-0700 and the file's directory is not shared with anything else.
+The store holds the record JSON and a derived copy of the identifying and
+status fields [STORE-DATA-002, STORE-DATA-003]. It carries a schema version
+and refuses to open a newer major version [STORE-DATA-005, STORE-DATA-006].
+The file is created with mode 0600 [STORE-DATA-009]; SQLite's `-wal` and
+`-shm` files inherit the directory's permissions, so the `store/` directory
+is created 0700 and is not shared with anything else.
 
-### 6.1 Layout A: key-value (bbolt)
+### 6.1 SQLite layout
 
-Buckets, all keys and values as bytes:
-
-| Bucket | Key | Value |
-| ------ | --- | ----- |
-| `meta` | `schema` | `"1.0"` |
-| `latest` | `<uid>` | JSON of the latest version |
-| `versions` | `<uid>` (nested bucket) then `<version, 8-byte big-endian>` | JSON of that version |
-| `byName` | `<namespace>\x00<name>` | `<uid>` |
-| `byNamespace` | `<namespace>\x00<uid>` | empty |
-
-`Get` by UID is one `latest` lookup. `Get` by (namespace, name, UID) checks
-`byName` then `latest`. `GetAll` with a namespace seeks the `byNamespace`
-prefix; with a name it uses `byName`; unfiltered it cursors `latest`. Sorting
-is done in memory after the scan; a few thousand records make that cheap.
-The `latest` value duplicates the newest `versions` entry so that a lookup
-never needs the nested bucket. Pruning walks the nested bucket from the
-lowest key and deletes until *N* remain.
-
-Open options: `Timeout: 100 * time.Millisecond` so a second opener fails
-fast, following Docker's practice [STORE-CONS-006]; `NoFreelistSync` off
-(the default) for crash safety [STORE-CONS-004]. bbolt fsyncs on every
-commit [STORE-CONS-003].
-
-Integrity and backup commands wrap `bbolt check` and `Tx.WriteTo`
-[STORE-OPS-002, STORE-OPS-003]. Reader process: gRPC route (section 4.3).
-
-### 6.2 Layout B: SQLite (pure-Go driver)
+The tables are partitioned by record kind from the start, so that the
+snapshot and restore work can add a `snapshot` kind without a migration
+(decision 5 in the requirements) [STORE-DATA-011]. Only `microvm` exists in
+this version.
 
 ```sql
 CREATE TABLE schema (version TEXT NOT NULL);           -- one row, "1.0"
 
-CREATE TABLE microvm (
-    uid        TEXT PRIMARY KEY,
+CREATE TABLE record (
+    kind       TEXT NOT NULL,                             -- 'microvm'
+    uid        TEXT NOT NULL,
     namespace  TEXT NOT NULL,
     name       TEXT NOT NULL,
     version    INTEGER NOT NULL,
@@ -316,17 +288,29 @@ CREATE TABLE microvm (
     updated_at INTEGER NOT NULL,
     deleted_at INTEGER NOT NULL,
     payload    TEXT NOT NULL,                             -- JSON of latest
-    UNIQUE (namespace, name, uid)
+    PRIMARY KEY (kind, uid),
+    UNIQUE (kind, namespace, name, uid)
 );
-CREATE INDEX microvm_namespace_name ON microvm (namespace, name);
+CREATE INDEX record_kind_namespace_name ON record (kind, namespace, name);
 
-CREATE TABLE microvm_version (
-    uid     TEXT NOT NULL REFERENCES microvm (uid) ON DELETE CASCADE,
+CREATE TABLE record_version (
+    kind    TEXT NOT NULL,
+    uid     TEXT NOT NULL,
     version INTEGER NOT NULL,
     payload TEXT NOT NULL,
-    PRIMARY KEY (uid, version)
+    PRIMARY KEY (kind, uid, version),
+    FOREIGN KEY (kind, uid) REFERENCES record (kind, uid) ON DELETE CASCADE
 );
 ```
+
+The common columns are the ones every kind is expected to have: an
+identifier, a namespace and name, a version, a state and the three
+timestamps. Fields specific to a kind live in the JSON and are queried with
+the JSON functions. In Go, the `sqlite` package has one unexported type that
+implements the save algorithm and the lookups for a given `kind`, and
+`MicroVMRepository` is a thin adapter over it that marshals `models.MicroVM`
+and derives the columns; a snapshot repository would be a second adapter over
+the same type.
 
 Connection settings: `journal_mode=WAL`, `synchronous=FULL`,
 `foreign_keys=ON`, `busy_timeout=5000`, one writer connection
@@ -335,22 +319,39 @@ Connection settings: `journal_mode=WAL`, `synchronous=FULL`,
 `json_extract(payload, '$.spec.provider')` work from the `sqlite3` shell,
 which is the capability the issue asks for.
 
-`GetAll` is `SELECT payload FROM microvm WHERE (? = '' OR namespace = ?)
-AND (? = '' OR name = ?) ORDER BY namespace, name, uid`. Pruning is
-`DELETE FROM microvm_version WHERE uid = ? AND version <= ? - ?`.
+`GetAll` is `SELECT payload FROM record WHERE kind = 'microvm' AND
+(? = '' OR namespace = ?) AND (? = '' OR name = ?) ORDER BY namespace, name,
+uid`. Pruning is `DELETE FROM record_version WHERE kind = ? AND uid = ? AND
+version <= ? - ?`.
 
 Integrity and backup commands wrap `PRAGMA integrity_check` and
-`VACUUM INTO` [STORE-OPS-002, STORE-OPS-003]. Reader process: direct
-read-only open (section 4.3).
+`VACUUM INTO` [STORE-OPS-002, STORE-OPS-003]. The reader process opens the
+file directly (section 4.3).
 
 The schema is small enough that a future minor upgrade can be an in-place
 `ALTER TABLE` run inside `Open` under the schema row's version
 [STORE-DATA-006].
 
+The driver is `modernc.org/sqlite`, with `modernc.org/libc` pinned to the
+version in the driver's `go.mod` and that pin documented in
+`CONTRIBUTING.md` [STORE-BLD-005]. OFD locking (`sqlite.OFDLocking(true)`
+before the first open) is enabled so that an unrelated file close in the
+process cannot drop the store's locks.
+
+### 6.2 Key-value layout considered and not chosen
+
+For the record, a bbolt layout was designed alongside the SQLite one: a
+`latest` bucket keyed by UID, a `versions` bucket nested per UID with
+big-endian version keys, and `byName` and `byNamespace` index buckets, with
+pruning by cursor and a 100 ms open timeout after Docker's practice. It was
+dropped because bbolt's exclusive file lock prevents `flintlock-metrics`
+from opening the store while flintlockd runs (STORE-CONS-007, decision 2)
+and because it offers no query language (survey, section 8).
+
 ## 7. Migration and export
 
-Three subcommands under `flintlockd store` [STORE-MIG-001, STORE-MIG-012,
-open question 3]:
+Three subcommands under `flintlockd store` [STORE-MIG-001, STORE-MIG-012;
+decision 3 in the requirements]:
 
 ```text
 flintlockd store export  --store-backend <b> [--store-path p] --output records.jsonl
@@ -442,9 +443,9 @@ local backend runs it against a temporary directory with no gate
   distinct records through one handle; every returned version is unique and
   the final version equals the number of successful changed saves
   [STORE-TEST-003].
-* `TestReaderProcess` (SQLite only): the test binary re-executes itself as a
-  read-only reader process that lists records in a loop while the parent
-  writes; the reader never errors and never sees a torn record
+* `TestReaderProcess`: the test binary re-executes itself as a read-only
+  reader process that lists records in a loop while the parent writes; the
+  reader never errors and never sees a torn record
   [STORE-TEST-003, STORE-CONS-007].
 * `TestCrashDuringWrite`: the test binary re-executes itself as a child that
   writes records and is killed with `SIGKILL` mid-loop; the parent reopens
@@ -486,19 +487,20 @@ Documentation changes [STORE-OPS-006]:
 * [`README.md:1`](../../../README.md): unchanged; flintlock is still backed
   by containerd for images.
 
-Rollout, following Podman's three-step pattern (survey, section 6):
+Rollout, following Podman's three-step pattern (survey, section 6; decision
+4 in the requirements):
 
 1. This change: local store opt-in, `containerd` default, migration both
    ways. An ADR records the chosen database.
-2. A later release: switch the default to the local store for new hosts,
-   keep the content store for hosts that already have records (the Podman
-   "use old if present" rule), and warn on start-up.
+2. A later release: switch the default to `sqlite` for new hosts, keep the
+   content store for hosts that already have records there (the Podman "use
+   old if present" rule), and warn on start-up.
 3. A later release still: drop the content store backend and migrate
    automatically at start-up.
 
-Follow-up issues to open with the implementation: `flintlock-metrics` via
-gRPC (open question 2), snapshot records in the same store (open question 5),
-`flintlock-provision` option [STORE-OPS-007], store metrics [STORE-OPS-004].
+Follow-up issues to open with the implementation: the `snapshot` record kind
+when issue #204 lands (decision 5), the `flintlock-provision` option
+[STORE-OPS-007], store metrics [STORE-OPS-004].
 
 ## 10. Implementation order
 
@@ -510,9 +512,10 @@ one-concern-per-PR rule in `CONTRIBUTING.md`:
    the containerd backend. No new dependency yet.
 2. Store registry, handle, shared open in `runServer`, config and flags with
    only the `containerd` backend registered.
-3. The chosen local backend package with the conformance, concurrency and
-   crash tests. This is the PR that adds the dependency and reports the
-   binary size [STORE-BLD-006].
+3. The `sqlite` backend package with the conformance, concurrency and crash
+   tests. This is the PR that adds `modernc.org/sqlite`, pins
+   `modernc.org/libc`, and reports the binary size [STORE-BLD-005,
+   STORE-BLD-006].
 4. `flintlockd store export`, `import`, `migrate`, `check`, `backup`, with
    the round-trip test.
 5. Reader-process support in `flintlock-metrics`.
@@ -537,6 +540,7 @@ one-concern-per-PR rule in `CONTRIBUTING.md`:
 | STORE-DATA-007, 008 | 5 |
 | STORE-DATA-009 | 6 |
 | STORE-DATA-010 | 7, 8.1 |
+| STORE-DATA-011 | 6.1 (tables partitioned by `kind`) |
 | STORE-CONS-001 | 4.2 |
 | STORE-CONS-002, 003 | 5, 6 |
 | STORE-CONS-004 | 6, 8.2 |
@@ -549,7 +553,8 @@ one-concern-per-PR rule in `CONTRIBUTING.md`:
 | STORE-LIFE-003, 004, 005 | unchanged application code; 8.1 covers 004 |
 | STORE-LIFE-006 | 7 (versions and identity preserved) |
 | STORE-MIG-001 to 012 | 7 |
-| STORE-BLD-001 to 007 | survey section 8; 10 step 3 for 006 |
+| STORE-BLD-001 to 004, 007 | survey section 8 and its decision |
+| STORE-BLD-005, 006 | 6.1, 10 step 3 |
 | STORE-OPS-001 | 6 (single file plus WAL files; documented in 9) |
 | STORE-OPS-002, 003 | 6, 7 |
 | STORE-OPS-004 | follow-up issue (9) |

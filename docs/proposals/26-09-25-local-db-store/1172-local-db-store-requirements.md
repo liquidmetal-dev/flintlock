@@ -26,11 +26,12 @@ stable: removed requirements are marked as withdrawn rather than renumbered.
 Text outside the requirement tables (background, rationale, notes) is
 informative.
 
-The requirements are written against a *local store* abstraction. They do not
-name a database. The survey in
+The requirements are written against a *local store* abstraction so that they
+hold for any database. The survey in
 [1172-embedded-db-options.md](1172-embedded-db-options.md) compares the
-candidates against these requirements; the choice is left to review and will
-be recorded as an ADR.
+candidates against them. The decisions taken on the questions this document
+raised, including the choice of SQLite through the `modernc.org/sqlite`
+driver, are listed in section 7 and will be recorded as an ADR.
 
 ## 2. Background
 
@@ -71,12 +72,13 @@ kept.
   flintlockd host.
 * Changing the `MicroVM` gRPC API or the `models.MicroVM` record model.
 * Making the local store the default in this version. The default stays
-  `containerd`; a later ADR may change it.
-* Storing anything other than microVM records. Snapshot records
-  (issue [#204](https://github.com/liquidmetal-dev/flintlock/issues/204),
-  SNAP-OPS-005) MAY use the same store later; that is future work.
-* Choosing the database. That is the subject of the companion survey and a
-  follow-up ADR.
+  `containerd`; section 7 gives the planned path to changing it.
+* Storing anything other than microVM records in this version. The schema is
+  designed to hold further record kinds (STORE-DATA-011) so that snapshot
+  records (issue [#204](https://github.com/liquidmetal-dev/flintlock/issues/204),
+  SNAP-OPS-005) can be added later without migrating existing data.
+* Recording the database decision formally. That is the follow-up ADR
+  (section 7).
 
 ## 3. Terminology
 
@@ -234,7 +236,7 @@ tests run only when `CTR_SOCK_PATH` is set and need root
 | STORE-CFG-002 | The default backend MUST be `containerd`, so that existing hosts are unaffected by upgrading. |
 | STORE-CFG-003 | The same backend option MUST be accepted by `flintlock-metrics`, so that a reader process can be configured to read from the same store as flintlockd (see STORE-CONS-007). |
 | STORE-CFG-004 | The local store's file path MUST default to a location under `--state-dir` and MUST be overridable. The parent directory MUST be created if missing, with the existing `DataDirPerm` mode. |
-| STORE-CFG-005 | The history bound *N* MUST be configurable, with a minimum of 1 (latest version only). The default is an open question (section 7); the design candidate proposes 10. |
+| STORE-CFG-005 | The history bound *N* MUST be configurable, with a minimum of 1 (latest version only). The default MUST be 10. |
 | STORE-CFG-006 | flintlockd MUST fail to start with a clear error if the configured backend cannot be opened. It MUST NOT fall back to another backend. |
 | STORE-CFG-007 | The store configuration MUST be validated in flintlockd's `PreRunE` alongside the existing checks: the backend name is known, the path is absolute, and the history bound is at least 1. |
 | STORE-CFG-008 | The containerd socket and namespace MUST remain required whichever backend is selected, because the image, snapshot and event services still use containerd. |
@@ -272,7 +274,7 @@ requirements fix the behaviour rather than preserve it.
 
 | ID | Requirement |
 | -- | ----------- |
-| STORE-DATA-001 | A record's identity MUST be the triple (namespace, name, UID). The UID MUST be unique across the whole store on its own, because callers look records up by UID alone. |
+| STORE-DATA-001 | A record's identity MUST be the triple (namespace, name, UID). The UID MUST be unique within its record kind on its own, because callers look records up by UID alone. |
 | STORE-DATA-002 | The local store MUST hold each version of a record as the `encoding/json` encoding of `models.MicroVM`, byte-for-byte the same encoding the content store writes today, so that migration is a copy and the JSON stays the single definition of the record format. |
 | STORE-DATA-003 | The local store MAY additionally hold the identifying and status fields (namespace, name, UID, version, state, `CreatedAt`, `UpdatedAt`, `DeletedAt`) in indexed or structured form for querying. Where it does, the JSON MUST remain authoritative and the structured copy MUST be derived from it on every write. |
 | STORE-DATA-004 | Lookups by UID, by (namespace, name, UID) and lists filtered by namespace or name MUST be served without reading the JSON of records that do not match. |
@@ -282,6 +284,7 @@ requirements fix the behaviour rather than preserve it.
 | STORE-DATA-008 | Version numbers MUST continue to increase after pruning. A version number MUST never be reused for the same record. |
 | STORE-DATA-009 | Records contain the microVM's `metadata` map, which commonly holds secrets such as cloud-init user data. The local store file MUST be created with mode 0600, owned by the user flintlockd runs as. Any auxiliary files the database creates alongside it MUST have the same protection. |
 | STORE-DATA-010 | A record written by an older flintlock version, whose JSON lacks fields that were added later, MUST be readable; missing fields take their zero values as they do today when the content store's blobs are decoded. |
+| STORE-DATA-011 | The local store's schema MUST partition records by kind, with `microvm` as the only kind in this version. Adding a new kind (for example snapshot records from issue #204) MUST NOT require migrating or rewriting existing records, and kinds MUST NOT share an identifier space. |
 
 ### 5.4 Concurrency and durability (STORE-CONS)
 
@@ -293,7 +296,7 @@ requirements fix the behaviour rather than preserve it.
 | STORE-CONS-004 | A crash or power loss during a write MUST NOT corrupt the store or lose any version whose `Save` had already returned. The store MUST open normally after an unclean shutdown without manual repair. |
 | STORE-CONS-005 | The local store file MUST be on a local filesystem. Network filesystems are NOT RECOMMENDED and MUST be documented as unsupported. |
 | STORE-CONS-006 | Opening the local store MUST fail with a clear error within a bounded time if another process holds it in a way that prevents opening. It MUST NOT block indefinitely. |
-| STORE-CONS-007 | A reader process on the same host MUST be able to read current records while flintlockd has the store open for writing, without blocking flintlockd's writes and without flintlockd's writes blocking the reader beyond a bounded wait. If the chosen database cannot provide this for a second process, the design MUST route the reader through the flintlockd gRPC API or a consistent exported copy instead, and MUST NOT let a reader process cause flintlockd to fail to open its store. |
+| STORE-CONS-007 | A reader process on the same host MUST be able to open the store read-only and read current records while flintlockd has it open for writing, without blocking flintlockd's writes and without being blocked by them beyond a bounded wait. `flintlock-metrics` MUST keep working while flintlockd is stopped, as it does today, so the reader MUST NOT depend on the flintlockd API. A reader process MUST NOT be able to prevent flintlockd from opening its store. |
 | STORE-CONS-008 | A reader process MUST open the store in read-only mode and MUST NOT be able to modify it. |
 | STORE-CONS-009 | A long-lived reader MUST NOT cause unbounded growth of the store or its auxiliary files. Where the database can starve its own compaction or checkpointing under a permanently open reader, the reader MUST hold its transactions only for the duration of each request. |
 | STORE-CONS-010 | Closing flintlockd MUST close the store cleanly, after in-flight saves have completed. |
@@ -318,7 +321,7 @@ section 6).
 
 | ID | Requirement |
 | -- | ----------- |
-| STORE-MIG-001 | A command-line command MUST copy every microVM record from one backend to the other on the same host. It MUST support both directions: content store to local store and local store to content store. |
+| STORE-MIG-001 | A `flintlockd store` subcommand MUST copy every microVM record from one backend to the other on the same host. It MUST support both directions: content store to local store and local store to content store. |
 | STORE-MIG-002 | The migration command MUST refuse to run while flintlockd or any other writer has the target or source store open. Where a backend provides no lock to detect this, the command MUST require an explicit flag acknowledging that flintlockd is stopped. |
 | STORE-MIG-003 | The migration command MUST support a dry run that reports what it would copy without writing. |
 | STORE-MIG-004 | The migration command MUST be idempotent: running it twice MUST leave the target identical to running it once, and it MUST NOT create duplicate records or extra versions. |
@@ -348,8 +351,8 @@ section 6).
 | ID | Requirement |
 | -- | ----------- |
 | STORE-OPS-001 | It MUST be possible to back up the local store by copying its file (and any auxiliary files) while flintlockd is stopped, and to restore it by copying them back. |
-| STORE-OPS-002 | An online, consistent copy of the local store SHOULD be possible while flintlockd runs, using the database's own copy mechanism, and SHOULD be exposed as a command. |
-| STORE-OPS-003 | An integrity check of the local store SHOULD be exposed as a command that can run while flintlockd is stopped. |
+| STORE-OPS-002 | An online, consistent copy of the local store SHOULD be possible while flintlockd runs, using the database's own copy mechanism, and SHOULD be exposed as a `flintlockd store` subcommand. |
+| STORE-OPS-003 | An integrity check of the local store SHOULD be exposed as a `flintlockd store` subcommand that can run while flintlockd is stopped. |
 | STORE-OPS-004 | flintlockd SHOULD expose metrics for the store: record count, file size, and latency of `Save`, `Get` and `GetAll`. |
 | STORE-OPS-005 | Errors from the local store MUST identify the store path and the operation, so that the troubleshooting documentation can point at them. |
 | STORE-OPS-006 | The user documentation MUST be updated: the containerd page no longer says containerd stores microVM metadata unconditionally; the service options page documents the new flags; the troubleshooting page for `failed to reconcile vmid` gets a local-store recipe alongside the `ctr content` one; `config.yaml.example` shows the options; `CONTRIBUTING.md` describes how to run the store tests. |
@@ -378,10 +381,11 @@ section 6).
   releasing the lease. With a separate record store the delete plan needs an
   explicit record delete (STORE-PORT-013, STORE-PORT-014), which also changes
   the containerd backend.
-* **Reader process access differs by database.** A key-value store with an
-  exclusive file lock cannot be opened by a second process while flintlockd
-  runs; an SQL store in write-ahead-log mode can. STORE-CONS-007 leaves both
-  routes open, but the choice affects `flintlock-metrics`.
+* **Reader process access constrains the database.** `flintlock-metrics`
+  must keep reading the store directly while flintlockd is stopped
+  (STORE-CONS-007). A key-value store with an exclusive file lock cannot
+  support that, which is one of the two reasons the choice fell on SQLite in
+  write-ahead-log mode (section 7).
 * **Bounded history discards an audit trail** that the content store kept
   indefinitely. Operators who rely on old versions need the export command
   (STORE-MIG-012) before switching.
@@ -393,22 +397,50 @@ section 6).
   small records) the speed is unlikely to matter; the size is measured under
   STORE-BLD-006.
 
-## 7. Open questions
+## 7. Decisions (informative)
 
-1. What is the default history bound *N*? The design candidate proposes 10.
-2. Should `flintlock-metrics` read the store directly, or should it move to
-   the gRPC API for all backends so that it has no store dependency at all?
-3. Should the migration command live in `flintlockd` (which already links
-   both backends) or in `flintlock-provision`?
-4. Should the local store become the default in a later release, and what is
-   the deprecation path for the content store? Podman took three major
-   versions: opt-in, default, removed with automatic migration.
-5. Should snapshot records from the snapshot and restore proposal
-   (SNAP-OPS-005) use the same store, and does that change the schema
-   requirements?
-6. What are the flag names? The design candidate uses `--store-backend`,
-   `--store-path` and `--store-history`.
-7. Which database? See the survey and the follow-up ADR.
+The first draft of this document raised seven open questions. They were
+decided on 2026-09-25 as follows; the requirements above already reflect
+them. Decision 7 will be recorded as an ADR.
+
+1. **Default history bound.** *N* = 10 (STORE-CFG-005). It covers a create,
+   the reconcile updates that follow, retries and a delete, at roughly ten
+   times one record's size per microVM.
+2. **`flintlock-metrics` reads the store directly**, opening it read-only
+   (STORE-CONS-007, STORE-CONS-008). It works today while flintlockd is
+   stopped, because Firecracker metrics are read from files under the state
+   directory, and that independence is kept. Routing it through the gRPC API
+   was rejected because it would tie metrics to flintlockd being up and add
+   endpoint and TLS flags to the metrics binary.
+3. **Migration and maintenance commands live in `flintlockd`** as
+   `flintlockd store <export|import|migrate|check|backup>` (STORE-MIG-001,
+   STORE-OPS-002, STORE-OPS-003). flintlockd already links both backends and
+   their configuration; `flintlock-provision` does not, and a new binary is
+   not justified.
+4. **Deprecation path for the content store** follows Podman's three steps:
+   this version is opt-in with `containerd` as the default (STORE-CFG-002);
+   a later release makes the local store the default for new hosts while
+   hosts that already hold records in the content store keep using it and
+   are warned at start-up; a later release still removes the content store
+   backend and migrates automatically at start-up. Each step is its own
+   change with its own release note.
+5. **Snapshot records will share the store.** The schema is partitioned by
+   record kind from the start (STORE-DATA-011) so that the snapshot and
+   restore work (issue #204, SNAP-OPS-005) adds a kind rather than a
+   migration. Only the `microvm` kind exists in this version.
+6. **Flag names** are `--store-backend`, `--store-path` and
+   `--store-history`, matching the "store" vocabulary used throughout and
+   the `flintlockd store` command.
+7. **Database: SQLite through the `modernc.org/sqlite` driver.** It is the
+   only family that satisfies decision 2 (a second read-only process, which
+   bbolt's exclusive file lock rules out) and the issue's motivation
+   (queries and indexes without application code). Among the pure-Go SQLite
+   drivers it is the mature one; `ncruces/go-sqlite3` is pre-1.0 and the
+   cgo driver is excluded by STORE-BLD-001. The costs are a large binary,
+   to be measured under STORE-BLD-006, and the `modernc.org/libc` pin to be
+   documented under STORE-BLD-005. See the survey, section 8.
+
+No open questions remain.
 
 ## 8. References
 
@@ -420,6 +452,7 @@ section 6).
 * Snapshot and restore requirements, SNAP-OPS-005 (snapshot records must
   persist across restarts):
   [0204-snapshot-restore-requirements.md](../26-09-25-snapshot-restore/0204-snapshot-restore-requirements.md)
+* `modernc.org/sqlite`: [pkg.go.dev](https://pkg.go.dev/modernc.org/sqlite)
 * Podman `database_backend` and `podman system migrate`:
   [containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md),
   [podman-system-migrate(1)](https://docs.podman.io/en/latest/markdown/podman-system-migrate.1.html)
