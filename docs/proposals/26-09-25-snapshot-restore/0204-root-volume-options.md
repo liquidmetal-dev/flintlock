@@ -32,12 +32,12 @@ path and line as of commit `68533c7`.
 ### 2.1 Port and containerd implementation
 
 The `ImageService` port
-([`core/ports/services.go:87-116`](../../core/ports/services.go)) has `Pull`,
+([`core/ports/services.go:87-116`](../../../core/ports/services.go)) has `Pull`,
 `PullAndMount`, `Exists`, and `IsMounted`. It has no unmount, remove, commit, or
 export operation.
 
 `PullAndMount`
-([`infrastructure/containerd/image_service.go:61-80`](../../infrastructure/containerd/image_service.go))
+([`infrastructure/containerd/image_service.go:61-80`](../../../infrastructure/containerd/image_service.go))
 wraps the context in the configured containerd namespace, takes the VM's lease,
 pulls the image, picks a snapshotter by use, and calls `snapshotAndMount`
 (lines 156-219), which:
@@ -50,27 +50,27 @@ pulls the image, picks a snapshotter by use, and calls `snapshotAndMount`
 Every volume, including read-only ones, is therefore a writable *active*
 containerd snapshot whose parent is the committed image snapshot. `View` is not
 used. The snapshot key is `flintlock/<vmid>/<volume-id>`
-([`snapshot.go:10-12`](../../infrastructure/containerd/snapshot.go)), with
+([`snapshot.go:10-12`](../../../infrastructure/containerd/snapshot.go)), with
 `kernel` and `initrd` as the usage IDs for those images.
 
 There is one containerd lease per VM, named `flintlock/<vmid>`
-([`lease.go`](../../infrastructure/containerd/lease.go)). The lease also holds
+([`lease.go`](../../../infrastructure/containerd/lease.go)). The lease also holds
 the persisted VM spec. Volumes are never removed individually: `ReleaseLease`
-([`repo.go:191-200`](../../infrastructure/containerd/repo.go)) deletes the
+([`repo.go:191-200`](../../../infrastructure/containerd/repo.go)) deletes the
 lease and containerd's garbage collector removes the snapshots later.
 
 ### 2.2 Snapshotter selection
 
-* Defaults ([`pkg/defaults/defaults.go`](../../pkg/defaults/defaults.go)):
+* Defaults ([`pkg/defaults/defaults.go`](../../../pkg/defaults/defaults.go)):
   `devmapper` for volumes, `native` for kernel and initrd.
 * The kernel snapshotter has a flag; the volume snapshotter does not, and is
   hardcoded in
-  [`internal/inject/wire.go:73-80`](../../internal/inject/wire.go).
+  [`internal/inject/wire.go:73-80`](../../../internal/inject/wire.go).
 * `supportedSnapshotters` in
-  [`infrastructure/containerd/config.go`](../../infrastructure/containerd/config.go)
+  [`infrastructure/containerd/config.go`](../../../infrastructure/containerd/config.go)
   is `overlayfs,native,devmapper`.
 * Mount conversion
-  ([`convert.go:14-38`](../../infrastructure/containerd/convert.go)) chooses
+  ([`convert.go:14-38`](../../../infrastructure/containerd/convert.go)) chooses
   the flintlock mount type by snapshotter *name*: `devmapper` gives a `dev`
   mount whose source is the `/dev/mapper/<pool>-snap-N` path, `native` gives a
   `hostpath` directory, and `overlayfs` returns an empty path (a stub).
@@ -82,16 +82,16 @@ The device path is passed straight to the VMM. Nothing on the host mounts the
 filesystem.
 
 * Firecracker
-  ([`infrastructure/microvm/firecracker/config.go:71-101`](../../infrastructure/microvm/firecracker/config.go)):
+  ([`infrastructure/microvm/firecracker/config.go:71-101`](../../../infrastructure/microvm/firecracker/config.go)):
   `path_on_host` is the mount source, `is_read_only` comes from the spec, cache
   type is `Unsafe`.
 * Cloud Hypervisor
-  ([`infrastructure/microvm/cloudhypervisor/create.go:159-186`](../../infrastructure/microvm/cloudhypervisor/create.go)):
+  ([`infrastructure/microvm/cloudhypervisor/create.go:159-186`](../../../infrastructure/microvm/cloudhypervisor/create.go)):
   `--disk path=<source>` for the root and each additional volume, plus the
   generated cloud-init image. `is_read_only` is not passed for either.
 
 Kernel and initrd are resolved as files inside a directory mount
-([`infrastructure/microvm/shared/imagefile.go`](../../infrastructure/microvm/shared/imagefile.go)),
+([`infrastructure/microvm/shared/imagefile.go`](../../../infrastructure/microvm/shared/imagefile.go)),
 so they depend on a directory-producing snapshotter such as `native`.
 
 ### 2.4 Related observations
@@ -99,9 +99,9 @@ so they depend on a directory-producing snapshotter such as `native`.
 * `Size` and `PartitionID` on a volume are converted from the API but never
   read; every devmapper volume gets the pool's `base_image_size`.
 * The thin pool is created by
-  [`hack/scripts/devpool.sh`](../../hack/scripts/devpool.sh) (loop-backed) or
-  [`hack/scripts/direct_lvm.sh`](../../hack/scripts/direct_lvm.sh), and by the
-  Go provisioner in [`internal/provision/`](../../internal/provision/), which
+  [`hack/scripts/devpool.sh`](../../../hack/scripts/devpool.sh) (loop-backed) or
+  [`hack/scripts/direct_lvm.sh`](../../../hack/scripts/direct_lvm.sh), and by the
+  Go provisioner in [`internal/provision/`](../../../internal/provision/), which
   writes `base_image_size="10GB"` and `discard_blocks=true` into the containerd
   config.
 * `go.mod` pins the containerd client at v1.7.35.
@@ -541,8 +541,8 @@ chunks served with a median 550 us from an in-AZ cache against 36 ms from S3
   copy-on-write of the whole pool block through kcopyd (`break_sharing` in
   [`dm-thin.c`](https://github.com/torvalds/linux/blob/master/drivers/md/dm-thin.c));
   flintlock's pools use 64 KiB blocks (128 sectors) with `skip_block_zeroing`
-  ([`hack/scripts/devpool.sh:60,67`](../../hack/scripts/devpool.sh),
-  [`internal/provision/defaults.go:71`](../../internal/provision/defaults.go)),
+  ([`hack/scripts/devpool.sh:60,67`](../../../hack/scripts/devpool.sh),
+  [`internal/provision/defaults.go:71`](../../../internal/provision/defaults.go)),
   so new blocks are not zeroed first. No published figure for `create_snap`
   or activation latency; both are metadata operations.
 * **Snapshot.** On the critical path, inside the VMM pause: `dmsetup suspend`
