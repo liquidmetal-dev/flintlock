@@ -38,3 +38,4 @@ We should investigate and utilise the [go-playground/validator](https://github.c
 ## Consequences
 
 We should continue to revisit this decision periodically. There would still be value in being able to do early request level validation via a gRPC interceptor. We should monitor the Protobuf validation plugins mentioned above and reevaluate their fit for purpose if/when they are updated.
+ 
