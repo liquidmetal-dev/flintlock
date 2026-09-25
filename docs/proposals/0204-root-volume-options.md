@@ -414,12 +414,131 @@ image; how it is captured while the VMM is paused; how the delta and base are
 handled; how it is restored per VMM; what containerd still tracks; what changes
 in flintlock; host requirements; risks.
 
+Each option also states how long three operations take. Because few of the
+projects involved publish timings, the sections describe what each step scales
+with and which steps sit on the VM's critical path, and quote a number only
+where the owning project has published one.
+
+### Timing model shared by all options
+
+The three operations are:
+
+1. **First VM start.** Starting the VM that will later be snapshotted, from an
+   OCI image that may not yet be on the host.
+2. **Snapshot.** Pause, VMM snapshot, volume capture, resume. Only these steps
+   are on the guest's critical path; delta computation, compression, packaging
+   and push happen after the resume (SNAP-CRT-007).
+3. **Clone start.** Starting a VM from a snapshot package on a host that may or
+   may not already hold the base block image.
+
+Steps that do not depend on the storage backend:
+
+* **Image pull** is O(image size) over the network and happens once per host
+  and image for every option.
+* **Guest boot** on first start. Firecracker's specification commits to at most
+  125 ms from the `InstanceStart` call to the guest's `/sbin/init` with a
+  minimal kernel and rootfs and the serial console disabled
+  ([SPECIFICATION.md](https://github.com/firecracker-microvm/firecracker/blob/main/SPECIFICATION.md));
+  the figure comes from the NSDI'20 paper, which measured a p99 of 146 ms for
+  Firecracker and 158 ms for Cloud Hypervisor with 50 concurrent boots
+  ([Agache et al.](https://www.usenix.org/system/files/nsdi20-paper-agache.pdf)).
+  Cloud Hypervisor publishes only an illustrative `boot_time_pmem_ms` sample of
+  105.9 ms
+  ([performance_metrics.md](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/docs/performance_metrics.md)).
+  Real images with a full init take longer; the volume backend affects this only
+  through first-read and first-write costs, noted per option.
+* **VMM snapshot write** is O(guest memory). Firecracker's full snapshot
+  faults in and writes all guest memory, and `sync_snapshot_files` (default
+  `true`) fsyncs the state and memory files; block backing files are always
+  fsync'd
+  ([snapshot-support.md](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/snapshot-support.md)).
+  Firecracker's performance suite measures create and restore latency but
+  publishes no thresholds or baselines
+  ([test_snapshot.py](https://github.com/firecracker-microvm/firecracker/blob/main/tests/integration_tests/performance/test_snapshot.py)).
+  Cloud Hypervisor writes `memory-ranges` while paused; sparse memory files
+  "substantially" reduce snapshot size and restore time, without a published
+  figure
+  ([release notes](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/release-notes.md)).
+  CodeSandbox reported saving memory at about 1 s per GB
+  ([CodeSandbox, 2022](https://codesandbox.io/blog/how-we-clone-a-running-vm-in-2-seconds)).
+* **Memory load on clone start.** Firecracker's `File` backend maps the memory
+  file `MAP_PRIVATE` and loads pages on demand, which its docs describe as
+  "very fast snapshot loading times"; the Async block `io_engine` adds up to
+  about 110 ms of device creation time, including on restore, and cgroups v1
+  is listed as a cause of high restore latency
+  ([snapshot-support.md](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/snapshot-support.md),
+  [block-io-engine.md](https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/block-io-engine.md)).
+  Cloud Hypervisor's default `copy` mode copies all guest memory before the
+  restore completes, so restore latency grows with memory size
+  ([PR #7800](https://github.com/cloud-hypervisor/cloud-hypervisor/pull/7800));
+  `ondemand` serves faults through userfaultfd, and `copyonwrite` maps the
+  file with nothing copied up front. The `copyonwrite` PR measured, on
+  512 MiB guests on a 16-core x86_64 host, a single-restore p50 of 54-58 ms
+  for `copy` against 22-35 ms for the new mode, and with 16 concurrent
+  restores a per-restore p50 of 443-463 ms against 72-82 ms
+  ([PR #8581](https://github.com/cloud-hypervisor/cloud-hypervisor/pull/8581)).
+* **Base availability on the target** is a one-off cost per host and image,
+  paid by the first clone of that image on that host and skipped by later
+  clones. For Options A, B, and D the base is exported from the source host;
+  for Option C it is deterministic and shared by every snapshot of the image.
+* **Package fetch** is O(package size): memory plus volume delta, or memory
+  plus full volume images where no base is referenced.
+
+For scale, the numbers published by projects doing this in production:
+CodeSandbox clones a running VM in under 2 s (pause about 16 ms, save about
+100 ms, copy memory and disk about 800 ms with copy-on-write disks, start about
+400 ms), and later cut clone setup to 5-30 ms by sharing memory through
+userfaultfd
+([2022](https://codesandbox.io/blog/how-we-clone-a-running-vm-in-2-seconds),
+[2023](https://codesandbox.io/blog/cloning-microvms-using-userfaultfd)).
+Tensorlake's steady-state disk snapshot, which is also the VM pause, is
+29-129 ms on a live Postgres with a 4 GB disk, after early snapshots of 3-6 s;
+a 100 MB delta took 167 ms, and copying a 100 GB raw disk 101 s
+([Tensorlake](https://www.tensorlake.ai/blog/firecracker-disk-snapshots-o-changed-bytes)).
+AWS Lambda loads only about 6.4% of an image's data at start, from 512 KiB
+chunks served with a median 550 us from an in-AZ cache against 36 ms from S3
+([ATC'23](https://www.usenix.org/system/files/atc23-brooker.pdf)).
+
 ### Option A: stay on devmapper
 
 * **Provisioning.** Unchanged: `Prepare` on the image ChainID.
 * **Capture.** While the VMM is paused: `dmsetup suspend` on the VM's thin
   device, `create_snap <new-id> <vm-id>`, `dmsetup resume`, activate the new
   device. Milliseconds. Works for both VMMs.
+* **First VM start.** The first use of an image on a host is containerd's
+  unpack: `create_thin` and `mkfs` for the base (ext4 with eager inode-table
+  and journal initialisation, `lazy_itable_init=0,lazy_journal_init=0`), then
+  one untar and one `Commit` per layer, each Commit suspending, resuming, and
+  deactivating the device. This is O(image size). Every later VM from that
+  image is a `Prepare`: suspend the parent, `create_snap`, resume, activate.
+  No `mkfs` and no data copy, only thin-pool metadata updates
+  ([`pool_device.go`](https://github.com/containerd/containerd/blob/main/plugins/snapshots/devmapper/pool_device.go)).
+  After boot, the guest's first write to each shared block pays a
+  copy-on-write of the whole pool block through kcopyd (`break_sharing` in
+  [`dm-thin.c`](https://github.com/torvalds/linux/blob/master/drivers/md/dm-thin.c));
+  flintlock's pools use 64 KiB blocks (128 sectors) with `skip_block_zeroing`
+  ([`hack/scripts/devpool.sh:60,67`](../../hack/scripts/devpool.sh),
+  [`internal/provision/defaults.go:71`](../../internal/provision/defaults.go)),
+  so new blocks are not zeroed first. No published figure for `create_snap`
+  or activation latency; both are metadata operations.
+* **Snapshot.** On the critical path, inside the VMM pause: `dmsetup suspend`
+  waits for mapped I/O to complete and postpones new I/O, so its cost depends
+  on in-flight I/O rather than volume size
+  ([`dmsetup(8)`](https://man7.org/linux/man-pages/man8/dmsetup.8.html));
+  `create_snap` and activation are metadata operations. Off the critical path:
+  `reserve_metadata_snap`, `thin_delta` (walks mapping metadata; no published
+  runtime), reading the changed ranges from the snapshot device (O(changed
+  blocks)), compression, packaging, and push. Snapshot depth does not degrade
+  performance: dm-thin's recursive snapshots use a single data structure rather
+  than an O(depth) chain
+  ([thin-provisioning.rst](https://docs.kernel.org/admin-guide/device-mapper/thin-provisioning.html)).
+* **Clone start.** One-off per host and image: pull the base artifact and
+  write it into a thin device (both O(base size)), or register it as an
+  external origin. Per clone: `create_snap` from the base and activate
+  (metadata), apply the delta (O(changed blocks) of writes), link the device
+  at the stable per-VM path, then VMM load and resume with the memory cost
+  described in the timing model. The clone's first writes to shared blocks pay
+  the same 64 KiB copy-on-write as the first VM.
 * **Delta and base.** `reserve_metadata_snap`, then `thin_delta` between the
   image's committed device and the new snapshot device gives the changed
   virtual block ranges; read them from the snapshot device. The base must be
@@ -448,6 +567,41 @@ in flintlock; host requirements; risks.
   is that file; both VMMs take a raw file as a virtio-blk drive.
 * **Capture.** While paused, `FICLONE` the VM's file into a flintlock-owned
   capture file. Milliseconds, both VMMs.
+* **First VM start.** The first use of an image on a host copies the scratch
+  file and untars each layer into its own copy, O(image size), with the copy
+  itself O(size) unless the filesystem reflinks. Every later VM is a `Prepare`:
+  one `io.Copy` of the image's top-layer file plus `Sync`
+  ([`blockfile.go`](https://github.com/containerd/containerd/blob/main/plugins/snapshots/blockfile/blockfile.go)).
+  On XFS with reflink or Btrfs, `copy_file_range` lets the filesystem share
+  extents instead of copying
+  ([`copy_file_range(2)`](https://man7.org/linux/man-pages/man2/copy_file_range.2.html));
+  XFS remaps one extent at a time, so the cost is O(extents in the file), not
+  O(bytes)
+  ([`xfs_reflink.c`](https://github.com/torvalds/linux/blob/master/fs/xfs/xfs_reflink.c)).
+  On any other filesystem the copy is a full O(size) read and write, and
+  because containerd's copy does not preserve sparse regions
+  ([#12956](https://github.com/containerd/containerd/issues/12956)) it copies
+  the whole image size, not the allocated size. No loop device is set up when
+  the file is handed straight to the VMM. After boot, the guest's first write
+  to each shared extent allocates a new block in the filesystem. containerd
+  publishes no blockfile latency figures.
+* **Snapshot.** On the critical path, inside the pause: one `FICLONE`,
+  O(extents). Before remapping, the kernel waits for direct I/O and writes back
+  any dirty page cache on both files
+  ([`remap_range.c`](https://github.com/torvalds/linux/blob/master/fs/remap_range.c)),
+  so a volume with a large dirty host page cache pays that writeback inside
+  the pause. Firecracker fsyncs backing files during snapshot create, so the
+  cache is already clean when the clone runs; Cloud Hypervisor does not
+  document an fsync at snapshot time, so flintlock should sync the file first.
+  Off the critical path: either ship the capture as a sparse raw image
+  (O(allocated size)) or compute a delta by comparing the capture against a
+  reflinked copy of the base, which is an O(volume size) read unless a
+  cheaper extent-sharing query is found.
+* **Clone start.** One-off per host and image: pull the base file
+  (O(base size)). Per clone: reflink the base (O(extents)) and apply the
+  delta (O(changed blocks)), or, when the package carries a full image,
+  reflink a locally cached copy of it. Then VMM load and resume, with the
+  memory cost described in the timing model.
 * **Delta and base.** No native delta. Options: ship the whole sparse file; or
   reflink the base once (the image layer file) and compute changed extents by
   comparing capture and base (O(size) read, no pause); or use `FIEMAP` shared-
@@ -480,6 +634,36 @@ in flintlock; host requirements; risks.
   section 9).
 * **Capture.** Reflink or copy the writable disk while paused. Milliseconds
   with reflink. Both VMMs.
+* **First VM start.** The first use of an image on a host builds or pulls the
+  base block image. With the erofs snapshotter this happens during unpack,
+  which converts each tar layer to EROFS as it streams, avoids filesystem
+  journal traffic, and can unpack layers in parallel; its tar-index mode does
+  not rewrite the tar data at all
+  ([erofs.md](https://github.com/containerd/containerd/blob/main/docs/snapshotters/erofs.md)).
+  containerd's published erofs benchmarks are charts rather than numbers; the
+  one figure in the text is that enabling `set_immutable` doubles an unpack
+  (10.09 s to 21.07 s for `tensorflow:2.19.0` on ext4). With a
+  content-addressed base artifact instead, the first use is a pull of the base
+  (O(base size)) and no unpack. Every later VM creates an empty writable disk
+  (a truncate plus a small `mkfs`, or a reflink of a prepared scratch image)
+  and boots with two drives. The guest's init mounts an overlayfs over the two;
+  E2B's version does a `pivot_root` and publishes no timing for it
+  ([E2B](https://e2b.dev/blog/scaling-firecracker-using-overlayfs-to-save-disk-space)).
+  Reads come from the base with no copy-on-write penalty; writes go to the
+  writable disk.
+* **Snapshot.** On the critical path, inside the pause: reflink or copy the
+  writable disk. Reflink is O(extents) with the same dirty-cache writeback
+  caveat as Option B; a plain copy is O(allocated size of the writable disk),
+  which holds only the guest's changes. Off the critical path: the writable
+  disk is the delta, so compress and push O(its allocated size). No
+  comparison against a base is needed.
+* **Clone start.** One-off per host and image: pull the base by digest
+  (O(base size)). Because the base is deterministic, this is shared by every
+  snapshot taken from that image, not just those from one source host. Per
+  clone: reflink or copy a locally cached copy of the shipped writable disk
+  (O(extents) or O(allocated size)), present both drives in the original
+  order, then VMM load and resume. This is the smallest per-clone disk work of
+  the four options.
 * **Delta and base.** The writable disk *is* the delta. The base is
   deterministic (EROFS) or content-addressed, so the target only needs the
   digest. Both the base and the writable disk are still mounted filesystems
@@ -503,6 +687,19 @@ in flintlock; host requirements; risks.
 * **Provisioning.** A raw base file per image plus a per-VM qcow2 overlay with
   a relative backing path, opened with `backing_files=on`.
 * **Capture.** Copy or reflink the overlay while paused.
+* **First VM start.** The first use of an image on a host produces the raw
+  base, O(image size), either by flattening the OCI image or by pulling a base
+  artifact. Every later VM writes a qcow2 header that names the base
+  (constant time); the guest's first write to each cluster allocates it in the
+  overlay. No published figures for Cloud Hypervisor's qcow2 path.
+* **Snapshot.** On the critical path, inside the pause: reflink or copy the
+  overlay file, O(extents) or O(overlay size). Off the critical path: the
+  overlay is the delta, so compress and push O(overlay size).
+* **Clone start.** One-off per host and image: pull the base (O(base size)).
+  Per clone: place a copy of the overlay, `qemu-img rebase -u` if the relative
+  path to the base differs (a header rewrite, no data movement), edit
+  `disks[].path` in `config.json`, then `vm.restore` with the memory cost
+  described in the timing model.
 * **Delta and base.** The overlay is the delta and `qemu-img rebase -u`
   rewrites the backing reference if the base moves. Backing files are looked up
   "relative to the directory containing" the image
@@ -541,6 +738,11 @@ diff for a memory restore.
 
 | | A. devmapper | B. blockfile + reflink | C. RO base + RW disk | D. qcow2 overlay |
 | - | ------------ | ---------------------- | -------------------- | ---------------- |
+| First VM start (image on host) | metadata (`create_snap`); 64 KiB CoW on first writes | reflink O(extents), or full copy without reflink | create empty RW disk; no CoW on reads | qcow2 header write |
+| Snapshot critical path | suspend (in-flight I/O) + `create_snap` | `FICLONE` O(extents) + dirty-cache writeback | reflink RW disk O(extents) | reflink/copy overlay |
+| Snapshot background work | `thin_delta` + read changed blocks | compare against base O(volume), or ship full file | ship RW disk | ship overlay |
+| Clone start (base cached) | `create_snap` + apply delta O(changed) | reflink + apply delta O(changed) | reflink RW disk | place overlay + header rewrite |
+| Clone start (base not cached) | + pull and write base O(base) | + pull base O(base) | + pull base O(base), shared by all snapshots of the image | + pull base O(base) |
 | Capture while paused | suspend + `create_snap`, ms | `FICLONE`, ms | reflink RW disk, ms | reflink/copy overlay, ms |
 | Delta against base | `thin_delta` virtual ranges | none native; compare against base | RW disk is the delta | overlay is the delta |
 | Base portability | export per host, or ship full | export per host, or ship full | deterministic or by digest | export per host |
@@ -576,7 +778,7 @@ Flintlock (commit `68533c7`):
   `infrastructure/microvm/cloudhypervisor/create.go`,
   `infrastructure/microvm/shared/imagefile.go`, `internal/inject/wire.go`,
   `pkg/defaults/defaults.go`, `hack/scripts/{devpool,direct_lvm}.sh`,
-  `internal/provision/`.
+  `internal/provision/{defaults,devpool}.go`.
 
 Firecracker:
 
@@ -586,6 +788,9 @@ Firecracker:
 * <https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/block-io-engine.md>
 * <https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/block-vhost-user.md>
 * <https://github.com/firecracker-microvm/firecracker/issues/4014>
+* <https://github.com/firecracker-microvm/firecracker/blob/main/SPECIFICATION.md>
+* <https://github.com/firecracker-microvm/firecracker/blob/main/tests/integration_tests/performance/test_snapshot.py>
+* <https://www.usenix.org/system/files/nsdi20-paper-agache.pdf>
 
 Cloud Hypervisor:
 
@@ -597,6 +802,10 @@ Cloud Hypervisor:
 * <https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/vmm/src/config.rs>
 * <https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/block/src/formats/qcow/backing.rs>
 * <https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/vhost_user_block/src/lib.rs>
+* <https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/docs/performance_metrics.md>
+* <https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/release-notes.md>
+* <https://github.com/cloud-hypervisor/cloud-hypervisor/pull/7800>
+* <https://github.com/cloud-hypervisor/cloud-hypervisor/pull/8581>
 
 containerd:
 
@@ -604,6 +813,7 @@ containerd:
 * <https://github.com/containerd/containerd/blob/v1.7.35/snapshots/devmapper/pool_device.go>
 * <https://github.com/containerd/containerd/blob/v1.7.35/snapshots/devmapper/metadata.go>
 * <https://github.com/containerd/containerd/blob/v1.7.35/snapshots/devmapper/config.go>
+* <https://github.com/containerd/containerd/blob/main/plugins/snapshots/devmapper/pool_device.go>
 * <https://github.com/containerd/containerd/blob/v1.7.35/snapshots/storage/bolt.go>
 * <https://github.com/containerd/containerd/issues/4234>
 * <https://github.com/containerd/containerd/blob/main/plugins/diff/walking/differ.go>
@@ -625,6 +835,10 @@ Kernel, device-mapper, filesystems:
 * <https://github.com/torvalds/linux/blob/master/block/bdev.c>
 * <https://github.com/torvalds/linux/blob/master/fs/read_write.c>
 * <https://github.com/torvalds/linux/blob/master/fs/ext4/super.c>
+* <https://github.com/torvalds/linux/blob/master/drivers/md/dm-thin.c>
+* <https://github.com/torvalds/linux/blob/master/fs/xfs/xfs_reflink.c>
+* <https://github.com/torvalds/linux/blob/master/fs/remap_range.c>
+* <https://man7.org/linux/man-pages/man8/dmsetup.8.html>
 * <https://github.com/jthornber/thin-provisioning-tools/blob/main/man8/thin_delta.txt>
 * <https://github.com/jthornber/thin-provisioning-tools/blob/main/src/thin/delta_visitor.rs>
 * <https://man7.org/linux/man-pages/man2/ioctl_ficlone.2.html>
@@ -656,5 +870,6 @@ Prior art:
 * <https://fly.io/blog/machine-migrations/>
 * <https://fly.io/blog/design-and-implementation/>
 * <https://www.tensorlake.ai/blog/firecracker-disk-snapshots-o-changed-bytes>
-* <https://arxiv.org/abs/2305.13162>
+* <https://arxiv.org/abs/2305.13162> (also <https://www.usenix.org/system/files/atc23-brooker.pdf>)
 * <https://codesandbox.io/blog/how-we-clone-a-running-vm-in-2-seconds>
+* <https://codesandbox.io/blog/cloning-microvms-using-userfaultfd>
