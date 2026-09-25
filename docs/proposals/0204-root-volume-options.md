@@ -160,10 +160,23 @@ per host, that is only true if either:
    as its own content-addressed artifact, and target hosts create volumes from
    that artifact rather than from a local unpack; or
 2. the base block image is built deterministically from the OCI image. EROFS
-   images are reproducible by design
-   ([`mkfs.erofs`](https://github.com/erofs/erofs-utils/blob/master/man/mkfs.erofs.1)
-   with a fixed timestamp); reproducible ext4 needs a fixed UUID, hash seed,
-   timestamps, and untar order, which the devmapper snapshotter does not do.
+   images can be built reproducibly, but only when every input is pinned. A
+   fixed timestamp alone is not enough: `mkfs.erofs` generates a random
+   filesystem UUID unless `-U` is given ("Use the user-defined UUID or generate
+   one for clean builds",
+   [`mkfs/main.c`](https://github.com/erofs/erofs-utils/blob/master/mkfs/main.c)),
+   so two hosts following a timestamp-only recipe produce different digests. A
+   deterministic recipe needs at least: `-T <timestamp>` (with `--mkfs-time`,
+   otherwise every file's times are overwritten, which is also deterministic
+   but changes content), `-U <fixed UUID>` or `-U clear`, a stable input order
+   (`--sort=none` on a tar source, or identical source ordering), and the same
+   erofs-utils version and compression options
+   ([`mkfs.erofs(1)`](https://github.com/erofs/erofs-utils/blob/master/man/mkfs.erofs.1)).
+   containerd's erofs differ recommends `-T0 --mkfs-time` and `--sort=none` but
+   does not document a UUID setting, so its output should be checked for
+   reproducibility before relying on it. Reproducible ext4 needs a fixed UUID,
+   hash seed, timestamps, and untar order, which the devmapper snapshotter does
+   not do.
 
 This applies whichever storage backend is chosen. Shipping the whole volume
 instead of a delta removes the dependency at the cost of package size.
@@ -480,7 +493,8 @@ Steps that do not depend on the storage backend:
 * **Base availability on the target** is a one-off cost per host and image,
   paid by the first clone of that image on that host and skipped by later
   clones. For Options A, B, and D the base is exported from the source host;
-  for Option C it is deterministic and shared by every snapshot of the image.
+  for Option C it is built deterministically (with pinned inputs, section
+  3.3) and shared by every snapshot of the image.
 * **Package fetch** is O(package size): memory plus volume delta, or memory
   plus full volume images where no base is referenced.
 
@@ -658,16 +672,18 @@ chunks served with a median 550 us from an in-AZ cache against 36 ms from S3
   disk is the delta, so compress and push O(its allocated size). No
   comparison against a base is needed.
 * **Clone start.** One-off per host and image: pull the base by digest
-  (O(base size)). Because the base is deterministic, this is shared by every
-  snapshot taken from that image, not just those from one source host. Per
+  (O(base size)). Because the base is built deterministically (section 3.3),
+  this is shared by every snapshot taken from that image, not just those from
+  one source host. Per
   clone: reflink or copy a locally cached copy of the shipped writable disk
   (O(extents) or O(allocated size)), present both drives in the original
   order, then VMM load and resume. This is the smallest per-clone disk work of
   the four options.
-* **Delta and base.** The writable disk *is* the delta. The base is
-  deterministic (EROFS) or content-addressed, so the target only needs the
-  digest. Both the base and the writable disk are still mounted filesystems
-  and must be byte-identical on restore, which this design gives naturally.
+* **Delta and base.** The writable disk *is* the delta. The base is built
+  deterministically (EROFS with pinned inputs, section 3.3) or is
+  content-addressed, so the target only needs the digest. Both the base and
+  the writable disk are still mounted filesystems and must be byte-identical
+  on restore, which this design gives naturally.
 * **Restore.** Pull the base by digest, copy the writable disk per clone,
   present both drives in the original order.
 * **containerd tracking.** The base is tracked; per-VM writable disks and
@@ -745,7 +761,7 @@ diff for a memory restore.
 | Clone start (base not cached) | + pull and write base O(base) | + pull base O(base) | + pull base O(base), shared by all snapshots of the image | + pull base O(base) |
 | Capture while paused | suspend + `create_snap`, ms | `FICLONE`, ms | reflink RW disk, ms | reflink/copy overlay, ms |
 | Delta against base | `thin_delta` virtual ranges | none native; compare against base | RW disk is the delta | overlay is the delta |
-| Base portability | export per host, or ship full | export per host, or ship full | deterministic or by digest | export per host |
+| Base portability | export per host, or ship full | export per host, or ship full | deterministic build with pinned inputs, or by digest | export per host |
 | Firecracker | yes | yes | yes (two drives) | **no** |
 | Cloud Hypervisor | yes | yes | yes | yes |
 | containerd tracks capture | no; device ID collision risk | no | no (base yes) | no |
@@ -849,6 +865,7 @@ Kernel, device-mapper, filesystems:
 * <https://openzfs.github.io/openzfs-docs/man/master/8/zfs-send.8.html>
 * <https://pkg.go.dev/golang.org/x/sys/unix#IoctlFileClone>
 * <https://github.com/erofs/erofs-utils/blob/master/man/mkfs.erofs.1>
+* <https://github.com/erofs/erofs-utils/blob/master/mkfs/main.c>
 
 qcow2 and tooling:
 

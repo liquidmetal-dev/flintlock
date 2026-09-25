@@ -85,7 +85,7 @@ Today flintlock has no support for any part of this:
 | Thaw | Reversing a quiesce. |
 | Writable volume | A root or additional volume that is not `is_read_only`. |
 | Mounted volume | Any root or additional volume, writable or read-only, presented to the guest as a block device. The kernel and initrd are not volumes: they are loaded into memory at boot and not read afterwards. |
-| Base block image | The exact block content a volume was created from: the committed image snapshot's device or file, as built on the source host. Identified by the digest of its content, not by the OCI image digest alone. |
+| Base block image | The exact block content a volume was created from: the committed image snapshot's device or file, as built on the source host. Identified by the digest of its content, not by the OCI image digest alone, and located by a qualified reference (SNAP-PKG-006). |
 | Volume delta | The set of blocks of a volume that differ from its base block image, addressed by offset within the volume (not by physical location in a pool or file). |
 
 ## 4. VMM capability summary (informative)
@@ -103,7 +103,7 @@ Today flintlock has no support for any part of this:
 | Disk snapshot API | None | None |
 | Memory backends | `File` (lazy, `MAP_PRIVATE`) or `Uffd` (external page-fault handler) | `copy` (default, eager), `ondemand` (userfaultfd), `copyonwrite` (shared page cache) |
 | Diff snapshots | Developer preview | Not supported |
-| Version rules | Each binary supports exactly one snapshot format version; host kernel changes are "unstable"; same CPU model needed | No documented guarantees |
+| Version rules | Each binary supports exactly one snapshot format version; snapshots are compatible only if the CPU features exposed to the guest are invariant (same vendor, same template or feature set); Intel to AMD is unsupported; host kernel changes are "unstable" | No documented guarantees |
 | Not captured | Disk contents, MMDS data store, network connections, logger/metrics config; vsock is reset | Disk contents |
 | Host resource remapping | `network_overrides`, `vsock_override` (no drive override) | `net_fds`, or editing `config.json` |
 | vhost-user block | Developer preview; snapshots are not supported for VMs with vhost-user devices | Supported (`vhost_user_block` is raw only) |
@@ -229,12 +229,12 @@ an artifact or building it deterministically, is also undecided.
 | SNAP-PKG-003 | The VMM state files, guest memory, and each volume delta or full volume image MUST each be stored in separate layers, identified by media type and annotations. Base block images, when shipped, MUST be separate artifacts referenced by digest rather than layers of the snapshot package. |
 | SNAP-PKG-004 | Guest memory layers MUST be compressed with zstd. |
 | SNAP-PKG-005 | Guest memory SHOULD be split into multiple layers of bounded size, so that push and pull can run in parallel and resume after interruption. |
-| SNAP-PKG-006 | The package MUST record the digest of every OCI image the snapshot depends on (kernel, initrd, and the images the volumes were created from) and the digest of every base block image the volume deltas apply to. References by tag alone MUST NOT be used. |
-| SNAP-PKG-007 | The package SHOULD link to the manifests of the images and base block image artifacts it depends on, through an OCI index or the subject/referrers mechanism, so that tools copying the snapshot can copy those too and registry garbage collection does not remove them. |
+| SNAP-PKG-006 | The package MUST record, for every OCI image the snapshot depends on (kernel, initrd, and the images the volumes were created from) and for every base block image the volume deltas apply to, both its digest and a fully qualified reference (registry, repository, and digest) from which it can be fetched. A digest alone identifies content but does not locate it: the OCI distribution API fetches manifests and blobs by repository name and digest. The digest is the identity; flintlock MAY be configured with alternative repositories or mirrors to try, and MUST verify whatever it fetches against the recorded digest (SNAP-PKG-012). References by tag alone MUST NOT be used. |
+| SNAP-PKG-007 | The package SHOULD also link to the manifests of the images and base block image artifacts it depends on, through an OCI index or the subject/referrers mechanism, so that tools copying the snapshot between registries copy those too and registry garbage collection does not remove them. |
 | SNAP-PKG-008 | The package MUST carry a flintlock snapshot package format version. Flintlock MUST refuse to restore a package whose major format version it does not support. |
 | SNAP-PKG-009 | Flintlock MUST support pushing a snapshot package to an OCI registry. |
 | SNAP-PKG-010 | Registry credentials MUST be configured on the flintlockd host, per registry (for example with a docker `config.json`-style file). The same credentials MUST be used to pull snapshot packages and their images on restore. Credentials MUST NOT be passed in API requests. |
-| SNAP-PKG-011 | Flintlock MUST support storing a snapshot package locally, as an [OCI image layout](https://github.com/opencontainers/image-spec/blob/main/image-layout.md) directory under the flintlock state directory, so it can be copied with standard tools such as `oras`. |
+| SNAP-PKG-011 | Flintlock MUST support storing a snapshot package locally, as an [OCI image layout](https://github.com/opencontainers/image-spec/blob/main/image-layout.md) directory under the flintlock state directory, so it can be copied with standard tools such as `oras`. The layout MUST either contain the package's dependencies (base block images, and any image not otherwise obtainable) in its index or carry their qualified references (SNAP-PKG-006), so that a copied layout is restorable on a host that holds none of them. |
 | SNAP-PKG-012 | Flintlock MUST verify the digest of every blob it reads from a snapshot package. |
 
 ### 5.6 Metadata (SNAP-META)
@@ -254,8 +254,8 @@ an artifact or building it deterministically, is also undecided.
 | SNAP-RST-001 | A client MUST be able to create a microVM from a snapshot package in a registry or in the local store, through the same creation path as other microVMs (SNAP-API-003). |
 | SNAP-RST-002 | The client MAY override the restored VM's name, namespace, UID, labels, metadata, and host-side network devices. |
 | SNAP-RST-003 | Flintlock MUST reject a restore request that changes vCPU count, memory size, CPU configuration, or the set and order of devices. |
-| SNAP-RST-004 | Before starting the VMM, flintlock MUST check the compatibility descriptor against the host and MUST reject the restore, with an error naming the mismatch, if any of these differ: VMM type, CPU architecture, interrupt controller version, or (Firecracker) snapshot format version, or (Cloud Hypervisor) exact VMM version. |
-| SNAP-RST-005 | Flintlock SHOULD also reject the restore if the CPU vendor, model, feature flags (or CPU template), or host kernel version differ. The client MAY set a force flag to skip the checks in this requirement, but not those in SNAP-RST-004. |
+| SNAP-RST-004 | Before starting the VMM, flintlock MUST check the compatibility descriptor against the host and MUST reject the restore, with an error naming the mismatch, if any of these differ: VMM type, CPU architecture, interrupt controller version; for Firecracker, the snapshot format version, the CPU vendor, and the set of CPU features exposed to the guest (the CPU template, or the host's guest-visible feature set when no template is used); for Cloud Hypervisor, the exact VMM version. Firecracker documents that snapshots are compatible only when the guest-visible CPU features are invariant and that Intel to AMD restores are unsupported, so these checks MUST NOT be skippable. |
+| SNAP-RST-005 | Flintlock SHOULD also reject the restore if the host kernel version differs (Firecracker documents restores across host kernels as unstable), if the CPU model name differs while the guest-visible features match, or, for Cloud Hypervisor, if the CPU vendor, model, or feature flags differ. The client MAY set a force flag to skip the checks in this requirement, but not those in SNAP-RST-004. |
 | SNAP-RST-006 | Flintlock MUST check the restore policy (SNAP-SEC-002) and signature (SNAP-SEC-004) before pulling the guest memory, VMM state, or volume layers. |
 | SNAP-RST-007 | By default, flintlock MUST give the restored VM the source VM's metadata. The client MAY supply replacement metadata. |
 | SNAP-RST-008 | Flintlock MUST add restore markers to the restored VM's metadata: the snapshot identifier, the restored VM's UID, and a restore generation counter that is unique for each restore of the same snapshot. |
@@ -264,6 +264,7 @@ an artifact or building it deterministically, is also undecided.
 | SNAP-RST-011 | A restored VM MUST be managed like any other microVM: it MUST be reconciled, reported through `GetMicroVM` and `ListMicroVMs`, and deleted through `DeleteMicroVM`, including clean-up of its restored volumes and memory files. |
 | SNAP-RST-012 | A restored VM MUST be resumed after restore, and MUST be reported as created only after it has been resumed and, if the snapshot was quiesced, thawed (SNAP-QSC-007). |
 | SNAP-RST-013 | If a restore fails, flintlock MUST remove any partial state it created (VMM process, volumes, network devices, local copies of the package) and report the microVM as failed. |
+| SNAP-RST-014 | Flintlock MUST resolve the package reference to a manifest digest once, before any compatibility, policy, or signature check, MUST use that digest for every later fetch of the package and its dependencies, and MUST record it in the restore markers (SNAP-RST-008). The client MAY supply a digest reference directly; a tag reference is resolved to a digest at this step and MUST NOT be re-read during the restore. |
 
 ### 5.8 Clones (SNAP-CLN)
 
@@ -278,8 +279,8 @@ snapshot exactly once.
 | SNAP-CLN-002 | Each restored VM MUST have a unique UID, unique host-side network devices, and a unique vsock path. |
 | SNAP-CLN-003 | Flintlock MUST NOT attempt to change guest-side identity (hostname, MAC and IP inside the guest, machine ID). The guest is responsible for this, using the restore markers (SNAP-RST-008) and any replacement metadata. |
 | SNAP-CLN-004 | Snapshots of microVMs with macvtap interfaces MUST NOT be restored more than once in this version. |
-| SNAP-CLN-005 | The user documentation MUST warn that clones share RNG state, secrets, and guest network identity, and MUST describe the mitigations. |
-| SNAP-CLN-006 | Guests that will be cloned SHOULD use a kernel with VMGenID support (Linux 5.18 or later) so that the kernel RNG is reseeded on restore. |
+| SNAP-CLN-005 | The user documentation MUST warn that clones share RNG state, secrets, and guest network identity, MUST describe the mitigations, and MUST state the per-architecture kernel requirement for VMGenID (SNAP-CLN-006), including that arm64 guests on Firecracker need the DeviceTree binding backported to a 6.1 kernel. |
+| SNAP-CLN-006 | Guests that will be cloned SHOULD use a kernel with VMGenID support so that the kernel RNG is reseeded on restore. On ACPI systems (x86_64) that is Linux 5.18 or later. On arm64, which uses DeviceTree, it is Linux 6.10 or later; because the newest guest kernel Firecracker supports is 6.1, arm64 guests on Firecracker need a 6.1 kernel with the VMGenID DeviceTree binding backported from 6.10, as Firecracker's own CI does. Without it, clones are not reseeded. |
 
 ### 5.9 Security and access control (SNAP-SEC)
 
@@ -297,9 +298,9 @@ restore policy only binds well-behaved flintlock hosts.
 | SNAP-SEC-001 | Flintlock MUST treat snapshot files and packages as sensitive. Local snapshot files MUST be created with mode 0600 in directories owned by flintlockd. |
 | SNAP-SEC-002 | The client MAY attach a restore policy to a snapshot, listing allowed target hosts (by host identifier or host labels) and allowed client identities. When a package has a policy, flintlockd MUST reject restores that the policy does not allow. |
 | SNAP-SEC-003 | Client identities in a restore policy MUST be matched against the mTLS client certificate subject. A policy that lists client identities MUST be rejected by a host that does not validate client certificates (`--tls-client-validate`). |
-| SNAP-SEC-004 | Flintlock SHOULD support signing snapshot packages (for example with cosign or notation). When a package carries a restore policy, flintlockd MUST verify its signature against public keys configured on the host and MUST reject the restore if verification fails. |
-| SNAP-SEC-005 | A flintlockd host MAY be configured to require a valid signature for every restore. |
-| SNAP-SEC-006 | The user documentation MUST state that snapshot packages are not encrypted, that they contain the guest's secrets (in guest memory and in the stored spec metadata), that the restore policy is not a security boundary on its own, and that access to packages has to be restricted with registry and storage permissions. |
+| SNAP-SEC-004 | Flintlock SHOULD support signing snapshot packages (for example with cosign or notation). When a package carries a restore policy, flintlockd MUST verify its signature against public keys configured on the host and MUST reject the restore if verification fails. Because an unsigned package can simply omit a policy, this check on its own only protects a signed package against tampering; it does not stop a registry writer from publishing a stripped, unsigned copy. Enforcing policies against that requires SNAP-SEC-005. |
+| SNAP-SEC-005 | A flintlockd host MAY be configured to require a valid signature for every restore. A deployment that relies on restore policies MUST enable this on every host that can restore, since it is the only way to reject a package whose policy has been removed. |
+| SNAP-SEC-006 | The user documentation MUST state that snapshot packages are not encrypted, that they contain the guest's secrets (in guest memory and in the stored spec metadata), that the restore policy is not a security boundary on its own and is enforceable against stripping only on hosts that require signatures (SNAP-SEC-005), that tag references are resolved to a digest at the start of a restore (SNAP-RST-014), and that access to packages has to be restricted with registry and storage permissions. |
 | SNAP-SEC-007 | Flintlock SHOULD support configurable limits on local snapshot storage and on the number of concurrent snapshot operations, to prevent snapshots exhausting host resources. |
 | SNAP-SEC-008 | The package format SHOULD allow encryption to be added in a later version without a new major package format version (SNAP-PKG-008), for example by staying compatible with the [ocicrypt](https://github.com/containers/ocicrypt) encrypted layer media types. |
 
@@ -309,7 +310,7 @@ restore policy only binds well-behaved flintlock hosts.
 | -- | ----------- |
 | SNAP-API-001 | Snapshots MUST be exposed through a new `SnapshotService` in `snapshot.services.api.v1alpha1`, with operations to create a snapshot, get a snapshot, list snapshots, stream a list of snapshots, and delete a snapshot. Each operation MUST have a grpc-gateway REST mapping, following the pattern in `api/services/microvm/v1alpha1/microvms.proto`. |
 | SNAP-API-002 | A snapshot MUST be a first-class resource with an identifier, the source VM, the destination (registry reference or local store), labels, and a status. The status MUST include a phase (pending, quiescing, capturing, packaging, pushing, ready, failed), an error message on failure, and on success the package's reference and digest. |
-| SNAP-API-003 | `CreateMicroVM` MUST accept either a microVM spec (as today) or a snapshot source. A snapshot source MUST contain the package reference, the overrides allowed by SNAP-RST-002, the memory restore mode, and the force flag (SNAP-RST-005). |
+| SNAP-API-003 | `CreateMicroVM` MUST accept either a microVM spec (as today) or a snapshot source. A snapshot source MUST contain the package reference (a tag or a digest; see SNAP-RST-014), the overrides allowed by SNAP-RST-002, the memory restore mode, and the force flag (SNAP-RST-005). |
 | SNAP-API-004 | All API changes MUST be backwards compatible with existing `v1alpha1` clients. |
 | SNAP-API-005 | Deleting a snapshot MUST remove its record and any local package content. Flintlock MUST NOT delete snapshot packages from a remote registry. |
 | SNAP-API-006 | Deleting a snapshot MUST NOT affect restored VMs that are using its memory file (SNAP-RST-010); that content MUST be released only when those VMs have been deleted. |
@@ -363,12 +364,15 @@ SNAP-SEC-008 keeps the package format open to this change.
   OCI image digest do not have the same base. Deltas only work if the base is
   shipped as an artifact or built deterministically (SNAP-VOL-011).
 * **Cross-host restore needs matching hosts.** Firecracker requires the same
-  CPU model and snapshot format version, and treats host kernel changes as
-  unstable. Cloud Hypervisor gives no guarantees. In practice, restore targets
-  need to run the same hardware and software as the source host.
+  snapshot format version, CPU vendor, and guest-visible CPU features, and
+  treats host kernel changes as unstable. Cloud Hypervisor gives no guarantees.
+  In practice, restore targets need to run the same hardware and software as
+  the source host.
 * **Clones share guest identity.** Until per-clone network namespaces exist,
   clones that keep the source's MAC and IP need to be kept on separate networks or
-  reconfigured by the guest.
+  reconfigured by the guest. RNG reseeding depends on VMGenID support in the
+  guest kernel, which arm64 guests on Firecracker only get with a backported
+  6.1 kernel (SNAP-CLN-006).
 * **Guest agent dependency for quiesce only.** Optional quiesce and thaw
   (SNAP-QSC-003) require new guest-agent features. Snapshots without quiesce do
   not depend on the guest agent.
@@ -402,8 +406,12 @@ SNAP-SEC-008 keeps the package format open to this change.
 
 * Issue [#204](https://github.com/liquidmetal-dev/flintlock/issues/204)
 * [Firecracker snapshotting docs](https://github.com/firecracker-microvm/firecracker/tree/main/docs/snapshotting),
-  in particular `snapshot-support.md`, `versioning.md`, `network-for-clones.md`,
-  and `random-for-clones.md`
+  in particular `snapshot-support.md`,
+  [`versioning.md` (CPU model)](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/versioning.md#cpu-model),
+  `network-for-clones.md`, and
+  [`random-for-clones.md` (kernels with VMGenID)](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/random-for-clones.md#linux-kernels-with-vmgenid-support)
+* [OCI distribution specification](https://github.com/opencontainers/distribution-spec/blob/main/spec.md)
+  (manifests and blobs are fetched by repository name and digest)
 * [Firecracker `PATCH /drives` docs](https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/patch-block.md),
   [vhost-user block docs](https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/block-vhost-user.md),
   and issue [#4014](https://github.com/firecracker-microvm/firecracker/issues/4014)
