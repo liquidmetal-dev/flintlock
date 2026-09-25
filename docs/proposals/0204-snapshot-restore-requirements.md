@@ -166,11 +166,12 @@ restored disks.
 
 With the devmapper snapshotter, a writable volume (including the root volume)
 is an *active* containerd snapshot whose parent is the committed image
-snapshot. containerd (v1.7) has no operation that takes a point-in-time copy
-of an active snapshot: `Prepare` and `View` require a committed parent, and
-`Commit` deactivates the device, which a running VM is still using. dm-thin
-itself can snapshot an active device instantly, but containerd does not expose
-this.
+snapshot. containerd has no operation that takes a point-in-time copy of an
+active snapshot. This is true of v1.7 (which flintlock uses) and remains true
+in v2.3 and on `main` as of September 2026: `Prepare` and `View` require a
+committed parent, and `Commit` deactivates the device, which a running VM is
+still using. dm-thin itself can snapshot an active device instantly, but
+containerd does not expose this.
 
 The design can choose between these mechanisms:
 
