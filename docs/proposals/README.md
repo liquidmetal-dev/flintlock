@@ -26,6 +26,21 @@ three design candidates.
 | [Option B: containerd blockfile snapshotter on a reflink filesystem](26-09-25-snapshot-restore/0204-option-b-blockfile.md) | proposed design candidate |
 | [Option C: read-only deterministic base plus a per-VM writable disk](26-09-25-snapshot-restore/0204-option-c-ro-base-rw-disk.md) | proposed design candidate |
 
+### [26-09-25-local-db-store](26-09-25-local-db-store/)
+
+Local embedded database as an optional backing store for microVM records,
+instead of the containerd content store. Tracking issue:
+[#1172](https://github.com/liquidmetal-dev/flintlock/issues/1172).
+
+Suggested reading order: requirements, then the options survey, then the
+design candidate.
+
+| Document | Status |
+| --- | --- |
+| [Local Database Backing Store Requirements](26-09-25-local-db-store/1172-local-db-store-requirements.md) | proposed |
+| [Embedded Database Options for the Local Store](26-09-25-local-db-store/1172-embedded-db-options.md) | informative |
+| [Local Store Design Candidate](26-09-25-local-db-store/1172-local-db-store-design.md) | proposed design candidate |
+
 ## Adding a proposal
 
 1. Create `docs/proposals/YY-MM-DD-<slug>/` using today's date.
