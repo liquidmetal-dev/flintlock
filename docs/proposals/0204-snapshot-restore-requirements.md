@@ -75,15 +75,18 @@ Today flintlock has no support for any part of this:
 
 | Term | Meaning |
 | ---- | ------- |
-| Snapshot | The point-in-time state of a microVM: VMM device state, guest memory, and writable volume changes. Also the flintlock API resource that tracks producing it. |
+| Snapshot | The point-in-time state of a microVM: VMM device state, guest memory, and the block state of every mounted volume. Also the flintlock API resource that tracks producing it. |
 | Snapshot package | The OCI artifact that holds a snapshot and its metadata. |
 | Source VM | The microVM a snapshot was taken from. |
 | Restored VM | A microVM created from a snapshot package. |
 | Clone | One of several restored VMs created from the same snapshot package. |
 | Compatibility descriptor | Plaintext metadata in the snapshot package that describes the VMM, host, and images the snapshot depends on. |
-| Quiesce | Flushing and freezing the guest's writable filesystems so that the on-disk state is consistent with guest memory. |
+| Quiesce | Flushing and freezing the guest's writable filesystems so that applications see a clean point in time. Optional; see section 5.3. |
 | Thaw | Reversing a quiesce. |
 | Writable volume | A root or additional volume that is not `is_read_only`. |
+| Mounted volume | Any root or additional volume, writable or read-only, presented to the guest as a block device. The kernel and initrd are not volumes: they are loaded into memory at boot and not read afterwards. |
+| Base block image | The exact block content a volume was created from: the committed image snapshot's device or file, as built on the source host. Identified by the digest of its content, not by the OCI image digest alone. |
+| Volume delta | The set of blocks of a volume that differ from its base block image, addressed by offset within the volume (not by physical location in a pool or file). |
 
 ## 4. VMM capability summary (informative)
 
@@ -93,15 +96,24 @@ Today flintlock has no support for any part of this:
 | Create snapshot | `PUT /snapshot/create` (`snapshot_path`, `mem_file_path`, `snapshot_type`, `sync_snapshot_files`); VM has to be paused | `vm.snapshot` to a `file://` destination directory; VM has to be paused |
 | Restore | `PUT /snapshot/load` on a fresh process, before boot | `--restore source_url=...` at launch, or `vm.restore` on an empty VMM |
 | Files produced | VM state file (with CRC) and guest memory file | `config.json`, `state.json`, `memory-ranges` (mode 0600) |
+| Disk formats | Raw file only | Raw, qcow2 (backing files opt-in with `backing_files=on`), vhd, vhdx, vmdk |
+| Disk state at snapshot | Pause drains in-flight I/O; create fsyncs the backing files; the user must back them up externally | VM has to be paused; disks are to be copied while paused |
+| Disk path override at restore | None: disks must be at the same relative paths (issue [#4014](https://github.com/firecracker-microvm/firecracker/issues/4014)) | None in the API; `config.json` is documented as editable between snapshot and restore |
+| Swap a mounted disk on a live VM | `PATCH /drives/{id}` only for a device the guest has not mounted, and not atomic | Only `vm.add-disk` / `vm.remove-device` |
+| Disk snapshot API | None | None |
 | Memory backends | `File` (lazy, `MAP_PRIVATE`) or `Uffd` (external page-fault handler) | `copy` (default, eager), `ondemand` (userfaultfd), `copyonwrite` (shared page cache) |
 | Diff snapshots | Developer preview | Not supported |
 | Version rules | Each binary supports exactly one snapshot format version; host kernel changes are "unstable"; same CPU model needed | No documented guarantees |
 | Not captured | Disk contents, MMDS data store, network connections, logger/metrics config; vsock is reset | Disk contents |
-| Host resource remapping | `network_overrides`, `vsock_override` | `net_fds`, or editing `config.json` |
+| Host resource remapping | `network_overrides`, `vsock_override` (no drive override) | `net_fds`, or editing `config.json` |
+| vhost-user block | Developer preview; snapshots are not supported for VMs with vhost-user devices | Supported (`vhost_user_block` is raw only) |
 | Uniqueness | Always-on VMGenID; secure only if each snapshot is resumed once | Not documented |
 
 Both VMMs expect disks, TAP devices, and sockets to exist at the same paths at
-restore time unless remapped.
+restore time unless remapped. Neither VMM can remap a drive through its restore
+API, and neither can change a mounted disk under a running guest. The
+supporting research is in
+[0204-root-volume-options.md](0204-root-volume-options.md).
 
 ## 5. Requirements
 
@@ -124,70 +136,89 @@ restore time unless remapped.
 | SNAP-CRT-002 | Flintlock MUST reject a snapshot request for a microVM that is not running. |
 | SNAP-CRT-003 | Flintlock SHOULD reject, or warn about, a snapshot request made before the guest kernel has finished booting (Firecracker documents that such snapshots can crash the guest on resume). |
 | SNAP-CRT-004 | Flintlock MUST reject a snapshot request before pausing the microVM if the microVM has any device that cannot be snapshotted. Virtiofs volumes MUST be treated as unsupported. |
-| SNAP-CRT-005 | Snapshot creation MUST follow this order: quiesce (SNAP-QSC), pause, VMM snapshot, point-in-time capture of writable volumes (SNAP-VOL), then resume or stop the source VM. |
+| SNAP-CRT-005 | Snapshot creation MUST follow this order: optional quiesce (SNAP-QSC), pause, VMM snapshot, point-in-time block capture of every mounted volume (SNAP-VOL), then resume or stop the source VM. |
 | SNAP-CRT-006 | The client MUST be able to choose whether the source VM is resumed or stopped after the snapshot. The default MUST be to resume. |
 | SNAP-CRT-007 | Compression, packaging, and pushing MUST take place after the source VM has been resumed or stopped, so that they do not add to the pause time. |
 | SNAP-CRT-008 | Snapshot creation MUST be asynchronous: the request MUST return a snapshot identifier, and the client MUST be able to observe progress and the final result. |
 | SNAP-CRT-009 | Flintlock MUST produce only full snapshots. |
 | SNAP-CRT-010 | Flintlock MUST NOT allow more than one snapshot of the same microVM to be in progress at a time. |
-| SNAP-CRT-011 | If snapshot creation fails at any point after the pause, flintlock MUST return the source VM to its prior running state (thawed and resumed) unless the client asked for it to be stopped. |
+| SNAP-CRT-011 | If snapshot creation fails at any point after the pause, flintlock MUST return the source VM to its prior running state (resumed, and thawed if it was quiesced) unless the client asked for it to be stopped. |
 
 ### 5.3 Quiesce (SNAP-QSC)
 
-Because volume contents are captured separately from memory (SNAP-VOL), the
-guest has to flush and freeze its writable filesystems first. Otherwise the
-restored guest's memory (page cache, filesystem journal) would not match the
-restored disks.
+Volumes are captured at block level while the VMM is paused and its block I/O
+is drained (SNAP-VOL). The captured blocks are therefore exactly what the guest
+kernel's memory expects, in the same way that a running VM is consistent with
+its own disk, so quiescing is not needed for filesystem consistency. It remains
+useful for *application* consistency (for example flushing a database before
+the snapshot) and is offered as an option.
 
 | ID | Requirement |
 | -- | ----------- |
-| SNAP-QSC-001 | If a microVM has any writable volume, flintlock MUST quiesce the guest before pausing it. |
-| SNAP-QSC-002 | Quiescing MUST be performed through the guest agent. A snapshot request for a microVM with writable volumes MUST be rejected if the microVM was not created with `allow_guest_agent`, unless the client sets the force flag (SNAP-QSC-005). |
+| SNAP-QSC-001 | Flintlock MUST NOT require a quiesce for a snapshot. The client MAY request one. (Revised: quiesce was mandatory for writable volumes when volume capture was file-level.) |
+| SNAP-QSC-002 | When requested, quiescing MUST be performed through the guest agent. A quiesce request for a microVM that was not created with `allow_guest_agent` MUST be rejected. |
 | SNAP-QSC-003 | The guest agent MUST provide dedicated freeze and thaw operations. Freeze MUST find the guest's writable filesystems itself, sync them, and freeze them (for example with `FIFREEZE`). This is a dependency on the guest-agent project. |
 | SNAP-QSC-004 | The freeze operation MUST take a timeout after which the guest agent thaws the filesystems on its own, so that a guest is never left frozen if flintlock fails. |
-| SNAP-QSC-005 | If quiescing fails, the snapshot MUST fail, unless the client set an explicit force flag. A snapshot taken with the force flag MUST be marked as not quiesced in its metadata (SNAP-META-001). |
-| SNAP-QSC-006 | Flintlock MUST thaw the source VM after the VMM snapshot and volume capture, whether they succeeded or failed, if the source VM is resumed. |
-| SNAP-QSC-007 | A restored VM resumes with its filesystems frozen. Flintlock MUST thaw a restored VM through the guest agent after resuming it, and MUST report the restored VM as failed if thawing does not succeed within a configurable timeout. |
+| SNAP-QSC-005 | If a requested quiesce fails, the snapshot MUST fail, unless the client set an explicit force flag. Whether the snapshot was quiesced MUST be recorded in its metadata (SNAP-META-001). |
+| SNAP-QSC-006 | If the source VM was quiesced, flintlock MUST thaw it after the VMM snapshot and volume capture, whether they succeeded or failed, if the source VM is resumed. |
+| SNAP-QSC-007 | A VM restored from a quiesced snapshot resumes with its filesystems frozen. Flintlock MUST thaw such a VM through the guest agent after resuming it, and MUST report it as failed if thawing does not succeed within a configurable timeout. VMs restored from a non-quiesced snapshot need no thaw. |
 
 ### 5.4 Volumes (SNAP-VOL)
 
 | ID | Requirement |
 | -- | ----------- |
-| SNAP-VOL-001 | The snapshot package MUST contain the changes made to each writable volume since it was created from its image. The changes MUST be captured as a file-level diff against the image, stored as an OCI layer (tar format) that can be applied to a fresh unpack of the image on any host. Block-level diffs MUST NOT be used, because an image's block layout is not the same on different hosts. |
-| SNAP-VOL-002 | Read-only volumes, the kernel, and the initrd MUST NOT be copied into the snapshot package. They MUST be referenced by image digest (SNAP-PKG-006). |
-| SNAP-VOL-003 | The source VM MUST remain paused until the writable volumes have been captured at the same point in time as the VMM snapshot. |
-| SNAP-VOL-004 | Flintlock SHOULD use the capture mechanism with the shortest pause that the VMM and snapshotter support (see the capture options below). When the mechanism's pause grows with the size of the volume or filesystem, flintlock SHOULD log a warning. |
+| SNAP-VOL-001 | On restore, every mounted volume MUST be presented to the guest with contents byte-identical to the source volume at the instant of the VMM snapshot. Volume capture MUST therefore be block-level. File-level diffs MUST NOT be used to reconstruct a volume for a memory restore, because the restored guest kernel's cached filesystem metadata refers to block addresses on the source disk. (Revised: the first draft required a file-level diff applied to a fresh unpack of the image, which cannot satisfy this.) |
+| SNAP-VOL-002 | The kernel and initrd MUST NOT be copied into the snapshot package. They MUST be referenced by OCI image digest (SNAP-PKG-006). (Revised: read-only volumes are no longer exempt; see SNAP-VOL-010.) |
+| SNAP-VOL-003 | The source VM MUST remain paused until every mounted volume has been captured at the same point in time as the VMM snapshot. |
+| SNAP-VOL-004 | Flintlock SHOULD use the capture mechanism with the shortest pause that the VMM and storage backend support (see the capture options below). When the mechanism's pause grows with the size of the volume, flintlock SHOULD log a warning. |
 | SNAP-VOL-005 | Flintlock SHOULD support a configurable maximum pause duration. If the capture would exceed it, flintlock SHOULD abort the snapshot and resume the source VM. |
-| SNAP-VOL-006 | On restore, flintlock MUST recreate each writable volume by mounting its image (fetched by digest) and applying the captured diff on top, before starting the VMM. |
-| SNAP-VOL-007 | Restored volumes MUST be presented to the VMM at the paths and with the device ordering the snapshot expects, remapping paths where the VMM supports it. |
+| SNAP-VOL-006 | On restore, flintlock MUST recreate each mounted volume, before starting the VMM, by obtaining its base block image (SNAP-VOL-011), verifying it, and applying the volume delta (or writing the full volume image when the package carries one). |
+| SNAP-VOL-007 | Restored volumes MUST be presented to the VMM with the device ordering and drive identifiers the snapshot expects. Because neither VMM can remap drives at restore time, flintlock MUST present each volume at a stable per-VM path that does not depend on the host's storage layout (for Firecracker), or rewrite the disk paths in the VMM's saved configuration before restore (for Cloud Hypervisor). |
 | SNAP-VOL-008 | After the capture, the source VM's volumes MUST remain usable by the source VM and MUST remain correctly tracked by containerd, so that the source VM can be snapshotted again and deleted normally. |
+| SNAP-VOL-009 | For each mounted volume, the snapshot package MUST carry either a volume delta together with the digest of the base block image it applies to, or a full block image of the volume. Deltas MUST be expressed in offsets within the volume, never in physical pool or file offsets, and MUST record the block size used. |
+| SNAP-VOL-010 | Read-only mounted volumes MUST be treated like writable volumes for restore purposes: the package MUST reference their base block image by digest so that the target presents identical content. They MUST NOT be reconstructed from a fresh unpack of the OCI image. |
+| SNAP-VOL-011 | Flintlock MUST be able to obtain a base block image on the target host by its digest, either by pulling it as a content-addressed artifact (SNAP-PKG-006, SNAP-PKG-007) or by building it deterministically from the OCI image, and MUST verify the digest before use. A restore MUST fail if the base block image cannot be obtained or does not match. |
+| SNAP-VOL-012 | Captured volume state and restored volumes that flintlock creates outside containerd's metadata MUST be tracked by flintlock and removed when the snapshot record or restored VM is deleted (SNAP-API-005, SNAP-RST-011). |
 
 #### Capture options (informative)
 
-With the devmapper snapshotter, a writable volume (including the root volume)
+With the devmapper snapshotter, a mounted volume (including the root volume)
 is an *active* containerd snapshot whose parent is the committed image
 snapshot. containerd has no operation that takes a point-in-time copy of an
 active snapshot. This is true of v1.7 (which flintlock uses) and remains true
 in v2.3 and on `main` as of September 2026: `Prepare` and `View` require a
 committed parent, and `Commit` deactivates the device, which a running VM is
 still using. dm-thin itself can snapshot an active device instantly, but
-containerd does not expose this.
+containerd does not expose this. A proposal to add snapshot and restore
+operations to snapshotters
+([containerd PR #13111](https://github.com/containerd/containerd/pull/13111))
+was closed without merging.
 
-The design can choose between these mechanisms:
+Two mechanisms considered in the first draft have been ruled out:
 
-| Mechanism | Pause | Works across hosts | VMMs | Notes |
-| --------- | ----- | ------------------ | ---- | ----- |
-| Stop the source VM, then `Commit` and diff against the image with containerd's differ | None (the VM is stopped) | Yes | Both | Only when the client asks for the source VM to be stopped (SNAP-CRT-006). |
-| Commit and swap: while paused, `Commit` the active snapshot, `Prepare` a new active snapshot from it, point the VM's drive at the new device, resume; then diff the committed snapshot against the image | About instant | Yes | Firecracker (`PATCH /drives/{id}`) | Cloud Hypervisor cannot swap a root disk. Grows the containerd snapshot chain by one per snapshot. |
-| Mount the frozen filesystem read-only on the host (`ro,noload`) while paused, and diff it against a `View` of the image | Grows with the filesystem tree | Yes | Both | Only safe while the guest is both frozen and paused. |
-| Copy the whole block device while paused | Grows with allocated disk size | Yes (no image needed on restore) | Both | Large packages; does not meet SNAP-VOL-001 as a diff and would need its own layer type. |
-| Create a dm-thin snapshot directly in containerd's pool (`dmsetup message ... create_snap`) | About instant | Yes, after a file diff | Both | Creates devices containerd does not track, so device IDs can collide and garbage collection does not see them; conflicts with SNAP-VOL-008. |
-| Block-level diff (`thin_delta`) against the image device | Grows with changed data | No | Both | Conflicts with SNAP-VOL-001. |
-| Extend containerd's devmapper snapshotter to allow an active parent | About instant | Yes | Both | Needs an upstream change; see open questions. |
+* *Commit and swap* with Firecracker's `PATCH /drives/{id}`: Firecracker only
+  permits the update for a device the guest has not mounted, so a mounted root
+  cannot be swapped.
+* *Mount the frozen filesystem read-only on the host and diff it with
+  containerd's differ*: this yields a file-level diff, which cannot be used for
+  a memory restore (SNAP-VOL-001).
 
-A likely design is to use stop-and-commit when the source VM is stopped,
-commit-and-swap for Firecracker, and the read-only host mount for Cloud
-Hypervisor, until containerd supports snapshots of active devices.
+The remaining mechanisms depend on the storage backend, which is not yet
+decided. They are compared in detail in
+[0204-root-volume-options.md](0204-root-volume-options.md).
+
+| Backend and mechanism | Pause | Delta against base | VMMs | Tracked by containerd | Notes |
+| --------------------- | ----- | ------------------ | ---- | --------------------- | ----- |
+| devmapper (current): `dmsetup suspend` the VM's thin device, `create_snap`, resume, all while the VMM is paused | Milliseconds | `thin_delta` against the image device, using a reserved metadata snapshot; offsets are volume-virtual | Both | No: device IDs must be reserved so they cannot collide with containerd's allocator, and the devices are invisible to containerd GC | The kernel requires the origin to be suspended for `create_snap`. |
+| containerd `blockfile` snapshotter on XFS (`reflink=1`) or Btrfs: `FICLONE` the VM's raw image file while paused | Milliseconds | None native; compare against a reflinked base, or ship the full sparse file | Both | No | Small provisioning change; the snapshotter is young and does not preserve sparseness on copy. |
+| Read-only base block image (for example EROFS) plus a separate writable raw disk, overlay assembled by the guest: reflink or copy the writable disk while paused | Milliseconds with reflink | The writable disk is the delta; the base is deterministic or content-addressed | Both | Base only | Changes the guest image contract (needs an overlay-capable init). |
+| qcow2 overlay over a digest-named raw base: copy the overlay while paused | Milliseconds with reflink | The overlay is the delta | Cloud Hypervisor only | No | Firecracker has no qcow2 support, and vhost-user disables its snapshots. |
+| Stop the source VM, then capture the whole device or file | None (the VM is stopped) | Any of the above | Both | Depends on backend | Only when the client asks for the source VM to be stopped (SNAP-CRT-006). |
+| Extend containerd's snapshotters to allow a point-in-time snapshot of an active snapshot | Milliseconds | Backend-specific | Both | Yes | Needs an upstream change; see open questions. |
+
+In every case the base block image on the target must be byte-identical to the
+one on the source (SNAP-VOL-011). The mechanism for that, shipping the base as
+an artifact or building it deterministically, is also undecided.
 
 ### 5.5 Packaging (SNAP-PKG)
 
@@ -195,11 +226,11 @@ Hypervisor, until containerd supports snapshots of active devices.
 | -- | ----------- |
 | SNAP-PKG-001 | A snapshot package MUST be an OCI artifact as defined by the [OCI image specification](https://github.com/opencontainers/image-spec), with a flintlock-specific `artifactType` and media types. |
 | SNAP-PKG-002 | The package's config blob MUST hold the snapshot metadata (SNAP-META). |
-| SNAP-PKG-003 | The VMM state files, guest memory, and each writable volume diff MUST each be stored in separate layers, identified by media type and annotations. |
+| SNAP-PKG-003 | The VMM state files, guest memory, and each volume delta or full volume image MUST each be stored in separate layers, identified by media type and annotations. Base block images, when shipped, MUST be separate artifacts referenced by digest rather than layers of the snapshot package. |
 | SNAP-PKG-004 | Guest memory layers MUST be compressed with zstd. |
 | SNAP-PKG-005 | Guest memory SHOULD be split into multiple layers of bounded size, so that push and pull can run in parallel and resume after interruption. |
-| SNAP-PKG-006 | The package MUST record the digest of every image the snapshot depends on (kernel, initrd, and all volumes). Image references by tag alone MUST NOT be used. |
-| SNAP-PKG-007 | The package SHOULD link to the manifests of the images it depends on, through an OCI index or the subject/referrers mechanism, so that tools copying the snapshot can copy those images too and registry garbage collection does not remove them. |
+| SNAP-PKG-006 | The package MUST record the digest of every OCI image the snapshot depends on (kernel, initrd, and the images the volumes were created from) and the digest of every base block image the volume deltas apply to. References by tag alone MUST NOT be used. |
+| SNAP-PKG-007 | The package SHOULD link to the manifests of the images and base block image artifacts it depends on, through an OCI index or the subject/referrers mechanism, so that tools copying the snapshot can copy those too and registry garbage collection does not remove them. |
 | SNAP-PKG-008 | The package MUST carry a flintlock snapshot package format version. Flintlock MUST refuse to restore a package whose major format version it does not support. |
 | SNAP-PKG-009 | Flintlock MUST support pushing a snapshot package to an OCI registry. |
 | SNAP-PKG-010 | Registry credentials MUST be configured on the flintlockd host, per registry (for example with a docker `config.json`-style file). The same credentials MUST be used to pull snapshot packages and their images on restore. Credentials MUST NOT be passed in API requests. |
@@ -210,7 +241,7 @@ Hypervisor, until containerd supports snapshots of active devices.
 
 | ID | Requirement |
 | -- | ----------- |
-| SNAP-META-001 | The package MUST contain a plaintext compatibility descriptor with at least: VMM type; exact VMM version; VMM snapshot format version (Firecracker); flintlock version; package format version; host CPU architecture; CPU vendor, model, and feature flags, or the CPU template used; host kernel version; interrupt controller version (arm64 GIC); vCPU count and memory size; digests of the images the snapshot depends on; whether the snapshot was quiesced; creation time; source VM UID, name, and namespace; client-supplied labels; and the restore policy (SNAP-SEC-002), if any. |
+| SNAP-META-001 | The package MUST contain a plaintext compatibility descriptor with at least: VMM type; exact VMM version; VMM snapshot format version (Firecracker); flintlock version; package format version; host CPU architecture; CPU vendor, model, and feature flags, or the CPU template used; host kernel version; interrupt controller version (arm64 GIC); vCPU count and memory size; digests of the images the snapshot depends on; for each mounted volume, its drive identifier and order, size, block size, filesystem type, base block image digest, and delta format version; whether the snapshot was quiesced; creation time; source VM UID, name, and namespace; client-supplied labels; and the restore policy (SNAP-SEC-002), if any. |
 | SNAP-META-002 | Flintlock MUST be able to read and evaluate the compatibility descriptor without reading the guest memory, VMM state, or volume layers. |
 | SNAP-META-003 | The package MUST include the full microVM spec of the source VM, including the `metadata` map, separately from the compatibility descriptor. Because the `metadata` map often holds secrets such as cloud-init user data, and is stored unencrypted in this version, the spec MUST be treated as sensitive (SNAP-SEC-001). |
 | SNAP-META-004 | The compatibility descriptor MUST NOT contain the source VM's `metadata` map or any other guest-supplied secret. |
@@ -231,7 +262,7 @@ Hypervisor, until containerd supports snapshots of active devices.
 | SNAP-RST-009 | The client MAY choose the memory restore mode. The default MUST be `copy` for Cloud Hypervisor and `File` for Firecracker. Support for Firecracker `Uffd` MAY be added later. |
 | SNAP-RST-010 | When a lazy memory mode is used (Firecracker `File` or `Uffd`, Cloud Hypervisor `ondemand` or `copyonwrite`), flintlock MUST keep the memory file in place and unchanged, protected by a containerd lease or equivalent, until every VM using it has been deleted. |
 | SNAP-RST-011 | A restored VM MUST be managed like any other microVM: it MUST be reconciled, reported through `GetMicroVM` and `ListMicroVMs`, and deleted through `DeleteMicroVM`, including clean-up of its restored volumes and memory files. |
-| SNAP-RST-012 | A restored VM MUST be resumed after restore, and MUST be reported as created only after it has been resumed and thawed (SNAP-QSC-007). |
+| SNAP-RST-012 | A restored VM MUST be resumed after restore, and MUST be reported as created only after it has been resumed and, if the snapshot was quiesced, thawed (SNAP-QSC-007). |
 | SNAP-RST-013 | If a restore fails, flintlock MUST remove any partial state it created (VMM process, volumes, network devices, local copies of the package) and report the microVM as failed. |
 
 ### 5.8 Clones (SNAP-CLN)
@@ -322,11 +353,15 @@ SNAP-SEC-008 keeps the package format open to this change.
 * **The guest clock jumps.** The guest resumes with the wall-clock time of the
   snapshot and has to correct it. Firecracker's `clock_realtime` load option MAY
   be used later on x86_64 hosts.
-* **Pause time depends on the volume capture mechanism.** Until containerd can
-  snapshot an active device, only Firecracker (commit and swap) or a stopped
-  source VM get an almost instant capture. Cloud Hypervisor VMs that resume
-  after the snapshot stay paused while their filesystems are diffed (see the
-  capture options in section 5.4).
+* **Volume capture happens outside containerd.** No containerd snapshotter can
+  take a point-in-time copy of an active snapshot, so flintlock has to capture
+  block state itself (dm-thin messages, reflinks, or file copies) and track the
+  results outside containerd's metadata until an upstream operation exists
+  (see the capture options in section 5.4).
+* **Base block images must be identical on source and target.** containerd
+  builds the image's block device or file per host, so two hosts with the same
+  OCI image digest do not have the same base. Deltas only work if the base is
+  shipped as an artifact or built deterministically (SNAP-VOL-011).
 * **Cross-host restore needs matching hosts.** Firecracker requires the same
   CPU model and snapshot format version, and treats host kernel changes as
   unstable. Cloud Hypervisor gives no guarantees. In practice, restore targets
@@ -334,8 +369,9 @@ SNAP-SEC-008 keeps the package format open to this change.
 * **Clones share guest identity.** Until per-clone network namespaces exist,
   clones that keep the source's MAC and IP need to be kept on separate networks or
   reconfigured by the guest.
-* **Guest agent dependency.** Quiesce and thaw (SNAP-QSC-003) require new
-  guest-agent features.
+* **Guest agent dependency for quiesce only.** Optional quiesce and thaw
+  (SNAP-QSC-003) require new guest-agent features. Snapshots without quiesce do
+  not depend on the guest agent.
 * **Snapshot packages are not encrypted.** Guest memory and the stored spec
   metadata are readable by anyone with access to the package, so access has to
   be restricted with registry and storage permissions until encryption is added
@@ -348,10 +384,19 @@ SNAP-SEC-008 keeps the package format open to this change.
    configured?
 3. What is the format of the restore generation counter (SNAP-RST-008), and
    who allocates it when restores happen on different hosts?
-4. Should we propose an upstream containerd change so that the devmapper
-   snapshotter can take a point-in-time snapshot of an active device? That
-   would give an instant, VMM-independent volume capture (see the capture
-   options in section 5.4).
+4. Which storage backend should volumes use: stay on devmapper, move to the
+   containerd `blockfile` snapshotter on a reflink filesystem, or move to a
+   read-only base plus writable disk? See
+   [0204-root-volume-options.md](0204-root-volume-options.md).
+5. How are base block images produced, distributed, cached on hosts, and
+   garbage collected? Shipped artifact or deterministic build?
+6. What is the encoding of a volume delta (SNAP-VOL-009)?
+7. Should we propose an upstream containerd change so that snapshotters can
+   take a point-in-time snapshot of an active snapshot
+   ([PR #13111](https://github.com/containerd/containerd/pull/13111) is a
+   precedent)? That would make the capture tracked by containerd.
+8. What is the stable per-VM drive path scheme for Firecracker
+   (SNAP-VOL-007), given that snapshot load has no drive override?
 
 ## 8. References
 
@@ -359,7 +404,21 @@ SNAP-SEC-008 keeps the package format open to this change.
 * [Firecracker snapshotting docs](https://github.com/firecracker-microvm/firecracker/tree/main/docs/snapshotting),
   in particular `snapshot-support.md`, `versioning.md`, `network-for-clones.md`,
   and `random-for-clones.md`
-* [Cloud Hypervisor snapshot and restore](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/docs/snapshot_restore.md)
+* [Firecracker `PATCH /drives` docs](https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/patch-block.md),
+  [vhost-user block docs](https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/block-vhost-user.md),
+  and issue [#4014](https://github.com/firecracker-microvm/firecracker/issues/4014)
+  (drive remapping at load)
+* [Cloud Hypervisor snapshot and restore](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/docs/snapshot_restore.md),
+  [API](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/docs/api.md),
+  and [disk locking](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/main/docs/disk_locking.md)
+* containerd [devmapper snapshotter](https://github.com/containerd/containerd/blob/v1.7.35/snapshots/devmapper/snapshotter.go),
+  [blockfile snapshotter](https://github.com/containerd/containerd/blob/main/plugins/snapshots/blockfile/blockfile.go),
+  and [PR #13111](https://github.com/containerd/containerd/pull/13111)
+* Linux [dm-thin documentation](https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/device-mapper/thin-provisioning.rst),
+  [`thin_delta(8)`](https://github.com/jthornber/thin-provisioning-tools/blob/main/man8/thin_delta.txt),
+  and [`ioctl_ficlone(2)`](https://man7.org/linux/man-pages/man2/ioctl_ficlone.2.html)
+* [0204-root-volume-options.md](0204-root-volume-options.md): research behind
+  the volume requirements
 * [OCI image specification](https://github.com/opencontainers/image-spec) and
   [OCI distribution specification](https://github.com/opencontainers/distribution-spec)
 * [ocicrypt](https://github.com/containers/ocicrypt)
