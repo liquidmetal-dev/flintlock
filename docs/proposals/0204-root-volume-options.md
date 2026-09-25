@@ -5,6 +5,9 @@
 * Authors: @richardcase
 * Issue: [#204](https://github.com/liquidmetal-dev/flintlock/issues/204)
 * Companion to: [0204-snapshot-restore-requirements.md](0204-snapshot-restore-requirements.md)
+* Design candidates: [Option A (devmapper)](0204-option-a-devmapper.md),
+  [Option B (blockfile)](0204-option-b-blockfile.md),
+  [Option C (read-only base + writable disk)](0204-option-c-ro-base-rw-disk.md)
 
 ## 1. Purpose and scope
 
@@ -422,6 +425,13 @@ Sources: [`ioctl_ficlone(2)`](https://man7.org/linux/man-pages/man2/ioctl_ficlon
 
 ## 8. Options
 
+Options A, B and C each have a full design candidate document with the
+flintlock changes, lifecycle flows, failure modes, base image distribution and
+experiments: [Option A](0204-option-a-devmapper.md),
+[Option B](0204-option-b-blockfile.md),
+[Option C](0204-option-c-ro-base-rw-disk.md). This section keeps the survey
+view so the four options can be compared side by side.
+
 Each option answers the same questions: how a volume is created from an OCI
 image; how it is captured while the VMM is paused; how the delta and base are
 handled; how it is restored per VMM; what containerd still tracks; what changes
@@ -644,8 +654,9 @@ chunks served with a median 550 us from an in-AZ cache against 36 ms from S3
   identified by digest (EROFS via the erofs snapshotter in block mode, or a
   flattened ext4 published as an artifact). Each VM gets that base as a
   read-only drive plus a fresh writable raw disk. The guest's init assembles
-  an overlayfs (the pattern used by E2B, Ignite, and AWS Lambda; see
-  section 9).
+  an overlayfs (the pattern of firecracker-containerd's image builder and of
+  E2B's early design; see section 9. E2B today, Ignite and AWS Lambda overlay
+  on the host side instead).
 * **Capture.** Reflink or copy the writable disk while paused. Milliseconds
   with reflink. Both VMMs.
 * **First VM start.** The first use of an image on a host builds or pulls the
@@ -735,7 +746,7 @@ chunks served with a median 550 us from an in-AZ cache against 36 ms from S3
 
 | Project | Root volume | Disk capture | Source |
 | ------- | ----------- | ------------ | ------ |
-| firecracker-containerd | devmapper thin snapshots; stub drives patched before the guest mounts them | none (control API has no snapshot RPC) | [snapshotter.md](https://github.com/firecracker-microvm/firecracker-containerd/blob/main/docs/snapshotter.md), [drive_handler.go](https://github.com/firecracker-microvm/firecracker-containerd/blob/main/runtime/drive_handler.go), [fccontrol.proto](https://github.com/firecracker-microvm/firecracker-containerd/blob/main/proto/service/fccontrol/fccontrol.proto) |
+| firecracker-containerd | devmapper thin snapshots; stub drives patched before the guest mounts them; its image builder ships a guest `overlay-init` that mounts a writable ext4 drive over a read-only root and `pivot_root`s | none (control API has no snapshot RPC) | [snapshotter.md](https://github.com/firecracker-microvm/firecracker-containerd/blob/main/docs/snapshotter.md), [drive_handler.go](https://github.com/firecracker-microvm/firecracker-containerd/blob/main/runtime/drive_handler.go), [fccontrol.proto](https://github.com/firecracker-microvm/firecracker-containerd/blob/main/proto/service/fccontrol/fccontrol.proto), [overlay-init](https://github.com/firecracker-microvm/firecracker-containerd/blob/main/tools/image-builder/files_debootstrap/sbin/overlay-init) |
 | Kata Containers | devmapper for Firecracker; erofs over virtio-blk plus ext4 writable device (fsmerged multi-layer is QEMU only) | none | [Firecracker how-to](https://github.com/kata-containers/kata-containers/blob/main/docs/how-to/how-to-use-kata-containers-with-firecracker.md), [erofs how-to](https://github.com/kata-containers/kata-containers/blob/main/docs/how-to/how-to-use-erofs-snapshotter-with-kata.md) |
 | Ignite (archived) | read-only image file plus per-VM overlay file, joined with dm-snapshot over loop devices | none | [dmlegacy/snapshot.go](https://github.com/weaveworks/ignite/blob/main/pkg/dmlegacy/snapshot.go) |
 | E2B | read-only template rootfs plus writable overlay; current code serves an NBD device combining base and a cache file | on pause: flush, swap in a fresh cache, reflink and export the frozen cache as a diff in the background | [overlayfs post](https://e2b.dev/blog/scaling-firecracker-using-overlayfs-to-save-disk-space), [orchestrator sandbox code](https://github.com/e2b-dev/infra/tree/main/packages/orchestrator/pkg/sandbox) |
@@ -890,3 +901,46 @@ Prior art:
 * <https://arxiv.org/abs/2305.13162> (also <https://www.usenix.org/system/files/atc23-brooker.pdf>)
 * <https://codesandbox.io/blog/how-we-clone-a-running-vm-in-2-seconds>
 * <https://codesandbox.io/blog/cloning-microvms-using-userfaultfd>
+
+## 12. Recommendation
+
+The three design candidates
+([A](0204-option-a-devmapper.md), [B](0204-option-b-blockfile.md),
+[C](0204-option-c-ro-base-rw-disk.md)) were developed to the same structure
+and checked with experiments on one host. Against the criteria that matter for
+this proposal:
+
+| Criterion | A. devmapper | B. blockfile + reflink | C. RO base + RW disk |
+| --------- | ------------ | ---------------------- | -------------------- |
+| Byte-identical guarantee | yes, if whole pool blocks are transferred; stale bytes with zeroing off (A-1a) | yes; delta exact on XFS and Btrfs (B-3, B-5) | yes by construction; base reproducible with pinned inputs (C-1) |
+| Capture inside the pause | suspend 80 ms under heavy direct I/O, `create_snap` 3 ms (A-1b) | FICLONE 47-65 µs idle, 131-486 ms with a large dirty cache (B/C-1) | same as B on a smaller file |
+| Delta production | `thin_delta` under a pool-global metadata snapshot | FIEMAP physical comparison, O(volume) walk | none: the writable disk is the delta |
+| Base distribution | one base per host and image, exported O(base) | same as A | one base per image for every host |
+| Clone work | `create_thin` on an external origin + apply | reflink + apply | reflink of the writable disk |
+| Tracking | flintlock ledger for device IDs, captures, bases; ID collisions fail with `EEXIST` but containerd marks its own faulty (A-4) | flintlock ledger for captures and bases; containerd provisions as today | flintlock ledger; containerd optional |
+| Host change | none, but zeroing should be enabled | reflink filesystem instead of a thin pool | reflink filesystem, base builder |
+| Guest change | none | none | overlay-capable init, EROFS kernel support |
+| Flintlock change | medium: dm and thin-tools wrappers, ledger | small: one snapshotter case, FICLONE, FIEMAP, ledger | large: two drives per volume, spec mode, base builder, mount parsing |
+| Operational risk | highest: out-of-band devices in containerd's pool, forced-removal EIO, metadata snapshot serialisation, runtime thin-tools dependency | low: young snapshotter, fixed volume size | medium: reproducibility depends on pinned tools; image rebuilds |
+
+**Recommendation: implement Option B first.** It is the smallest change that
+meets every SNAP-VOL requirement, it works for both VMMs without touching guest
+images, its capture and delta were verified exactly on both reflink
+filesystems, and containerd keeps provisioning volumes so flintlock owns only
+captures and bases. The `VolumeService` port it introduces is the same one
+Options A and C implement, so the choice does not close the others off.
+
+**Choose Option C instead, or as the follow-on,** when the fleet controls its
+guest images and needs bases shared across hosts: it removes the per-host base
+multiplicity of A and B, makes clone restores independent of the source host,
+and gives the smallest packages. Its prerequisites (an overlay init in images,
+EROFS in the guest kernel, a pinned base builder) are the same ones Kata and
+firecracker-containerd already impose. Adding it after B reuses the port, the
+ledger, the FICLONE capture and the package format.
+
+**Choose Option A only** if hosts cannot be reprovisioned away from thin
+pools. If it is chosen, enable block zeroing on new pools, allocate flintlock
+device IDs from the top of the 24-bit range, keep bases inactive except during
+export, and pursue an upstream containerd operation for snapshotting an active
+snapshot so the out-of-band ledger can be retired.
+
