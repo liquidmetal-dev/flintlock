@@ -1,7 +1,7 @@
 # 3. MicroVM Spec Validation
 
-- Status: Proposed
-- Date: 2021-10-14
+- Status: Accepted
+- Date: 2021-10-14 (approved on 2026-09-23)
 - Authors: @jmickey
 - Deciders: @jmickey @richardcase
 
@@ -38,3 +38,4 @@ We should investigate and utilise the [go-playground/validator](https://github.c
 ## Consequences
 
 We should continue to revisit this decision periodically. There would still be value in being able to do early request level validation via a gRPC interceptor. We should monitor the Protobuf validation plugins mentioned above and reevaluate their fit for purpose if/when they are updated.
+ 
