@@ -97,3 +97,49 @@ alias ctr-dev="sudo ctr --address=/run/containerd-dev/containerd.sock"
 :::
 
 You can either background the `containerd` process or open another shell window.
+
+## Private registry authentication
+
+Flintlock resolves and fetches images inside its own process using the
+containerd client library. The containerd **daemon's** `config.toml` is not
+consulted for registry settings, but flintlock does read the same per-registry
+[hosts.toml](https://containerd.io/docs/hosts/) files the daemon's CRI plugin
+uses, laid out in containerd's standard `certs.d` format:
+
+```
+/etc/containerd/certs.d/
+  <registry-host>/
+    hosts.toml
+```
+
+This means registry authentication or mirrors configured the containerd way
+apply to flintlock's image pulls too. A registry with no `hosts.toml` is
+accessed anonymously over plain HTTPS.
+
+For example, to configure auth for `registry.example.com`:
+
+```bash
+sudo mkdir -p /etc/containerd/certs.d/registry.example.com
+cat << EOF | sudo tee /etc/containerd/certs.d/registry.example.com/hosts.toml
+server = "https://registry.example.com"
+
+[host."https://registry.example.com"]
+  [host."https://registry.example.com".header]
+    Authorization = "Basic <base64-encoded-user:password>"
+EOF
+```
+
+The `hosts.toml` file holds a credential, so keep it root-owned with `0600`
+permissions (and the registry directory `0700`), as containerd's own hosts
+documentation recommends.
+
+To read a different directory, for example when running against a containerd
+daemon whose CRI `config_path` has been changed, start flintlock with
+`--containerd-hosts-dir` pointing at it:
+
+```bash
+flintlockd run --containerd-hosts-dir /etc/flintlock/certs.d ...
+```
+
+Setting `--containerd-hosts-dir ""` disables per-registry configuration
+entirely; all pulls are then anonymous using the client library defaults.

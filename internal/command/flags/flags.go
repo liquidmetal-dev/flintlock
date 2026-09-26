@@ -22,6 +22,7 @@ const (
 	containerdSocketFlag      = "containerd-socket"
 	kernelSnapshotterFlag     = "containerd-kernel-ss"
 	containerdNamespace       = "containerd-ns"
+	containerdHostsDirFlag    = "containerd-hosts-dir"
 	maximumRetryFlag          = "maximum-retry"
 	basicAuthTokenFlag        = "basic-auth-token" //nolint: gosec // This is a flag name
 	insecureFlag              = "insecure"
@@ -204,6 +205,12 @@ func AddContainerDFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		containerdNamespace,
 		defaults.ContainerdNamespace,
 		"The name of the containerd namespace to use.")
+
+	cmd.Flags().StringVar(&cfg.CtrHostsDir,
+		containerdHostsDirFlag,
+		defaults.ContainerdHostsDir,
+		"Directory of per-registry hosts.toml files (containerd certs.d layout) used for "+
+			"image pull auth/mirrors. Set to an empty string to disable.")
 }
 
 func AddDebugFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {

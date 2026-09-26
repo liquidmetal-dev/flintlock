@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	ctr "github.com/containerd/containerd/v2/client"
 	"github.com/golang/mock/gomock"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
@@ -21,7 +22,8 @@ const (
 	testOwnerID = "testownerid"
 )
 
-// TestImageService_Pull tests a successful Pull.
+// TestImageService_Pull tests a successful Pull. With HostsDir empty no
+// remote options are passed, so the client library defaults apply.
 func TestImageService_Pull(t *testing.T) {
 	g.RegisterTestingT(t)
 
@@ -52,6 +54,53 @@ func TestImageService_Pull(t *testing.T) {
 		Owner:     testOwner,
 	})
 	g.Expect(err).NotTo(g.HaveOccurred())
+}
+
+// TestImageService_Pull_withHostsDir tests that a resolver built from the
+// configured hosts directory is passed to Pull.
+func TestImageService_Pull_withHostsDir(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	mockCtrl := gomock.NewController(t)
+	containerdClient := mock.NewMockClient(mockCtrl)
+	leasesManager := mock.NewMockManager(mockCtrl)
+	svcConfig := containerd.Config{
+		SnapshotterKernel: "native",
+		SnapshotterVolume: "devmapper",
+		SocketPath:        "/something",
+		Namespace:         "unit_test_ns",
+		HostsDir:          "/etc/containerd/certs.d",
+	}
+	ctx := context.Background()
+	client := containerd.NewImageServiceWithClient(&svcConfig, containerdClient)
+
+	var gotOpts []ctr.RemoteOpt
+
+	leasesManager.EXPECT().
+		List(gomock.Any(), fmt.Sprintf("id==flintlock/%s", testOwner))
+	leasesManager.EXPECT().
+		Create(gomock.Any(), gomock.Any())
+	containerdClient.EXPECT().
+		LeasesService().
+		Return(leasesManager)
+	containerdClient.EXPECT().
+		Pull(gomock.Any(), testImage, gomock.Any()).
+		Do(func(_ context.Context, _ string, opts ...ctr.RemoteOpt) {
+			gotOpts = opts
+		})
+
+	err := client.Pull(ctx, &ports.ImageSpec{
+		ImageName: testImage,
+		Owner:     testOwner,
+	})
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(gotOpts).To(g.HaveLen(1))
+	remoteCtx := &ctr.RemoteContext{}
+	for _, opt := range gotOpts {
+		g.Expect(opt(nil, remoteCtx)).To(g.Succeed())
+	}
+	g.Expect(remoteCtx.Resolver).NotTo(g.BeNil())
 }
 
 // TestImageService_Pull_failedLease tests what happens when something goes
