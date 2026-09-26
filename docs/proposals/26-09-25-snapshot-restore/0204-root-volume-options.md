@@ -904,6 +904,10 @@ Prior art:
 
 ## 12. Recommendation
 
+Superseded for decision purposes by
+[0204-root-volume-decision.md](0204-root-volume-decision.md), which selects
+Option C directly. The comparison below is kept as written.
+
 The three design candidates
 ([A](0204-option-a-devmapper.md), [B](0204-option-b-blockfile.md),
 [C](0204-option-c-ro-base-rw-disk.md)) were developed to the same structure
