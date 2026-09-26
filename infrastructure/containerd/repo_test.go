@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	ctr "github.com/containerd/containerd"
+	ctr "github.com/containerd/containerd/v2/client"
 	. "github.com/onsi/gomega"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"

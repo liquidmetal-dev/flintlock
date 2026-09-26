@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	ccfg "github.com/containerd/containerd/services/server/config"
-	"github.com/containerd/containerd/snapshots/devmapper/dmsetup"
+	ccfg "github.com/containerd/containerd/v2/cmd/containerd/server/config"
+	"github.com/containerd/containerd/v2/plugins/snapshots/devmapper/dmsetup"
 	gk "github.com/onsi/ginkgo/v2"
 	gm "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -157,9 +157,6 @@ func (r *Runner) writeContainerdConfig() {
 		"base_image_size": "10GB",
 		"discard_blocks":  true,
 	}
-	pluginTree, err := toml.TreeFromMap(dmplug)
-	gm.Expect(err).NotTo(gm.HaveOccurred())
-
 	cfg := ccfg.Config{
 		Version: 2,
 		Root:    containerdRootDir,
@@ -173,8 +170,8 @@ func (r *Runner) writeContainerdConfig() {
 		Debug: ccfg.Debug{
 			Level: r.params.ContainerdLogLevel,
 		},
-		Plugins: map[string]toml.Tree{
-			"io.containerd.snapshotter.v1.devmapper": *pluginTree,
+		Plugins: map[string]any{
+			"io.containerd.snapshotter.v1.devmapper": dmplug,
 		},
 	}
 

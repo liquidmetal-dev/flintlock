@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containerd/containerd/leases"
+	"github.com/containerd/containerd/v2/core/leases"
 )
 
 func withOwnerLease(ctx context.Context, owner string, client Client) (context.Context, error) {
