@@ -1,12 +1,13 @@
 # 0204. Option C: read-only deterministic base plus a per-VM writable disk
 
-* Status: proposed design candidate
+* Status: proposed design candidate (selected; see [decision](0204-root-volume-decision.md))
 * Date: 2026-09-25
 * Authors: @richardcase
 * Issue: [#204](https://github.com/liquidmetal-dev/flintlock/issues/204)
 * Companions: [requirements](0204-snapshot-restore-requirements.md),
   [options survey](0204-root-volume-options.md),
-  [Option A](0204-option-a-devmapper.md), [Option B](0204-option-b-blockfile.md)
+  [Option A](0204-option-a-devmapper.md), [Option B](0204-option-b-blockfile.md),
+  [decision](0204-root-volume-decision.md)
 
 ## 1. Summary
 
