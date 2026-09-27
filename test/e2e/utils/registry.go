@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -32,10 +33,33 @@ const (
 	registryPassword = "flintlock-e2e" //nolint: gosec // Only for the registry which the test starts.
 	ociManifestType  = "application/vnd.oci.image.manifest.v1+json"
 
+	// The registry logs each of the requests with this message.
+	registryRequestMessage = "HTTP API"
+
 	// RegistryDir is where the registry keeps its configuration and images
 	// during the tests.
 	RegistryDir = e2eDataDir + "/registry"
+
+	// ContainerdUserAgent is the start of the User-Agent of the requests which
+	// flintlockd makes to a registry, because it pulls the images with the
+	// containerd client.
+	ContainerdUserAgent = "containerd/"
 )
+
+// RegistryRequest is a request which the registry has logged.
+type RegistryRequest struct {
+	Method string
+	Path   string
+	Status int
+}
+
+type registryLogEntry struct {
+	Message    string              `json:"message"`
+	Method     string              `json:"method"`
+	Path       string              `json:"path"`
+	StatusCode int                 `json:"statusCode"`
+	Headers    map[string][]string `json:"headers"`
+}
 
 // Registry is a private image registry which only allows authenticated access.
 type Registry struct {
@@ -142,10 +166,10 @@ func (r *Registry) Seed(image string) string {
 // ManifestStatus returns the HTTP status code that the registry responds with
 // when asked for the manifest of an image which was returned by Seed.
 func (r *Registry) ManifestStatus(privateImage string, authenticated bool) int {
-	repository, tag, found := strings.Cut(strings.TrimPrefix(privateImage, registryAddress+"/"), ":")
+	_, _, found := splitPrivateImage(privateImage)
 	gm.Expect(found).To(gm.BeTrue(), "image %s does not have a tag", privateImage)
 
-	url := fmt.Sprintf("http://%s/v2/%s/manifests/%s", registryAddress, repository, tag)
+	url := "http://" + registryAddress + ManifestPath(privateImage)
 
 	status, err := getStatus(url, authenticated)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
@@ -158,6 +182,68 @@ func (r *Registry) ManifestStatus(privateImage string, authenticated bool) int {
 	log.Printf("TEST INFO: %s GET %s returned %d", access, url, status)
 
 	return status
+}
+
+// Requests returns the requests for the image which the registry has logged
+// from the clients with a User-Agent that starts with userAgentPrefix. The
+// image must be one which was returned by Seed.
+func (r *Registry) Requests(privateImage, userAgentPrefix string) []RegistryRequest {
+	gm.Expect(r.session).NotTo(gm.BeNil(), "the registry has not been started")
+
+	registryLog := append(r.session.Out.Contents(), r.session.Err.Contents()...)
+	requests := RequestsFromLog(registryLog, privateImage, userAgentPrefix)
+
+	log.Printf("TEST INFO: the registry has logged %d requests for %s from %s",
+		len(requests), privateImage, userAgentPrefix)
+
+	for _, request := range requests {
+		log.Printf("TEST INFO: %s %s returned %d", request.Method, request.Path, request.Status)
+	}
+
+	return requests
+}
+
+// RequestsFromLog returns the requests for the image which are in the log of
+// the registry, and which are from the clients with a User-Agent that starts
+// with userAgentPrefix. The lines of the log which are not the record of a
+// request are ignored.
+func RequestsFromLog(registryLog []byte, privateImage, userAgentPrefix string) []RegistryRequest {
+	requests := []RegistryRequest{}
+
+	repository, _, _ := splitPrivateImage(privateImage)
+	pathPrefix := "/v2/" + repository + "/"
+
+	for _, line := range bytes.Split(registryLog, []byte("\n")) {
+		var entry registryLogEntry
+
+		if err := json.Unmarshal(line, &entry); err != nil {
+			continue
+		}
+
+		if entry.Message != registryRequestMessage || !strings.HasPrefix(entry.Path, pathPrefix) {
+			continue
+		}
+
+		if !strings.HasPrefix(http.Header(entry.Headers).Get("User-Agent"), userAgentPrefix) {
+			continue
+		}
+
+		requests = append(requests, RegistryRequest{
+			Method: entry.Method,
+			Path:   entry.Path,
+			Status: entry.StatusCode,
+		})
+	}
+
+	return requests
+}
+
+// ManifestPath returns the path of the request for the manifest of the image
+// by its tag.
+func ManifestPath(privateImage string) string {
+	repository, tag, _ := splitPrivateImage(privateImage)
+
+	return "/v2/" + repository + "/manifests/" + tag
 }
 
 // WriteHostsConfig writes the hosts.toml which flintlockd needs to
@@ -175,7 +261,7 @@ func (r *Registry) WriteHostsConfig(hostsDir string) {
     Authorization = "Basic %[2]s"
 `, server, credentials)
 
-	hostsPath := filepath.Join(hostsDir, registryAddress, "hosts.toml")
+	hostsPath := r.HostsConfigPath(hostsDir)
 
 	// The file holds the credentials, so only its path is logged.
 	log.Printf("TEST INFO: writing the credentials for %s to %s", server, hostsPath)
@@ -184,12 +270,22 @@ func (r *Registry) WriteHostsConfig(hostsDir string) {
 	gm.Expect(os.WriteFile(hostsPath, []byte(config), 0o600)).To(gm.Succeed())
 }
 
+// HostsConfigPath returns the path of the hosts.toml for the registry in
+// hostsDir.
+func (r *Registry) HostsConfigPath(hostsDir string) string {
+	return filepath.Join(hostsDir, registryAddress, "hosts.toml")
+}
+
 // PrivateImageRef returns the reference of the image when it is stored in the
 // registry.
 func PrivateImageRef(image string) string {
 	_, path, _ := strings.Cut(image, "/")
 
 	return registryAddress + "/" + path
+}
+
+func splitPrivateImage(privateImage string) (string, string, bool) {
+	return strings.Cut(strings.TrimPrefix(privateImage, registryAddress+"/"), ":")
 }
 
 func getStatus(url string, authenticated bool) (int, error) {
