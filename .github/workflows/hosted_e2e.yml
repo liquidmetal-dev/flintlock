@@ -11,6 +11,10 @@ on:
         description: "containerd release tag to install"
         required: false
         default: "v2.2.9"
+      zot_version:
+        description: "zot release tag to install"
+        required: false
+        default: "v2.1.21"
 
 permissions:
   contents: read
@@ -36,6 +40,7 @@ jobs:
             bc \
             curl \
             lvm2 \
+            skopeo \
             thin-provisioning-tools \
             wget
 
@@ -57,6 +62,21 @@ jobs:
           command -v containerd
           containerd --version
           containerd --version | grep -F " ${CONTAINERD} "
+
+      - name: Install zot
+        env:
+          ZOT: ${{ github.event.inputs.zot_version || 'v2.1.21' }}
+        run: |
+          binary="zot-linux-amd64-minimal"
+          url="https://github.com/project-zot/zot/releases/download/${ZOT}"
+
+          cd "$(mktemp -d)"
+          curl -fsSLO "${url}/${binary}"
+          curl -fsSLO "${url}/checksums.sha256.txt"
+          grep -E " \*?${binary}\$" checksums.sha256.txt | sha256sum -c -
+          sudo install -m 0755 "${binary}" /usr/local/bin/zot
+
+          zot --version
 
       - name: Install Firecracker
         env:

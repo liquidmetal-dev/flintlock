@@ -10,6 +10,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+func TestPrivateImageRef(t *testing.T) {
+	g := NewWithT(t)
+
+	g.Expect(u.PrivateImageRef("ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77")).
+		To(Equal("127.0.0.1:5050/liquidmetal-dev/flintlock-kernel:5.10.77"))
+}
+
 func TestContainerdMajorVersion(t *testing.T) {
 	tt := []struct {
 		name      string
