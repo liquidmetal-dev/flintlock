@@ -28,9 +28,14 @@ The private registry test also needs these to be on the `PATH`:
   started with (`--containerd-hosts-dir`). The test also reads the log of the
   registry, to check that flintlockd pulled the manifests and the blobs of the
   images from it.
+- `TestE2EPrivateRegistryNoCredentials`: uses the same registry and images, but
+  does not write the `hosts.toml`. The MicroVM must stay `PENDING` while the
+  retry count goes up, and firecracker must not be started. The test reads the
+  log of the registry, to check that it refused the requests of flintlockd with
+  a `401`.
 
 Each of the tests does its own setup and teardown, so that the private registry
-test starts with a containerd which does not have any of the images.
+tests start with a containerd which does not have any of the images.
 
 ### In your local environment
 

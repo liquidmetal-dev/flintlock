@@ -261,13 +261,19 @@ func (r *Registry) WriteHostsConfig(hostsDir string) {
     Authorization = "Basic %[2]s"
 `, server, credentials)
 
-	hostsPath := filepath.Join(hostsDir, registryAddress, "hosts.toml")
+	hostsPath := r.HostsConfigPath(hostsDir)
 
 	// The file holds the credentials, so only its path is logged.
 	log.Printf("TEST INFO: writing the credentials for %s to %s", server, hostsPath)
 
 	gm.Expect(os.MkdirAll(filepath.Dir(hostsPath), 0o700)).To(gm.Succeed())
 	gm.Expect(os.WriteFile(hostsPath, []byte(config), 0o600)).To(gm.Succeed())
+}
+
+// HostsConfigPath returns the path of the hosts.toml for the registry in
+// hostsDir.
+func (r *Registry) HostsConfigPath(hostsDir string) string {
+	return filepath.Join(hostsDir, registryAddress, "hosts.toml")
 }
 
 // PrivateImageRef returns the reference of the image when it is stored in the
