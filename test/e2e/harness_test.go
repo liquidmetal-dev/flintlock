@@ -5,11 +5,15 @@ package e2e_test
 
 import (
 	"encoding/base64"
+	"net"
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
 
+	"github.com/liquidmetal-dev/flintlock/api/types"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
 
@@ -93,6 +97,159 @@ func TestParseProviders(t *testing.T) {
 			g.Expect(parsed).To(Equal(tc.expected))
 		})
 	}
+}
+
+func TestNewMicroVMSpecUsesTheProvider(t *testing.T) {
+	g := NewWithT(t)
+
+	spec, err := u.NewMicroVMSpec(u.CloudHypervisor(), "mvm0", "ns0")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(spec.Id).To(Equal("mvm0"))
+	g.Expect(spec.Namespace).To(Equal("ns0"))
+	g.Expect(spec.Provider).To(HaveValue(Equal("cloudhypervisor")))
+	g.Expect(spec.Kernel.Image).To(Equal("ghcr.io/liquidmetal-dev/cloudhypervisor-kernel-bin:5.12"))
+	g.Expect(spec.Kernel.Filename).To(HaveValue(Equal("boot/vmlinux.bin")))
+
+	spec, err = u.NewMicroVMSpec(u.Firecracker(), "mvm0", "ns0")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(spec.Provider).To(HaveValue(Equal("firecracker")))
+	g.Expect(spec.Kernel.Image).To(Equal("ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77"))
+	g.Expect(spec.Kernel.Filename).To(HaveValue(Equal("boot/vmlinux")))
+}
+
+// The network config of the guest matches the interface by its MAC address,
+// and has a static address so that the guest does not wait for DHCP.
+func TestNewMicroVMSpecNetworkInterface(t *testing.T) {
+	g := NewWithT(t)
+
+	testNetwork := &net.IPNet{IP: net.IPv4(198, 18, 0, 0), Mask: net.CIDRMask(15, 32)}
+
+	newSpec := func(name, namespace string) *types.MicroVMSpec {
+		spec, err := u.NewMicroVMSpec(u.Firecracker(), name, namespace)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		return spec
+	}
+
+	first := newSpec("mvm0", "ns0")
+	g.Expect(first.Interfaces).To(HaveLen(1))
+	g.Expect(first.Interfaces[0].Type).To(Equal(types.NetworkInterface_TAP))
+
+	mac, err := net.ParseMAC(first.Interfaces[0].GetGuestMac())
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(mac).To(HaveLen(6))
+	g.Expect(mac[0]&0x01).To(BeZero(), "%s is not a unicast address", mac)
+	g.Expect(mac[0]&0x02).NotTo(BeZero(), "%s is not a locally administered address", mac)
+
+	g.Expect(first.Interfaces[0].Address).NotTo(BeNil())
+	g.Expect(first.Interfaces[0].Address.Gateway).To(BeNil())
+
+	ip, network, err := net.ParseCIDR(first.Interfaces[0].Address.Address)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(testNetwork.Contains(ip)).To(BeTrue(), "%s is not in %s", ip, testNetwork)
+	g.Expect(ip.Equal(network.IP)).To(BeFalse(), "%s is the address of the network", ip)
+	g.Expect(ip.To4()[3]).NotTo(BeElementOf(byte(0), byte(255)))
+
+	again := newSpec("mvm0", "ns0")
+	g.Expect(again.Interfaces[0].GetGuestMac()).To(Equal(first.Interfaces[0].GetGuestMac()))
+	g.Expect(again.Interfaces[0].Address.Address).To(Equal(first.Interfaces[0].Address.Address))
+
+	for _, other := range []*types.MicroVMSpec{
+		newSpec("mvm1", "ns0"),
+		newSpec("mvm0", "ns1"),
+	} {
+		g.Expect(other.Interfaces[0].GetGuestMac()).NotTo(Equal(first.Interfaces[0].GetGuestMac()))
+		g.Expect(other.Interfaces[0].Address.Address).NotTo(Equal(first.Interfaces[0].Address.Address))
+	}
+}
+
+func TestReadPID(t *testing.T) {
+	writeFile := func(g Gomega, dir, name, content string) {
+		g.Expect(os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600)).To(Succeed())
+	}
+
+	tt := []struct {
+		name      string
+		files     map[string]string
+		expected  int
+		expectErr bool
+	}{
+		{
+			name:     "pid file of the provider",
+			files:    map[string]string{"cloudhypervisor.pid": "4242"},
+			expected: 4242,
+		},
+		{
+			name:     "pid with a newline",
+			files:    map[string]string{"cloudhypervisor.pid": "4242\n"},
+			expected: 4242,
+		},
+		{
+			name:      "no pid file",
+			files:     map[string]string{},
+			expectErr: true,
+		},
+		{
+			name:      "pid file of another provider",
+			files:     map[string]string{"firecracker.pid": "4242"},
+			expectErr: true,
+		},
+		{
+			// The file is empty between the moment it is created and the moment
+			// the pid is written to it.
+			name:      "pid file which is still empty",
+			files:     map[string]string{"cloudhypervisor.pid": ""},
+			expectErr: true,
+		},
+		{
+			name:      "pid which is not a number",
+			files:     map[string]string{"cloudhypervisor.pid": "abc"},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			dir := t.TempDir()
+			for name, content := range tc.files {
+				writeFile(g, dir, name, content)
+			}
+
+			pid, err := u.ReadPID(dir, u.CloudHypervisor())
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(pid).To(Equal(tc.expected))
+		})
+	}
+}
+
+func TestVMMPidFiles(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+	g.Expect(u.VMMPidFiles(dir)).To(BeEmpty())
+	g.Expect(u.VMMPidFiles(filepath.Join(dir, "missing"))).To(BeEmpty())
+
+	g.Expect(os.WriteFile(filepath.Join(dir, "firecracker.log"), []byte("log"), 0o600)).To(Succeed())
+	g.Expect(u.VMMPidFiles(dir)).To(BeEmpty())
+
+	g.Expect(os.WriteFile(filepath.Join(dir, "cloudhypervisor.pid"), []byte("1"), 0o600)).To(Succeed())
+	g.Expect(u.VMMPidFiles(dir)).To(Equal([]string{filepath.Join(dir, "cloudhypervisor.pid")}))
+
+	g.Expect(os.WriteFile(filepath.Join(dir, "firecracker.pid"), []byte("2"), 0o600)).To(Succeed())
+	g.Expect(u.VMMPidFiles(dir)).To(ConsistOf(
+		filepath.Join(dir, "firecracker.pid"),
+		filepath.Join(dir, "cloudhypervisor.pid"),
+	))
 }
 
 func TestMicroVMMetadata(t *testing.T) {

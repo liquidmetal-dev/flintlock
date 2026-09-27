@@ -39,8 +39,10 @@ func TestE2E(t *testing.T) {
 		mvmID       = "mvm0"
 		secondMvmID = "mvm1"
 		mvmNS       = "ns0"
-		fcPath      = "/var/lib/flintlock/vm/%s/%s/%s"
+		statePath   = "/var/lib/flintlock/vm/%s/%s/%s"
 		socketDir   = "/run/flintlock"
+
+		provider = params.Providers[0]
 
 		// Long enough that sockets in the state dir would go over the unix socket path limit.
 		longMvmID = "mvm-" + strings.Repeat("n", 40)
@@ -62,18 +64,21 @@ func TestE2E(t *testing.T) {
 	flintlockClient := r.Setup()
 
 	log.Println("TEST STEP: creating MicroVM")
-	created := u.CreateMVM(flintlockClient, mvmID, mvmNS)
+	created := u.CreateMVM(flintlockClient, provider, mvmID, mvmNS)
 	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
 
-	firstMicroVMPath := fmt.Sprintf(fcPath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+	firstMicroVMPath := fmt.Sprintf(statePath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
 
 	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
 	Eventually(func(g Gomega) error {
-		g.Expect(firstMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
+		g.Expect(filepath.Join(firstMicroVMPath, provider.PidFile)).To(BeAnExistingFile())
 
-		// verify that firecracker has started and that a pid has been saved
+		// verify that the VMM has started and that a pid has been saved
 		// and that there is actually a running process
-		mvmPid1 = u.ReadPID(firstMicroVMPath)
+		pid, err := u.ReadPID(firstMicroVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		mvmPid1 = pid
 		g.Expect(u.PidRunning(mvmPid1)).To(BeTrue())
 
 		// get the mVM and check the status
@@ -84,18 +89,21 @@ func TestE2E(t *testing.T) {
 	}, "120s").Should(Succeed())
 
 	log.Println("TEST STEP: creating a second MicroVM")
-	createdSecond := u.CreateMVM(flintlockClient, secondMvmID, mvmNS)
+	createdSecond := u.CreateMVM(flintlockClient, provider, secondMvmID, mvmNS)
 	Expect(createdSecond.Microvm.Spec.Id).To(Equal(secondMvmID))
 
-	secondMicroVMPath := fmt.Sprintf(fcPath, mvmNS, secondMvmID, *createdSecond.Microvm.Spec.Uid)
+	secondMicroVMPath := fmt.Sprintf(statePath, mvmNS, secondMvmID, *createdSecond.Microvm.Spec.Uid)
 
 	log.Println("TEST STEP: listing all MicroVMs")
 	Eventually(func(g Gomega) error {
-		g.Expect(secondMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
+		g.Expect(filepath.Join(secondMicroVMPath, provider.PidFile)).To(BeAnExistingFile())
 
-		// verify that firecracker has started and that a pid has been saved
+		// verify that the VMM has started and that a pid has been saved
 		// and that there is actually a running process for the new mVM
-		mvmPid2 = u.ReadPID(secondMicroVMPath)
+		pid, err := u.ReadPID(secondMicroVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		mvmPid2 = pid
 		g.Expect(u.PidRunning(mvmPid2)).To(BeTrue())
 
 		// get both the mVMs and check the statuses
@@ -116,16 +124,19 @@ func TestE2E(t *testing.T) {
 	}, "120s").Should(Succeed())
 
 	log.Println("TEST STEP: creating a MicroVM with a long namespace and name and the guest agent enabled")
-	createdLong := u.CreateGuestAgentMVM(flintlockClient, longMvmID, longMvmNS)
+	createdLong := u.CreateGuestAgentMVM(flintlockClient, provider, longMvmID, longMvmNS)
 	Expect(createdLong.Microvm.Spec.Id).To(Equal(longMvmID))
 
-	longMicroVMPath := fmt.Sprintf(fcPath, longMvmNS, longMvmID, *createdLong.Microvm.Spec.Uid)
+	longMicroVMPath := fmt.Sprintf(statePath, longMvmNS, longMvmID, *createdLong.Microvm.Spec.Uid)
 	longSocketRoot := filepath.Join(socketDir, *createdLong.Microvm.Spec.Uid)
 
 	Eventually(func(g Gomega) error {
-		g.Expect(longMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
+		g.Expect(filepath.Join(longMicroVMPath, provider.PidFile)).To(BeAnExistingFile())
 
-		mvmPid3 = u.ReadPID(longMicroVMPath)
+		pid, err := u.ReadPID(longMicroVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		mvmPid3 = pid
 		g.Expect(u.PidRunning(mvmPid3)).To(BeTrue())
 
 		// verify that the vsock socket is under the socket dir and the VMM has bound to it
@@ -159,7 +170,7 @@ func TestE2E(t *testing.T) {
 		// verify that the socket dir has been removed
 		g.Expect(longSocketRoot).ToNot(BeAnExistingFile())
 
-		// verify that the firecracker processes are no longer running
+		// verify that the VMM processes are no longer running
 		g.Expect(u.PidRunning(mvmPid1)).To(BeFalse())
 		g.Expect(u.PidRunning(mvmPid2)).To(BeFalse())
 		g.Expect(u.PidRunning(mvmPid3)).To(BeFalse())
