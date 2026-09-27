@@ -37,6 +37,8 @@ const (
 	loopDeviceTag      = "e2e"
 	bridgeName         = "fl-e2e-br0"
 	e2eDataDir         = "/var/lib/flintlock-e2e"
+	// This is where hack/scripts/devpool.sh creates the files which back the thinpool.
+	thinpoolBackingDir = "/var/lib/containerd-dev/snapshotter/devmapper"
 
 	// HostsDir is the certs.d directory flintlockd reads registry hosts.toml
 	// files from during the tests.
@@ -195,6 +197,14 @@ func (r *Runner) cleanupThinPools() {
 		session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
 		gm.Expect(err).NotTo(gm.HaveOccurred())
 		gm.Eventually(session).Should(gexec.Exit(0))
+	}
+
+	// The backing files hold the thinpool metadata. If they are reused with a
+	// new containerd root then the snapshotter will try to create devices with
+	// ids that already exist in the pool.
+	for _, name := range []string{"data", "metadata"} {
+		backingFile := filepath.Join(thinpoolBackingDir, name+"-"+loopDeviceTag)
+		gm.Expect(os.RemoveAll(backingFile)).To(gm.Succeed())
 	}
 }
 
