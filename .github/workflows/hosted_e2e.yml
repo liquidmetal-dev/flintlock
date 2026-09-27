@@ -7,6 +7,10 @@ on:
         description: "Firecracker release tag to install"
         required: false
         default: "v1.16.1"
+      containerd_version:
+        description: "containerd release tag to install"
+        required: false
+        default: "v2.2.9"
 
 permissions:
   contents: read
@@ -30,11 +34,29 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             bc \
-            containerd \
             curl \
             lvm2 \
             thin-provisioning-tools \
             wget
+
+      - name: Install containerd
+        env:
+          CONTAINERD: ${{ github.event.inputs.containerd_version || 'v2.2.9' }}
+        run: |
+          tarball="containerd-${CONTAINERD#v}-linux-amd64.tar.gz"
+          url="https://github.com/containerd/containerd/releases/download/${CONTAINERD}"
+
+          cd "$(mktemp -d)"
+          curl -fsSLO "${url}/${tarball}"
+          curl -fsSLO "${url}/${tarball}.sha256sum"
+          sha256sum -c "${tarball}.sha256sum"
+          sudo tar -C /usr/local -xzf "${tarball}"
+
+          # The runner image ships its own containerd, make sure that the one
+          # which the tests will pick up from the PATH is the one just installed.
+          command -v containerd
+          containerd --version
+          containerd --version | grep -F " ${CONTAINERD} "
 
       - name: Install Firecracker
         env:
@@ -80,4 +102,5 @@ jobs:
             /var/lib/containerd-e2e \
             /var/lib/containerd-dev/snapshotter/devmapper/data-e2e \
             /var/lib/containerd-dev/snapshotter/devmapper/metadata-e2e \
-            /var/lib/flintlock
+            /var/lib/flintlock \
+            /var/lib/flintlock-e2e

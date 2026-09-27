@@ -7,6 +7,12 @@ integration tests.
 
 There are several ways to run the end to end tests.
 
+### Requirements
+
+The tests start the `containerd` found on the `PATH` and need it to be
+containerd v2 or later. The test setup checks the version and fails if an older
+containerd is found.
+
 ### In your local environment
 
 ```
@@ -45,10 +51,12 @@ on how to configure and use the tool in your development.
 ### In GitHub Actions on hosted runners
 
 The `hosted e2e` workflow runs the e2e suite directly on `ubuntu-latest` GitHub
-hosted runners. It is available via `workflow_dispatch` and also runs nightly.
+hosted runners. It is available via `workflow_dispatch`.
 
 The workflow prepares the runner by installing the host packages required by the
-test harness, installing Firecracker, and checking that `/dev/kvm` exists. The
+test harness, installing pinned releases of containerd and Firecracker, and
+checking that `/dev/kvm` exists. The containerd and Firecracker versions can be
+changed with the workflow inputs. The
 tests are run with `sudo` because they create loop devices, devicemapper
 thinpools and a `fl-e2e-br0` bridge for the microVM TAP interfaces, write
 containerd configuration under `/etc`, and manage runtime state under `/run`

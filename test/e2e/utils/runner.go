@@ -6,9 +6,11 @@ package utils
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	ccfg "github.com/containerd/containerd/v2/cmd/containerd/server/config"
@@ -34,6 +36,13 @@ const (
 	grpcDialTarget     = "127.0.0.1:9090"
 	loopDeviceTag      = "e2e"
 	bridgeName         = "fl-e2e-br0"
+	e2eDataDir         = "/var/lib/flintlock-e2e"
+
+	// HostsDir is the certs.d directory flintlockd reads registry hosts.toml
+	// files from during the tests.
+	HostsDir = e2eDataDir + "/certs.d"
+
+	minContainerdMajor = 2
 )
 
 // Runner holds test runner configuration.
@@ -53,6 +62,7 @@ func NewRunner(params *Params) Runner {
 }
 
 // Setup is a helper for the e2e tests which:
+// - checks that the containerd on the PATH is a supported version
 // - sets up up devicemapper thinpools
 // - writes containerd config
 // - compiles flintlockd
@@ -63,6 +73,7 @@ func NewRunner(params *Params) Runner {
 // All opened connections and started processes are saved for later shutdown.
 // Teardown should be called before Setup in a defer.
 func (r *Runner) Setup() v1alpha1.MicroVMClient {
+	checkContainerdVersion()
 	makeDirectories()
 	r.createThinPools()
 	createBridge()
@@ -114,12 +125,46 @@ func makeDirectories() {
 	gm.Expect(os.MkdirAll(devMapperRoot, os.ModePerm)).To(gm.Succeed())
 	gm.Expect(os.MkdirAll(containerdStateDir, os.ModePerm)).To(gm.Succeed())
 	gm.Expect(os.MkdirAll(containerdCfgDir, os.ModePerm)).To(gm.Succeed())
+	gm.Expect(os.MkdirAll(HostsDir, os.ModePerm)).To(gm.Succeed())
 }
 
 func cleanupDirectories() {
 	gm.Expect(os.RemoveAll(containerdCfgDir)).To(gm.Succeed())
 	gm.Expect(os.RemoveAll(containerdRootDir)).To(gm.Succeed())
 	gm.Expect(os.RemoveAll(containerdStateDir)).To(gm.Succeed())
+	gm.Expect(os.RemoveAll(e2eDataDir)).To(gm.Succeed())
+}
+
+// ContainerdMajorVersion returns the major version from the output of
+// 'containerd --version', which has the form
+// 'containerd <package> <version> <revision>'.
+func ContainerdMajorVersion(versionOutput string) (int, error) {
+	const versionField = 2
+
+	fields := strings.Fields(versionOutput)
+	if len(fields) <= versionField {
+		return 0, fmt.Errorf("unexpected containerd version output %q", versionOutput)
+	}
+
+	version := strings.TrimPrefix(fields[versionField], "v")
+	majorStr, _, _ := strings.Cut(version, ".")
+
+	major, err := strconv.Atoi(majorStr)
+	if err != nil {
+		return 0, fmt.Errorf("parsing containerd version %q: %w", fields[versionField], err)
+	}
+
+	return major, nil
+}
+
+func checkContainerdVersion() {
+	output, err := exec.Command(containerdBin, "--version").Output()
+	gm.Expect(err).NotTo(gm.HaveOccurred())
+
+	major, err := ContainerdMajorVersion(string(output))
+	gm.Expect(err).NotTo(gm.HaveOccurred())
+	gm.Expect(major).To(gm.BeNumerically(">=", minContainerdMajor),
+		"the e2e tests need containerd v%d or later, found: %s", minContainerdMajor, strings.TrimSpace(string(output)))
 }
 
 func (r *Runner) createThinPools() {
@@ -192,7 +237,7 @@ func (r *Runner) writeContainerdConfig() {
 		"discard_blocks":  true,
 	}
 	cfg := ccfg.Config{
-		Version: 2,
+		Version: 3,
 		Root:    containerdRootDir,
 		State:   containerdStateDir,
 		GRPC: ccfg.GRPCConfig{
@@ -239,6 +284,7 @@ func (r *Runner) startFlintlockd() {
 	//nolint: gosec // We know what we're doing.
 	flCmd := exec.Command(r.flintlockdBin, "run",
 		"--containerd-socket", containerdSocket,
+		"--containerd-hosts-dir", HostsDir,
 		"--parent-iface", parentIface,
 		"--bridge-name", bridgeName,
 		"--verbosity", r.params.FlintlockdLogLevel,
