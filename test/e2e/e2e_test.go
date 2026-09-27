@@ -17,7 +17,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var params *u.Params
+var (
+	params *u.Params
+
+	// environmentLeftRunning is set when a test did not tear down what it
+	// started, which means that the tests after it cannot do their own setup.
+	environmentLeftRunning bool
+)
 
 func init() {
 	// Call testing.Init() prior to tests.NewParams(), as otherwise custom test flags
@@ -44,6 +50,8 @@ func TestE2E(t *testing.T) {
 		mvmPid2 int
 		mvmPid3 int
 	)
+
+	environmentLeftRunning = params.SkipTeardown || params.SkipDelete
 
 	r := u.NewRunner(params)
 	defer func() {

@@ -15,6 +15,13 @@ import (
 	"github.com/liquidmetal-dev/flintlock/api/types"
 )
 
+const (
+	// DefaultKernelImage is the image which the test microvms get their kernel from.
+	DefaultKernelImage = "ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77"
+	// DefaultRootImage is the image which the test microvms use for their root volume.
+	DefaultRootImage = "ghcr.io/liquidmetal-dev/capmvm-k8s-os:1.23.5"
+)
+
 func CreateMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateMicroVMResponse {
 	createReq := v1alpha1.CreateMicroVMRequest{
 		Microvm: defaultTestMicroVM(name, ns),
@@ -29,6 +36,22 @@ func CreateMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateM
 func CreateGuestAgentMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateMicroVMResponse {
 	spec := defaultTestMicroVM(name, ns)
 	spec.AllowGuestAgent = true
+
+	created, err := client.CreateMicroVM(context.Background(), &v1alpha1.CreateMicroVMRequest{Microvm: spec})
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	return created
+}
+
+// CreateMVMWithImages creates a microvm which uses the given images for its
+// kernel and its root volume.
+func CreateMVMWithImages(
+	client v1alpha1.MicroVMClient,
+	name, ns, kernelImage, rootImage string,
+) *v1alpha1.CreateMicroVMResponse {
+	spec := defaultTestMicroVM(name, ns)
+	spec.Kernel.Image = kernelImage
+	spec.RootVolume.Source.ContainerSource = pointyString(rootImage)
 
 	created, err := client.CreateMicroVM(context.Background(), &v1alpha1.CreateMicroVMRequest{Microvm: spec})
 	g.Expect(err).NotTo(g.HaveOccurred())
@@ -89,18 +112,13 @@ func PidRunning(pid int) bool {
 }
 
 func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
-	var (
-		binImage = "ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77"
-		osImage  = "ghcr.io/liquidmetal-dev/capmvm-k8s-os:1.23.5"
-	)
-
 	return &types.MicroVMSpec{
 		Id:         name,
 		Namespace:  namespace,
 		Vcpu:       2,    //nolint: gomnd
 		MemoryInMb: 2048, //nolint: gomnd
 		Kernel: &types.Kernel{
-			Image:            binImage,
+			Image:            DefaultKernelImage,
 			Filename:         pointyString("boot/vmlinux"),
 			AddNetworkConfig: true,
 		},
@@ -108,7 +126,7 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 			Id:         "root",
 			IsReadOnly: false,
 			Source: &types.VolumeSource{
-				ContainerSource: pointyString(osImage),
+				ContainerSource: pointyString(DefaultRootImage),
 			},
 		},
 		Interfaces: []*types.NetworkInterface{

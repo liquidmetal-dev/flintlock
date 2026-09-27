@@ -7,6 +7,29 @@ integration tests.
 
 There are several ways to run the end to end tests.
 
+### Requirements
+
+The tests start the `containerd` found on the `PATH` and need it to be
+containerd v2 or later. The test setup checks the version and fails if an older
+containerd is found.
+
+The private registry test also needs these to be on the `PATH`:
+- [`zot`][zot]: this is the registry which the test starts. The `minimal` build
+  is enough.
+- [`skopeo`][skopeo]: this is used to copy the images to the registry.
+
+### Tests
+
+- `TestE2E`: covers the CRUD happy path using images from a public registry.
+- `TestE2EPrivateRegistry`: creates a MicroVM using images from a private
+  registry. The test starts a registry which requires authentication on
+  `127.0.0.1:5050`, copies the kernel and root volume images to it, and writes
+  the `hosts.toml` with the credentials to the directory which flintlockd was
+  started with (`--containerd-hosts-dir`).
+
+Each of the tests does its own setup and teardown, so that the private registry
+test starts with a containerd which does not have any of the images.
+
 ### In your local environment
 
 ```
@@ -45,10 +68,12 @@ on how to configure and use the tool in your development.
 ### In GitHub Actions on hosted runners
 
 The `hosted e2e` workflow runs the e2e suite directly on `ubuntu-latest` GitHub
-hosted runners. It is available via `workflow_dispatch` and also runs nightly.
+hosted runners. It is available via `workflow_dispatch`.
 
 The workflow prepares the runner by installing the host packages required by the
-test harness, installing Firecracker, and checking that `/dev/kvm` exists. The
+test harness, installing pinned releases of containerd, zot and Firecracker, and
+checking that `/dev/kvm` exists. The versions of these can be changed with the
+workflow inputs. The
 tests are run with `sudo` because they create loop devices, devicemapper
 thinpools and a `fl-e2e-br0` bridge for the microVM TAP interfaces, write
 containerd configuration under `/etc`, and manage runtime state under `/run`
@@ -76,3 +101,29 @@ You can pass in these flags to the test like so:
 ```
 
 All the flags can be found at [`params.go`](/test/e2e/utils/params.go).
+
+The `skip.delete` and `skip.teardown` flags leave the environment of a test
+running, so the tests which come after it are skipped. Use `-run` to choose the
+test to debug:
+
+```bash
+./test/e2e/test.sh -run '^TestE2EPrivateRegistry$' -skip.delete
+```
+
+### Following the progress
+
+The output of the tests also has the logs of containerd, flintlockd and the
+registry in it. The tests mark their own lines so that they can be found:
+
+- `TEST STEP:` is the start of a step of a test.
+- `TEST INFO:` is a detail of the step, such as the image which is copied or
+  the state of the MicroVM when it changes.
+
+To only see the progress of the tests:
+
+```bash
+./test/e2e/test.sh 2>&1 | grep -E 'TEST (STEP|INFO):|^(=== RUN|--- |ok|FAIL)'
+```
+
+[zot]: https://zotregistry.dev
+[skopeo]: https://github.com/containers/skopeo
