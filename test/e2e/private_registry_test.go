@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
@@ -74,8 +75,23 @@ func TestE2EPrivateRegistry(t *testing.T) {
 	Expect(*created.Microvm.Spec.RootVolume.Source.ContainerSource).To(Equal(rootImage))
 
 	microVMPath := fmt.Sprintf(fcPath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+	log.Printf("TEST INFO: MicroVM %s/%s has uid %s and state directory %s",
+		mvmNS, mvmID, *created.Microvm.Spec.Uid, microVMPath)
+
+	log.Println("TEST STEP: waiting for the MicroVM to be created")
+	createStart := time.Now()
+	lastSeen := ""
 
 	Eventually(func(g Gomega) error {
+		// The function is called many times a second, so the status is only
+		// logged when it changes.
+		res := u.GetMVM(flintlockClient, *created.Microvm.Spec.Uid)
+		seen := fmt.Sprintf("%s (retry %d)", res.Microvm.Status.State, res.Microvm.Status.Retry)
+		if seen != lastSeen {
+			log.Printf("TEST INFO: MicroVM %s/%s is %s", mvmNS, mvmID, seen)
+			lastSeen = seen
+		}
+
 		g.Expect(microVMPath + "/firecracker.pid").To(BeAnExistingFile())
 
 		// verify that firecracker has started and that a pid has been saved
@@ -83,12 +99,14 @@ func TestE2EPrivateRegistry(t *testing.T) {
 		mvmPid = u.ReadPID(microVMPath)
 		g.Expect(u.PidRunning(mvmPid)).To(BeTrue())
 
-		// get the mVM and check the status
-		res := u.GetMVM(flintlockClient, *created.Microvm.Spec.Uid)
+		// check the status
 		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
 
 		return nil
 	}, "120s").Should(Succeed())
+
+	log.Printf("TEST INFO: MicroVM %s/%s is running with firecracker pid %d, it took %s",
+		mvmNS, mvmID, mvmPid, time.Since(createStart).Round(time.Millisecond))
 
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
@@ -97,6 +115,9 @@ func TestE2EPrivateRegistry(t *testing.T) {
 
 	log.Println("TEST STEP: deleting the MicroVM")
 	Expect(u.DeleteMVM(flintlockClient, *created.Microvm.Spec.Uid)).To(Succeed())
+
+	log.Println("TEST STEP: waiting for the MicroVM to be deleted")
+	deleteStart := time.Now()
 
 	Eventually(func(g Gomega) error {
 		g.Expect(microVMPath).ToNot(BeAnExistingFile())
@@ -107,4 +128,7 @@ func TestE2EPrivateRegistry(t *testing.T) {
 
 		return nil
 	}, "120s").Should(Succeed())
+
+	log.Printf("TEST INFO: MicroVM %s/%s is deleted, it took %s",
+		mvmNS, mvmID, time.Since(deleteStart).Round(time.Millisecond))
 }

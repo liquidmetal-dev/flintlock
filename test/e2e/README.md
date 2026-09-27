@@ -110,5 +110,20 @@ test to debug:
 ./test/e2e/test.sh -run '^TestE2EPrivateRegistry$' -skip.delete
 ```
 
+### Following the progress
+
+The output of the tests also has the logs of containerd, flintlockd and the
+registry in it. The tests mark their own lines so that they can be found:
+
+- `TEST STEP:` is the start of a step of a test.
+- `TEST INFO:` is a detail of the step, such as the image which is copied or
+  the state of the MicroVM when it changes.
+
+To only see the progress of the tests:
+
+```bash
+./test/e2e/test.sh 2>&1 | grep -E 'TEST (STEP|INFO):|^(=== RUN|--- |ok|FAIL)'
+```
+
 [zot]: https://zotregistry.dev
 [skopeo]: https://github.com/containers/skopeo

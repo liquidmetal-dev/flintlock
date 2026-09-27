@@ -7,11 +7,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	gk "github.com/onsi/ginkgo/v2"
 	gm "github.com/onsi/gomega"
@@ -82,6 +84,8 @@ func (r *Registry) Start() {
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 	gm.Expect(os.WriteFile(configPath, config, 0o600)).To(gm.Succeed())
 
+	log.Printf("TEST INFO: starting the registry on %s with config %s", registryAddress, configPath)
+
 	session, err := gexec.Start(exec.Command(registryBin, "serve", configPath), gk.GinkgoWriter, gk.GinkgoWriter)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 
@@ -91,13 +95,18 @@ func (r *Registry) Start() {
 	gm.Eventually(func() (int, error) {
 		return getStatus("http://"+registryAddress+"/v2/", false)
 	}, "30s", "500ms").Should(gm.Equal(http.StatusUnauthorized))
+
+	log.Printf("TEST INFO: the registry is ready on %s", registryAddress)
 }
 
 // Stop stops the registry and removes its configuration and images.
 func (r *Registry) Stop() {
 	if r.session != nil {
+		log.Println("TEST INFO: stopping the registry")
 		r.session.Terminate().Wait()
 	}
+
+	log.Printf("TEST INFO: removing the registry directory %s", r.dir)
 
 	gm.Expect(os.RemoveAll(r.dir)).To(gm.Succeed())
 }
@@ -107,6 +116,9 @@ func (r *Registry) Stop() {
 // flintlockd will have to pull all of the image from the registry.
 func (r *Registry) Seed(image string) string {
 	privateImage := PrivateImageRef(image)
+	start := time.Now()
+
+	log.Printf("TEST INFO: copying %s to %s", image, privateImage)
 
 	// The registry only accepts OCI manifests.
 	command := exec.Command(skopeoBin, "--insecure-policy", "copy",
@@ -119,6 +131,8 @@ func (r *Registry) Seed(image string) string {
 	session, err := gexec.Start(command, gk.GinkgoWriter, gk.GinkgoWriter)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 	gm.Eventually(session, "10m").Should(gexec.Exit(0))
+
+	log.Printf("TEST INFO: copied %s in %s", privateImage, time.Since(start).Round(time.Millisecond))
 
 	return privateImage
 }
@@ -133,6 +147,13 @@ func (r *Registry) ManifestStatus(privateImage string, authenticated bool) int {
 
 	status, err := getStatus(url, authenticated)
 	gm.Expect(err).NotTo(gm.HaveOccurred())
+
+	access := "anonymous"
+	if authenticated {
+		access = "authenticated"
+	}
+
+	log.Printf("TEST INFO: %s GET %s returned %d", access, url, status)
 
 	return status
 }
@@ -152,9 +173,13 @@ func (r *Registry) WriteHostsConfig(hostsDir string) {
     Authorization = "Basic %[2]s"
 `, server, credentials)
 
-	dir := filepath.Join(hostsDir, registryAddress)
-	gm.Expect(os.MkdirAll(dir, 0o700)).To(gm.Succeed())
-	gm.Expect(os.WriteFile(filepath.Join(dir, "hosts.toml"), []byte(config), 0o600)).To(gm.Succeed())
+	hostsPath := filepath.Join(hostsDir, registryAddress, "hosts.toml")
+
+	// The file holds the credentials, so only its path is logged.
+	log.Printf("TEST INFO: writing the credentials for %s to %s", server, hostsPath)
+
+	gm.Expect(os.MkdirAll(filepath.Dir(hostsPath), 0o700)).To(gm.Succeed())
+	gm.Expect(os.WriteFile(hostsPath, []byte(config), 0o600)).To(gm.Succeed())
 }
 
 // PrivateImageRef returns the reference of the image when it is stored in the
