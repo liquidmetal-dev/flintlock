@@ -6,7 +6,7 @@ on:
       firecracker_version:
         description: "Firecracker release tag to install"
         required: false
-        default: "v1.15.1"
+        default: "v1.16.1"
 
 permissions:
   contents: read
@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Firecracker
         env:
-          FIRECRACKER: ${{ github.event.inputs.firecracker_version || 'v1.15.1' }}
+          FIRECRACKER: ${{ github.event.inputs.firecracker_version || 'v1.16.1' }}
         run: sudo -E ./hack/scripts/provision.sh firecracker
 
       - name: Verify KVM access
@@ -65,6 +65,8 @@ jobs:
       - name: Cleanup e2e resources
         if: always()
         run: |
+          sudo ip link delete fl-e2e-br0 type bridge || true
+
           sudo dmsetup remove --force dev-thinpool-e2e || true
 
           while IFS=: read -r device _; do
