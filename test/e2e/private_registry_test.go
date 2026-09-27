@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
-	. "github.com/onsi/gomega"
 )
 
 // TestE2EPrivateRegistry does its own setup so that containerd starts without
@@ -110,6 +111,7 @@ func TestE2EPrivateRegistry(t *testing.T) {
 
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
+
 		return
 	}
 
@@ -124,7 +126,7 @@ func TestE2EPrivateRegistry(t *testing.T) {
 		g.Expect(u.PidRunning(mvmPid)).To(BeFalse())
 
 		res := u.ListMVMs(flintlockClient, mvmNS, nil)
-		g.Expect(res.Microvm).To(HaveLen(0))
+		g.Expect(res.Microvm).To(BeEmpty())
 
 		return nil
 	}, "120s").Should(Succeed())

@@ -6,8 +6,9 @@ package e2e_test
 import (
 	"testing"
 
-	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 	. "github.com/onsi/gomega"
+
+	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
 
 func TestPrivateImageRef(t *testing.T) {

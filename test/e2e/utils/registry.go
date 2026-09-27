@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -28,7 +29,7 @@ const (
 	registryPort     = "5050"
 	registryAddress  = registryHost + ":" + registryPort
 	registryUser     = "flintlock"
-	registryPassword = "flintlock-e2e"
+	registryPassword = "flintlock-e2e" //nolint: gosec // Only for the registry which the test starts.
 	ociManifestType  = "application/vnd.oci.image.manifest.v1+json"
 
 	// RegistryDir is where the registry keeps its configuration and images
@@ -121,6 +122,7 @@ func (r *Registry) Seed(image string) string {
 	log.Printf("TEST INFO: copying %s to %s", image, privateImage)
 
 	// The registry only accepts OCI manifests.
+	//nolint: gosec // The images are chosen by the tests.
 	command := exec.Command(skopeoBin, "--insecure-policy", "copy",
 		"--format", "oci",
 		"--dest-tls-verify=false",
@@ -191,7 +193,7 @@ func PrivateImageRef(image string) string {
 }
 
 func getStatus(url string, authenticated bool) (int, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		return 0, err
 	}
