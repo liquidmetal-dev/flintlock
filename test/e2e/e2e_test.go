@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	"github.com/liquidmetal-dev/flintlock/pkg/ptr"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
@@ -32,26 +33,16 @@ func init() {
 	params = u.NewParams()
 }
 
+const (
+	// Long enough that sockets in the state dir would go over the unix socket path limit.
+	longNameLength      = 44
+	longNamespaceLength = 43
+)
+
+// TestE2E runs the lifecycle of a microvm with each of the providers. The
+// providers share one flintlockd, which has all of them enabled.
 func TestE2E(t *testing.T) {
 	RegisterTestingT(t)
-
-	var (
-		mvmID       = "mvm0"
-		secondMvmID = "mvm1"
-		mvmNS       = "ns0"
-		statePath   = "/var/lib/flintlock/vm/%s/%s/%s"
-		socketDir   = "/run/flintlock"
-
-		provider = params.Providers[0]
-
-		// Long enough that sockets in the state dir would go over the unix socket path limit.
-		longMvmID = "mvm-" + strings.Repeat("n", 40)
-		longMvmNS = "ns-" + strings.Repeat("s", 40)
-
-		mvmPid1 int
-		mvmPid2 int
-		mvmPid3 int
-	)
 
 	environmentLeftRunning = params.SkipTeardown || params.SkipDelete
 
@@ -62,6 +53,46 @@ func TestE2E(t *testing.T) {
 	}()
 	log.Println("TEST STEP: performing setup, starting flintlockd server")
 	flintlockClient := r.Setup()
+
+	for _, provider := range params.Providers {
+		t.Run(provider.Name, func(subT *testing.T) {
+			// The helpers of the tests assert with the global gomega. A failure
+			// has to fail the subtest which is running: if it failed the test of
+			// the subtest, the test binary would panic and skip the teardown.
+			RegisterTestingT(subT)
+			defer RegisterTestingT(t)
+
+			log.Printf("TEST STEP: running the lifecycle of a MicroVM with the %s provider", provider.Name)
+			runLifecycle(subT, flintlockClient, provider)
+		})
+	}
+}
+
+// lifecycleNamespaces returns the namespaces for the microvms of a provider
+// in the lifecycle test. The second one is a long namespace.
+func lifecycleNamespaces(provider u.Provider) (string, string) {
+	longPrefix := "ns-" + provider.Name + "-"
+
+	return provider.Name + "-ns0", longPrefix + strings.Repeat("s", longNamespaceLength-len(longPrefix))
+}
+
+func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider u.Provider) {
+	t.Helper()
+
+	var (
+		mvmID       = "mvm0"
+		secondMvmID = "mvm1"
+		statePath   = "/var/lib/flintlock/vm/%s/%s/%s"
+		socketDir   = "/run/flintlock"
+
+		longMvmID = "mvm-" + strings.Repeat("n", longNameLength-len("mvm-"))
+
+		mvmPid1 int
+		mvmPid2 int
+		mvmPid3 int
+	)
+
+	mvmNS, longMvmNS := lifecycleNamespaces(provider)
 
 	log.Println("TEST STEP: creating MicroVM")
 	created := u.CreateMVM(flintlockClient, provider, mvmID, mvmNS)

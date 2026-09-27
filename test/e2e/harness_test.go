@@ -739,6 +739,23 @@ func TestProviderFlagsAreFlagsOfFlintlockd(t *testing.T) {
 	g.Expect(cfg.FirecrackerBin).To(Equal(shell))
 }
 
+// The microvms of a provider are in namespaces of their own, so that a list
+// of a namespace only has the microvms of one provider.
+func TestLifecycleNamespaces(t *testing.T) {
+	g := NewWithT(t)
+
+	namespace, longNamespace := lifecycleNamespaces(u.Firecracker())
+	g.Expect(namespace).To(Equal("firecracker-ns0"))
+	g.Expect(longNamespace).To(Equal("ns-firecracker-ssssssssssssssssssssssssssss"))
+
+	namespace, longNamespace = lifecycleNamespaces(u.CloudHypervisor())
+	g.Expect(namespace).To(Equal("cloudhypervisor-ns0"))
+	g.Expect(longNamespace).To(Equal("ns-cloudhypervisor-ssssssssssssssssssssssss"))
+
+	// As long as the namespace was before it had the name of the provider.
+	g.Expect(longNamespace).To(HaveLen(len("ns-") + 40))
+}
+
 // fakeMicroVMClient answers the requests of the helpers without a flintlockd.
 // A method which a test does not expect to be called is not implemented, and
 // panics.

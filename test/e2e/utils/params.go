@@ -7,7 +7,7 @@ import "flag"
 
 const (
 	thinpoolName     = "dev-thinpool-e2e"
-	defaultProviders = "firecracker"
+	defaultProviders = "firecracker,cloudhypervisor"
 )
 
 // Params groups all param.
