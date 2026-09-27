@@ -25,7 +25,9 @@ The private registry test also needs these to be on the `PATH`:
   registry. The test starts a registry which requires authentication on
   `127.0.0.1:5050`, copies the kernel and root volume images to it, and writes
   the `hosts.toml` with the credentials to the directory which flintlockd was
-  started with (`--containerd-hosts-dir`).
+  started with (`--containerd-hosts-dir`). The test also reads the log of the
+  registry, to check that flintlockd pulled the manifests and the blobs of the
+  images from it.
 
 Each of the tests does its own setup and teardown, so that the private registry
 test starts with a containerd which does not have any of the images.

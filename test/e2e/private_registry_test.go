@@ -35,6 +35,7 @@ func TestE2EPrivateRegistry(t *testing.T) {
 	)
 
 	leaveRunning := params.SkipTeardown || params.SkipDelete
+	environmentLeftRunning = leaveRunning
 
 	r := u.NewRunner(params)
 	defer func() {
@@ -108,6 +109,26 @@ func TestE2EPrivateRegistry(t *testing.T) {
 
 	log.Printf("TEST INFO: MicroVM %s/%s is running with firecracker pid %d, it took %s",
 		mvmNS, mvmID, mvmPid, time.Since(createStart).Round(time.Millisecond))
+
+	log.Println("TEST STEP: verifying that the images were pulled from the private registry")
+	for _, image := range []string{kernelImage, rootImage} {
+		requests := registry.Requests(image, u.ContainerdUserAgent)
+
+		// The manifest shows that the reference was resolved by the registry, and
+		// the blobs show that the content of the image came from it.
+		Expect(requests).To(ContainElement(And(
+			HaveField("Path", u.ManifestPath(image)),
+			HaveField("Status", http.StatusOK),
+		)), "the manifest of %s was not pulled from the registry", image)
+		Expect(requests).To(ContainElement(And(
+			HaveField("Method", http.MethodGet),
+			HaveField("Path", ContainSubstring("/blobs/")),
+			HaveField("Status", http.StatusOK),
+		)), "the blobs of %s were not pulled from the registry", image)
+		Expect(requests).NotTo(ContainElement(
+			HaveField("Status", BeElementOf(http.StatusUnauthorized, http.StatusForbidden)),
+		), "the registry refused a request for %s", image)
+	}
 
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
