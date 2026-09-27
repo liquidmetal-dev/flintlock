@@ -13,6 +13,88 @@ import (
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
 
+func TestParseProviders(t *testing.T) {
+	type provider struct {
+		name    string
+		pidFile string
+	}
+
+	var (
+		firecracker     = provider{name: "firecracker", pidFile: "firecracker.pid"}
+		cloudHypervisor = provider{name: "cloudhypervisor", pidFile: "cloudhypervisor.pid"}
+	)
+
+	tt := []struct {
+		name      string
+		value     string
+		expected  []provider
+		expectErr bool
+	}{
+		{
+			name:     "one provider",
+			value:    "cloudhypervisor",
+			expected: []provider{cloudHypervisor},
+		},
+		{
+			name:     "both providers",
+			value:    "firecracker,cloudhypervisor",
+			expected: []provider{firecracker, cloudHypervisor},
+		},
+		{
+			name:     "the order is kept, the first one is the default provider",
+			value:    "cloudhypervisor,firecracker",
+			expected: []provider{cloudHypervisor, firecracker},
+		},
+		{
+			name:     "spaces around the names",
+			value:    " firecracker , cloudhypervisor ",
+			expected: []provider{firecracker, cloudHypervisor},
+		},
+		{
+			name:      "unknown provider",
+			value:     "firecracker,qemu",
+			expectErr: true,
+		},
+		{
+			name:      "provider given twice",
+			value:     "firecracker,firecracker",
+			expectErr: true,
+		},
+		{
+			name:      "no providers",
+			value:     "",
+			expectErr: true,
+		},
+		{
+			name:      "empty name",
+			value:     "firecracker,",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			providers, err := u.ParseProviders(tc.value)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+
+			parsed := []provider{}
+			for _, p := range providers {
+				parsed = append(parsed, provider{name: p.Name, pidFile: p.PidFile})
+			}
+
+			g.Expect(parsed).To(Equal(tc.expected))
+		})
+	}
+}
+
 func TestMicroVMMetadata(t *testing.T) {
 	g := NewWithT(t)
 

@@ -6,7 +6,8 @@ package utils
 import "flag"
 
 const (
-	thinpoolName = "dev-thinpool-e2e"
+	thinpoolName     = "dev-thinpool-e2e"
+	defaultProviders = "firecracker"
 )
 
 // Params groups all param.
@@ -17,11 +18,38 @@ type Params struct {
 	ContainerdLogLevel string
 	FlintlockdLogLevel string
 	ThinpoolName       string
+	// Providers are the microvm providers to run the tests with. The first one
+	// is the default provider of flintlockd.
+	Providers []Provider
 }
 
 // NewParams returns a new Params based on provided flags.
 func NewParams() *Params {
 	params := Params{}
+
+	// The default is a constant of the tests, it can only fail to parse if the
+	// constant is wrong.
+	providers, err := ParseProviders(defaultProviders)
+	if err != nil {
+		panic(err)
+	}
+
+	params.Providers = providers
+
+	providersUsage := "Comma separated list of the microvm providers to run the tests with " +
+		"[firecracker, cloudhypervisor]. The VMM of each of them must be on the PATH " +
+		"(default \"" + defaultProviders + "\")"
+
+	flag.Func("providers", providersUsage, func(value string) error {
+		providers, err := ParseProviders(value)
+		if err != nil {
+			return err
+		}
+
+		params.Providers = providers
+
+		return nil
+	})
 
 	flag.BoolVar(&params.SkipSetupThinpool, "skip.setup.thinpool", false, "Skip setting up loop-backed devicemapper thinpools. Assumes existing direct-lvm setup. Must be used with -thinpool")
 	flag.StringVar(&params.ThinpoolName, "thinpool", thinpoolName, "Name of thinpool to create or of existing thinpool. When existing skip.setup.thinpool should also be set")
