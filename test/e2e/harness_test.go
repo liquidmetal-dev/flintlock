@@ -4,12 +4,46 @@
 package e2e_test
 
 import (
+	"encoding/base64"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
 
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
+
+func TestMicroVMMetadata(t *testing.T) {
+	g := NewWithT(t)
+
+	metadata, err := u.MicroVMMetadata("mvm0")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Cloud Hypervisor cannot build the cloud-init image if a value is not base64.
+	userData, err := base64.StdEncoding.DecodeString(metadata["user-data"])
+	g.Expect(err).NotTo(HaveOccurred())
+	// cloud-init ignores user-data which does not start with this line.
+	g.Expect(string(userData)).To(HavePrefix("#cloud-config\n"))
+
+	cloudConfig := map[string]any{}
+	g.Expect(yaml.Unmarshal(userData, &cloudConfig)).To(Succeed())
+	g.Expect(cloudConfig).To(HaveKeyWithValue("hostname", "mvm0"))
+	g.Expect(cloudConfig).To(HaveKey("final_message"))
+	// The bridge of the tests has no DHCP server, dhclient would hold up the boot.
+	g.Expect(cloudConfig).NotTo(HaveKey("runcmd"))
+	g.Expect(cloudConfig).NotTo(HaveKey("users"))
+
+	metaData, err := base64.StdEncoding.DecodeString(metadata["meta-data"])
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// There is no instance_id, so that flintlockd sets it to the uid of the microvm.
+	instanceData := map[string]string{}
+	g.Expect(yaml.Unmarshal(metaData, &instanceData)).To(Succeed())
+	g.Expect(instanceData).To(Equal(map[string]string{
+		"local_hostname": "mvm0",
+		"platform":       "liquid_metal",
+	}))
+}
 
 func TestPrivateImageRef(t *testing.T) {
 	g := NewWithT(t)

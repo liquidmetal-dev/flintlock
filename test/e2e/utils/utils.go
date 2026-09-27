@@ -5,14 +5,20 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"os"
 	"strconv"
 	"syscall"
 
 	g "github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
 
 	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit"
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit/instance"
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit/userdata"
 )
 
 const (
@@ -20,6 +26,10 @@ const (
 	DefaultKernelImage = "ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77"
 	// DefaultRootImage is the image which the test microvms use for their root volume.
 	DefaultRootImage = "ghcr.io/liquidmetal-dev/capmvm-k8s-os:1.23.5"
+
+	// cloud-init only reads the user-data as a cloud-config if it starts with this line.
+	cloudConfigHeader = "#cloud-config\n"
+	metadataPlatform  = "liquid_metal"
 )
 
 func CreateMVM(client v1alpha1.MicroVMClient, name, ns string) *v1alpha1.CreateMicroVMResponse {
@@ -111,7 +121,38 @@ func PidRunning(pid int) bool {
 	return true
 }
 
+// MicroVMMetadata returns the cloud-init data for a test microvm, in the
+// encoding which the API expects.
+func MicroVMMetadata(name string) (map[string]string, error) {
+	instanceData, err := yaml.Marshal(instance.New(
+		instance.WithLocalHostname(name),
+		instance.WithPlatform(metadataPlatform),
+	))
+	if err != nil {
+		return nil, fmt.Errorf("marshalling the instance data: %w", err)
+	}
+
+	// There are no commands which need the network, as there is no DHCP server
+	// on the bridge of the tests.
+	userData, err := yaml.Marshal(userdata.UserData{
+		HostName:      name,
+		PackageUpdate: pointyBool(false),
+		FinalMessage:  "The reignited booted system is good to go after $UPTIME seconds",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshalling the user data: %w", err)
+	}
+
+	return map[string]string{
+		cloudinit.InstanceDataKey: base64.StdEncoding.EncodeToString(instanceData),
+		cloudinit.UserdataKey:     base64.StdEncoding.EncodeToString(append([]byte(cloudConfigHeader), userData...)),
+	}, nil
+}
+
 func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
+	metadata, err := MicroVMMetadata(name)
+	g.Expect(err).NotTo(g.HaveOccurred())
+
 	return &types.MicroVMSpec{
 		Id:         name,
 		Namespace:  namespace,
@@ -135,13 +176,14 @@ func defaultTestMicroVM(name, namespace string) *types.MicroVMSpec {
 				Type:     types.NetworkInterface_TAP,
 			},
 		},
-		Metadata: map[string]string{
-			"meta-data": "aW5zdGFuY2VfaWQ6IG5zMS9tdm0wCmxvY2FsX2hvc3RuYW1lOiBtdm0wCnBsYXRmb3JtOiBsaXF1aWRfbWV0YWwK",
-			"user-data": "I2Nsb3VkLWNvbmZpZwpob3N0bmFtZTogbXZtMApmcWRuOiBtdm0wLmZydWl0Y2FzZQp1c2VyczoKICAgIC0gbmFtZTogcm9vdAogICAgICBzc2hfYXV0aG9yaXplZF9rZXlzOgogICAgICAgIC0gfAogICAgICAgICAgc3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUdzbStWSSsyVk5WWFBDRmVmbFhrQTVKY21zMzByajFGUFFjcFNTdDFrdVYgcmljaGFyZEB3ZWF2ZS53b3JrcwpkaXNhYmxlX3Jvb3Q6IGZhbHNlCnBhY2thZ2VfdXBkYXRlOiBmYWxzZQpmaW5hbF9tZXNzYWdlOiBUaGUgcmVpZ25pdGVkIGJvb3RlZCBzeXN0ZW0gaXMgZ29vZCB0byBnbyBhZnRlciAkVVBUSU1FIHNlY29uZHMKcnVuY21kOgogICAgLSBkaGNsaWVudCAtcgogICAgLSBkaGNsaWVudAo=",
-		},
+		Metadata: metadata,
 	}
 }
 
 func pointyString(v string) *string {
+	return &v
+}
+
+func pointyBool(v bool) *bool {
 	return &v
 }
