@@ -48,7 +48,8 @@ Run from the repo root:
 - `make lint` — run golangci-lint (config in `.golangci.yml`)
 - `make generate` — regenerate mocks, protobuf, and DI wiring; run this after
   changing anything under `api/` or any mocked interface
-- `make test-e2e` — e2e tests (require KVM + Firecracker; normally CI only)
+- `make test-e2e` — e2e tests (require KVM, Firecracker and Cloud Hypervisor;
+  normally CI only)
 
 Every commit must be compilable with `make test` passing.
 

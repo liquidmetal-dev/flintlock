@@ -13,6 +13,18 @@ The tests start the `containerd` found on the `PATH` and need it to be
 containerd v2 or later. The test setup checks the version and fails if an older
 containerd is found.
 
+The tests run with each of the microvm providers, and need the VMM of each of
+them on the `PATH`:
+
+| Provider | VMM binary | Installed by |
+|---|---|---|
+| `firecracker` | `firecracker` | `hack/scripts/provision.sh firecracker` |
+| `cloudhypervisor` | `cloud-hypervisor-static` | `hack/scripts/provision.sh cloudhypervisor` |
+
+The test setup fails if one of them is not found. Use the `providers` flag to
+run the tests on a host which does not have both, see
+[Configuration](#configuration).
+
 The private registry test also needs these to be on the `PATH`:
 - [`zot`][zot]: this is the registry which the test starts. The `minimal` build
   is enough.
@@ -21,6 +33,9 @@ The private registry test also needs these to be on the `PATH`:
 ### Tests
 
 - `TestE2E`: covers the CRUD happy path using images from a public registry.
+  It has a subtest for each of the providers, such as `TestE2E/cloudhypervisor`.
+  The subtests share one flintlockd which has all of the providers enabled, and
+  each MicroVM names its provider in its spec.
 - `TestE2EPrivateRegistry`: creates a MicroVM using images from a private
   registry. The test starts a registry which requires authentication on
   `127.0.0.1:5050`, copies the kernel and root volume images to it, and writes
@@ -30,12 +45,65 @@ The private registry test also needs these to be on the `PATH`:
   images from it.
 - `TestE2EPrivateRegistryNoCredentials`: uses the same registry and images, but
   does not write the `hosts.toml`. The MicroVM must stay `PENDING` while the
-  retry count goes up, and firecracker must not be started. The test reads the
+  retry count goes up, and no VMM must be started. The test reads the
   log of the registry, to check that it refused the requests of flintlockd with
   a `401`.
+- `TestE2ECloudHypervisorKernelWithoutPVH`: creates a MicroVM with the
+  cloudhypervisor provider and a kernel which Cloud Hypervisor cannot boot. The
+  VMM must not be running, the console must not have the boot marker, and the
+  stderr of the VMM must say that the kernel has no PVH entry point. It shows
+  that the checks of the other tests do not pass when the guest does not boot.
+  The test does not look at the state of the MicroVM, which is `CREATED`
+  ([#1263][issue-1263]). It is skipped when `cloudhypervisor` is not one of the
+  providers.
 
 Each of the tests does its own setup and teardown, so that the private registry
-tests start with a containerd which does not have any of the images.
+tests start with a containerd which does not have any of the images. The
+private registry tests use the first of the providers.
+
+### What shows that a MicroVM is running
+
+That a MicroVM is `CREATED` and that its VMM is running does not show that its
+guest has booted. A VMM can run for a while with a guest which has no kernel
+that it can boot, or with a kernel which cannot mount its root volume. The
+tests which create a MicroVM check all of these:
+
+| Check | What it rules out |
+|---|---|
+| The state directory has the pid file of the provider, and the process is running | The VMM was not started |
+| `/proc/<pid>/exe` is the VMM binary of the provider | flintlockd started the VMM of another provider |
+| The state of the MicroVM is `CREATED` | flintlockd has not finished, or has failed |
+| The console of the guest has the boot marker of the MicroVM | The guest did not boot, did not mount its root volume, or did not get the metadata of the MicroVM |
+| The pid of the VMM is the same before and after the marker was found | The marker is from a VMM which has stopped since |
+
+The boot marker is the `final_message` of cloud-init in the user-data of the
+test MicroVMs:
+
+```text
+flintlock-e2e boot ok <namespace>/<name> uptime=<seconds>
+```
+
+cloud-init writes it to the console when it has run all of its stages, and
+fills in the uptime. The console of the guest is the `<provider>.stdout` file in
+the state directory of the MicroVM.
+
+When a test fails, it logs the end of the console, the stderr and the log of
+the VMM, and deletes its MicroVMs.
+
+### Kernel images
+
+| MicroVMs | Kernel image | Why |
+|---|---|---|
+| `firecracker` | `ghcr.io/liquidmetal-dev/firecracker-kernel:6.1` | Firecracker describes the devices of the guest with ACPI. A kernel needs `CONFIG_PCI` to use the ACPI tables, which this one has |
+| `cloudhypervisor` | `ghcr.io/liquidmetal-dev/cloudhypervisor-kernel-bin:5.12` | Cloud Hypervisor boots the kernel from its PVH entry point, and attaches the devices with virtio over PCI |
+| `TestE2ECloudHypervisorKernelWithoutPVH` | `ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77` | The kernel has no PVH entry point, so Cloud Hypervisor refuses it |
+
+The guests boot with the kernel command line which the provider of flintlockd
+sets, the tests do not add to it.
+
+A kernel with `CONFIG_ACPI` and without `CONFIG_PCI` does not boot with
+Firecracker `v1.16`, see [#1262][issue-1262]. `flintlock-kernel:5.10.77` is
+one of them, it was the kernel of the firecracker MicroVMs of the tests.
 
 ### In your local environment
 
@@ -57,6 +125,11 @@ This will run the tests in a Docker container running on your host machine.
 Note that due to the nature of flintlock, the container will be run with
 high privileges and will share some devices and process memory with the host.
 
+The image of the container cannot be built at the moment:
+`test/docker/Dockerfile.e2e` needs `hack/scripts/bootstrap.sh`, which is not in
+the repo. An image for the tests has to have what is listed in
+[Requirements](#requirements).
+
 ### In an Equinix device
 
 ```bash
@@ -72,15 +145,19 @@ This exact command will run tests against main of the upstream branch, and only 
 minimal configuration. Read the tool [usage docs](/test/tools/README.md) for information
 on how to configure and use the tool in your development.
 
+The device does not have what the tests need at the moment, see
+[Requirements](#requirements): it gets containerd v1.6, and does not get `zot`,
+`skopeo` and Cloud Hypervisor ([#669][issue-669]).
+
 ### In GitHub Actions on hosted runners
 
 The `hosted e2e` workflow runs the e2e suite directly on `ubuntu-latest` GitHub
 hosted runners. It is available via `workflow_dispatch`.
 
 The workflow prepares the runner by installing the host packages required by the
-test harness, installing pinned releases of containerd, zot and Firecracker, and
-checking that `/dev/kvm` exists. The versions of these can be changed with the
-workflow inputs. The
+test harness, installing pinned releases of containerd, zot, Firecracker and
+Cloud Hypervisor, and checking that `/dev/kvm` exists. The versions of these can
+be changed with the workflow inputs. The
 tests are run with `sudo` because they create loop devices, devicemapper
 thinpools and a `fl-e2e-br0` bridge for the microVM TAP interfaces, write
 containerd configuration under `/etc`, and manage runtime state under `/run`
@@ -100,11 +177,21 @@ At the time of writing these are:
   Like `skip.delete`, this also leaves the `fl-e2e-br0` bridge behind.
 - `level.containerd`: set the containerd log level.
 - `level.flintlockd`: set the flintlockd log level.
+- `providers`: comma separated list of the microvm providers to run the tests
+  with. The default is `firecracker,cloudhypervisor`. The first one is the
+  default provider of flintlockd, and the one which the private registry tests
+  use.
 
 You can pass in these flags to the test like so:
 
 ```bash
 ./test/e2e/test.sh -level.flintlockd=9
+```
+
+To run the tests on a host which only has Firecracker:
+
+```bash
+./test/e2e/test.sh -providers firecracker
 ```
 
 All the flags can be found at [`params.go`](/test/e2e/utils/params.go).
@@ -132,5 +219,8 @@ To only see the progress of the tests:
 ./test/e2e/test.sh 2>&1 | grep -E 'TEST (STEP|INFO):|^(=== RUN|--- |ok|FAIL)'
 ```
 
+[issue-669]: https://github.com/liquidmetal-dev/flintlock/issues/669
+[issue-1262]: https://github.com/liquidmetal-dev/flintlock/issues/1262
+[issue-1263]: https://github.com/liquidmetal-dev/flintlock/issues/1263
 [zot]: https://zotregistry.dev
 [skopeo]: https://github.com/containers/skopeo
