@@ -325,7 +325,7 @@ method on the provider port:
 
 ```go
 // Drives returns the drives the provider will present, in guest order.
-Drives(vm *models.MicroVM) ([]models.Drive, error)
+Drives(vm *models.MicroVM) (models.Drives, error)
 ```
 
 A `Drive` carries its ID, role, guest device name, read-only flag and, when
@@ -510,17 +510,92 @@ specification does not forbid it.
 **X-3, single source.** A directory and a flattened tar of the same tree each
 built deterministically. The two differ from each other, as expected.
 
-Not yet tested: a real multi-layer image, and a mount on a 5.10 kernel.
+**X-4, merge of a real image.** `ghcr.io/liquidmetal-dev/ubuntu:24.04`
+(manifest `sha256:49c7b918d4442db3d0e26a2c1d5683a5ebaaeca746b37d722872cf4e04927ac2`,
+three layers, 449 MiB as tar). The build, three layer images and the merge,
+took under 0.6 seconds on Btrfs with the layers in the page cache. It gave a
+base of 444792832 bytes with no incompatible feature flags. Four builds gave
+the same sha256.
 
-## 11. Spikes before the implementation plan is final
+The rule for this experiment was set before the run: read the base back
+through a loop mount, compare it with docker's unpack of the same image, and
+fail on any difference. The loop mount needs root on the host, which was not
+available. The base was read back with `fsck.erofs --xattrs --extract`
+instead, as root in a container.
 
-1. Build the base of the `mikrolite-images` `ubuntu` image with the merge and
-   compare it against an unpack of the same layers.
-2. Boot that base on a 5.10 kernel with EROFS enabled.
+20443 paths were compared. None was missing or extra, and none differed in
+type, mode, owner, size, content, modification time (regular files), symlink
+target, device numbers or hardlink group. Seven more paths, which docker
+overwrites in every container (`dev`, `proc`, `sys`, `etc/hostname`,
+`etc/hosts`, `etc/resolv.conf`, `etc/mtab`), were compared layer against base
+directly and are equal.
 
-If either fails, the fallback is D8 close to how it was written: apply the
-layers into a scratch directory with containerd's archive package, then run
-`mkfs.erofs` on the directory. Only the internals of the base builder change.
+Two paths differed: `usr/bin/ping` and
+`usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper` have a
+`security.capability` xattr in docker's unpack and none in the extracted
+tree. By the rule, this fails the experiment.
+
+The result is overridden here. That is a judgment, not a measurement. The
+reason is that the fault is in the reader and not in the base:
+`fsck.erofs --xattrs` sets the xattr on the extracted file and then calls
+`lchown`, and Linux drops `security.capability` when a file is chowned. The
+base holds exactly two `security.capability` entries, on these two files,
+with docker's values byte for byte, and X-5 shows that a guest kernel returns
+them.
+
+The comparison through a kernel mount has not been run. It is part of the
+integration test of section 9, which cannot use `fsck.erofs --extract` for
+xattrs.
+
+**X-5, overlay root under Firecracker v1.16.1.** The base of X-4 as the
+first drive, read-only, a 2 GiB ext4 disk as the second, neither flagged as
+root device, and a shell init in an initrd. The init follows steps 1 and 3 to
+6 of section 4.4 with fixed device names, and then calls `switch_root`. It
+does not parse parameters, write the contract line or empty the initramfs.
+Kernels 5.10.245 and 6.1.0, built locally from `mikrolite-images` with the
+EROFS fragment of section 4.1.
+
+| Check | 5.10.245 | 6.1.0 |
+| ----- | -------- | ----- |
+| The kernel mounts the base as EROFS | yes | yes |
+| The overlay is assembled and systemd starts from it | yes, login prompt, no failed unit | yes, login prompt, no failed unit |
+| `getcap` in the guest, through the overlay, on the two files of X-4 | equal to docker's | equal to docker's |
+| The guest wrote to the upper | `etc`, `var`, `tmp`; nothing under `usr` | the same |
+| sha256 of the base after the boot | unchanged | unchanged |
+
+`getcap` returned `cap_net_raw=ep` for `ping` and
+`cap_net_bind_service,cap_net_admin,cap_sys_nice=ep` for `gst-ptp-helper`.
+
+Not shown by X-5:
+
+* cloud-init did not run, most likely because no datasource was attached.
+  There is no evidence yet of how it treats an overlay root.
+* Cloud Hypervisor was not booted.
+
+On 5.10 only, the kernel logs a failed probe (error -16) of each virtio-mmio
+device. The block devices then attach with the right sizes.
+
+## 11. Outcome of the spikes
+
+Two questions were open before the base builder could be planned: whether
+the layer merge is correct for a real image, and whether a 5.10 guest kernel
+boots an overlay root on the result. Experiments X-4 and X-5 answer both with
+yes.
+
+The first yes rests on the override in X-4. The comparison read the base
+with `fsck.erofs` and not through a kernel mount, and the file capabilities
+were confirmed from the bytes of the base and by `getcap` in the guest. The
+comparison through a kernel mount is still to be run, in the integration test
+of section 9.
+
+Amendment A5 stands: the base is built by layer merge, without an unpack. The
+other way, applying the layers into a scratch directory with containerd's
+archive package and running `mkfs.erofs` on the directory, is not used.
+
+The merge cannot build an image that has a layer with a hardlink into a lower
+layer (X-2). Section 8 fails the build with an error that names the layer and
+the entry. Whether flintlock offers another way to build such an image is
+decided in the plan of the base builder.
 
 ## 12. Delivery
 
