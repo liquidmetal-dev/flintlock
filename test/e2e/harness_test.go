@@ -16,12 +16,15 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gopkg.in/yaml.v2"
 
 	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/internal/command/flags"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/ptr"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
@@ -663,6 +666,79 @@ func TestTail(t *testing.T) {
 	}
 }
 
+func TestProviderFlags(t *testing.T) {
+	g := NewWithT(t)
+
+	testBinary, err := os.Executable()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	testBinary, err = filepath.EvalSymlinks(testBinary)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	shell, err := exec.LookPath("sh")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	shell, err = filepath.EvalSymlinks(shell)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	first := u.Provider{Name: "first", Binary: "sh", BinaryFlag: "--first-bin"}
+	second := u.Provider{Name: "second", Binary: testBinary, BinaryFlag: "--second-bin"}
+	missing := u.Provider{Name: "missing", Binary: "flintlock-e2e-no-such-vmm", BinaryFlag: "--missing-bin"}
+
+	g.Expect(u.ProviderFlags([]u.Provider{first, second})).To(Equal([]string{
+		"--default-provider", "first",
+		"--first-bin", shell,
+		"--second-bin", testBinary,
+	}))
+
+	g.Expect(u.ProviderFlags([]u.Provider{second})).To(Equal([]string{
+		"--default-provider", "second",
+		"--second-bin", testBinary,
+	}))
+
+	_, err = u.ProviderFlags([]u.Provider{first, missing})
+	g.Expect(err).To(MatchError(ContainSubstring("missing")))
+
+	_, err = u.ProviderFlags([]u.Provider{})
+	g.Expect(err).To(HaveOccurred())
+}
+
+// The flags are parsed with the flags of flintlockd, so the test fails if
+// flintlockd does not have one of them.
+func TestProviderFlagsAreFlagsOfFlintlockd(t *testing.T) {
+	g := NewWithT(t)
+
+	testBinary, err := os.Executable()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	testBinary, err = filepath.EvalSymlinks(testBinary)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	shell, err := exec.LookPath("sh")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	shell, err = filepath.EvalSymlinks(shell)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	cloudHypervisor := u.CloudHypervisor()
+	cloudHypervisor.Binary = testBinary
+
+	firecracker := u.Firecracker()
+	firecracker.Binary = "sh"
+
+	args, err := u.ProviderFlags([]u.Provider{cloudHypervisor, firecracker})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	cfg := &config.Config{}
+	cmd := &cobra.Command{}
+	flags.AddMicrovmProviderFlagsToCommand(cmd, cfg)
+
+	g.Expect(cmd.Flags().Parse(args)).To(Succeed())
+	g.Expect(cfg.DefaultVMProvider).To(Equal("cloudhypervisor"))
+	g.Expect(cfg.CloudHypervisorBin).To(Equal(testBinary))
+	g.Expect(cfg.FirecrackerBin).To(Equal(shell))
+}
+
 // fakeMicroVMClient answers the requests of the helpers without a flintlockd.
 // A method which a test does not expect to be called is not implemented, and
 // panics.
@@ -884,6 +960,52 @@ func TestWaitForDeleted(t *testing.T) {
 			}
 		})
 	}
+}
+
+// The setup of the tests stops when the VMM of a provider cannot be used. The
+// error has to say which provider and which binary it is.
+func TestProviderBinaryVersion(t *testing.T) {
+	dir := t.TempDir()
+
+	script := func(name, content string) string {
+		file := filepath.Join(dir, name)
+		NewWithT(t).Expect(os.WriteFile(file, []byte("#!/bin/sh\n"+content+"\n"), 0o700)).To(Succeed())
+
+		return file
+	}
+
+	working := script("working-vmm", `echo "Fake VMM v1.2.3"; echo "a second line"`)
+	broken := script("broken-vmm", `echo "cannot start" >&2; exit 3`)
+
+	t.Run("VMM which reports its version", func(t *testing.T) {
+		g := NewWithT(t)
+
+		binary, version, err := u.Provider{Name: "fake", Binary: working}.BinaryVersion()
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(binary).To(Equal(working))
+		g.Expect(version).To(Equal("Fake VMM v1.2.3"))
+	})
+
+	t.Run("VMM which fails", func(t *testing.T) {
+		g := NewWithT(t)
+
+		_, _, err := u.Provider{Name: "fake", Binary: broken}.BinaryVersion()
+		g.Expect(err).To(MatchError(And(
+			ContainSubstring("fake"),
+			ContainSubstring(broken),
+			ContainSubstring("exit status 3"),
+		)))
+	})
+
+	t.Run("VMM which is not installed", func(t *testing.T) {
+		g := NewWithT(t)
+
+		_, _, err := u.Provider{Name: "fake", Binary: "flintlock-e2e-no-such-vmm"}.BinaryVersion()
+		g.Expect(err).To(MatchError(And(
+			ContainSubstring("fake"),
+			ContainSubstring("flintlock-e2e-no-such-vmm"),
+		)))
+	})
 }
 
 // flintlockd can lose a delete which it gets while it creates the microvm

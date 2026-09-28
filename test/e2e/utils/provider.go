@@ -19,6 +19,8 @@ type Provider struct {
 	Name string
 	// Binary is the name of the VMM binary which the provider starts.
 	Binary string
+	// BinaryFlag is the flag of flintlockd for the path of the VMM binary.
+	BinaryFlag string
 	// PidFile is the file in the state directory of a microvm which holds the
 	// pid of the VMM.
 	PidFile string
@@ -56,11 +58,31 @@ func (p Provider) BinaryPath() (string, error) {
 	return resolved, nil
 }
 
+// BinaryVersion returns the path of the VMM binary of the provider, and the
+// first line of what the binary prints as its version.
+func (p Provider) BinaryVersion() (string, string, error) {
+	binary, err := p.BinaryPath()
+	if err != nil {
+		return "", "", err
+	}
+
+	output, err := exec.Command(binary, "--version").Output()
+	if err != nil {
+		return "", "", fmt.Errorf("getting the version of the VMM of the %s provider with '%s --version': %w",
+			p.Name, binary, err)
+	}
+
+	version, _, _ := strings.Cut(strings.TrimSpace(string(output)), "\n")
+
+	return binary, version, nil
+}
+
 // Firecracker returns the description of the firecracker provider.
 func Firecracker() Provider {
 	return Provider{
 		Name:            "firecracker",
 		Binary:          "firecracker",
+		BinaryFlag:      "--firecracker-bin",
 		PidFile:         "firecracker.pid",
 		ConsoleFile:     "firecracker.stdout",
 		DiagnosticFiles: []string{"firecracker.stdout", "firecracker.stderr", "firecracker.log"},
@@ -77,6 +99,7 @@ func CloudHypervisor() Provider {
 	return Provider{
 		Name:            "cloudhypervisor",
 		Binary:          "cloud-hypervisor-static",
+		BinaryFlag:      "--cloudhypervisor-bin",
 		PidFile:         "cloudhypervisor.pid",
 		ConsoleFile:     "cloudhypervisor.stdout",
 		DiagnosticFiles: []string{"cloudhypervisor.stdout", "cloudhypervisor.stderr", "cloudhypervisor.log"},
@@ -86,6 +109,28 @@ func CloudHypervisor() Provider {
 		KernelImage:    "ghcr.io/liquidmetal-dev/cloudhypervisor-kernel-bin:5.12",
 		KernelFilename: "boot/vmlinux.bin",
 	}
+}
+
+// ProviderFlags returns the flags which make flintlockd use the VMM binaries
+// of the providers, with the first of the providers as the default provider.
+// It is an error if the VMM binary of a provider is not on the PATH.
+func ProviderFlags(providers []Provider) ([]string, error) {
+	if len(providers) == 0 {
+		return nil, errors.New("no providers given")
+	}
+
+	flags := []string{"--default-provider", providers[0].Name}
+
+	for _, provider := range providers {
+		binary, err := provider.BinaryPath()
+		if err != nil {
+			return nil, err
+		}
+
+		flags = append(flags, provider.BinaryFlag, binary)
+	}
+
+	return flags, nil
 }
 
 // KnownProviders returns all of the providers which the tests know about.
