@@ -4,16 +4,25 @@
 package e2e_test
 
 import (
+	"context"
 	"encoding/base64"
+	"errors"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"gopkg.in/yaml.v2"
 
+	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/pkg/ptr"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
 
@@ -255,7 +264,7 @@ func TestVMMPidFiles(t *testing.T) {
 func TestMicroVMMetadata(t *testing.T) {
 	g := NewWithT(t)
 
-	metadata, err := u.MicroVMMetadata("mvm0")
+	metadata, err := u.MicroVMMetadata("mvm0", "ns0")
 	g.Expect(err).NotTo(HaveOccurred())
 
 	// Cloud Hypervisor cannot build the cloud-init image if a value is not base64.
@@ -267,7 +276,9 @@ func TestMicroVMMetadata(t *testing.T) {
 	cloudConfig := map[string]any{}
 	g.Expect(yaml.Unmarshal(userData, &cloudConfig)).To(Succeed())
 	g.Expect(cloudConfig).To(HaveKeyWithValue("hostname", "mvm0"))
-	g.Expect(cloudConfig).To(HaveKey("final_message"))
+	// cloud-init replaces $UPTIME, so the text on the console of a guest which
+	// has booted is not the text which is in the user-data.
+	g.Expect(cloudConfig).To(HaveKeyWithValue("final_message", "flintlock-e2e boot ok ns0/mvm0 uptime=$UPTIME"))
 	// The bridge of the tests has no DHCP server, dhclient would hold up the boot.
 	g.Expect(cloudConfig).NotTo(HaveKey("runcmd"))
 	g.Expect(cloudConfig).NotTo(HaveKey("users"))
@@ -418,4 +429,547 @@ func TestContainerdMajorVersion(t *testing.T) {
 			g.Expect(major).To(Equal(tc.expected))
 		})
 	}
+}
+
+func TestConsoleMarker(t *testing.T) {
+	const booted = "[   14.302118] cloud-init[612]: flintlock-e2e boot ok ns0/mvm0 uptime=14.30"
+
+	tt := []struct {
+		name      string
+		console   *string
+		expected  string
+		expectErr bool
+	}{
+		{
+			name: "guest which has booted",
+			console: ptr.String("[    0.000000] Linux version 5.12.0\n" +
+				"[    1.204911] EXT4-fs (vda): mounted filesystem\n" +
+				booted + "\n" +
+				"mvm0 login: "),
+			expected: booted,
+		},
+		{
+			name:     "console with carriage returns",
+			console:  ptr.String("[    0.000000] Linux version 5.12.0\r\n" + booted + "\r\n"),
+			expected: booted,
+		},
+		{
+			name:     "uptime without a fraction",
+			console:  ptr.String("flintlock-e2e boot ok ns0/mvm0 uptime=14\n"),
+			expected: "flintlock-e2e boot ok ns0/mvm0 uptime=14",
+		},
+		{
+			name:      "no console file",
+			expectErr: true,
+		},
+		{
+			name:      "guest which has not booted yet",
+			console:   ptr.String("[    0.000000] Linux version 5.12.0\n"),
+			expectErr: true,
+		},
+		{
+			// The user-data can be on the console without a guest that has booted,
+			// cloud-init has not replaced $UPTIME in it.
+			name:      "user-data which is printed as it is",
+			console:   ptr.String("final_message: flintlock-e2e boot ok ns0/mvm0 uptime=$UPTIME\n"),
+			expectErr: true,
+		},
+		{
+			name:      "marker of another microvm",
+			console:   ptr.String("flintlock-e2e boot ok ns0/mvm1 uptime=14.30\n"),
+			expectErr: true,
+		},
+		{
+			name:      "marker of a microvm with a longer name",
+			console:   ptr.String("flintlock-e2e boot ok ns0/mvm01 uptime=14.30\n"),
+			expectErr: true,
+		},
+		{
+			name:      "marker of a microvm in a namespace with a longer name",
+			console:   ptr.String("flintlock-e2e boot ok other-ns0/mvm0 uptime=14.30\n"),
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			dir := t.TempDir()
+			if tc.console != nil {
+				g.Expect(os.WriteFile(filepath.Join(dir, "cloudhypervisor.stdout"), []byte(*tc.console), 0o600)).To(Succeed())
+			}
+			// The console of another provider must not be read.
+			g.Expect(os.WriteFile(filepath.Join(dir, "firecracker.stdout"), []byte(booted+"\n"), 0o600)).To(Succeed())
+
+			line, err := u.ConsoleMarker(dir, u.CloudHypervisor(), "mvm0", "ns0")
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(line).To(Equal(tc.expected))
+		})
+	}
+}
+
+// The name of a microvm can have characters which mean something in a
+// regular expression.
+func TestConsoleMarkerNameIsNotAPattern(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+	g.Expect(os.WriteFile(filepath.Join(dir, "firecracker.stdout"),
+		[]byte("flintlock-e2e boot ok ns0/mvmX0 uptime=1.0\n"), 0o600)).To(Succeed())
+
+	_, err := u.ConsoleMarker(dir, u.Firecracker(), "mvm.0", "ns0")
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestVMMExecutable(t *testing.T) {
+	g := NewWithT(t)
+
+	testBinary, err := os.Executable()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	testBinary, err = filepath.EvalSymlinks(testBinary)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(u.VMMExecutable(os.Getpid())).To(Equal(testBinary))
+
+	// Above the highest pid which the kernel can give to a process.
+	_, err = u.VMMExecutable(1 << 23)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestVerifyVMM(t *testing.T) {
+	testBinary, err := os.Executable()
+	NewWithT(t).Expect(err).NotTo(HaveOccurred())
+
+	otherBinary, err := exec.LookPath("sh")
+	NewWithT(t).Expect(err).NotTo(HaveOccurred())
+
+	stopped := exec.Command(otherBinary, "-c", "true")
+	NewWithT(t).Expect(stopped.Run()).To(Succeed())
+
+	tt := []struct {
+		name      string
+		binary    string
+		pid       string
+		expected  int
+		expectErr bool
+	}{
+		{
+			name:     "running process of the binary of the provider",
+			binary:   testBinary,
+			pid:      strconv.Itoa(os.Getpid()),
+			expected: os.Getpid(),
+		},
+		{
+			name:      "running process of another binary",
+			binary:    otherBinary,
+			pid:       strconv.Itoa(os.Getpid()),
+			expectErr: true,
+		},
+		{
+			name:      "process which has stopped",
+			binary:    otherBinary,
+			pid:       strconv.Itoa(stopped.Process.Pid),
+			expectErr: true,
+		},
+		{
+			name:      "binary which is not installed",
+			binary:    "flintlock-e2e-no-such-vmm",
+			pid:       strconv.Itoa(os.Getpid()),
+			expectErr: true,
+		},
+		{
+			name:      "empty pid file",
+			binary:    testBinary,
+			pid:       "",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			provider := u.Provider{Name: "test", Binary: tc.binary, PidFile: "test.pid"}
+
+			dir := t.TempDir()
+			g.Expect(os.WriteFile(filepath.Join(dir, provider.PidFile), []byte(tc.pid), 0o600)).To(Succeed())
+
+			pid, err := u.VerifyVMM(dir, provider)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(pid).To(Equal(tc.expected))
+		})
+	}
+}
+
+func TestTail(t *testing.T) {
+	tt := []struct {
+		name     string
+		content  string
+		lines    int
+		expected []string
+	}{
+		{
+			name:     "more lines than asked for",
+			content:  "one\ntwo\nthree\nfour\n",
+			lines:    2,
+			expected: []string{"three", "four"},
+		},
+		{
+			name:     "fewer lines than asked for",
+			content:  "one\ntwo\n",
+			lines:    5,
+			expected: []string{"one", "two"},
+		},
+		{
+			name:     "last line without a newline, and carriage returns",
+			content:  "one\r\ntwo\r\nthree",
+			lines:    2,
+			expected: []string{"two", "three"},
+		},
+		{
+			name:     "empty lines at the end",
+			content:  "one\ntwo\n\n\n",
+			lines:    1,
+			expected: []string{"two"},
+		},
+		{
+			name:     "no content",
+			content:  "",
+			lines:    3,
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(u.Tail([]byte(tc.content), tc.lines)).To(Equal(tc.expected))
+		})
+	}
+}
+
+// fakeMicroVMClient answers the requests of the helpers without a flintlockd.
+// A method which a test does not expect to be called is not implemented, and
+// panics.
+type fakeMicroVMClient struct {
+	v1alpha1.MicroVMClient
+
+	// deadlines has the time which was left of each of the requests, or zero
+	// for a request without a deadline.
+	deadlines []time.Duration
+	// listed are the microvms which ListMicroVMs returns, one entry for each
+	// of the calls. The last entry is used for the calls after it.
+	listed    [][]string
+	listErr   error
+	listCalls int
+
+	// deletable is a microvm which ListMicroVMs returns until DeleteMicroVM
+	// was called deletesNeeded times. With 0 times it is always returned.
+	deletable     string
+	deletesNeeded int
+	deleteErr     error
+	deleteCalls   int
+}
+
+func (f *fakeMicroVMClient) request(ctx context.Context) {
+	left := time.Duration(0)
+	if deadline, ok := ctx.Deadline(); ok {
+		left = time.Until(deadline)
+	}
+
+	f.deadlines = append(f.deadlines, left)
+}
+
+func (f *fakeMicroVMClient) CreateMicroVM(
+	ctx context.Context, in *v1alpha1.CreateMicroVMRequest, _ ...grpc.CallOption,
+) (*v1alpha1.CreateMicroVMResponse, error) {
+	f.request(ctx)
+
+	return &v1alpha1.CreateMicroVMResponse{Microvm: &types.MicroVM{Spec: in.Microvm}}, nil
+}
+
+func (f *fakeMicroVMClient) DeleteMicroVM(
+	ctx context.Context, _ *v1alpha1.DeleteMicroVMRequest, _ ...grpc.CallOption,
+) (*emptypb.Empty, error) {
+	f.request(ctx)
+	f.deleteCalls++
+
+	if f.deleteErr != nil {
+		return nil, f.deleteErr
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (f *fakeMicroVMClient) GetMicroVM(
+	ctx context.Context, in *v1alpha1.GetMicroVMRequest, _ ...grpc.CallOption,
+) (*v1alpha1.GetMicroVMResponse, error) {
+	f.request(ctx)
+
+	return &v1alpha1.GetMicroVMResponse{Microvm: &types.MicroVM{Spec: &types.MicroVMSpec{Uid: &in.Uid}}}, nil
+}
+
+func (f *fakeMicroVMClient) ListMicroVMs(
+	ctx context.Context, _ *v1alpha1.ListMicroVMsRequest, _ ...grpc.CallOption,
+) (*v1alpha1.ListMicroVMsResponse, error) {
+	f.request(ctx)
+
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+
+	resp := &v1alpha1.ListMicroVMsResponse{}
+
+	if f.deletable != "" && (f.deletesNeeded == 0 || f.deleteCalls < f.deletesNeeded) {
+		resp.Microvm = append(resp.Microvm, &types.MicroVM{Spec: &types.MicroVMSpec{Uid: ptr.String(f.deletable)}})
+	}
+
+	if len(f.listed) == 0 {
+		return resp, nil
+	}
+
+	call := min(f.listCalls, len(f.listed)-1)
+	f.listCalls++
+
+	for _, uid := range f.listed[call] {
+		resp.Microvm = append(resp.Microvm, &types.MicroVM{Spec: &types.MicroVMSpec{Uid: ptr.String(uid)}})
+	}
+
+	return resp, nil
+}
+
+// A request without a deadline waits for as long as flintlockd does not
+// answer, which is until the timeout of the whole test run.
+func TestRequestsOfTheHelpersHaveADeadline(t *testing.T) {
+	RegisterTestingT(t)
+
+	tt := []struct {
+		name    string
+		request func(client v1alpha1.MicroVMClient)
+	}{
+		{
+			name: "CreateMVM",
+			request: func(client v1alpha1.MicroVMClient) {
+				u.CreateMVM(client, u.Firecracker(), "mvm0", "ns0")
+			},
+		},
+		{
+			name: "CreateGuestAgentMVM",
+			request: func(client v1alpha1.MicroVMClient) {
+				u.CreateGuestAgentMVM(client, u.Firecracker(), "mvm0", "ns0")
+			},
+		},
+		{
+			name: "CreateMVMWithImages",
+			request: func(client v1alpha1.MicroVMClient) {
+				u.CreateMVMWithImages(client, u.Firecracker(), "mvm0", "ns0", "kernel:1", "root:1")
+			},
+		},
+		{
+			name: "DeleteMVM",
+			request: func(client v1alpha1.MicroVMClient) {
+				Expect(u.DeleteMVM(client, "uid0")).To(Succeed())
+			},
+		},
+		{
+			name: "GetMVM",
+			request: func(client v1alpha1.MicroVMClient) {
+				u.GetMVM(client, "uid0")
+			},
+		},
+		{
+			name: "ListMVMs",
+			request: func(client v1alpha1.MicroVMClient) {
+				u.ListMVMs(client, "ns0", nil)
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			client := &fakeMicroVMClient{}
+			tc.request(client)
+
+			Expect(client.deadlines).To(HaveLen(1))
+			Expect(client.deadlines[0]).To(BeNumerically(">", 0), "the request has no deadline")
+			Expect(client.deadlines[0]).To(BeNumerically("<=", 30*time.Second))
+		})
+	}
+}
+
+func TestWaitForDeleted(t *testing.T) {
+	const (
+		timeout = 200 * time.Millisecond
+		polling = 10 * time.Millisecond
+	)
+
+	tt := []struct {
+		name string
+		// listed are the microvms in the list of the namespace, for each of the
+		// calls.
+		listed    [][]string
+		listErr   error
+		stateDir  bool
+		expectErr string
+		calls     int
+	}{
+		{
+			name:   "microvm which is deleted after a while",
+			listed: [][]string{{"uid0", "uid1"}, {"uid0", "uid1"}, {"uid1"}},
+			calls:  3,
+		},
+		{
+			name:   "microvm which is not in the list from the start",
+			listed: [][]string{{"uid1"}},
+			calls:  1,
+		},
+		{
+			// The state directory does not show that the microvm is deleted, when
+			// there never was one.
+			name:      "microvm which stays in the list and never had a state directory",
+			listed:    [][]string{{"uid0"}},
+			expectErr: "is in the list of the namespace",
+		},
+		{
+			name:      "microvm which is not in the list but has its state directory",
+			listed:    [][]string{{"uid1"}},
+			stateDir:  true,
+			expectErr: "exists",
+		},
+		{
+			name:      "flintlockd which does not answer",
+			listErr:   errors.New("connection refused"),
+			expectErr: "connection refused",
+			calls:     1,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			stateDir := filepath.Join(t.TempDir(), "uid0")
+			if tc.stateDir {
+				g.Expect(os.Mkdir(stateDir, 0o700)).To(Succeed())
+			}
+
+			client := &fakeMicroVMClient{listed: tc.listed, listErr: tc.listErr}
+
+			err := u.WaitForDeleted(client, "ns0", "uid0", stateDir, timeout, polling)
+			if tc.expectErr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.expectErr)))
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+
+			if tc.calls > 0 {
+				g.Expect(client.deadlines).To(HaveLen(tc.calls))
+			}
+		})
+	}
+}
+
+// flintlockd can lose a delete which it gets while it creates the microvm
+// (#1266).
+func TestDeleteAndWait(t *testing.T) {
+	const (
+		timeout = 400 * time.Millisecond
+		polling = 10 * time.Millisecond
+		again   = 50 * time.Millisecond
+	)
+
+	tt := []struct {
+		name string
+		// deletesNeeded is how many times flintlockd has to be asked before it
+		// deletes the microvm. With 0 it never does.
+		deletesNeeded int
+		deleteErr     error
+		listErr       error
+		expectErr     string
+		expectDeletes int
+	}{
+		{
+			name:          "microvm which is deleted when it is asked for",
+			deletesNeeded: 1,
+			expectDeletes: 1,
+		},
+		{
+			name:          "delete which flintlockd has lost",
+			deletesNeeded: 2,
+			expectDeletes: 2,
+		},
+		{
+			name:      "microvm which is never deleted",
+			expectErr: "is in the list of the namespace",
+		},
+		{
+			// The microvm stays in the list, the delete was not done.
+			name:          "flintlockd which refuses the delete",
+			deleteErr:     errors.New("permission denied"),
+			expectErr:     "permission denied",
+			expectDeletes: 1,
+		},
+		{
+			name:          "flintlockd which does not answer",
+			deletesNeeded: 1,
+			listErr:       errors.New("connection refused"),
+			expectErr:     "connection refused",
+			expectDeletes: 1,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			client := &fakeMicroVMClient{
+				deletable:     "uid0",
+				deletesNeeded: tc.deletesNeeded,
+				deleteErr:     tc.deleteErr,
+				listErr:       tc.listErr,
+			}
+			stateDir := filepath.Join(t.TempDir(), "uid0")
+
+			err := u.DeleteAndWait(client, "ns0", "uid0", stateDir, timeout, polling, again)
+			if tc.expectErr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.expectErr)))
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+
+			if tc.expectDeletes > 0 {
+				g.Expect(client.deleteCalls).To(Equal(tc.expectDeletes))
+			} else {
+				g.Expect(client.deleteCalls).To(BeNumerically(">", 1), "the delete was not asked for again")
+			}
+		})
+	}
+}
+
+// A microvm which was deleted between two requests is deleted, flintlockd
+// then refuses the second delete because it does not know the microvm.
+func TestDeleteAndWaitMicroVMWhichIsGone(t *testing.T) {
+	g := NewWithT(t)
+
+	client := &fakeMicroVMClient{deleteErr: errors.New("microvm spec uid0 not found")}
+	stateDir := filepath.Join(t.TempDir(), "uid0")
+
+	g.Expect(u.DeleteAndWait(client, "ns0", "uid0", stateDir, 200*time.Millisecond, 10*time.Millisecond, 50*time.Millisecond)).To(Succeed())
 }

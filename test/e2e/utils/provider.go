@@ -6,6 +6,8 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -30,6 +32,28 @@ type Provider struct {
 	KernelImage string
 	// KernelFilename is the path of the kernel in the KernelImage.
 	KernelFilename string
+}
+
+// BinaryPath returns the path of the VMM binary of the provider, which is
+// looked up on the PATH. It is the path which the kernel reports for a
+// process of the binary.
+func (p Provider) BinaryPath() (string, error) {
+	found, err := exec.LookPath(p.Binary)
+	if err != nil {
+		return "", fmt.Errorf("looking for the VMM of the %s provider: %w", p.Name, err)
+	}
+
+	absolute, err := filepath.Abs(found)
+	if err != nil {
+		return "", fmt.Errorf("getting the path of %s: %w", found, err)
+	}
+
+	resolved, err := filepath.EvalSymlinks(absolute)
+	if err != nil {
+		return "", fmt.Errorf("resolving the links in %s: %w", absolute, err)
+	}
+
+	return resolved, nil
 }
 
 // Firecracker returns the description of the firecracker provider.

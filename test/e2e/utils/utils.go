@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	g "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
@@ -32,14 +33,28 @@ const (
 	// cloud-init only reads the user-data as a cloud-config if it starts with this line.
 	cloudConfigHeader = "#cloud-config\n"
 	metadataPlatform  = "liquid_metal"
+
+	// flintlockd answers the requests of the tests at once, the work is done
+	// when it reconciles the microvm.
+	requestTimeout = 30 * time.Second
 )
+
+// requestContext returns the context for a request to flintlockd. Without a
+// deadline, a request to a flintlockd which does not answer would wait until
+// the timeout of the test run.
+func requestContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), requestTimeout)
+}
 
 // CreateMVM creates a microvm with the provider.
 func CreateMVM(client v1alpha1.MicroVMClient, provider Provider, name, ns string) *v1alpha1.CreateMicroVMResponse {
 	createReq := v1alpha1.CreateMicroVMRequest{
 		Microvm: newMicroVMSpec(provider, name, ns),
 	}
-	created, err := client.CreateMicroVM(context.Background(), &createReq)
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	created, err := client.CreateMicroVM(ctx, &createReq)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	return created
@@ -54,7 +69,10 @@ func CreateGuestAgentMVM(
 	spec := newMicroVMSpec(provider, name, ns)
 	spec.AllowGuestAgent = true
 
-	created, err := client.CreateMicroVM(context.Background(), &v1alpha1.CreateMicroVMRequest{Microvm: spec})
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	created, err := client.CreateMicroVM(ctx, &v1alpha1.CreateMicroVMRequest{Microvm: spec})
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	return created
@@ -72,7 +90,10 @@ func CreateMVMWithImages(
 	spec.Kernel.Image = kernelImage
 	spec.RootVolume.Source.ContainerSource = pointyString(rootImage)
 
-	created, err := client.CreateMicroVM(context.Background(), &v1alpha1.CreateMicroVMRequest{Microvm: spec})
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	created, err := client.CreateMicroVM(ctx, &v1alpha1.CreateMicroVMRequest{Microvm: spec})
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	return created
@@ -82,7 +103,10 @@ func DeleteMVM(client v1alpha1.MicroVMClient, uid string) error {
 	deleteReq := v1alpha1.DeleteMicroVMRequest{
 		Uid: uid,
 	}
-	_, err := client.DeleteMicroVM(context.Background(), &deleteReq)
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	_, err := client.DeleteMicroVM(ctx, &deleteReq)
 
 	return err
 }
@@ -91,7 +115,10 @@ func GetMVM(client v1alpha1.MicroVMClient, uid string) *v1alpha1.GetMicroVMRespo
 	getReq := v1alpha1.GetMicroVMRequest{
 		Uid: uid,
 	}
-	res, err := client.GetMicroVM(context.Background(), &getReq)
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	res, err := client.GetMicroVM(ctx, &getReq)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	return res
@@ -102,7 +129,10 @@ func ListMVMs(client v1alpha1.MicroVMClient, ns string, name *string) *v1alpha1.
 		Namespace: ns,
 		Name:      name,
 	}
-	resp, err := client.ListMicroVMs(context.Background(), &listReq)
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	resp, err := client.ListMicroVMs(ctx, &listReq)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	return resp
@@ -145,7 +175,10 @@ func VMMPidFiles(stateDir string) []string {
 
 func PidRunning(pid int) bool {
 	p, err := os.FindProcess(pid)
-	g.Expect(err).NotTo(g.HaveOccurred())
+	if err != nil {
+		return false
+	}
+
 	if err := p.Signal(syscall.SIGCONT); err != nil {
 		return false
 	}
@@ -155,7 +188,7 @@ func PidRunning(pid int) bool {
 
 // MicroVMMetadata returns the cloud-init data for a test microvm, in the
 // encoding which the API expects.
-func MicroVMMetadata(name string) (map[string]string, error) {
+func MicroVMMetadata(name, namespace string) (map[string]string, error) {
 	instanceData, err := yaml.Marshal(instance.New(
 		instance.WithLocalHostname(name),
 		instance.WithPlatform(metadataPlatform),
@@ -169,7 +202,7 @@ func MicroVMMetadata(name string) (map[string]string, error) {
 	userData, err := yaml.Marshal(userdata.UserData{
 		HostName:      name,
 		PackageUpdate: pointyBool(false),
-		FinalMessage:  "The reignited booted system is good to go after $UPTIME seconds",
+		FinalMessage:  fmt.Sprintf(bootMarkerFormat, namespace, name) + bootMarkerUptime,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("marshalling the user data: %w", err)
@@ -191,7 +224,7 @@ func newMicroVMSpec(provider Provider, name, namespace string) *types.MicroVMSpe
 // NewMicroVMSpec returns the spec of a test microvm which is created with the
 // provider.
 func NewMicroVMSpec(provider Provider, name, namespace string) (*types.MicroVMSpec, error) {
-	metadata, err := MicroVMMetadata(name)
+	metadata, err := MicroVMMetadata(name, namespace)
 	if err != nil {
 		return nil, err
 	}
