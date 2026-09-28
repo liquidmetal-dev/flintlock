@@ -3,6 +3,7 @@ package cloudinit
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -11,18 +12,40 @@ import (
 	"github.com/liquidmetal-dev/flintlock/client/cloudinit"
 	"github.com/liquidmetal-dev/flintlock/client/cloudinit/userdata"
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
-func NewDiskMountStep(vm *models.MicroVM) planner.Procedure {
+var errNoDriveForVolume = errors.New("provider presents no drive for the volume")
+
+func NewDiskMountStep(vm *models.MicroVM, provider ports.MicroVMService) planner.Procedure {
 	return &diskMountStep{
-		vm: vm,
+		vm:       vm,
+		provider: provider,
 	}
 }
 
 type diskMountStep struct {
-	vm *models.MicroVM
+	vm       *models.MicroVM
+	provider ports.MicroVMService
+}
+
+// mountableVolumes returns the additional volumes that are block devices and
+// have a mount point. A virtiofs volume is not a block device, so cloud-init
+// cannot mount it by device name.
+func (s *diskMountStep) mountableVolumes() []models.Volume {
+	volumes := []models.Volume{}
+
+	for _, vol := range s.vm.Spec.AdditionalVolumes {
+		if vol.MountPoint == "" || vol.Source.VirtioFS != nil {
+			continue
+		}
+
+		volumes = append(volumes, vol)
+	}
+
+	return volumes
 }
 
 // Name is the name of the procedure/operation.
@@ -36,15 +59,12 @@ func (s *diskMountStep) ShouldDo(ctx context.Context) (bool, error) {
 	})
 	logger.Debug("checking if procedure should be run")
 
-	if !s.vm.Spec.AdditionalVolumes.HasMountableVolumes() {
+	volumes := s.mountableVolumes()
+	if len(volumes) == 0 {
 		return false, nil
 	}
 
-	for _, vol := range s.vm.Spec.AdditionalVolumes {
-		if vol.MountPoint == "" {
-			continue
-		}
-
+	for _, vol := range volumes {
 		status := s.vm.Status.Volumes[vol.ID]
 
 		if status == nil || status.Mount.Source == "" {
@@ -56,15 +76,12 @@ func (s *diskMountStep) ShouldDo(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("getting vendor data: %w", err)
 	}
+
 	if vendorData == nil {
 		return true, nil
 	}
 
-	for _, vol := range s.vm.Spec.AdditionalVolumes {
-		if vol.MountPoint == "" {
-			continue
-		}
-
+	for _, vol := range volumes {
 		if !vendorData.HasMountByMountPoint(vol.MountPoint) {
 			return true, nil
 		}
@@ -88,15 +105,20 @@ func (s *diskMountStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 		vendorData = &userdata.UserData{}
 	}
 
-	startingCode := int('b')
-	for i, vol := range s.vm.Spec.AdditionalVolumes {
-		if vol.MountPoint == "" {
-			continue
+	drives, err := s.provider.Drives(s.vm)
+	if err != nil {
+		return nil, fmt.Errorf("getting drives from provider: %w", err)
+	}
+
+	for _, vol := range s.mountableVolumes() {
+		device, found := drives.GuestDeviceForVolume(vol.ID)
+		if !found {
+			return nil, fmt.Errorf("volume %s: %w", vol.ID, errNoDriveForVolume)
 		}
 
-		device := fmt.Sprintf("vd%c", rune(startingCode+i)) // Device number is always +1 as we have the root volume first
-
-		if !vendorData.HasMountByName(device) {
+		// A mount point that is already there is left as it is, so that a
+		// microvm created with other device names is not changed.
+		if !vendorData.HasMountByMountPoint(vol.MountPoint) {
 			vendorData.Mounts = append(vendorData.Mounts, userdata.Mount{
 				device,
 				vol.MountPoint,
