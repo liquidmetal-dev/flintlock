@@ -3,7 +3,7 @@ module github.com/liquidmetal-dev/flintlock/client
 go 1.25.0
 
 require (
-	github.com/onsi/gomega v1.43.1
+	github.com/onsi/gomega v1.44.0
 	google.golang.org/grpc v1.84.0
 )
 
