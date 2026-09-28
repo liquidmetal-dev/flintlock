@@ -44,6 +44,10 @@ const (
 func TestE2E(t *testing.T) {
 	RegisterTestingT(t)
 
+	if environmentLeftRunning {
+		t.Skip("a previous test left its environment running, use -run to run this test on its own")
+	}
+
 	environmentLeftRunning = params.SkipTeardown || params.SkipDelete
 
 	r := u.NewRunner(params)

@@ -131,6 +131,18 @@ func TestNewMicroVMSpecUsesTheProvider(t *testing.T) {
 	g.Expect(spec.Kernel.Filename).To(HaveValue(Equal("boot/vmlinux")))
 }
 
+// The test of a guest which cannot boot needs a kernel which Cloud Hypervisor
+// refuses. It must not be the kernel of a provider: the test would stop to
+// work when the provider gets a kernel which has a PVH entry point.
+func TestKernelWithoutPVHIsNotAKernelOfAProvider(t *testing.T) {
+	g := NewWithT(t)
+
+	for _, provider := range u.KnownProviders() {
+		g.Expect(provider.KernelImage).NotTo(Equal(u.KernelWithoutPVHImage),
+			"the %s provider boots its guests with the kernel without PVH", provider.Name)
+	}
+}
+
 // The network config of the guest matches the interface by its MAC address,
 // and has a static address so that the guest does not wait for DHCP.
 func TestNewMicroVMSpecNetworkInterface(t *testing.T) {
@@ -754,6 +766,151 @@ func TestLifecycleNamespaces(t *testing.T) {
 
 	// As long as the namespace was before it had the name of the provider.
 	g.Expect(longNamespace).To(HaveLen(len("ns-") + 40))
+}
+
+func TestVMMErrorLine(t *testing.T) {
+	const bootError = "Error booting VM: VmBoot(KernelMissingPvhHeader)"
+
+	tt := []struct {
+		name      string
+		stderr    *string
+		expected  string
+		expectErr bool
+	}{
+		{
+			name:     "VMM which could not boot the kernel",
+			stderr:   ptr.String(bootError + "\n"),
+			expected: bootError,
+		},
+		{
+			name:     "error after other lines, the case of the text does not matter",
+			stderr:   ptr.String("some warning\nerror booting vm: VmBoot(KernelMissingPVHHeader)\n"),
+			expected: "error booting vm: VmBoot(KernelMissingPVHHeader)",
+		},
+		{
+			name:      "no stderr file",
+			expectErr: true,
+		},
+		{
+			name:      "VMM which has not written an error",
+			stderr:    ptr.String(""),
+			expectErr: true,
+		},
+		{
+			name:      "another error",
+			stderr:    ptr.String("Error booting VM: VmBoot(DeviceManager(CreateVirtioNet))\n"),
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			dir := t.TempDir()
+			if tc.stderr != nil {
+				g.Expect(os.WriteFile(filepath.Join(dir, "cloudhypervisor.stderr"), []byte(*tc.stderr), 0o600)).To(Succeed())
+			}
+			// The stderr of another provider must not be read.
+			g.Expect(os.WriteFile(filepath.Join(dir, "firecracker.stderr"), []byte(bootError+"\n"), 0o600)).To(Succeed())
+
+			line, err := u.VMMErrorLine(dir, u.CloudHypervisor(), "error booting vm", "pvh")
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(line).To(Equal(tc.expected))
+		})
+	}
+}
+
+// A test which does not tear down its environment leaves containerd,
+// flintlockd, the thinpool and the bridge behind. A test which comes after it
+// must not do its own setup on top of them.
+func TestE2ETestsSkipWhenTheEnvironmentIsLeftRunning(t *testing.T) {
+	tt := []struct {
+		name string
+		test func(*testing.T)
+	}{
+		{name: "TestE2E", test: TestE2E},
+		{name: "TestE2EPrivateRegistry", test: TestE2EPrivateRegistry},
+		{name: "TestE2EPrivateRegistryNoCredentials", test: TestE2EPrivateRegistryNoCredentials},
+		{name: "TestE2ECloudHypervisorKernelWithoutPVH", test: TestE2ECloudHypervisorKernelWithoutPVH},
+	}
+
+	leftRunning := environmentLeftRunning
+
+	defer func() { environmentLeftRunning = leftRunning }()
+
+	for _, tc := range tt {
+		// A test which is not skipped sets this again.
+		environmentLeftRunning = true
+		skipped := false
+
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() { skipped = t.Skipped() }()
+
+			tc.test(t)
+		})
+
+		if !skipped {
+			t.Errorf("%s was not skipped", tc.name)
+		}
+	}
+}
+
+// The text of the error is not the same in all of the versions of Cloud
+// Hypervisor.
+func TestMissingPVHErrorLine(t *testing.T) {
+	tt := []struct {
+		name      string
+		stderr    string
+		expected  string
+		expectErr bool
+	}{
+		{
+			name:     "Cloud Hypervisor up to v46",
+			stderr:   "Error booting VM: VmBoot(KernelMissingPvhHeader)\n",
+			expected: "Error booting VM: VmBoot(KernelMissingPvhHeader)",
+		},
+		{
+			name:     "Cloud Hypervisor from v48, the reason is on a line of its own",
+			stderr:   "Error booting VM\nKernel lacks PVH header\n",
+			expected: "Kernel lacks PVH header",
+		},
+		{
+			name:      "VMM which could not boot for another reason",
+			stderr:    "Error booting VM: VmBoot(DeviceManager(CreateVirtioNet))\n",
+			expectErr: true,
+		},
+		{
+			name:      "VMM which has not written an error",
+			stderr:    "",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			dir := t.TempDir()
+			g.Expect(os.WriteFile(filepath.Join(dir, "cloudhypervisor.stderr"), []byte(tc.stderr), 0o600)).To(Succeed())
+
+			line, err := u.MissingPVHErrorLine(dir, u.CloudHypervisor())
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(line).To(Equal(tc.expected))
+		})
+	}
 }
 
 // fakeMicroVMClient answers the requests of the helpers without a flintlockd.

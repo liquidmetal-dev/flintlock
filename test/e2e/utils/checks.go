@@ -97,6 +97,45 @@ func ConsoleMarker(stateDir string, provider Provider, name, namespace string) (
 	return "", fmt.Errorf("the boot marker of %s/%s is not in %s (%d bytes)", namespace, name, consoleFile, len(console))
 }
 
+// MissingPVHErrorLine returns the line of the stderr of the VMM of a microvm
+// which says that the kernel has no PVH entry point. It is an error if there
+// is no such line.
+func MissingPVHErrorLine(stateDir string, provider Provider) (string, error) {
+	// Up to v46 Cloud Hypervisor writes "Error booting VM:
+	// VmBoot(KernelMissingPvhHeader)". From v48 the reason is on a line of its
+	// own, "Kernel lacks PVH header".
+	return VMMErrorLine(stateDir, provider, "pvh")
+}
+
+// VMMErrorLine returns the line of the stderr of the VMM of a microvm which
+// has all of the texts, in any case. It is an error if there is no such line.
+func VMMErrorLine(stateDir string, provider Provider, texts ...string) (string, error) {
+	stderrFile := filepath.Join(stateDir, provider.StderrFile)
+
+	stderr, err := os.ReadFile(stderrFile)
+	if err != nil {
+		return "", fmt.Errorf("reading the stderr of the VMM: %w", err)
+	}
+
+	for _, line := range strings.Split(string(stderr), "\n") {
+		if containsAll(strings.ToLower(line), texts) {
+			return strings.TrimSpace(line), nil
+		}
+	}
+
+	return "", fmt.Errorf("there is no line with %q in %s (%d bytes)", texts, stderrFile, len(stderr))
+}
+
+func containsAll(line string, texts []string) bool {
+	for _, text := range texts {
+		if !strings.Contains(line, strings.ToLower(text)) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // errNotDeleted is the error of a microvm which is not deleted when the time
 // to wait for it is up.
 var errNotDeleted = errors.New("the microvm is not deleted")
