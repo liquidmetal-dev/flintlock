@@ -218,6 +218,73 @@ func TestBuildArgs_AdditionalVolumeNotMounted(t *testing.T) {
 	g.Expect(err).To(g.MatchError(cerrors.NewVolumeNotMounted("data")))
 }
 
+// withInitrd gives the microvm an initrd whose image is mounted.
+func withInitrd(t *testing.T, vm *models.MicroVM) string {
+	t.Helper()
+
+	initrdDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(initrdDir, "initrd.img"), []byte("initrd"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	vm.Spec.Initrd = &models.Initrd{Filename: "initrd.img"}
+	vm.Status.InitrdMount = &models.Mount{Source: initrdDir}
+
+	return filepath.Join(initrdDir, "initrd.img")
+}
+
+func TestBuildArgs_Initrd(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	initrdPath := withInitrd(t, vm)
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(optionValues(args, "--initramfs")).To(g.Equal([]string{initrdPath}))
+}
+
+func TestBuildArgs_NoInitrd(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	args, err := p.buildArgs(vmForArgs(t, false), state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(args).NotTo(g.ContainElement("--initramfs"))
+}
+
+func TestBuildArgs_InitrdPathTraversalRejected(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	withInitrd(t, vm)
+	vm.Spec.Initrd.Filename = "../../../../../../etc/passwd"
+
+	_, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).To(g.MatchError(cerrors.ErrInvalidImageFilePath))
+}
+
+func TestBuildArgs_InitrdNotMounted(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.Initrd = &models.Initrd{Filename: "initrd.img"}
+
+	_, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).To(g.MatchError(cerrors.ErrNoMount))
+}
+
 func TestProviderDrives(t *testing.T) {
 	g.RegisterTestingT(t)
 

@@ -134,20 +134,19 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		"-v",
 	}
 
-	// Kernel and cmdline args
+	// Kernel, initrd and cmdline args
 	kernelCmdLine := DefaultKernelCmdLine()
 
 	for key, value := range vm.Spec.Kernel.CmdLine {
 		kernelCmdLine.Set(key, value)
 	}
 
-	kernelPath, err := shared.ResolveImageFile(vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename)
+	bootArgs, err := buildBootArgs(vm, kernelCmdLine.String())
 	if err != nil {
-		return nil, fmt.Errorf("resolving kernel path: %w", err)
+		return nil, err
 	}
 
-	args = append(args, "--cmdline", kernelCmdLine.String())
-	args = append(args, "--kernel", kernelPath)
+	args = append(args, bootArgs...)
 
 	// CPU and memory
 	cpusArg := fmt.Sprintf("boot=%d", vm.Spec.VCPU)
@@ -208,6 +207,33 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 
 	return args, nil
+}
+
+// buildBootArgs returns the options that tell the VMM what to boot. The
+// paths are resolved within their image mounts, so a spec can't point the VMM
+// at files outside the images.
+func buildBootArgs(vm *models.MicroVM, cmdLine string) ([]string, error) {
+	kernelPath, err := shared.ResolveImageFile(vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("resolving kernel path: %w", err)
+	}
+
+	args := []string{"--cmdline", cmdLine, "--kernel", kernelPath}
+
+	if vm.Spec.Initrd == nil {
+		return args, nil
+	}
+
+	if vm.Status.InitrdMount == nil {
+		return nil, fmt.Errorf("resolving initrd path: %w", cerrors.ErrNoMount)
+	}
+
+	initrdPath, err := shared.ResolveImageFile(vm.Status.InitrdMount.Source, vm.Spec.Initrd.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("resolving initrd path: %w", err)
+	}
+
+	return append(args, "--initramfs", initrdPath), nil
 }
 
 // buildDiskArgs returns the --disk option followed by one value per drive, in
