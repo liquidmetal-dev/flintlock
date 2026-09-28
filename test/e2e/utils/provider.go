@@ -40,8 +40,11 @@ func Firecracker() Provider {
 		PidFile:         "firecracker.pid",
 		ConsoleFile:     "firecracker.stdout",
 		DiagnosticFiles: []string{"firecracker.stdout", "firecracker.stderr", "firecracker.log"},
-		KernelImage:     "ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77",
-		KernelFilename:  "boot/vmlinux",
+		// Firecracker describes the devices of the guest with ACPI. A kernel
+		// needs PCI to use the ACPI tables, which this one has. A kernel with
+		// ACPI and without PCI cannot find its devices and panics, see #1262.
+		KernelImage:    "ghcr.io/liquidmetal-dev/firecracker-kernel:6.1",
+		KernelFilename: "boot/vmlinux",
 	}
 }
 
@@ -54,8 +57,8 @@ func CloudHypervisor() Provider {
 		ConsoleFile:     "cloudhypervisor.stdout",
 		DiagnosticFiles: []string{"cloudhypervisor.stdout", "cloudhypervisor.stderr", "cloudhypervisor.log"},
 		// Cloud Hypervisor boots the kernel from its PVH entry point and attaches
-		// the devices with PCI. The kernel which the firecracker tests use has
-		// neither of them.
+		// the devices with virtio over PCI. The kernel which the firecracker
+		// tests use does not have virtio over PCI.
 		KernelImage:    "ghcr.io/liquidmetal-dev/cloudhypervisor-kernel-bin:5.12",
 		KernelFilename: "boot/vmlinux.bin",
 	}

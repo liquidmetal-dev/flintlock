@@ -115,7 +115,7 @@ func TestNewMicroVMSpecUsesTheProvider(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	g.Expect(spec.Provider).To(HaveValue(Equal("firecracker")))
-	g.Expect(spec.Kernel.Image).To(Equal("ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77"))
+	g.Expect(spec.Kernel.Image).To(Equal("ghcr.io/liquidmetal-dev/firecracker-kernel:6.1"))
 	g.Expect(spec.Kernel.Filename).To(HaveValue(Equal("boot/vmlinux")))
 }
 
