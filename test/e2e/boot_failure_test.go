@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
 
@@ -136,6 +137,164 @@ func TestE2ECloudHypervisorKernelWithoutPVH(t *testing.T) {
 
 	Eventually(func(g Gomega) error {
 		g.Expect(microVMPath).ToNot(BeAnExistingFile())
+
+		res := u.ListMVMs(flintlockClient, mvmNS, nil)
+		g.Expect(res.Microvm).To(BeEmpty())
+
+		return nil
+	}, "120s").Should(Succeed())
+
+	log.Printf("TEST INFO: MicroVM %s/%s is deleted, it took %s",
+		mvmNS, mvmID, time.Since(deleteStart).Round(time.Millisecond))
+}
+
+// TestE2EGuestWithoutInit creates a microvm whose guest starts to boot and
+// cannot finish. Its root volume has no init, so the kernel boots, mounts the
+// root volume, panics and reboots.
+//
+// What the VMM does then is not the same for all of the providers. One which
+// resets the guest keeps running, with a guest that boots and panics again and
+// again. Such a microvm is CREATED and has a VMM which runs, the only check
+// which does not pass for it is the one of the boot marker.
+func TestE2EGuestWithoutInit(t *testing.T) {
+	RegisterTestingT(t)
+
+	if environmentLeftRunning {
+		t.Skip("a previous test left its environment running, use -run to run this test on its own")
+	}
+
+	environmentLeftRunning = params.SkipTeardown || params.SkipDelete
+
+	r := u.NewRunner(params)
+	defer func() {
+		log.Println("TEST STEP: cleaning up running processes")
+		r.Teardown()
+	}()
+	log.Println("TEST STEP: performing setup, starting flintlockd server")
+	flintlockClient := r.Setup()
+
+	for _, provider := range params.Providers {
+		t.Run(provider.Name, func(subT *testing.T) {
+			RegisterTestingT(subT)
+			defer RegisterTestingT(t)
+
+			runGuestWithoutInit(subT, flintlockClient, provider)
+		})
+	}
+}
+
+func runGuestWithoutInit(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider u.Provider) {
+	t.Helper()
+
+	const (
+		mvmID     = "mvm-noinit"
+		statePath = "/var/lib/flintlock/vm/%s/%s/%s"
+
+		// How long the guest gets to boot after its first panic. The guests of
+		// the other tests boot in less than 20 seconds.
+		noBootDuration = "30s"
+		noBootPolling  = "2s"
+	)
+
+	// The image of the kernel has the kernel and nothing else, so it is a root
+	// volume without an init. It is in the content store already.
+	var (
+		mvmNS     = provider.Name + "-noinit"
+		rootImage = provider.KernelImage
+	)
+
+	log.Printf("TEST STEP: creating a MicroVM with the %s provider and the root volume %s, which has no init",
+		provider.Name, rootImage)
+	created := u.CreateMVMWithImages(flintlockClient, provider, mvmID, mvmNS, provider.KernelImage, rootImage)
+
+	// The cleanup is set up before anything is checked, so that the microvm is
+	// also deleted when the first check fails.
+	microVMPath := fmt.Sprintf(statePath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+	defer cleanupOnFailure(t, flintlockClient, provider, microVMPath, mvmNS, *created.Microvm.Spec.Uid)
+
+	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
+	Expect(*created.Microvm.Spec.RootVolume.Source.ContainerSource).To(Equal(rootImage))
+
+	log.Printf("TEST INFO: MicroVM %s/%s has uid %s and state directory %s",
+		mvmNS, mvmID, *created.Microvm.Spec.Uid, microVMPath)
+
+	log.Println("TEST STEP: waiting for the kernel of the guest to panic")
+	start := time.Now()
+	vmmPid := 0
+	panicLine := ""
+
+	Eventually(func(g Gomega) error {
+		// The pid shows that flintlockd has started the VMM, and the line shows
+		// how far the guest got and why it did not get further.
+		pid, err := u.ReadPID(microVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		line, err := u.ConsoleLine(microVMPath, provider, "kernel panic", "no working init")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		// A VMM which does not reset the guest exits when the guest reboots,
+		// which is a moment after the panic.
+		if !provider.ResetsGuest {
+			g.Expect(u.PidRunning(pid)).To(BeFalse(), "the VMM is still running")
+		}
+
+		vmmPid = pid
+		panicLine = line
+
+		return nil
+	}, "120s", "1s").Should(Succeed())
+
+	log.Printf("TEST INFO: the guest of the VMM with pid %d has panicked after %s, %s has the line: %s",
+		vmmPid, time.Since(start).Round(time.Millisecond), filepath.Join(microVMPath, provider.ConsoleFile), panicLine)
+
+	log.Printf("TEST STEP: verifying for %s that the guest does not boot", noBootDuration)
+	lastSeen := ""
+
+	Consistently(func(g Gomega) {
+		// The state is only logged. flintlockd reports the microvm as CREATED,
+		// which is what makes the other checks necessary (#1263).
+		res := u.GetMVM(flintlockClient, *created.Microvm.Spec.Uid)
+		_, vmmErr := u.VerifyVMM(microVMPath, provider)
+
+		seen := fmt.Sprintf("%s (retry %d), its VMM is running: %t",
+			res.Microvm.Status.State, res.Microvm.Status.Retry, vmmErr == nil)
+		if seen != lastSeen {
+			log.Printf("TEST INFO: MicroVM %s/%s is %s", mvmNS, mvmID, seen)
+			lastSeen = seen
+		}
+
+		line, err := u.ConsoleMarker(microVMPath, provider, mvmID, mvmNS)
+		g.Expect(err).To(HaveOccurred(), "the guest has booted, the console has the line: %s", line)
+
+		if provider.ResetsGuest {
+			// This is the microvm which only the boot marker tells from one
+			// that runs: the VMM which flintlockd has started is running.
+			g.Expect(verifySameVMM(microVMPath, provider, vmmPid)).To(Succeed())
+		} else {
+			g.Expect(vmmErr).To(HaveOccurred(), "the VMM is running")
+		}
+
+		// The VMM of another provider would have its own pid file.
+		g.Expect(u.VMMPidFiles(microVMPath)).To(ConsistOf(filepath.Join(microVMPath, provider.PidFile)))
+	}, noBootDuration, noBootPolling).Should(Succeed())
+
+	log.Printf("TEST INFO: the guest of MicroVM %s/%s has not booted", mvmNS, mvmID)
+
+	if params.SkipDelete {
+		log.Println("TEST STEP: skipping delete")
+
+		return
+	}
+
+	log.Println("TEST STEP: deleting the MicroVM")
+	Expect(u.DeleteMVM(flintlockClient, *created.Microvm.Spec.Uid)).To(Succeed())
+
+	log.Println("TEST STEP: waiting for the MicroVM to be deleted")
+	deleteStart := time.Now()
+
+	Eventually(func(g Gomega) error {
+		g.Expect(microVMPath).ToNot(BeAnExistingFile())
+		g.Expect(u.PidRunning(vmmPid)).To(BeFalse())
 
 		res := u.ListMVMs(flintlockClient, mvmNS, nil)
 		g.Expect(res.Microvm).To(BeEmpty())

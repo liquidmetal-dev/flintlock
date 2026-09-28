@@ -56,6 +56,13 @@ The private registry test also needs these to be on the `PATH`:
   The test does not look at the state of the MicroVM, which is `CREATED`
   ([#1263][issue-1263]). It is skipped when `cloudhypervisor` is not one of the
   providers.
+- `TestE2EGuestWithoutInit`: creates a MicroVM whose root volume has no init,
+  with each of the providers. The kernel of the guest boots, mounts the root
+  volume, panics and reboots, which the test reads from the console. The
+  console must not have the boot marker. Firecracker exits when the guest
+  reboots. Cloud Hypervisor keeps running and starts the guest again, so the
+  MicroVM is `CREATED` and has a VMM which runs, and only the boot marker tells
+  it from a MicroVM that runs.
 
 Each of the tests does its own setup and teardown, so that the private registry
 tests start with a containerd which does not have any of the images. The
@@ -97,6 +104,10 @@ the VMM, and deletes its MicroVMs.
 | `firecracker` | `ghcr.io/liquidmetal-dev/firecracker-kernel:6.1` | Firecracker describes the devices of the guest with ACPI. A kernel needs `CONFIG_PCI` to use the ACPI tables, which this one has |
 | `cloudhypervisor` | `ghcr.io/liquidmetal-dev/cloudhypervisor-kernel-bin:5.12` | Cloud Hypervisor boots the kernel from its PVH entry point, and attaches the devices with virtio over PCI |
 | `TestE2ECloudHypervisorKernelWithoutPVH` | `ghcr.io/liquidmetal-dev/flintlock-kernel:5.10.77` | The kernel has no PVH entry point, so Cloud Hypervisor refuses it |
+
+`TestE2EGuestWithoutInit` uses the kernel image of the provider as the image of
+the root volume as well. It has the kernel and nothing else, so it is a root
+volume without an init.
 
 The guests boot with the kernel command line which the provider of flintlockd
 sets, the tests do not add to it.

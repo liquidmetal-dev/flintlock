@@ -107,23 +107,31 @@ func MissingPVHErrorLine(stateDir string, provider Provider) (string, error) {
 	return VMMErrorLine(stateDir, provider, "pvh")
 }
 
+// ConsoleLine returns the line of the console of the guest of a microvm which
+// has all of the texts, in any case. It is an error if there is no such line.
+func ConsoleLine(stateDir string, provider Provider, texts ...string) (string, error) {
+	return lineWith(filepath.Join(stateDir, provider.ConsoleFile), "the console of the guest", texts)
+}
+
 // VMMErrorLine returns the line of the stderr of the VMM of a microvm which
 // has all of the texts, in any case. It is an error if there is no such line.
 func VMMErrorLine(stateDir string, provider Provider, texts ...string) (string, error) {
-	stderrFile := filepath.Join(stateDir, provider.StderrFile)
+	return lineWith(filepath.Join(stateDir, provider.StderrFile), "the stderr of the VMM", texts)
+}
 
-	stderr, err := os.ReadFile(stderrFile)
+func lineWith(file, what string, texts []string) (string, error) {
+	content, err := os.ReadFile(file)
 	if err != nil {
-		return "", fmt.Errorf("reading the stderr of the VMM: %w", err)
+		return "", fmt.Errorf("reading %s: %w", what, err)
 	}
 
-	for _, line := range strings.Split(string(stderr), "\n") {
+	for _, line := range strings.Split(string(content), "\n") {
 		if containsAll(strings.ToLower(line), texts) {
 			return strings.TrimSpace(line), nil
 		}
 	}
 
-	return "", fmt.Errorf("there is no line with %q in %s (%d bytes)", texts, stderrFile, len(stderr))
+	return "", fmt.Errorf("there is no line with %q in %s (%d bytes)", texts, file, len(content))
 }
 
 func containsAll(line string, texts []string) bool {

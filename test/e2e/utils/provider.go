@@ -47,6 +47,9 @@ type Provider struct {
 	KernelImage string
 	// KernelFilename is the path of the kernel in the KernelImage.
 	KernelFilename string
+	// ResetsGuest is true if the VMM keeps running and starts the guest again
+	// when the guest reboots. The kernel of a guest reboots when it panics.
+	ResetsGuest bool
 }
 
 // BinaryPath returns the path of the VMM binary of the provider, which is
@@ -105,6 +108,8 @@ func Firecracker() Provider {
 		// ACPI and without PCI cannot find its devices and panics, see #1262.
 		KernelImage:    "ghcr.io/liquidmetal-dev/firecracker-kernel:6.1",
 		KernelFilename: "boot/vmlinux",
+		// Firecracker exits when the guest reboots.
+		ResetsGuest: false,
 	}
 }
 
@@ -123,6 +128,7 @@ func CloudHypervisor() Provider {
 		// tests use does not have virtio over PCI.
 		KernelImage:    "ghcr.io/liquidmetal-dev/cloudhypervisor-kernel-bin:5.12",
 		KernelFilename: "boot/vmlinux.bin",
+		ResetsGuest:    true,
 	}
 }
 

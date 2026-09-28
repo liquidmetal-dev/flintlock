@@ -839,6 +839,7 @@ func TestE2ETestsSkipWhenTheEnvironmentIsLeftRunning(t *testing.T) {
 		{name: "TestE2EPrivateRegistry", test: TestE2EPrivateRegistry},
 		{name: "TestE2EPrivateRegistryNoCredentials", test: TestE2EPrivateRegistryNoCredentials},
 		{name: "TestE2ECloudHypervisorKernelWithoutPVH", test: TestE2ECloudHypervisorKernelWithoutPVH},
+		{name: "TestE2EGuestWithoutInit", test: TestE2EGuestWithoutInit},
 	}
 
 	leftRunning := environmentLeftRunning
@@ -1268,4 +1269,70 @@ func TestDeleteAndWaitMicroVMWhichIsGone(t *testing.T) {
 	stateDir := filepath.Join(t.TempDir(), "uid0")
 
 	g.Expect(u.DeleteAndWait(client, "ns0", "uid0", stateDir, 200*time.Millisecond, 10*time.Millisecond, 50*time.Millisecond)).To(Succeed())
+}
+
+func TestConsoleLine(t *testing.T) {
+	const panicLine = "[    1.204911] Kernel panic - not syncing: No working init found.  Try passing init= option to kernel."
+
+	tt := []struct {
+		name      string
+		console   *string
+		texts     []string
+		expected  string
+		expectErr bool
+	}{
+		{
+			name:     "line with all of the texts, in any case",
+			console:  ptr.String("[    0.000000] Linux version 5.12.0\r\n" + panicLine + "\r\n"),
+			texts:    []string{"kernel panic", "INIT"},
+			expected: panicLine,
+		},
+		{
+			name:     "the first of the lines with the texts",
+			console:  ptr.String("first Kernel panic: no init\nsecond Kernel panic: no init\n"),
+			texts:    []string{"Kernel panic", "init"},
+			expected: "first Kernel panic: no init",
+		},
+		{
+			name:      "no console file",
+			texts:     []string{"Kernel panic"},
+			expectErr: true,
+		},
+		{
+			name:      "texts which are on two lines",
+			console:   ptr.String("[    1.0] Kernel panic - not syncing\n[    1.1] No working init found\n"),
+			texts:     []string{"Kernel panic", "init"},
+			expectErr: true,
+		},
+		{
+			name:      "guest which has not got that far",
+			console:   ptr.String("[    0.000000] Linux version 5.12.0\n"),
+			texts:     []string{"Kernel panic", "init"},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			dir := t.TempDir()
+			if tc.console != nil {
+				g.Expect(os.WriteFile(filepath.Join(dir, "cloudhypervisor.stdout"), []byte(*tc.console), 0o600)).To(Succeed())
+			}
+			// The console of another provider and the stderr must not be read.
+			g.Expect(os.WriteFile(filepath.Join(dir, "firecracker.stdout"), []byte(panicLine+"\n"), 0o600)).To(Succeed())
+			g.Expect(os.WriteFile(filepath.Join(dir, "cloudhypervisor.stderr"), []byte(panicLine+"\n"), 0o600)).To(Succeed())
+
+			line, err := u.ConsoleLine(dir, u.CloudHypervisor(), tc.texts...)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(line).To(Equal(tc.expected))
+		})
+	}
 }
