@@ -135,13 +135,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 
 	// Kernel, initrd and cmdline args
-	kernelCmdLine := DefaultKernelCmdLine()
-
-	for key, value := range vm.Spec.Kernel.CmdLine {
-		kernelCmdLine.Set(key, value)
-	}
-
-	bootArgs, err := buildBootArgs(vm, kernelCmdLine.String())
+	bootArgs, err := buildBootArgs(vm, buildKernelCmdLine(vm))
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +230,38 @@ func buildBootArgs(vm *models.MicroVM, cmdLine string) ([]string, error) {
 	return append(args, "--initramfs", initrdPath), nil
 }
 
+const (
+	cmdLineReadOnly  = "ro"
+	cmdLineReadWrite = "rw"
+)
+
+// buildKernelCmdLine returns the kernel command line of a microvm: the
+// defaults, changed to mount the root filesystem read-only when the root
+// volume is read-only, then what the spec sets. The spec has the last word.
+// The result holds both ro and rw only when the spec itself sets both.
+func buildKernelCmdLine(vm *models.MicroVM) string {
+	kernelCmdLine := DefaultKernelCmdLine()
+
+	if vm.Spec.RootVolume.IsReadOnly {
+		delete(kernelCmdLine, cmdLineReadWrite)
+		kernelCmdLine.Set(cmdLineReadOnly, "")
+	}
+
+	if _, ok := vm.Spec.Kernel.CmdLine[cmdLineReadWrite]; ok {
+		delete(kernelCmdLine, cmdLineReadOnly)
+	}
+
+	if _, ok := vm.Spec.Kernel.CmdLine[cmdLineReadOnly]; ok {
+		delete(kernelCmdLine, cmdLineReadWrite)
+	}
+
+	for key, value := range vm.Spec.Kernel.CmdLine {
+		kernelCmdLine.Set(key, value)
+	}
+
+	return kernelCmdLine.String()
+}
+
 // buildDiskArgs returns the --disk option followed by one value per drive, in
 // the order the guest sees the drives.
 func (p *provider) buildDiskArgs(vm *models.MicroVM, state State) ([]string, error) {
@@ -262,7 +288,7 @@ func (p *provider) buildDiskArgs(vm *models.MicroVM, state State) ([]string, err
 func diskArg(drive models.Drive) string {
 	arg := "path=" + drive.Path
 
-	if drive.Role == models.DriveRoleCloudInit {
+	if drive.ReadOnly {
 		arg += ",readonly=on"
 	}
 

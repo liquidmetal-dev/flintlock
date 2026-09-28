@@ -285,6 +285,97 @@ func TestBuildArgs_InitrdNotMounted(t *testing.T) {
 	g.Expect(err).To(g.MatchError(cerrors.ErrNoMount))
 }
 
+// cmdLineParams returns the parameters of the kernel command line.
+func cmdLineParams(t *testing.T, args []string) []string {
+	t.Helper()
+
+	values := optionValues(args, "--cmdline")
+	g.Expect(values).To(g.HaveLen(1))
+
+	return strings.Fields(values[0])
+}
+
+func TestBuildArgs_ReadOnlyVolumes(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.RootVolume.IsReadOnly = true
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}, {ID: "logs", IsReadOnly: true}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+	vm.Status.Volumes["logs"] = &models.VolumeStatus{Mount: models.Mount{Source: "/logs.img"}}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
+		"path=/root.img,readonly=on",
+		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
+		"path=/data.img",
+		"path=/logs.img,readonly=on",
+	}))
+}
+
+func TestBuildArgs_WritableRootIsMountedReadWrite(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	args, err := p.buildArgs(vmForArgs(t, false), state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cmdLineParams(t, args)).To(g.ContainElement("rw"))
+	g.Expect(cmdLineParams(t, args)).NotTo(g.ContainElement("ro"))
+}
+
+func TestBuildArgs_ReadOnlyRootIsMountedReadOnly(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.RootVolume.IsReadOnly = true
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cmdLineParams(t, args)).To(g.ContainElement("ro"))
+	g.Expect(cmdLineParams(t, args)).NotTo(g.ContainElement("rw"))
+	g.Expect(cmdLineParams(t, args)).To(g.ContainElement("root=/dev/vda"))
+}
+
+func TestBuildArgs_ReadOnlyRootSpecWins(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.RootVolume.IsReadOnly = true
+	vm.Spec.Kernel.CmdLine = map[string]string{"rw": ""}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cmdLineParams(t, args)).To(g.ContainElement("rw"))
+	g.Expect(cmdLineParams(t, args)).NotTo(g.ContainElement("ro"))
+}
+
+func TestBuildArgs_WritableRootSpecWins(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.Kernel.CmdLine = map[string]string{"ro": ""}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cmdLineParams(t, args)).To(g.ContainElement("ro"))
+	g.Expect(cmdLineParams(t, args)).NotTo(g.ContainElement("rw"))
+}
+
 func TestProviderDrives(t *testing.T) {
 	g.RegisterTestingT(t)
 
