@@ -121,7 +121,7 @@ test-with-cov: ## Run unit tests with coverage
 
 .PHONY: test-e2e
 test-e2e: compile-e2e ## Run e2e tests locally
-		./test/e2e/test.sh
+		./test/e2e/test.sh $(E2E_ARGS)
 
 .PHONY: test-e2e-docker
 test-e2e-docker: compile-e2e ## Run e2e tests locally in a container

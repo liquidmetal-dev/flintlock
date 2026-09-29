@@ -176,6 +176,23 @@ thinpools and a `fl-e2e-br0` bridge for the microVM TAP interfaces, write
 containerd configuration under `/etc`, and manage runtime state under `/run`
 and `/var/lib`.
 
+The workflow runs the tests with the `artefacts.dir` flag, and uploads what
+they have saved as the `e2e-microvm-state-<attempt>` artefact of the run, for
+the runs which pass and for the ones which fail. It has the console of the
+guest and the stderr, the log and the config of the VMM of each of the
+MicroVMs, see
+[Saving the files of the MicroVMs](#saving-the-files-of-the-microvms). To get
+the artefact of a run:
+
+```bash
+gh run download <run id> --name e2e-microvm-state-1
+```
+
+The tests do not save anything when they are stopped, by their timeout or by a
+panic. The state directories of their MicroVMs are still there then, and the
+workflow copies the files of them to the `left-behind` directory of the
+artefact. It has no such directory when all of the MicroVMs were deleted.
+
 ### Configuration
 
 There are a couple of custom test flags which you can set to alter the behaviour

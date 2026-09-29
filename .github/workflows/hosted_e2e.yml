@@ -125,12 +125,58 @@ jobs:
           fi
 
       - name: Run e2e tests
+        env:
+          ARTEFACTS_DIR: ${{ runner.temp }}/e2e-artefacts
         run: |
+          # flintlockd removes the state directory of a MicroVM when the MicroVM
+          # is deleted, so the tests save the files of it before they delete one.
           sudo env \
             "PATH=$PATH" \
             "GOCACHE=/tmp/go-cache" \
             "GOMODCACHE=/tmp/go-mod" \
-            make test-e2e
+            make test-e2e E2E_ARGS="-artefacts.dir=${ARTEFACTS_DIR}"
+
+      - name: Save the state of the MicroVMs which were left behind
+        if: always()
+        env:
+          ARTEFACTS_DIR: ${{ runner.temp }}/e2e-artefacts
+          STATE_DIR: /var/lib/flintlock/vm
+        run: |
+          # A state directory which still has files is the one of a MicroVM which
+          # was not deleted. The tests did not save its files if they were
+          # stopped, by their timeout or by a panic.
+          left_behind="${ARTEFACTS_DIR}/left-behind"
+
+          if sudo test -d "${STATE_DIR}"; then
+            files="$(sudo find "${STATE_DIR}" -type f ! -name '*.img' | wc -l)"
+            echo "${STATE_DIR} has ${files} files."
+
+            if [[ "${files}" -gt 0 ]]; then
+              sudo mkdir -p "${left_behind}"
+              sudo sh -c 'cd "$1" && find . -type f ! -name "*.img" -exec cp --parents -t "$2" {} +' \
+                sh "${STATE_DIR}" "${left_behind}"
+            fi
+          else
+            echo "${STATE_DIR} does not exist."
+          fi
+
+          # The tests ran as root, and the upload does not.
+          if sudo test -d "${ARTEFACTS_DIR}"; then
+            sudo chmod -R a+rX "${ARTEFACTS_DIR}"
+
+            echo "The files of the artefact:"
+            (cd "${ARTEFACTS_DIR}" && find . -type f -printf '%10s %p\n' | sort -k 2)
+          else
+            echo "${ARTEFACTS_DIR} does not exist, the tests did not save a file."
+          fi
+
+      - name: Upload the state of the MicroVMs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-microvm-state-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/e2e-artefacts
+          if-no-files-found: warn
 
       - name: Cleanup e2e resources
         if: always()
