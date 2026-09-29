@@ -102,27 +102,31 @@ is enabled so that compression can be turned on later without a kernel
 rebuild.
 
 Guest kernels are built in
-[`mikrolite-images`](https://github.com/liquidmetal-dev/mikrolite-images). The
-state of the published images on 2026-09-28, read from the config file each
-image carries:
+[`mikrolite-images`](https://github.com/liquidmetal-dev/mikrolite-images).
+EROFS is added there with a config fragment in each kernel component
+([section 12.2](#122-stack-in-mikrolite-images)). The Cloud Hypervisor kernels
+also need `CONFIG_MISC_FILESYSTEMS=y`. That repository builds every kernel
+without loadable modules and enforces it in the build and in CI, so the
+initrd never carries modules.
 
-| Image | EROFS | overlayfs | ext4 | initrd | virtio-blk |
-| ----- | ----- | --------- | ---- | ------ | ---------- |
-| `firecracker-kernel:6.1` | no | yes | yes | yes | yes |
-| `firecracker-kernel:5.10` | no | yes | yes | yes | yes |
-| `firecracker-kernel:5.10-no-acpi` | no | yes | yes | yes | yes |
-| `firecracker-kernel-k8s:6.1` | no | yes | yes | yes | yes |
-| `firecracker-kernel-k8s:5.10` | no | yes | yes | yes | yes |
-| `cloudhypervisor-kernel-k8s:6.2` | no | yes | yes | yes | yes |
-| `cloudhypervisor-kernel:6.2` | no | no | no | no | no |
+The state of the published images, read from the config file each image
+carries:
 
-EROFS is added with a config fragment in each kernel component. The Cloud
-Hypervisor kernels also need `CONFIG_MISC_FILESYSTEMS=y`. That repository
-builds every kernel without loadable modules and enforces it in the build and
-in CI, so the initrd never carries modules.
+| Image | 2026-09-28 | 2026-09-29 | Build with EROFS |
+| ----- | ---------- | ---------- | ---------------- |
+| `firecracker-kernel:6.1` | no EROFS | EROFS | `6.1-20260929-1349` |
+| `firecracker-kernel:5.10` | no EROFS | EROFS | `5.10-20260929-1349` |
+| `firecracker-kernel:5.10-no-acpi` | no EROFS | EROFS | `5.10-no-acpi-20260929-1349` |
+| `cloudhypervisor-kernel:6.2` | no EROFS, virtio-blk, ext4, overlayfs or initrd support | EROFS | `6.2-20260929-1411` |
+| `firecracker-kernel-k8s:6.1` | no EROFS | EROFS | `6.1-20260929-1426` |
+| `firecracker-kernel-k8s:5.10` | no EROFS | EROFS | `5.10-20260929-1426` |
+| `cloudhypervisor-kernel-k8s:6.2` | no EROFS | EROFS | `6.2-20260929-1426` |
 
-The bare `cloudhypervisor-kernel:6.2` image cannot boot a flintlock VM in any
-mode. Layer M1 fixes it ([section 12.2](#122-stack-in-mikrolite-images)).
+Apart from the bare Cloud Hypervisor kernel before 2026-09-29, every image
+has overlayfs, ext4, virtio-blk, devtmpfs and initrd support built in.
+
+Each build is published under two tags: one that moves (`5.10`) and one that
+names the build and is never overwritten (`5.10-20260929-1349`).
 
 ### 4.2 Drive order
 
@@ -575,6 +579,42 @@ Not shown by X-5:
 On 5.10 only, the kernel logs a failed probe (error -16) of each virtio-mmio
 device. The block devices then attach with the right sizes.
 
+**X-6, the published kernels.** The four Firecracker kernels published from
+`mikrolite-images` at `6d7757c` on 2026-09-29. The configuration of the
+published `firecracker-kernel:5.10` is equal to that of the locally built
+kernel of X-5. Each was booted as in X-5, with the same base, initrd and
+drives, for 60 seconds.
+
+| Kernel image | Linux | Overlay root, login prompt, no failed unit | `getcap` equal to docker's | Upper written |
+| ------------ | ----- | ------------------------------------------ | -------------------------- | ------------- |
+| `firecracker-kernel:5.10-20260929-1349` | 5.10.245 | yes | yes | yes |
+| `firecracker-kernel:6.1-20260929-1349` | 6.1.0 | yes | yes | yes |
+| `firecracker-kernel-k8s:5.10-20260929-1426` | 5.10.199 | yes | yes | yes |
+| `firecracker-kernel-k8s:6.1-20260929-1426` | 6.1.0 | yes | yes | yes |
+
+The sha256 of the base was unchanged after the boots. "Upper written" means
+that the allocated blocks of the writable disk grew and that the upper holds
+`etc`, `var` and `tmp`.
+
+Two of the four kernels log the failed probe of the virtio-mmio devices that
+X-5 saw. They are the two that are built with both `CONFIG_ACPI` and
+`CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES`:
+
+| Kernel image | `ACPI` | `VIRTIO_MMIO_CMDLINE_DEVICES` | Failed probe |
+| ------------ | ------ | ----------------------------- | ------------ |
+| `firecracker-kernel:5.10` | y | y | yes |
+| `firecracker-kernel:6.1` | y | not set | no |
+| `firecracker-kernel-k8s:5.10` | not set | y | no |
+| `firecracker-kernel-k8s:6.1` | y | y | yes |
+
+This fits a device that is announced twice, on the command line and through
+ACPI, with the second registration refused as busy (error -16). That reading
+was not confirmed beyond the table. The drives attach in every case.
+
+The two published Cloud Hypervisor kernels, `cloudhypervisor-kernel` and
+`cloudhypervisor-kernel-k8s`, have the options of section 4.1 in their
+configuration. They were not booted.
+
 ## 11. Outcome of the spikes
 
 Two questions were open before the base builder could be planned: whether
@@ -638,10 +678,18 @@ stack.
 Both changes edit the Cloud Hypervisor kernel's Dockerfile and Makefile, so
 they are stacked.
 
-| Layer | Change |
-| ----- | ------ |
-| M1 | Fix the bare Cloud Hypervisor kernel: pin the config source and fail the build when the download fails |
-| M2 | Enable EROFS in every kernel component. Update the text that says microVMs boot with no initrd |
+| Layer | Change | State |
+| ----- | ------ | ----- |
+| M1 | Fix the bare Cloud Hypervisor kernel: pin the config source and fail the build when the download fails | merged 2026-09-29, [mikrolite-images#37](https://github.com/liquidmetal-dev/mikrolite-images/pull/37) |
+| M2 | Enable EROFS in every kernel component. Update the text that says microVMs boot with no initrd | merged 2026-09-29, [mikrolite-images#38](https://github.com/liquidmetal-dev/mikrolite-images/pull/38) |
+
+All seven kernels were published the same day (section 4.1). Still open in
+that repository:
+
+* `kernel-fc` takes its base configuration from the `main` branch of
+  Firecracker and does not pin it. The kernels published on 2026-09-29 carry
+  that base as it was on the day. Compared with the images published before,
+  they differ by more than EROFS.
 
 ### 12.3 Stack in `flintlock`
 
