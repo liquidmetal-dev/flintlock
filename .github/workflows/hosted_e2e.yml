@@ -7,6 +7,10 @@ on:
         description: "Firecracker release tag to install"
         required: false
         default: "v1.16.1"
+      cloud_hypervisor_version:
+        description: "Cloud Hypervisor release tag to install"
+        required: false
+        default: "v48.0"
       containerd_version:
         description: "containerd release tag to install"
         required: false
@@ -83,6 +87,30 @@ jobs:
           FIRECRACKER: ${{ github.event.inputs.firecracker_version || 'v1.16.1' }}
         run: sudo -E ./hack/scripts/provision.sh firecracker
 
+      - name: Install Cloud Hypervisor
+        env:
+          CLOUD_HYPERVISOR: ${{ github.event.inputs.cloud_hypervisor_version || 'v48.0' }}
+        run: |
+          sudo -E ./hack/scripts/provision.sh cloudhypervisor
+
+          command -v cloud-hypervisor-static
+          cloud-hypervisor-static --version
+
+          # The script does not compare the version of the binary with the one
+          # which was asked for. The binary of the tag v48.0 reports v48.0.0,
+          # and the one of the tag v53.0 reports v53.0.
+          if [[ "${CLOUD_HYPERVISOR}" == "latest" ]]; then
+            echo "The version of the latest release is not known, it is not compared."
+          else
+            installed="$(cloud-hypervisor-static --version)"
+            wanted="cloud-hypervisor ${CLOUD_HYPERVISOR}"
+
+            if [[ "${installed}" != "${wanted}" && "${installed}" != "${wanted}.0" ]]; then
+              echo "Expected '${wanted}', the installed binary is '${installed}'." >&2
+              exit 1
+            fi
+          fi
+
       - name: Verify KVM access
         run: |
           if [[ ! -c /dev/kvm ]]; then
@@ -107,6 +135,28 @@ jobs:
       - name: Cleanup e2e resources
         if: always()
         run: |
+          # A VMM is not a child of flintlockd. If a test left one behind, it
+          # holds on to the devices of the thinpool until it has exited.
+          vmms='(firecracker|cloud-hypervisor-static) .*/var/lib/flintlock/vm/'
+
+          sudo pkill -f "${vmms}" || true
+
+          for _ in $(seq 1 20); do
+            if ! pgrep -f "${vmms}" > /dev/null; then
+              break
+            fi
+
+            sleep 0.5
+          done
+
+          if pgrep -f "${vmms}" > /dev/null; then
+            echo "A VMM did not stop when it was asked to:"
+            pgrep -af "${vmms}" || true
+
+            sudo pkill -KILL -f "${vmms}" || true
+            sleep 1
+          fi
+
           sudo ip link delete fl-e2e-br0 type bridge || true
 
           sudo dmsetup remove --force dev-thinpool-e2e || true
@@ -119,6 +169,7 @@ jobs:
 
           sudo rm -rf \
             /run/containerd-e2e \
+            /run/flintlock \
             /var/lib/containerd-e2e \
             /var/lib/containerd-dev/snapshotter/devmapper/data-e2e \
             /var/lib/containerd-dev/snapshotter/devmapper/metadata-e2e \

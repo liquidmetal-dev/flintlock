@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	"github.com/liquidmetal-dev/flintlock/pkg/ptr"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
@@ -32,24 +33,20 @@ func init() {
 	params = u.NewParams()
 }
 
+const (
+	// Long enough that sockets in the state dir would go over the unix socket path limit.
+	longNameLength      = 44
+	longNamespaceLength = 43
+)
+
+// TestE2E runs the lifecycle of a microvm with each of the providers. The
+// providers share one flintlockd, which has all of them enabled.
 func TestE2E(t *testing.T) {
 	RegisterTestingT(t)
 
-	var (
-		mvmID       = "mvm0"
-		secondMvmID = "mvm1"
-		mvmNS       = "ns0"
-		fcPath      = "/var/lib/flintlock/vm/%s/%s/%s"
-		socketDir   = "/run/flintlock"
-
-		// Long enough that sockets in the state dir would go over the unix socket path limit.
-		longMvmID = "mvm-" + strings.Repeat("n", 40)
-		longMvmNS = "ns-" + strings.Repeat("s", 40)
-
-		mvmPid1 int
-		mvmPid2 int
-		mvmPid3 int
-	)
+	if environmentLeftRunning {
+		t.Skip("a previous test left its environment running, use -run to run this test on its own")
+	}
 
 	environmentLeftRunning = params.SkipTeardown || params.SkipDelete
 
@@ -61,20 +58,64 @@ func TestE2E(t *testing.T) {
 	log.Println("TEST STEP: performing setup, starting flintlockd server")
 	flintlockClient := r.Setup()
 
-	log.Println("TEST STEP: creating MicroVM")
-	created := u.CreateMVM(flintlockClient, mvmID, mvmNS)
-	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
+	for _, provider := range params.Providers {
+		t.Run(provider.Name, func(subT *testing.T) {
+			// The helpers of the tests assert with the global gomega. A failure
+			// has to fail the subtest which is running: if it failed the test of
+			// the subtest, the test binary would panic and skip the teardown.
+			RegisterTestingT(subT)
+			defer RegisterTestingT(t)
 
-	firstMicroVMPath := fmt.Sprintf(fcPath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+			log.Printf("TEST STEP: running the lifecycle of a MicroVM with the %s provider", provider.Name)
+			runLifecycle(subT, flintlockClient, provider)
+		})
+	}
+}
+
+// lifecycleNamespaces returns the namespaces for the microvms of a provider
+// in the lifecycle test. The second one is a long namespace.
+func lifecycleNamespaces(provider u.Provider) (string, string) {
+	longPrefix := "ns-" + provider.Name + "-"
+
+	return provider.Name + "-ns0", longPrefix + strings.Repeat("s", longNamespaceLength-len(longPrefix))
+}
+
+func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider u.Provider) {
+	t.Helper()
+
+	var (
+		mvmID       = "mvm0"
+		secondMvmID = "mvm1"
+		statePath   = "/var/lib/flintlock/vm/%s/%s/%s"
+		socketDir   = "/run/flintlock"
+
+		longMvmID = "mvm-" + strings.Repeat("n", longNameLength-len("mvm-"))
+
+		mvmPid1 int
+		mvmPid2 int
+		mvmPid3 int
+	)
+
+	mvmNS, longMvmNS := lifecycleNamespaces(provider)
+
+	log.Println("TEST STEP: creating MicroVM")
+	created := u.CreateMVM(flintlockClient, provider, mvmID, mvmNS)
+
+	// The cleanup is set up before anything is checked, so that the microvm is
+	// also deleted when the first check fails.
+	firstMicroVMPath := fmt.Sprintf(statePath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+	defer cleanupOnFailure(t, flintlockClient, provider, firstMicroVMPath, mvmNS, *created.Microvm.Spec.Uid)
+
+	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
 
 	log.Println("TEST STEP: getting (and verifying) existing MicroVM")
 	Eventually(func(g Gomega) error {
-		g.Expect(firstMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
+		// verify that the VMM of the provider has started, that a pid has been
+		// saved and that there is actually a running process
+		pid, err := u.VerifyVMM(firstMicroVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
 
-		// verify that firecracker has started and that a pid has been saved
-		// and that there is actually a running process
-		mvmPid1 = u.ReadPID(firstMicroVMPath)
-		g.Expect(u.PidRunning(mvmPid1)).To(BeTrue())
+		mvmPid1 = pid
 
 		// get the mVM and check the status
 		res := u.GetMVM(flintlockClient, *created.Microvm.Spec.Uid)
@@ -83,20 +124,24 @@ func TestE2E(t *testing.T) {
 		return nil
 	}, "120s").Should(Succeed())
 
-	log.Println("TEST STEP: creating a second MicroVM")
-	createdSecond := u.CreateMVM(flintlockClient, secondMvmID, mvmNS)
-	Expect(createdSecond.Microvm.Spec.Id).To(Equal(secondMvmID))
+	waitForBoot(provider, firstMicroVMPath, mvmID, mvmNS, mvmPid1)
 
-	secondMicroVMPath := fmt.Sprintf(fcPath, mvmNS, secondMvmID, *createdSecond.Microvm.Spec.Uid)
+	log.Println("TEST STEP: creating a second MicroVM")
+	createdSecond := u.CreateMVM(flintlockClient, provider, secondMvmID, mvmNS)
+
+	secondMicroVMPath := fmt.Sprintf(statePath, mvmNS, secondMvmID, *createdSecond.Microvm.Spec.Uid)
+	defer cleanupOnFailure(t, flintlockClient, provider, secondMicroVMPath, mvmNS, *createdSecond.Microvm.Spec.Uid)
+
+	Expect(createdSecond.Microvm.Spec.Id).To(Equal(secondMvmID))
 
 	log.Println("TEST STEP: listing all MicroVMs")
 	Eventually(func(g Gomega) error {
-		g.Expect(secondMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
+		// verify that the VMM of the provider has started, that a pid has been
+		// saved and that there is actually a running process for the new mVM
+		pid, err := u.VerifyVMM(secondMicroVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
 
-		// verify that firecracker has started and that a pid has been saved
-		// and that there is actually a running process for the new mVM
-		mvmPid2 = u.ReadPID(secondMicroVMPath)
-		g.Expect(u.PidRunning(mvmPid2)).To(BeTrue())
+		mvmPid2 = pid
 
 		// get both the mVMs and check the statuses
 		res := u.ListMVMs(flintlockClient, mvmNS, nil)
@@ -115,18 +160,22 @@ func TestE2E(t *testing.T) {
 		return nil
 	}, "120s").Should(Succeed())
 
+	waitForBoot(provider, secondMicroVMPath, secondMvmID, mvmNS, mvmPid2)
+
 	log.Println("TEST STEP: creating a MicroVM with a long namespace and name and the guest agent enabled")
-	createdLong := u.CreateGuestAgentMVM(flintlockClient, longMvmID, longMvmNS)
+	createdLong := u.CreateGuestAgentMVM(flintlockClient, provider, longMvmID, longMvmNS)
+
+	longMicroVMPath := fmt.Sprintf(statePath, longMvmNS, longMvmID, *createdLong.Microvm.Spec.Uid)
+	longSocketRoot := filepath.Join(socketDir, *createdLong.Microvm.Spec.Uid)
+	defer cleanupOnFailure(t, flintlockClient, provider, longMicroVMPath, longMvmNS, *createdLong.Microvm.Spec.Uid)
+
 	Expect(createdLong.Microvm.Spec.Id).To(Equal(longMvmID))
 
-	longMicroVMPath := fmt.Sprintf(fcPath, longMvmNS, longMvmID, *createdLong.Microvm.Spec.Uid)
-	longSocketRoot := filepath.Join(socketDir, *createdLong.Microvm.Spec.Uid)
-
 	Eventually(func(g Gomega) error {
-		g.Expect(longMicroVMPath + "/firecracker.pid").To(BeAnExistingFile())
+		pid, err := u.VerifyVMM(longMicroVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
 
-		mvmPid3 = u.ReadPID(longMicroVMPath)
-		g.Expect(u.PidRunning(mvmPid3)).To(BeTrue())
+		mvmPid3 = pid
 
 		// verify that the vsock socket is under the socket dir and the VMM has bound to it
 		res := u.GetMVM(flintlockClient, *createdLong.Microvm.Spec.Uid)
@@ -139,6 +188,8 @@ func TestE2E(t *testing.T) {
 
 		return nil
 	}, "120s").Should(Succeed())
+
+	waitForBoot(provider, longMicroVMPath, longMvmID, longMvmNS, mvmPid3)
 
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
@@ -159,7 +210,7 @@ func TestE2E(t *testing.T) {
 		// verify that the socket dir has been removed
 		g.Expect(longSocketRoot).ToNot(BeAnExistingFile())
 
-		// verify that the firecracker processes are no longer running
+		// verify that the VMM processes are no longer running
 		g.Expect(u.PidRunning(mvmPid1)).To(BeFalse())
 		g.Expect(u.PidRunning(mvmPid2)).To(BeFalse())
 		g.Expect(u.PidRunning(mvmPid3)).To(BeFalse())

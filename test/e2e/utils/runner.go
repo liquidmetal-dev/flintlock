@@ -65,6 +65,7 @@ func NewRunner(params *Params) Runner {
 }
 
 // Setup is a helper for the e2e tests which:
+// - checks that the VMMs of the providers are on the PATH
 // - checks that the containerd on the PATH is a supported version
 // - sets up up devicemapper thinpools
 // - writes containerd config
@@ -76,6 +77,7 @@ func NewRunner(params *Params) Runner {
 // All opened connections and started processes are saved for later shutdown.
 // Teardown should be called before Setup in a defer.
 func (r *Runner) Setup() v1alpha1.MicroVMClient {
+	r.checkVMMs()
 	checkContainerdVersion()
 	makeDirectories()
 	r.createThinPools()
@@ -166,6 +168,19 @@ func ContainerdMajorVersion(versionOutput string) (int, error) {
 	}
 
 	return major, nil
+}
+
+// checkVMMs stops the test before anything is set up if a VMM is not
+// installed. flintlockd would start without it, and the microvm would stay
+// PENDING with nothing in the API that says why.
+func (r *Runner) checkVMMs() {
+	for _, provider := range r.params.Providers {
+		binary, version, err := provider.BinaryVersion()
+		gm.Expect(err).NotTo(gm.HaveOccurred(),
+			"the tests need the VMM of the %s provider, use -providers to run them without it", provider.Name)
+
+		log.Printf("TEST INFO: found the VMM of the %s provider at %s, version: %s", provider.Name, binary, version)
+	}
 }
 
 func checkContainerdVersion() {
@@ -328,15 +343,22 @@ func (r *Runner) startFlintlockd() {
 	parentIface, err := getParentInterface()
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 
-	//nolint: gosec // We know what we're doing.
-	flCmd := exec.Command(r.flintlockdBin, "run",
+	providerFlags, err := ProviderFlags(r.params.Providers)
+	gm.Expect(err).NotTo(gm.HaveOccurred())
+
+	args := []string{
+		"run",
 		"--containerd-socket", containerdSocket,
 		"--containerd-hosts-dir", HostsDir,
 		"--parent-iface", parentIface,
 		"--bridge-name", bridgeName,
 		"--verbosity", r.params.FlintlockdLogLevel,
 		"--insecure",
-	)
+	}
+	args = append(args, providerFlags...)
+
+	//nolint: gosec // We know what we're doing.
+	flCmd := exec.Command(r.flintlockdBin, args...)
 
 	log.Printf("TEST INFO: starting flintlockd with arguments: %s", strings.Join(flCmd.Args[1:], " "))
 

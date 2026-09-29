@@ -57,7 +57,7 @@ The table below shows you which versions of Firecracker are compatible with Flin
 
 | Flintlock         | Firecracker                      | Cloud Hypervisor  |
 | ----------------- | -------------------------------- | ----------------- |
-| v0.16.x           | Official v1.16+                  | v41.0             |
+| v0.16.x           | Official v1.16+                  | v48.0             |
 | v0.9.x            | Official v1.11+                  | v41.0             |
 | v0.8.x            | Official v1.10+                  | v41.0             |
 | v0.7.0            | Official v1.10+                  | v41.0             |
@@ -71,6 +71,8 @@ The table below shows you which versions of Firecracker are compatible with Flin
 | v0.1.0-alpha.8    | <= v0.25.2-macvtap               | **Not Supported** |
 
 > NOTE: we no longer support using the Weaveworks fork (with macvtap) of Firecracker. If you want macvtap then please use Cloud Hypervisor as the vm provider.
+
+> NOTE: Cloud Hypervisor before v48.0 does not start on some hosts with newer Intel CPUs, see [#1265](https://github.com/liquidmetal-dev/flintlock/issues/1265).
 
 ## License
 

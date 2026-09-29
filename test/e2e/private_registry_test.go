@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,9 +28,11 @@ func TestE2EPrivateRegistry(t *testing.T) {
 	}
 
 	var (
-		mvmID  = "mvm-private"
-		mvmNS  = "ns-private"
-		fcPath = "/var/lib/flintlock/vm/%s/%s/%s"
+		mvmID     = "mvm-private"
+		mvmNS     = "ns-private"
+		statePath = "/var/lib/flintlock/vm/%s/%s/%s"
+
+		provider = params.Providers[0]
 
 		mvmPid int
 	)
@@ -59,7 +61,7 @@ func TestE2EPrivateRegistry(t *testing.T) {
 	registry.Start()
 
 	log.Println("TEST STEP: copying the images to the private registry")
-	kernelImage := registry.Seed(u.DefaultKernelImage)
+	kernelImage := registry.Seed(provider.KernelImage)
 	rootImage := registry.Seed(u.DefaultRootImage)
 
 	log.Println("TEST STEP: verifying that the private registry requires authentication")
@@ -72,12 +74,17 @@ func TestE2EPrivateRegistry(t *testing.T) {
 	registry.WriteHostsConfig(u.HostsDir)
 
 	log.Println("TEST STEP: creating a MicroVM using images from the private registry")
-	created := u.CreateMVMWithImages(flintlockClient, mvmID, mvmNS, kernelImage, rootImage)
+	created := u.CreateMVMWithImages(flintlockClient, provider, mvmID, mvmNS, kernelImage, rootImage)
+
+	// The cleanup is set up before anything is checked, so that the microvm is
+	// also deleted when the first check fails.
+	microVMPath := fmt.Sprintf(statePath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+	defer cleanupOnFailure(t, flintlockClient, provider, microVMPath, mvmNS, *created.Microvm.Spec.Uid)
+
 	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
 	Expect(created.Microvm.Spec.Kernel.Image).To(Equal(kernelImage))
 	Expect(*created.Microvm.Spec.RootVolume.Source.ContainerSource).To(Equal(rootImage))
 
-	microVMPath := fmt.Sprintf(fcPath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
 	log.Printf("TEST INFO: MicroVM %s/%s has uid %s and state directory %s",
 		mvmNS, mvmID, *created.Microvm.Spec.Uid, microVMPath)
 
@@ -95,12 +102,12 @@ func TestE2EPrivateRegistry(t *testing.T) {
 			lastSeen = seen
 		}
 
-		g.Expect(microVMPath + "/firecracker.pid").To(BeAnExistingFile())
+		// verify that the VMM of the provider has started, that a pid has been
+		// saved and that there is actually a running process
+		pid, err := u.VerifyVMM(microVMPath, provider)
+		g.Expect(err).NotTo(HaveOccurred())
 
-		// verify that firecracker has started and that a pid has been saved
-		// and that there is actually a running process
-		mvmPid = u.ReadPID(microVMPath)
-		g.Expect(u.PidRunning(mvmPid)).To(BeTrue())
+		mvmPid = pid
 
 		// check the status
 		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
@@ -108,8 +115,10 @@ func TestE2EPrivateRegistry(t *testing.T) {
 		return nil
 	}, "120s").Should(Succeed())
 
-	log.Printf("TEST INFO: MicroVM %s/%s is running with firecracker pid %d, it took %s",
-		mvmNS, mvmID, mvmPid, time.Since(createStart).Round(time.Millisecond))
+	log.Printf("TEST INFO: MicroVM %s/%s is running with %s pid %d, it took %s",
+		mvmNS, mvmID, provider.Name, mvmPid, time.Since(createStart).Round(time.Millisecond))
+
+	waitForBoot(provider, microVMPath, mvmID, mvmNS, mvmPid)
 
 	log.Println("TEST STEP: verifying that the images were pulled from the private registry")
 	for _, image := range []string{kernelImage, rootImage} {
@@ -179,9 +188,11 @@ func TestE2EPrivateRegistryNoCredentials(t *testing.T) {
 	)
 
 	var (
-		mvmID  = "mvm-nocreds"
-		mvmNS  = "ns-nocreds"
-		fcPath = "/var/lib/flintlock/vm/%s/%s/%s"
+		mvmID     = "mvm-nocreds"
+		mvmNS     = "ns-nocreds"
+		statePath = "/var/lib/flintlock/vm/%s/%s/%s"
+
+		provider = params.Providers[0]
 	)
 
 	leaveRunning := params.SkipTeardown || params.SkipDelete
@@ -208,7 +219,7 @@ func TestE2EPrivateRegistryNoCredentials(t *testing.T) {
 	registry.Start()
 
 	log.Println("TEST STEP: copying the images to the private registry")
-	kernelImage := registry.Seed(u.DefaultKernelImage)
+	kernelImage := registry.Seed(provider.KernelImage)
 	rootImage := registry.Seed(u.DefaultRootImage)
 
 	log.Println("TEST STEP: verifying that the private registry requires authentication")
@@ -221,12 +232,15 @@ func TestE2EPrivateRegistryNoCredentials(t *testing.T) {
 	Expect(registry.HostsConfigPath(u.HostsDir)).NotTo(BeAnExistingFile())
 
 	log.Println("TEST STEP: creating a MicroVM using images from the private registry")
-	created := u.CreateMVMWithImages(flintlockClient, mvmID, mvmNS, kernelImage, rootImage)
+	created := u.CreateMVMWithImages(flintlockClient, provider, mvmID, mvmNS, kernelImage, rootImage)
+
+	microVMPath := fmt.Sprintf(statePath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
+	defer cleanupOnFailure(t, flintlockClient, provider, microVMPath, mvmNS, *created.Microvm.Spec.Uid)
+
 	Expect(created.Microvm.Spec.Id).To(Equal(mvmID))
 	Expect(created.Microvm.Spec.Kernel.Image).To(Equal(kernelImage))
 	Expect(*created.Microvm.Spec.RootVolume.Source.ContainerSource).To(Equal(rootImage))
 
-	microVMPath := fmt.Sprintf(fcPath, mvmNS, mvmID, *created.Microvm.Spec.Uid)
 	log.Printf("TEST INFO: MicroVM %s/%s has uid %s and state directory %s",
 		mvmNS, mvmID, *created.Microvm.Spec.Uid, microVMPath)
 
@@ -249,8 +263,12 @@ func TestE2EPrivateRegistryNoCredentials(t *testing.T) {
 				res.Microvm.Status.State))
 		}
 
-		if _, err := os.Stat(microVMPath + "/firecracker.pid"); err == nil {
-			return StopTrying("firecracker was started, without the credentials there must be no firecracker.pid")
+		// The pid files of all of the providers are checked. If only the one of
+		// the provider of the microvm was, the test would not see a VMM which
+		// was started by another provider.
+		if pidFiles := u.VMMPidFiles(microVMPath); len(pidFiles) > 0 {
+			return StopTrying(fmt.Sprintf("a VMM was started, without the credentials there must be no pid file: %s",
+				strings.Join(pidFiles, ", ")))
 		}
 
 		g.Expect(res.Microvm.Status.Retry).To(BeNumerically(">=", minRetries))
