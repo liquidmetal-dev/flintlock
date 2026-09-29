@@ -123,6 +123,9 @@ func TestE2ECloudHypervisorKernelWithoutPVH(t *testing.T) {
 
 	log.Printf("TEST INFO: no VMM is running for MicroVM %s/%s and its guest has not booted", mvmNS, mvmID)
 
+	// flintlockd removes the state directory when the microvm is deleted.
+	saveArtefacts(t, microVMPath)
+
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
 
@@ -279,6 +282,9 @@ func runGuestWithoutInit(t *testing.T, flintlockClient v1alpha1.MicroVMClient, p
 	}, noBootDuration, noBootPolling).Should(Succeed())
 
 	log.Printf("TEST INFO: the guest of MicroVM %s/%s has not booted", mvmNS, mvmID)
+
+	// flintlockd removes the state directory when the microvm is deleted.
+	saveArtefacts(t, microVMPath)
 
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")

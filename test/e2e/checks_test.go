@@ -6,6 +6,7 @@ package e2e_test
 import (
 	"fmt"
 	"log"
+	"strings"
 	"testing"
 	"time"
 
@@ -93,6 +94,7 @@ func cleanupOnFailure(
 	}
 
 	u.DumpDiagnostics(stateDir, provider)
+	saveArtefacts(t, stateDir)
 
 	if params.SkipDelete || params.SkipTeardown {
 		return
@@ -110,4 +112,33 @@ func cleanupOnFailure(
 	}
 
 	log.Printf("TEST INFO: MicroVM %s is deleted", uid)
+}
+
+// saveArtefacts copies the files of the state directory of a microvm to the
+// directory of the artefacts, if the tests were given one. It has to be called
+// before the microvm is deleted: flintlockd removes the state directory then.
+//
+// What cannot be saved is logged and does not fail the test.
+func saveArtefacts(t *testing.T, stateDir string) {
+	t.Helper()
+
+	if params.ArtefactsDir == "" {
+		return
+	}
+
+	dest := u.ArtefactsPath(params.ArtefactsDir, t.Name(), stateDir)
+
+	saved, skipped, err := u.SaveStateFiles(stateDir, dest)
+	if err != nil {
+		log.Printf("TEST INFO: not all of the files of %s are saved: %s", stateDir, err)
+	}
+
+	if len(saved) == 0 {
+		log.Printf("TEST INFO: %s has no files to save (skipped: %s)", stateDir, strings.Join(skipped, ", "))
+
+		return
+	}
+
+	log.Printf("TEST INFO: saved %d files of %s to %s: %s (skipped: %s)",
+		len(saved), stateDir, dest, strings.Join(saved, ", "), strings.Join(skipped, ", "))
 }

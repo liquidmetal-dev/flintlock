@@ -191,6 +191,11 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 
 	waitForBoot(provider, longMicroVMPath, longMvmID, longMvmNS, mvmPid3)
 
+	// flintlockd removes the state directory when the microvm is deleted.
+	saveArtefacts(t, firstMicroVMPath)
+	saveArtefacts(t, secondMicroVMPath)
+	saveArtefacts(t, longMicroVMPath)
+
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
 		return

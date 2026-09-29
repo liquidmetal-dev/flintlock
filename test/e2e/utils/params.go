@@ -18,6 +18,10 @@ type Params struct {
 	ContainerdLogLevel string
 	FlintlockdLogLevel string
 	ThinpoolName       string
+	// ArtefactsDir is where the files of the state directory of each microvm
+	// are saved to before the microvm is deleted. Nothing is saved if it is
+	// empty.
+	ArtefactsDir string
 	// Providers are the microvm providers to run the tests with. The first one
 	// is the default provider of flintlockd.
 	Providers []Provider
@@ -57,6 +61,11 @@ func NewParams() *Params {
 	flag.BoolVar(&params.SkipTeardown, "skip.teardown", false, "Do not stop containerd or flintlockd after test exit (note: will require manual cleanup)")
 	flag.StringVar(&params.ContainerdLogLevel, "level.containerd", "debug", "Set containerd's log level [trace, *debug*, info, warn, error, fatal, panic]")
 	flag.StringVar(&params.FlintlockdLogLevel, "level.flintlockd", "0", "Set flintlockd's log level [A level of 2 and above is debug logging. A level of 9 and above is tracing.]")
+
+	artefactsUsage := "Directory to save the files of the state directory of each MicroVM to, " +
+		"before the MicroVM is deleted. Nothing is saved if it is not set"
+
+	flag.StringVar(&params.ArtefactsDir, "artefacts.dir", "", artefactsUsage)
 
 	flag.Parse()
 
