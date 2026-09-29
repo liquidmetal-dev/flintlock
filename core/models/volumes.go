@@ -4,7 +4,8 @@ package models
 type Volume struct {
 	// ID is the uinique identifier of the volume.
 	ID string `json:"id"`
-	// IsReadOnly specifies that the volume is to be mounted readonly.
+	// IsReadOnly specifies that the volume is to be mounted readonly. It is not supported
+	// for a virtiofs volume, and a spec that sets it for one is rejected.
 	IsReadOnly bool `json:"is_read_only,omitempty"`
 	// Source is where the volume will be sourced from.
 	Source VolumeSource `json:"source"`

@@ -295,7 +295,8 @@ func diskArg(drive models.Drive) string {
 	return arg
 }
 
-// buildVirtioFSArgs returns one --fs option per virtiofs volume.
+// buildVirtioFSArgs returns one --fs option per virtiofs volume. The option has no
+// read-only setting, which is why validation rejects a read-only virtiofs volume.
 func (p *provider) buildVirtioFSArgs(vm *models.MicroVM) ([]string, error) {
 	args := []string{}
 

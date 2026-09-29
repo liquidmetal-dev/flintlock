@@ -189,6 +189,72 @@ func TestValidation_Invalid(t *testing.T) {
 	}
 }
 
+func TestValidation_ReadOnlyVirtioFS(t *testing.T) {
+	virtioFS := func(readOnly bool) models.Volume {
+		return models.Volume{
+			ID:         "shared",
+			IsReadOnly: readOnly,
+			Source: models.VolumeSource{
+				VirtioFS: &models.VirtioFSVolumeSource{Path: "/shared"},
+			},
+		}
+	}
+	container := func(readOnly bool) models.Volume {
+		return models.Volume{
+			ID:         "data",
+			IsReadOnly: readOnly,
+			Source: models.VolumeSource{
+				Container: &models.ContainerVolumeSource{Image: "docker.io/library/ubuntu:latest"},
+			},
+		}
+	}
+
+	tt := []struct {
+		name           string
+		rootIsReadOnly bool
+		volumes        models.Volumes
+		valid          bool
+	}{
+		{name: "read-only virtiofs volume", volumes: models.Volumes{virtioFS(true)}, valid: false},
+		{name: "writable virtiofs volume", volumes: models.Volumes{virtioFS(false)}, valid: true},
+		{name: "read-only container volume", volumes: models.Volumes{container(true)}, valid: true},
+		{
+			name:    "writable virtiofs volume and read-only container volume",
+			volumes: models.Volumes{virtioFS(false), container(true)},
+			valid:   true,
+		},
+		{name: "read-only root volume and no additional volumes", rootIsReadOnly: true, valid: true},
+	}
+
+	val := NewValidator()
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			vm := basicMicroVM
+			vm.Spec.RootVolume.IsReadOnly = tc.rootIsReadOnly
+			vm.Spec.AdditionalVolumes = tc.volumes
+
+			err := val.ValidateStruct(vm)
+
+			if tc.valid {
+				Expect(err).NotTo(HaveOccurred())
+
+				return
+			}
+
+			Expect(err).To(HaveOccurred())
+
+			var valErrors validator.ValidationErrors
+
+			Expect(errors.As(err, &valErrors)).To(BeTrue())
+			Expect(valErrors).To(HaveLen(1))
+			Expect(valErrors[0].Tag()).To(Equal("noReadOnlyVirtioFS"))
+		})
+	}
+}
+
 var basicMicroVM = models.MicroVM{
 	Spec: models.MicroVMSpec{
 		VCPU:       2,
