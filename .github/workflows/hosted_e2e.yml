@@ -177,6 +177,9 @@ jobs:
           name: e2e-microvm-state-${{ github.run_attempt }}
           path: ${{ runner.temp }}/e2e-artefacts
           if-no-files-found: warn
+          # The files of a state directory are saved whatever their names are.
+          # The directory only has what was copied from the state directories.
+          include-hidden-files: true
 
       - name: Cleanup e2e resources
         if: always()
