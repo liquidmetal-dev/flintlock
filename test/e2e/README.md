@@ -95,7 +95,9 @@ fills in the uptime. The console of the guest is the `<provider>.stdout` file in
 the state directory of the MicroVM.
 
 When a test fails, it logs the end of the console, the stderr and the log of
-the VMM, and deletes its MicroVMs.
+the VMM, and deletes its MicroVMs. The whole files are saved if the tests are
+run with the `artefacts.dir` flag, see
+[Saving the files of the MicroVMs](#saving-the-files-of-the-microvms).
 
 ### Kernel images
 
@@ -174,6 +176,23 @@ thinpools and a `fl-e2e-br0` bridge for the microVM TAP interfaces, write
 containerd configuration under `/etc`, and manage runtime state under `/run`
 and `/var/lib`.
 
+The workflow runs the tests with the `artefacts.dir` flag, and uploads what
+they have saved as the `e2e-microvm-state-<attempt>` artefact of the run, for
+the runs which pass and for the ones which fail. It has the console of the
+guest and the stderr, the log and the config of the VMM of each of the
+MicroVMs, see
+[Saving the files of the MicroVMs](#saving-the-files-of-the-microvms). To get
+the artefact of a run:
+
+```bash
+gh run download <run id> --name e2e-microvm-state-1
+```
+
+The tests do not save anything when they are stopped, by their timeout or by a
+panic. The state directories of their MicroVMs are still there then, and the
+workflow copies the files of them to the `left-behind` directory of the
+artefact. It has no such directory when all of the MicroVMs were deleted.
+
 ### Configuration
 
 There are a couple of custom test flags which you can set to alter the behaviour
@@ -188,6 +207,9 @@ At the time of writing these are:
   Like `skip.delete`, this also leaves the `fl-e2e-br0` bridge behind.
 - `level.containerd`: set the containerd log level.
 - `level.flintlockd`: set the flintlockd log level.
+- `artefacts.dir`: the directory to save the files of the state directory of
+  each MicroVM to. Nothing is saved if it is not set, see
+  [Saving the files of the MicroVMs](#saving-the-files-of-the-microvms).
 - `providers`: comma separated list of the microvm providers to run the tests
   with. The default is `firecracker,cloudhypervisor`. The first one is the
   default provider of flintlockd, and the one which the private registry tests
@@ -214,6 +236,47 @@ test to debug:
 ```bash
 ./test/e2e/test.sh -run '^TestE2EPrivateRegistry$' -skip.delete
 ```
+
+### Saving the files of the MicroVMs
+
+flintlockd removes the state directory of a MicroVM when the MicroVM is
+deleted, and with it the console of the guest and the log of the VMM. With the
+`artefacts.dir` flag the tests copy the files of the state directory before
+they delete a MicroVM, for the tests which pass and for the ones which fail:
+
+```bash
+./test/e2e/test.sh -artefacts.dir /tmp/flintlock-e2e-artefacts
+```
+
+Use an absolute path: `go test` runs the tests in `test/e2e`, and not in the
+directory which it was started from.
+
+Each MicroVM has a directory with the name of its test, its namespace, its name
+and its uid:
+
+```text
+/tmp/flintlock-e2e-artefacts/TestE2E/firecracker/firecracker-ns0/mvm0/<uid>/
+    firecracker.cfg
+    firecracker.log
+    firecracker.metrics
+    firecracker.pid
+    firecracker.stderr
+    firecracker.stdout
+    metadata.json
+```
+
+| What | Saved |
+|---|---|
+| The regular files of the state directory, whatever their names are | Yes |
+| Disk images (`*.img`), such as the `cloud-init.img` of a Cloud Hypervisor MicroVM | No |
+| Sockets, links and directories | No |
+
+The files are copied before the delete, so they do not have what the VMM wrote
+while it was stopped. A MicroVM which flintlockd has not started to create has
+no state directory, and gets no directory here.
+
+The tests log what they have saved in a `TEST INFO:` line. A file which cannot
+be saved is logged and does not fail the test.
 
 ### Following the progress
 

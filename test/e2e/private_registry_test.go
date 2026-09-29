@@ -140,6 +140,9 @@ func TestE2EPrivateRegistry(t *testing.T) {
 		), "the registry refused a request for %s", image)
 	}
 
+	// flintlockd removes the state directory when the microvm is deleted.
+	saveArtefacts(t, microVMPath)
+
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")
 
@@ -296,6 +299,9 @@ func TestE2EPrivateRegistryNoCredentials(t *testing.T) {
 			HaveField("Path", ContainSubstring("/blobs/")),
 		), "flintlockd asked the registry for the blobs of %s", image)
 	}
+
+	// flintlockd removes the state directory when the microvm is deleted.
+	saveArtefacts(t, microVMPath)
 
 	if params.SkipDelete {
 		log.Println("TEST STEP: skipping delete")

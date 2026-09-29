@@ -1336,3 +1336,186 @@ func TestConsoleLine(t *testing.T) {
 		})
 	}
 }
+
+func TestArtefactsPath(t *testing.T) {
+	tt := []struct {
+		name     string
+		testName string
+		stateDir string
+		expected string
+	}{
+		{
+			name:     "test",
+			testName: "TestE2EPrivateRegistry",
+			stateDir: "/var/lib/flintlock/vm/ns-private/mvm-private/01J8Z",
+			expected: "/artefacts/TestE2EPrivateRegistry/ns-private/mvm-private/01J8Z",
+		},
+		{
+			name:     "subtest",
+			testName: "TestE2E/firecracker",
+			stateDir: "/var/lib/flintlock/vm/firecracker-ns0/mvm0/01J8Z",
+			expected: "/artefacts/TestE2E/firecracker/firecracker-ns0/mvm0/01J8Z",
+		},
+		{
+			name:     "state directory which ends with a separator",
+			testName: "TestE2E/firecracker",
+			stateDir: "/var/lib/flintlock/vm/firecracker-ns0/mvm0/01J8Z/",
+			expected: "/artefacts/TestE2E/firecracker/firecracker-ns0/mvm0/01J8Z",
+		},
+		{
+			name:     "state directory which is not as deep as the one of a microvm",
+			testName: "TestE2E/firecracker",
+			stateDir: "/mvm0/01J8Z",
+			expected: "/artefacts/TestE2E/firecracker/mvm0/01J8Z",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(u.ArtefactsPath("/artefacts", tc.testName, tc.stateDir)).To(Equal(tc.expected))
+		})
+	}
+}
+
+func TestSaveStateFiles(t *testing.T) {
+	g := NewWithT(t)
+
+	stateDir := t.TempDir()
+	artefactsDir := t.TempDir()
+	destDir := filepath.Join(artefactsDir, "TestE2E", "firecracker", "ns0", "mvm0", "01J8Z")
+
+	files := map[string]string{
+		// A file is saved whatever its name is.
+		".hidden.log":        "hidden\n",
+		"firecracker.cfg":    `{"boot-source":{}}`,
+		"firecracker.log":    "the log\n",
+		"firecracker.stderr": "",
+		"firecracker.stdout": "the console\n",
+	}
+	for name, content := range files {
+		// The copies must be readable by a user who cannot read the files.
+		g.Expect(os.WriteFile(filepath.Join(stateDir, name), []byte(content), 0o600)).To(Succeed())
+	}
+
+	// What is not a file with text is not saved.
+	g.Expect(os.WriteFile(filepath.Join(stateDir, "cloud-init.img"), []byte("disk"), 0o600)).To(Succeed())
+	g.Expect(os.Mkdir(filepath.Join(stateDir, "directory"), 0o700)).To(Succeed())
+	g.Expect(os.WriteFile(filepath.Join(stateDir, "directory", "nested.log"), []byte("nested"), 0o600)).To(Succeed())
+	g.Expect(os.Symlink(filepath.Join(stateDir, "firecracker.log"), filepath.Join(stateDir, "link.log"))).To(Succeed())
+
+	listener, err := net.Listen("unix", filepath.Join(stateDir, "firecracker.sock"))
+	g.Expect(err).NotTo(HaveOccurred())
+
+	defer listener.Close()
+
+	saved, skipped, err := u.SaveStateFiles(stateDir, destDir)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(saved).To(Equal([]string{
+		".hidden.log", "firecracker.cfg", "firecracker.log", "firecracker.stderr", "firecracker.stdout",
+	}))
+	g.Expect(skipped).To(Equal([]string{"cloud-init.img", "directory", "firecracker.sock", "link.log"}))
+
+	entries, err := os.ReadDir(destDir)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(entries).To(HaveLen(len(files)))
+
+	for name, content := range files {
+		copied := filepath.Join(destDir, name)
+
+		g.Expect(os.ReadFile(copied)).To(Equal([]byte(content)), name)
+
+		info, err := os.Stat(copied)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o644)), name)
+	}
+
+	// The directories above the files have to be readable as well.
+	for dir := destDir; dir != artefactsDir; dir = filepath.Dir(dir) {
+		info, err := os.Stat(dir)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o755)), dir)
+	}
+
+	// A test which fails after it has saved the files saves them again. The
+	// console has more lines by then, and can have fewer if the VMM was started
+	// again.
+	g.Expect(os.WriteFile(filepath.Join(stateDir, "firecracker.stdout"), []byte("other\n"), 0o600)).To(Succeed())
+	g.Expect(os.Remove(filepath.Join(stateDir, "firecracker.cfg"))).To(Succeed())
+
+	saved, _, err = u.SaveStateFiles(stateDir, destDir)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(saved).To(Equal([]string{".hidden.log", "firecracker.log", "firecracker.stderr", "firecracker.stdout"}))
+	g.Expect(os.ReadFile(filepath.Join(destDir, "firecracker.stdout"))).To(Equal([]byte("other\n")))
+	g.Expect(os.ReadFile(filepath.Join(destDir, "firecracker.cfg"))).To(Equal([]byte(files["firecracker.cfg"])))
+}
+
+func TestSaveStateFilesWithoutFiles(t *testing.T) {
+	tt := []struct {
+		name     string
+		stateDir func(g Gomega, dir string) string
+	}{
+		{
+			// flintlockd has not started to create the microvm, or has deleted it.
+			name: "no state directory",
+			stateDir: func(_ Gomega, dir string) string {
+				return filepath.Join(dir, "missing")
+			},
+		},
+		{
+			name: "state directory without files",
+			stateDir: func(_ Gomega, dir string) string {
+				return dir
+			},
+		},
+		{
+			name: "state directory with a disk image only",
+			stateDir: func(g Gomega, dir string) string {
+				g.Expect(os.WriteFile(filepath.Join(dir, "cloud-init.img"), []byte("disk"), 0o600)).To(Succeed())
+
+				return dir
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			destDir := filepath.Join(t.TempDir(), "saved")
+
+			saved, _, err := u.SaveStateFiles(tc.stateDir(g, t.TempDir()), destDir)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(saved).To(BeEmpty())
+
+			// There is no directory in the artefact for a microvm without files.
+			g.Expect(destDir).NotTo(BeADirectory())
+		})
+	}
+}
+
+func TestSaveStateFilesReportsWhatItCannotSave(t *testing.T) {
+	g := NewWithT(t)
+
+	stateDir := t.TempDir()
+	g.Expect(os.WriteFile(filepath.Join(stateDir, "firecracker.log"), []byte("the log\n"), 0o600)).To(Succeed())
+	g.Expect(os.WriteFile(filepath.Join(stateDir, "firecracker.stdout"), []byte("the console\n"), 0o600)).To(Succeed())
+
+	// The file with the name of the directory is in the way.
+	inTheWay := filepath.Join(t.TempDir(), "saved")
+	g.Expect(os.WriteFile(inTheWay, []byte("file"), 0o600)).To(Succeed())
+
+	saved, _, err := u.SaveStateFiles(stateDir, inTheWay)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(saved).To(BeEmpty())
+
+	// One file which cannot be saved does not stop the others.
+	destDir := filepath.Join(t.TempDir(), "saved")
+	g.Expect(os.MkdirAll(filepath.Join(destDir, "firecracker.log"), 0o700)).To(Succeed())
+
+	saved, _, err = u.SaveStateFiles(stateDir, destDir)
+	g.Expect(err).To(MatchError(ContainSubstring("firecracker.log")))
+	g.Expect(saved).To(Equal([]string{"firecracker.stdout"}))
+	g.Expect(os.ReadFile(filepath.Join(destDir, "firecracker.stdout"))).To(Equal([]byte("the console\n")))
+}
