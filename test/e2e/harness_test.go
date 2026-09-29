@@ -1387,6 +1387,8 @@ func TestSaveStateFiles(t *testing.T) {
 	destDir := filepath.Join(artefactsDir, "TestE2E", "firecracker", "ns0", "mvm0", "01J8Z")
 
 	files := map[string]string{
+		// A file is saved whatever its name is.
+		".hidden.log":        "hidden\n",
 		"firecracker.cfg":    `{"boot-source":{}}`,
 		"firecracker.log":    "the log\n",
 		"firecracker.stderr": "",
@@ -1411,7 +1413,7 @@ func TestSaveStateFiles(t *testing.T) {
 	saved, skipped, err := u.SaveStateFiles(stateDir, destDir)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(saved).To(Equal([]string{
-		"firecracker.cfg", "firecracker.log", "firecracker.stderr", "firecracker.stdout",
+		".hidden.log", "firecracker.cfg", "firecracker.log", "firecracker.stderr", "firecracker.stdout",
 	}))
 	g.Expect(skipped).To(Equal([]string{"cloud-init.img", "directory", "firecracker.sock", "link.log"}))
 
@@ -1444,7 +1446,7 @@ func TestSaveStateFiles(t *testing.T) {
 
 	saved, _, err = u.SaveStateFiles(stateDir, destDir)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(saved).To(Equal([]string{"firecracker.log", "firecracker.stderr", "firecracker.stdout"}))
+	g.Expect(saved).To(Equal([]string{".hidden.log", "firecracker.log", "firecracker.stderr", "firecracker.stdout"}))
 	g.Expect(os.ReadFile(filepath.Join(destDir, "firecracker.stdout"))).To(Equal([]byte("other\n")))
 	g.Expect(os.ReadFile(filepath.Join(destDir, "firecracker.cfg"))).To(Equal([]byte(files["firecracker.cfg"])))
 }
