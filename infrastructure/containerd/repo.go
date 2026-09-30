@@ -32,7 +32,7 @@ func NewMicroVMRepo(cfg *Config) (ports.MicroVMRepository, error) {
 }
 
 // NewMicroVMRepoWithClient will create a new containerd backed microvm repository with the supplied containerd client.
-func NewMicroVMRepoWithClient(cfg *Config, client *containerd.Client) ports.MicroVMRepository {
+func NewMicroVMRepoWithClient(cfg *Config, client Client) ports.MicroVMRepository {
 	return &containerdRepo{
 		client: client,
 		config: cfg,
@@ -41,7 +41,7 @@ func NewMicroVMRepoWithClient(cfg *Config, client *containerd.Client) ports.Micr
 }
 
 type containerdRepo struct {
-	client *containerd.Client
+	client Client
 	config *Config
 
 	locks   map[string]*sync.RWMutex
