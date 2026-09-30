@@ -98,11 +98,13 @@ jobs:
 
           # The script does not compare the version of the binary with the one
           # which was asked for. The binary of the tag v48.0 reports v48.0.0,
-          # and the one of the tag v53.0 reports v53.0.
+          # and the one of the tag v53.0 reports v53.0. The binary of v53.0
+          # prints the migration protocol versions on a second line, so only
+          # the first line is compared.
           if [[ "${CLOUD_HYPERVISOR}" == "latest" ]]; then
             echo "The version of the latest release is not known, it is not compared."
           else
-            installed="$(cloud-hypervisor-static --version)"
+            installed="$(cloud-hypervisor-static --version | head -n 1)"
             wanted="cloud-hypervisor ${CLOUD_HYPERVISOR}"
 
             if [[ "${installed}" != "${wanted}" && "${installed}" != "${wanted}.0" ]]; then
