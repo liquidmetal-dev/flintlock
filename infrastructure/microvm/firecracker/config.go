@@ -68,37 +68,12 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			cfg.Mmds.NetworkInterfaces = mmdsNetDevices
 		}
 
-		cfg.BlockDevices = []BlockDeviceConfig{}
-
-		rootVolumeStatus, volumeStatusFound := vm.Status.Volumes[vm.Spec.RootVolume.ID]
-		if !volumeStatusFound {
-			return errors.NewVolumeNotMounted(vm.Spec.RootVolume.ID)
+		blockDevices, err := buildBlockDevices(vm)
+		if err != nil {
+			return err
 		}
 
-		cfg.BlockDevices = append(cfg.BlockDevices, BlockDeviceConfig{
-			ID:           vm.Spec.RootVolume.ID,
-			IsReadOnly:   vm.Spec.RootVolume.IsReadOnly,
-			IsRootDevice: true,
-			PathOnHost:   rootVolumeStatus.Mount.Source,
-			CacheType:    CacheTypeUnsafe,
-		})
-
-		for _, vol := range vm.Spec.AdditionalVolumes {
-			status, ok := vm.Status.Volumes[vol.ID]
-			if !ok {
-				return errors.NewVolumeNotMounted(vol.ID)
-			}
-
-			cfg.BlockDevices = append(cfg.BlockDevices, BlockDeviceConfig{
-				ID:           vol.ID,
-				IsReadOnly:   vol.IsReadOnly,
-				IsRootDevice: false,
-				PathOnHost:   status.Mount.Source,
-				// Partuuid: ,
-				// RateLimiter: ,
-				CacheType: CacheTypeUnsafe,
-			})
-		}
+		cfg.BlockDevices = blockDevices
 
 		kernelCmdLine := DefaultKernelCmdLine()
 
@@ -124,6 +99,33 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 
 		return nil
 	}
+}
+
+// buildBlockDevices returns one block device per drive, in the order the
+// guest sees the drives.
+func buildBlockDevices(vm *models.MicroVM) ([]BlockDeviceConfig, error) {
+	drives, err := shared.BuildDrives(vm, shared.DriveOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("building drives: %w", err)
+	}
+
+	blockDevices := []BlockDeviceConfig{}
+
+	for _, drive := range drives {
+		if _, ok := vm.Status.Volumes[drive.VolumeID]; !ok {
+			return nil, errors.NewVolumeNotMounted(drive.VolumeID)
+		}
+
+		blockDevices = append(blockDevices, BlockDeviceConfig{
+			ID:           drive.ID,
+			IsReadOnly:   drive.ReadOnly,
+			IsRootDevice: drive.Role == models.DriveRoleRoot,
+			PathOnHost:   drive.Path,
+			CacheType:    CacheTypeUnsafe,
+		})
+	}
+
+	return blockDevices, nil
 }
 
 // buildBootSource resolves the kernel (and optional initrd) paths within their image

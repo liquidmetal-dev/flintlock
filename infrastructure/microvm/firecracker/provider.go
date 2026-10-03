@@ -65,6 +65,17 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 	}
 }
 
+// Drives returns the drives the Firecracker provider presents to a microvm,
+// in the order the guest sees them.
+func (p *fcProvider) Drives(vm *models.MicroVM) (models.Drives, error) {
+	drives, err := shared.BuildDrives(vm, shared.DriveOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("building drives: %w", err)
+	}
+
+	return drives, nil
+}
+
 // Start will start a created microvm.
 // With configuration file, we don't really have start.  A separate Start and
 // Create steps is a good idea, but the right now steps are still coupled with

@@ -14,6 +14,10 @@ import (
 type MicroVMService interface {
 	// Capabilities returns a list of the capabilities the provider supports.
 	Capabilities() models.Capabilities
+	// Drives returns the drives the provider presents to a microvm, in the
+	// order the guest sees them. The path of a drive is empty until its
+	// volume has been mounted.
+	Drives(vm *models.MicroVM) (models.Drives, error)
 
 	// Create will create a new microvm.
 	Create(ctx context.Context, vm *models.MicroVM) error

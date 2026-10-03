@@ -86,7 +86,7 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding image steps: %w", err)
 	}
 	if len(p.vm.Spec.AdditionalVolumes) > 0 {
-		if err := p.addStep(ctx, cloudinit.NewDiskMountStep(p.vm)); err != nil {
+		if err := p.addStep(ctx, cloudinit.NewDiskMountStep(p.vm, provider)); err != nil {
 			return nil, fmt.Errorf("adding mount step: %w", err)
 		}
 	}

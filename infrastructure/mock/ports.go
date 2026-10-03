@@ -78,6 +78,21 @@ func (mr *MockMicroVMServiceMockRecorder) Delete(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockMicroVMService)(nil).Delete), arg0, arg1)
 }
 
+// Drives mocks base method.
+func (m *MockMicroVMService) Drives(arg0 *models.MicroVM) (models.Drives, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Drives", arg0)
+	ret0, _ := ret[0].(models.Drives)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Drives indicates an expected call of Drives.
+func (mr *MockMicroVMServiceMockRecorder) Drives(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Drives", reflect.TypeOf((*MockMicroVMService)(nil).Drives), arg0)
+}
+
 // Metrics mocks base method.
 func (m *MockMicroVMService) Metrics(arg0 context.Context, arg1 models.VMID) (ports.MachineMetrics, error) {
 	m.ctrl.T.Helper()

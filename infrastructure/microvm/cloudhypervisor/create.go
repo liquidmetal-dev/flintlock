@@ -156,30 +156,22 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 	args = append(args, "--cpus", cpusArg)
 
-	// Volumes (root, additional, metadata)
-	rootVolumeStatus, volumeStatusFound := vm.Status.Volumes[vm.Spec.RootVolume.ID]
-	if !volumeStatusFound {
-		return nil, cerrors.NewVolumeNotMounted(vm.Spec.RootVolume.ID)
+	// Volumes (root, metadata, additional)
+	diskArgs, err := p.buildDiskArgs(vm, state)
+	if err != nil {
+		return nil, err
 	}
-	args = append(args, "--disk", "path="+rootVolumeStatus.Mount.Source)
-	args = append(args, fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()))
 
-	hasVirtioFS := false
-	for _, vol := range vm.Spec.AdditionalVolumes {
-		status, ok := vm.Status.Volumes[vol.ID]
-		if !ok {
-			return nil, cerrors.NewVolumeNotMounted(vol.ID)
-		}
-		if vol.Source.VirtioFS != nil {
-			vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
-			args = append(args, "--fs",
-				fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.ResolveVirtioFSPath()))
-			hasVirtioFS = true
-		} else {
-			args = append(args, "path="+status.Mount.Source)
-		}
+	args = append(args, diskArgs...)
+
+	fsArgs, err := p.buildVirtioFSArgs(vm)
+	if err != nil {
+		return nil, err
 	}
-	if hasVirtioFS {
+
+	args = append(args, fsArgs...)
+
+	if len(fsArgs) > 0 {
 		args = append(args, "--memory", fmt.Sprintf("size=%dM,shared=on", vm.Spec.MemoryInMb))
 	} else {
 		args = append(args, "--memory", fmt.Sprintf("size=%dM", vm.Spec.MemoryInMb))
@@ -213,6 +205,60 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	if vm.Spec.AllowGuestAgent {
 		args = append(args, "--vsock",
 			fmt.Sprintf("cid=%d,socket=%s", defaults.GuestAgentVsockCID, state.VSockPath()))
+	}
+
+	return args, nil
+}
+
+// buildDiskArgs returns the --disk option followed by one value per drive, in
+// the order the guest sees the drives.
+func (p *provider) buildDiskArgs(vm *models.MicroVM, state State) ([]string, error) {
+	drives, err := shared.BuildDrives(vm, shared.DriveOptions{CloudInitImage: state.CloudInitImage()})
+	if err != nil {
+		return nil, fmt.Errorf("building drives: %w", err)
+	}
+
+	args := []string{"--disk"}
+
+	for _, drive := range drives {
+		if drive.Role != models.DriveRoleCloudInit {
+			if _, ok := vm.Status.Volumes[drive.VolumeID]; !ok {
+				return nil, cerrors.NewVolumeNotMounted(drive.VolumeID)
+			}
+		}
+
+		args = append(args, diskArg(drive))
+	}
+
+	return args, nil
+}
+
+func diskArg(drive models.Drive) string {
+	arg := "path=" + drive.Path
+
+	if drive.Role == models.DriveRoleCloudInit {
+		arg += ",readonly=on"
+	}
+
+	return arg
+}
+
+// buildVirtioFSArgs returns one --fs option per virtiofs volume.
+func (p *provider) buildVirtioFSArgs(vm *models.MicroVM) ([]string, error) {
+	args := []string{}
+
+	for _, vol := range vm.Spec.AdditionalVolumes {
+		if vol.Source.VirtioFS == nil {
+			continue
+		}
+
+		if _, ok := vm.Status.Volumes[vol.ID]; !ok {
+			return nil, cerrors.NewVolumeNotMounted(vol.ID)
+		}
+
+		vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+		args = append(args, "--fs",
+			fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.ResolveVirtioFSPath()))
 	}
 
 	return args, nil

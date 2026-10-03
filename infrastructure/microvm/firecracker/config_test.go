@@ -148,3 +148,58 @@ func TestWithMicroVM_InitrdPathTraversalRejected(t *testing.T) {
 	_, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
 	g.Expect(err).To(g.MatchError(errors.ErrInvalidImageFilePath))
 }
+
+func TestWithMicroVM_BlockDevicesInGuestOrder(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.RootVolume.IsReadOnly = true
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}, {ID: "logs", IsReadOnly: true}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+	vm.Status.Volumes["logs"] = &models.VolumeStatus{Mount: models.Mount{Source: "/logs.img"}}
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cfg.BlockDevices).To(g.Equal([]firecracker.BlockDeviceConfig{
+		{
+			ID:           "root",
+			PathOnHost:   "/root.img",
+			IsRootDevice: true,
+			IsReadOnly:   true,
+			CacheType:    firecracker.CacheTypeUnsafe,
+		},
+		{ID: "data", PathOnHost: "/data.img", CacheType: firecracker.CacheTypeUnsafe},
+		{ID: "logs", PathOnHost: "/logs.img", IsReadOnly: true, CacheType: firecracker.CacheTypeUnsafe},
+	}))
+}
+
+func TestWithMicroVM_AdditionalVolumeNotMounted(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+
+	_, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).To(g.MatchError(errors.NewVolumeNotMounted("data")))
+}
+
+func TestProviderDrives(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+
+	provider := firecracker.New(&firecracker.Config{}, nil, afero.NewMemMapFs())
+
+	drives, err := provider.Drives(vm)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(drives).To(g.HaveLen(2))
+	g.Expect(drives[0].GuestDevice).To(g.Equal("vda"))
+
+	device, found := drives.GuestDeviceForVolume("data")
+	g.Expect(found).To(g.BeTrue())
+	g.Expect(device).To(g.Equal("vdb"))
+}

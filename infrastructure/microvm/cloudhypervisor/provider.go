@@ -13,6 +13,7 @@ import (
 	cerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
@@ -65,6 +66,24 @@ func (p *provider) Capabilities() models.Capabilities {
 		models.VirtioFSCapability,
 		models.VSockCapability,
 	}
+}
+
+// Drives returns the drives the Cloud Hypervisor provider presents to a
+// microvm, in the order the guest sees them. The cloud-init image is the
+// drive after the root volume.
+func (p *provider) Drives(vm *models.MicroVM) (models.Drives, error) {
+	if vm == nil {
+		return nil, cerrs.ErrSpecRequired
+	}
+
+	state := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+
+	drives, err := shared.BuildDrives(vm, shared.DriveOptions{CloudInitImage: state.CloudInitImage()})
+	if err != nil {
+		return nil, fmt.Errorf("building drives: %w", err)
+	}
+
+	return drives, nil
 }
 
 // Start will start a created microvm.

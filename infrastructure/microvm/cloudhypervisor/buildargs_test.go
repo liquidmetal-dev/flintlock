@@ -139,3 +139,105 @@ func TestBuildArgs_EmptyKernelMountRejected(t *testing.T) {
 	_, err := p.buildArgs(vm, state, nil)
 	g.Expect(err).To(g.MatchError(cerrors.ErrInvalidImageFilePath))
 }
+
+// optionValues returns the values that follow an option, up to the next
+// option.
+func optionValues(args []string, option string) []string {
+	values := []string{}
+	collecting := false
+
+	for _, arg := range args {
+		switch {
+		case arg == option:
+			collecting = true
+		case strings.HasPrefix(arg, "--"):
+			collecting = false
+		case collecting:
+			values = append(values, arg)
+		}
+	}
+
+	return values
+}
+
+func TestBuildArgs_DisksInGuestOrder(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}, {ID: "logs"}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+	vm.Status.Volumes["logs"] = &models.VolumeStatus{Mount: models.Mount{Source: "/logs.img"}}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
+		"path=/root.img",
+		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
+		"path=/data.img",
+		"path=/logs.img",
+	}))
+}
+
+func TestBuildArgs_DisksStayTogether(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.AdditionalVolumes = models.Volumes{
+		{ID: "shared", Source: models.VolumeSource{VirtioFS: &models.VirtioFSVolumeSource{Path: "/shared"}}},
+		{ID: "data"},
+	}
+	vm.Status.Volumes["shared"] = &models.VolumeStatus{}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
+		"path=/root.img",
+		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
+		"path=/data.img",
+	}))
+	g.Expect(optionValues(args, "--fs")).To(g.HaveLen(1))
+	g.Expect(strings.Join(args, " ")).To(g.ContainSubstring("shared=on"))
+}
+
+func TestBuildArgs_AdditionalVolumeNotMounted(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+
+	_, err := p.buildArgs(vm, state, nil)
+	g.Expect(err).To(g.MatchError(cerrors.NewVolumeNotMounted("data")))
+}
+
+func TestProviderDrives(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vmid, err := models.NewVMID(testVMName, testVMNamespace, testVMUID)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	vm.ID = *vmid
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+
+	drives, err := p.Drives(vm)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(drives).To(g.HaveLen(3))
+	g.Expect(drives[1].Role).To(g.Equal(models.DriveRoleCloudInit))
+	g.Expect(drives[1].Path).To(g.Equal(state.CloudInitImage()))
+
+	device, found := drives.GuestDeviceForVolume("data")
+	g.Expect(found).To(g.BeTrue())
+	g.Expect(device).To(g.Equal("vdc"))
+}
