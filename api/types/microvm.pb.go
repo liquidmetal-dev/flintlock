@@ -787,7 +787,8 @@ type Volume struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID is the uinique identifier of the volume.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// IsReadOnly specifies that the volume is to be mounted readonly.
+	// IsReadOnly specifies that the volume is to be mounted readonly. It is not supported
+	// for a virtiofs volume, and a spec that sets it for one is rejected.
 	IsReadOnly bool `protobuf:"varint,2,opt,name=is_read_only,json=isReadOnly,proto3" json:"is_read_only,omitempty"`
 	// MountPoint allows you to optionally specify a mount point for the volume. This only
 	// applied to additional volumes and it will use cloud-init to mount the volumes.
