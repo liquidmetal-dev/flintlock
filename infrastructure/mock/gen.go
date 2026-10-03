@@ -5,3 +5,4 @@ package mock
 //go:generate mockgen -destination ext_containerd_leases.go -package mock github.com/containerd/containerd/v2/core/leases Manager
 //go:generate mockgen -destination ext_containerd_snapshots.go -package mock github.com/containerd/containerd/v2/core/snapshots Snapshotter
 //go:generate mockgen -destination ext_containerd.go -package mock github.com/containerd/containerd/v2/client Image
+//go:generate mockgen -destination ext_containerd_content.go -package mock github.com/containerd/containerd/v2/core/content Store

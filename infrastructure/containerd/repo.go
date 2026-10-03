@@ -11,6 +11,7 @@ import (
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/core/content"
 	"github.com/containerd/containerd/v2/pkg/namespaces"
+	"github.com/containerd/errdefs"
 	"github.com/google/go-cmp/cmp"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -32,7 +33,7 @@ func NewMicroVMRepo(cfg *Config) (ports.MicroVMRepository, error) {
 }
 
 // NewMicroVMRepoWithClient will create a new containerd backed microvm repository with the supplied containerd client.
-func NewMicroVMRepoWithClient(cfg *Config, client *containerd.Client) ports.MicroVMRepository {
+func NewMicroVMRepoWithClient(cfg *Config, client Client) ports.MicroVMRepository {
 	return &containerdRepo{
 		client: client,
 		config: cfg,
@@ -41,7 +42,7 @@ func NewMicroVMRepoWithClient(cfg *Config, client *containerd.Client) ports.Micr
 }
 
 type containerdRepo struct {
-	client *containerd.Client
+	client Client
 	config *Config
 
 	locks   map[string]*sync.RWMutex
@@ -178,6 +179,12 @@ func (r *containerdRepo) GetAll(ctx context.Context, query models.ListMicroVMQue
 	for _, d := range digests {
 		vm, getErr := r.getWithDigest(namespaceCtx, d)
 		if getErr != nil {
+			// The blob was removed after the walk found it: the microvm was
+			// deleted in the meantime, so it is not part of the list.
+			if errdefs.IsNotFound(getErr) {
+				continue
+			}
+
 			return nil, fmt.Errorf("getting microvm spec: %w", getErr)
 		}
 
@@ -263,7 +270,18 @@ func (r *containerdRepo) get(ctx context.Context, options ports.RepositoryGetOpt
 		return nil, nil
 	}
 
-	return r.getWithDigest(namespaceCtx, digest)
+	microvm, err := r.getWithDigest(namespaceCtx, digest)
+	if err != nil {
+		// The blob was removed after the walk found it: the microvm was
+		// deleted in the meantime, so there is no spec.
+		if errdefs.IsNotFound(err) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return microvm, nil
 }
 
 func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.Digest) (*models.MicroVM, error) {
@@ -271,7 +289,7 @@ func (r *containerdRepo) getWithDigest(ctx context.Context, metadigest *digest.D
 		Digest: *metadigest,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("reading content %s: %w", metadigest, ErrReadingContent)
+		return nil, fmt.Errorf("reading content %s: %w: %w", metadigest, ErrReadingContent, err)
 	}
 
 	microvm := &models.MicroVM{}
