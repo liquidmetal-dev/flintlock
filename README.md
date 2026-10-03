@@ -7,24 +7,29 @@
 
 ## What is flintlock?
 
-> :tada: **This project was originally developed by Weaveworks but is now owned & run by the community. If you are interested in helping out please reach out.**
-
 Flintlock is a service for creating and managing the lifecycle of microVMs on a host machine. We support the [Cloud Hypervisor](https://www.cloudhypervisor.org/) and [Firecracker](https://firecracker-microvm.github.io/) VMMs. 
 
-The original use case for flintlock was to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of **Liquid Metal** and can be orchestrated by [Cluster API Provider Microvm](https://github.com/liquidmetal-dev/cluster-api-provider-microvm).
+The original use case for flintlock was to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of **Liquid Metal** and can be orchestrated by:
 
-However, its useful for many other use cases where lightweight virtualization is required (e.g. isolated workloads, pipelines).
+- [Battery](https://github.com/liquidmetal-dev/battery): a warm pool manager that keeps pools of pre-booted microVMs ready to be claimed.
+- [Brigade](https://github.com/liquidmetal-dev/brigade): a distributed orchestrator that schedules microVMs across a fleet of flintlock hosts.
+- [Cluster API Provider Microvm](https://github.com/liquidmetal-dev/cluster-api-provider-microvm): a Cluster API provider that creates Kubernetes clusters with microVMs as the nodes.
+
+However, it's useful for many other use cases where lightweight virtualization is required (e.g. isolated workloads, pipelines).
 
 ## Features
 
 Using API requests (via gRPC or HTTP):
 
-- Create and delete microVMs
-- Manage the lifecycle of microVMs (i.e. start, stop, pause)
+- Create, get, list and delete microVMs
+- Run microVMs with Firecracker or Cloud Hypervisor, chosen per microVM
 - Configure microVM metadata via cloud-init, ignition etc
 - Use OCI images for microVM volumes, kernel and initrd
+- Attach network interfaces using TAP devices (optionally on a Linux bridge) or macvtap devices (Cloud Hypervisor only), with DHCP or static IP addresses
+- Share host directories with a microVM using virtiofs (Cloud Hypervisor only)
+- Customise the CPU features presented to the guest
+- Talk to a guest agent in the microVM over a vsock device
 - Expose microVM metrics for collection by Prometheus
-- (coming soon) Use CNI to configure the network for the microVMs
 
 ## Documentation
 
