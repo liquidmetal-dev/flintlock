@@ -31,6 +31,7 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("novirtiofs", customNoVirtioFSValidator, false)
 	_ = validator.RegisterValidation("onlyOneVirtioFS", customOnlyOneVirtioFSValidator, false)
 	_ = validator.RegisterValidation("multipleVolSources", customMultipleVolSources, false)
+	_ = validator.RegisterValidation("noReadOnlyVirtioFS", customNoReadOnlyVirtioFSValidator, false)
 	_ = validator.RegisterValidation("kvmCapability", customKVMCapabilityValidator, false)
 	_ = validator.RegisterValidation("imageFilePath", customImageFilePathValidator, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
@@ -123,6 +124,21 @@ func customMultipleVolSources(fieldLevel playgroundValidator.FieldLevel) bool {
 			if volume.Source.Container != nil && volume.Source.VirtioFS != nil {
 				return false
 			}
+		}
+	}
+
+	return true
+}
+
+// customNoReadOnlyVirtioFSValidator ensures that no virtiofs volume is marked read-only.
+// Nothing enforces the mark for a virtiofs volume, so the guest could write to a share
+// that the spec says is protected.
+func customNoReadOnlyVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	field, _ := fieldLevel.Field().Interface().(models.Volumes)
+
+	for _, volume := range field {
+		if volume.Source.VirtioFS != nil && volume.IsReadOnly {
+			return false
 		}
 	}
 

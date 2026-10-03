@@ -364,7 +364,7 @@ Volume represents the configuration for a volume to be attached to a microvm.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  | ID is the uinique identifier of the volume. |
-| is_read_only | [bool](#bool) |  | IsReadOnly specifies that the volume is to be mounted readonly. |
+| is_read_only | [bool](#bool) |  | IsReadOnly specifies that the volume is to be mounted readonly. It is not supported for a virtiofs volume, and a spec that sets it for one is rejected. |
 | mount_point | [string](#string) | optional | MountPoint allows you to optionally specify a mount point for the volume. This only applied to additional volumes and it will use cloud-init to mount the volumes. |
 | source | [VolumeSource](#flintlock-types-VolumeSource) |  | Source is where the volume will be sourced from. |
 | partition_id | [string](#string) | optional | PartitionID is the uuid of the boot partition. |
