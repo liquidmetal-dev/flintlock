@@ -15,6 +15,7 @@ var (
 	errKVMCapabilitiesDisableNotSupported = errors.New(
 		"disabling kvm capabilities not supported by the microvm provider",
 	)
+	errGuestMACReserved = errors.New("guest_mac is reserved for the metadata interface " + MetadataInterfaceName)
 )
 
 type specAlreadyExistsError struct {
