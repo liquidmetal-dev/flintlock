@@ -25,6 +25,7 @@ three design candidates.
 | [Option A: stay on devmapper (dm-thin)](26-09-25-snapshot-restore/0204-option-a-devmapper.md) | proposed design candidate |
 | [Option B: containerd blockfile snapshotter on a reflink filesystem](26-09-25-snapshot-restore/0204-option-b-blockfile.md) | proposed design candidate |
 | [Option C: read-only deterministic base plus a per-VM writable disk](26-09-25-snapshot-restore/0204-option-c-ro-base-rw-disk.md) | proposed design candidate |
+| [Overlay Boot: design for the first Option C milestone](26-09-25-snapshot-restore/0204-overlay-boot-design.md) | proposed design |
 
 ## Adding a proposal
 
