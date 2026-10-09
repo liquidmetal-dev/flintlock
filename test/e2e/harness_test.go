@@ -111,24 +111,24 @@ func TestParseProviders(t *testing.T) {
 	}
 }
 
+// The spec names the provider and boots the guest with the kernel of the
+// provider. Which kernel that is, is a fact of the provider and not of this
+// test.
 func TestNewMicroVMSpecUsesTheProvider(t *testing.T) {
-	g := NewWithT(t)
+	for _, provider := range u.KnownProviders() {
+		t.Run(provider.Name, func(t *testing.T) {
+			g := NewWithT(t)
 
-	spec, err := u.NewMicroVMSpec(u.CloudHypervisor(), "mvm0", "ns0")
-	g.Expect(err).NotTo(HaveOccurred())
+			spec, err := u.NewMicroVMSpec(provider, "mvm0", "ns0")
+			g.Expect(err).NotTo(HaveOccurred())
 
-	g.Expect(spec.Id).To(Equal("mvm0"))
-	g.Expect(spec.Namespace).To(Equal("ns0"))
-	g.Expect(spec.Provider).To(HaveValue(Equal("cloudhypervisor")))
-	g.Expect(spec.Kernel.Image).To(Equal("ghcr.io/liquidmetal-dev/cloudhypervisor-kernel-bin:5.12"))
-	g.Expect(spec.Kernel.Filename).To(HaveValue(Equal("boot/vmlinux.bin")))
-
-	spec, err = u.NewMicroVMSpec(u.Firecracker(), "mvm0", "ns0")
-	g.Expect(err).NotTo(HaveOccurred())
-
-	g.Expect(spec.Provider).To(HaveValue(Equal("firecracker")))
-	g.Expect(spec.Kernel.Image).To(Equal("ghcr.io/liquidmetal-dev/firecracker-kernel:6.1"))
-	g.Expect(spec.Kernel.Filename).To(HaveValue(Equal("boot/vmlinux")))
+			g.Expect(spec.Id).To(Equal("mvm0"))
+			g.Expect(spec.Namespace).To(Equal("ns0"))
+			g.Expect(spec.Provider).To(HaveValue(Equal(provider.Name)))
+			g.Expect(spec.Kernel.Image).To(Equal(provider.KernelImage))
+			g.Expect(spec.Kernel.Filename).To(HaveValue(Equal(provider.KernelFilename)))
+		})
+	}
 }
 
 // The test of a guest which cannot boot needs a kernel which Cloud Hypervisor
