@@ -474,6 +474,12 @@ func TestConsoleMarker(t *testing.T) {
 			expected: "flintlock-e2e boot ok ns0/mvm0 uptime=14",
 		},
 		{
+			// A colour code can come after the uptime and before the marker.
+			name:     "escape sequences next to the marker",
+			console:  ptr.String("\x1b[32m" + booted + "\x1b[0m\n"),
+			expected: "\x1b[32m" + booted + "\x1b[0m",
+		},
+		{
 			name:      "no console file",
 			expectErr: true,
 		},
