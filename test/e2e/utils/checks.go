@@ -85,8 +85,13 @@ func ConsoleMarker(stateDir string, provider Provider, name, namespace string) (
 
 	// The uptime has to be a number. If it is not, the line is the user-data
 	// which something has printed, and not the message of cloud-init.
+	//
+	// There is nothing before or after the marker in the pattern: an escape
+	// sequence can be next to it. A longer namespace or name cannot match, as
+	// the marker starts with a fixed text and has the namespace and the name
+	// between fixed texts.
 	marker := regexp.MustCompile(
-		`(^|\s)` + regexp.QuoteMeta(fmt.Sprintf(bootMarkerFormat, namespace, name)) + `[0-9]+(\.[0-9]+)?(\s|$)`)
+		regexp.QuoteMeta(fmt.Sprintf(bootMarkerFormat, namespace, name)) + `[0-9]+(\.[0-9]+)?`)
 
 	for _, line := range bytes.Split(console, []byte("\n")) {
 		if marker.Match(line) {
