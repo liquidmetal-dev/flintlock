@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	MetadataInterfaceName = "eth0"
+	MetadataInterfaceName = models.MetadataInterfaceName
 )
 
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
@@ -247,7 +247,7 @@ func (a *app) addMetadataInterface(mvm *models.MicroVM) {
 			GuestDeviceName:       MetadataInterfaceName,
 			Type:                  models.IfaceTypeTap,
 			AllowMetadataRequests: true,
-			GuestMAC:              "AA:FF:00:00:00:01",
+			GuestMAC:              models.MetadataInterfaceMAC,
 			StaticAddress: &models.StaticAddress{
 				Address: "169.254.0.1/16",
 			},
