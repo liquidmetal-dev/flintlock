@@ -621,7 +621,8 @@ Contributors are also welcome to backfill ADRs if they are found to be missing.
 
 1. Once a decision has been made, open a PR adding a new ADR to the [directory](docs/adr).
    Copy and complete the [template][adr-template];
-   - Increment the file number by one
+   - Prefix the file name with the four-digit number of the ADR discussion
+     (for example, discussion #234 becomes `0234-update-api.md`)
    - Set the status as "Accepted"
    - Set the deciders as those who approved the discussion outcome
    - Summarise the decision and consequences from the discussion thread

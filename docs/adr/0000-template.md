@@ -5,6 +5,7 @@
 * Date: 2020-10-29 [YYY-MM-DD - date of the decision] <!-- mandatory -->
 * Authors: [list of GitHub handles for the authors]
 * Deciders: [list of GitHub handles for those that made the decision]  <!-- mandatory -->
+* ADR Discussion: [link to the GitHub Discussion where the decision was made]
 
 ## Context
 <!-- What is the context of the decision and whats the motivation -->
