@@ -1,7 +1,9 @@
 package validation
 
 import (
+	"bytes"
 	"fmt"
+	"net"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -28,6 +30,7 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("imageURI", customImageURIValidator, false)
 	_ = validator.RegisterValidation("datetimeInPast", customTimestampValidator, false)
 	_ = validator.RegisterValidation("guestDeviceName", customNetworkGuestDeviceNameValidator, false)
+	_ = validator.RegisterValidation("notReservedMAC", customNotReservedMACValidator, false)
 	_ = validator.RegisterValidation("novirtiofs", customNoVirtioFSValidator, false)
 	_ = validator.RegisterValidation("onlyOneVirtioFS", customOnlyOneVirtioFSValidator, false)
 	_ = validator.RegisterValidation("multipleVolSources", customMultipleVolSources, false)
@@ -69,6 +72,26 @@ func customNetworkGuestDeviceNameValidator(fieldLevel playgroundValidator.FieldL
 	re := regexp.MustCompile("^[a-z][a-z0-9_]*$")
 
 	return re.MatchString(name)
+}
+
+// customNotReservedMACValidator rejects the MAC address reserved for the metadata interface on
+// any interface other than the metadata interface itself. The VMM refuses to start two
+// interfaces sharing a MAC address, so such a spec can never run.
+func customNotReservedMACValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	mac, err := net.ParseMAC(fieldLevel.Field().String())
+	if err != nil {
+		// Malformed values are reported by the `mac` validator.
+		return true
+	}
+
+	reserved, _ := net.ParseMAC(models.MetadataInterfaceMAC)
+	if !bytes.Equal(mac, reserved) {
+		return true
+	}
+
+	iface, _ := fieldLevel.Parent().Interface().(models.NetworkInterface)
+
+	return iface.GuestDeviceName == models.MetadataInterfaceName
 }
 
 func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.StructLevel) {

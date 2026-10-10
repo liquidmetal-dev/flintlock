@@ -1,11 +1,9 @@
 package application
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
-	"net"
 
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
@@ -22,8 +20,7 @@ import (
 )
 
 const (
-	MetadataInterfaceName = "eth0"
-	metadataInterfaceMAC  = "AA:FF:00:00:00:01"
+	MetadataInterfaceName = models.MetadataInterfaceName
 )
 
 func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
@@ -99,9 +96,7 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, fmt.Errorf("adding instance data: %w", err)
 	}
 	if provider.Capabilities().Has(models.MetadataServiceCapability) {
-		if err := a.addMetadataInterface(mvm); err != nil {
-			return nil, err
-		}
+		a.addMetadataInterface(mvm)
 	}
 
 	// Set the timestamp when the VMspec was created.
@@ -239,22 +234,11 @@ func (a *app) addInstanceData(vm *models.MicroVM, logger *logrus.Entry) error {
 	return nil
 }
 
-func (a *app) addMetadataInterface(mvm *models.MicroVM) error {
+func (a *app) addMetadataInterface(mvm *models.MicroVM) {
 	for i := range mvm.Spec.NetworkInterfaces {
 		netInt := mvm.Spec.NetworkInterfaces[i]
 		if netInt.GuestDeviceName == MetadataInterfaceName {
-			return nil
-		}
-	}
-
-	// The VMM refuses to start with two interfaces sharing a MAC address, so
-	// a spec that reuses the metadata interface's MAC can never run.
-	metadataMAC, _ := net.ParseMAC(metadataInterfaceMAC)
-	for _, netInt := range mvm.Spec.NetworkInterfaces {
-		mac, err := net.ParseMAC(netInt.GuestMAC)
-		if err == nil && bytes.Equal(mac, metadataMAC) {
-			return fmt.Errorf("%w: interface %s uses %s",
-				errGuestMACReserved, netInt.GuestDeviceName, netInt.GuestMAC)
+			return
 		}
 	}
 
@@ -263,7 +247,7 @@ func (a *app) addMetadataInterface(mvm *models.MicroVM) error {
 			GuestDeviceName:       MetadataInterfaceName,
 			Type:                  models.IfaceTypeTap,
 			AllowMetadataRequests: true,
-			GuestMAC:              metadataInterfaceMAC,
+			GuestMAC:              models.MetadataInterfaceMAC,
 			StaticAddress: &models.StaticAddress{
 				Address: "169.254.0.1/16",
 			},
@@ -271,6 +255,4 @@ func (a *app) addMetadataInterface(mvm *models.MicroVM) error {
 	}
 	interfaces = append(interfaces, mvm.Spec.NetworkInterfaces...)
 	mvm.Spec.NetworkInterfaces = interfaces
-
-	return nil
 }
