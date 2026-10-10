@@ -208,17 +208,8 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			name:         "guest mac reserved for the metadata interface, should fail",
 			specToCreate: createTestSpecWithGuestMAC("eth2", "aa:ff:00:00:00:01"),
 			expectError:  true,
+			// Rejected by struct validation before any port is called.
 			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
-				pm.Capabilities().Return(models.Capabilities{models.MetadataServiceCapability, models.MacvtapCapability}).AnyTimes()
-				im.GenerateRandom().Return(testUID, nil).Times(1)
-				rm.Get(
-					gomock.AssignableToTypeOf(context.Background()),
-					gomock.Eq(ports.RepositoryGetOptions{
-						Name:      "id1234",
-						Namespace: "default",
-						UID:       testUID,
-					}),
-				).Return(nil, nil)
 			},
 		},
 		{
