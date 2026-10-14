@@ -41,6 +41,16 @@ const (
 	// processes should be run detached.
 	CloudHypervisorDetach = true
 
+	// ErofsUtilsVersion is the erofs-utils version of the pinned mkfs.erofs.
+	// CI builds this version as a static binary and attaches it to each
+	// flintlock release. The overlay base profile erofs-v1 fixes it.
+	ErofsUtilsVersion = "1.9.4"
+
+	// MkfsErofsPath is the path flintlock-provision installs the pinned
+	// mkfs.erofs to. It is under flintlock's own directory so that it does
+	// not replace a system mkfs.erofs.
+	MkfsErofsPath = "/opt/flintlock/bin/mkfs.erofs"
+
 	// ConfigurationDir is the default configuration directory.
 	ConfigurationDir = "/etc/opt/flintlockd"
 

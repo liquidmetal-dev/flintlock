@@ -37,6 +37,7 @@ const (
 	enableExecAPIFlag         = "enable-exec-api"
 	enableSSHProxyAPIFlag     = "enable-ssh-proxy-api"
 	socketDirFlag             = "socket-dir"
+	mkfsErofsPathFlag         = "mkfs-erofs-path"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -247,4 +248,13 @@ func addCloudHypervisorFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		cloudHypervisorDetachFlag,
 		defaults.CloudHypervisorDetach,
 		"If true the child cloud hypervisor processes will be detached from the parent flintlock process.")
+}
+
+// AddOverlayFlagsToCommand will add the overlay boot flags to the supplied command.
+func AddOverlayFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().StringVar(&cfg.MkfsErofsPath,
+		mkfsErofsPathFlag,
+		defaults.MkfsErofsPath,
+		"The path to the mkfs.erofs binary to use for overlay base images. "+
+			"flintlock-provision erofs-utils installs the pinned version at the default path.")
 }
