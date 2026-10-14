@@ -50,6 +50,7 @@ func TestRun_MountOrder(t *testing.T) {
 		`mount . /  0x2000 ""`,
 		"chroot .",
 		"chdir /",
+		"stat /sbin/init",
 		"exec /sbin/init [/sbin/init single] [HOME=/ TERM=linux]",
 	}))
 
@@ -195,8 +196,6 @@ func TestRun_FailureWritesOneLineAndStops(t *testing.T) {
 			failCall:   "removecontents /",
 			wantReason: "emptying the initramfs: ",
 			notAfter:   "mount . /",
-
-			afterContractLine: true,
 		},
 		{
 			name:       "exec",
@@ -237,4 +236,52 @@ func TestRun_FailureWritesOneLineAndStops(t *testing.T) {
 			g.Expect(lines[len(lines)-1]).To(Equal("flintlock-overlay-init: error: " + tc.wantReason + "boom"))
 		})
 	}
+}
+
+func TestRun_RefusesMissingInit(t *testing.T) {
+	g := NewWithT(t)
+
+	sys := newFakeSystem(testCmdline)
+	delete(sys.regularFiles, "/sbin/init")
+	console := &bytes.Buffer{}
+
+	err := Run(sys, console, nil)
+	g.Expect(err).To(MatchError(ErrInitNotExecutable))
+	g.Expect(sys.calls[len(sys.calls)-1]).To(Equal("stat /sbin/init"))
+	g.Expect(sys.calls).NotTo(ContainElement(HavePrefix("exec ")))
+
+	lines := consoleLines(console)
+	g.Expect(lines).To(HaveLen(1))
+	g.Expect(lines[0]).To(HavePrefix("flintlock-overlay-init: error: image init is not an executable file: /sbin/init: "))
+	g.Expect(console.String()).NotTo(ContainSubstring("contract="))
+}
+
+func TestRun_RefusesNonExecutableInit(t *testing.T) {
+	g := NewWithT(t)
+
+	sys := newFakeSystem(testCmdline)
+	sys.regularFiles["/sbin/init"] = 0o644
+	console := &bytes.Buffer{}
+
+	err := Run(sys, console, nil)
+	g.Expect(err).To(MatchError(ErrInitNotExecutable))
+	g.Expect(sys.calls).NotTo(ContainElement(HavePrefix("exec ")))
+
+	g.Expect(consoleLines(console)).To(Equal([]string{
+		"flintlock-overlay-init: error: image init is not an executable file: /sbin/init has no executable bit",
+	}))
+}
+
+func TestRun_RefusesInitThatIsNotARegularFile(t *testing.T) {
+	g := NewWithT(t)
+
+	sys := newFakeSystem(testCmdline)
+	delete(sys.regularFiles, "/sbin/init")
+	sys.charDevices["/sbin/init"] = true
+	console := &bytes.Buffer{}
+
+	err := Run(sys, console, nil)
+	g.Expect(err).To(MatchError(ErrInitNotExecutable))
+	g.Expect(sys.calls).NotTo(ContainElement(HavePrefix("exec ")))
+	g.Expect(consoleLines(console)).To(HaveLen(1))
 }
