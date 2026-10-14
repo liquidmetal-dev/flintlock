@@ -22,7 +22,14 @@ func ErofsUtilsAssetName(erofsVersion, arch string) string {
 // against the published sha256 and installs it at defaults.MkfsErofsPath.
 // A system mkfs.erofs is left alone. The installed binary must report the
 // pinned version.
+//
+// Releases ship the binary for linux/amd64 only. Any other arch is refused
+// with ErrErofsUtilsArch before anything is downloaded.
 func InstallErofsUtils(ctx context.Context, runner *Runner, version, arch string) error {
+	if arch != archAMD64 {
+		return fmt.Errorf("%w: host is %s", ErrErofsUtilsArch, arch)
+	}
+
 	tag, err := ResolveTag(ctx, FlintlockRepo, version)
 	if err != nil {
 		return fmt.Errorf("resolving flintlock version: %w", err)
