@@ -35,6 +35,19 @@ jobs:
         fetch-depth: 0
     - name: Set up mise
       uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+    # The pinned mkfs.erofs is attached to the release next to the Go
+    # binaries. GoReleaser picks it up through release.extra_files in
+    # .goreleaser.yaml. flintlock-provision erofs-utils downloads it from there.
+    - name: Build pinned mkfs.erofs
+      id: erofs
+      uses: ./.github/actions/erofs-utils
+      with:
+        cache: false
+    - name: Stage mkfs.erofs release assets
+      run: |
+        mkdir -p bin/erofs-utils
+        cp "${{ steps.erofs.outputs.asset-dir }}"/mkfs.erofs-* bin/erofs-utils/
+        ls -l bin/erofs-utils
     - name: Run GoReleaser
       run: goreleaser release --clean
       env:
