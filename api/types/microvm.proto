@@ -169,9 +169,22 @@ message Volume {
   VolumeSource source = 4;
   // PartitionID is the uuid of the boot partition.
   optional string partition_id = 5;
-  // Size is the size to resize this volume to.
+  // Size is the size to resize this volume to. In overlay mode it is the size of the
+  // writable disk, and the minimum is 64 MB.
   optional int32 size_in_mb = 6;
+  // Mode selects how the volume is provisioned. The default is FULL. Only the root
+  // volume can use OVERLAY, and a read-only root cannot use it.
+  VolumeMode mode = 7;
   // TODO: add rate limiting
+}
+
+// VolumeMode selects how a volume is provisioned.
+enum VolumeMode {
+  // FULL provisions the volume as a full copy of the image in a containerd snapshot.
+  FULL = 0;
+  // OVERLAY provisions the volume as a shared read-only base built from the image, plus
+  // a writable disk for the microvm. The guest's init joins them with overlayfs.
+  OVERLAY = 1;
 }
 
 // VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs.
@@ -225,15 +238,24 @@ message MicroVMStatus {
 }
 
 message VolumeStatus {
-  // Mount represents a volume mount point.
+  // Mount represents a volume mount point. In overlay mode it is the writable disk.
   Mount mount = 1;
+  // BaseMount represents the mount point of the read-only base in overlay mode.
+  // It is unset in full mode.
+  Mount base_mount = 2;
+  // BaseDigest is the sha256 digest of the base in overlay mode. It is empty in full mode.
+  string base_digest = 3;
 }
 
 // Mount represents a volume mount point.
 message Mount {
   enum MountType {
+    // DEV is a block device.
     DEV = 0;
+    // HOSTPATH is a directory on the host.
     HOSTPATH = 1;
+    // FILE is a file on the host, such as a disk image.
+    FILE = 2;
   }
   // Type specifies the type of the mount (e.g. device or directory).
   MountType type = 1;
