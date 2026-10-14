@@ -51,6 +51,15 @@ const (
 	// not replace a system mkfs.erofs.
 	MkfsErofsPath = "/opt/flintlock/bin/mkfs.erofs"
 
+	// OverlayRWSizeMB is the default size in megabytes of the writable disk
+	// of an overlay volume. It is the base_image_size provisioning gives
+	// devmapper today, so a full and an overlay root have the same room.
+	OverlayRWSizeMB int32 = 10240
+
+	// OverlayBaseRetention is how long an overlay base that no microvm uses
+	// is kept after its last use.
+	OverlayBaseRetention = 24 * time.Hour
+
 	// ConfigurationDir is the default configuration directory.
 	ConfigurationDir = "/etc/opt/flintlockd"
 
