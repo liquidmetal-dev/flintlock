@@ -28,6 +28,8 @@ type Config struct {
 	VirtioFSBin string
 	// CloudHypervisorDetatch indicates if the child cloud hypervisor processes should be detached from their parent.
 	CloudHypervisorDetatch bool
+	// MkfsErofsPath is the path of the pinned mkfs.erofs used to build overlay base images.
+	MkfsErofsPath string
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
 	// SocketDir is the directory to act as the root for the per-microvm unix sockets.
