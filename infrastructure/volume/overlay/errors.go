@@ -9,9 +9,27 @@ import (
 )
 
 var (
-	errNoLayers       = errors.New("image has no layers")
-	errBaseNotInIndex = errors.New("base is not in the index")
+	errNoLayers        = errors.New("image has no layers")
+	errBaseNotInIndex  = errors.New("base is not in the index")
+	errDiffIDNotSHA256 = errors.New("diff ID is not a sha256 digest")
 )
+
+// DiffIDError reports a layer whose decompressed tar stream does not hash
+// to the diff ID its source claimed. The chain ID, and so the base key,
+// is derived from the claimed diff IDs, so a mismatch would record a base
+// under a key that does not identify its bytes. The build fails instead.
+type DiffIDError struct {
+	// LayerIndex is the position of the layer, lowest layer first from 0.
+	LayerIndex int
+	// Want is the diff ID the source claimed.
+	Want digest.Digest
+	// Got is the digest of the stream the source gave.
+	Got digest.Digest
+}
+
+func (e *DiffIDError) Error() string {
+	return fmt.Sprintf("layer %d: stream hashes to %s, diff ID is %s", e.LayerIndex, e.Got, e.Want)
+}
 
 // VersionError reports a mkfs.erofs whose version is not the one the
 // profile fixes.
