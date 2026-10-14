@@ -284,3 +284,141 @@ var basicMicroVM = models.MicroVM{
 		},
 	},
 }
+
+func TestValidation_OverlayMode(t *testing.T) {
+	tt := []struct {
+		name              string
+		rootMode          models.VolumeMode
+		rootIsReadOnly    bool
+		rootSize          int32
+		additionalMode    models.VolumeMode
+		kernelCmdLine     map[string]string
+		valid             bool
+		expectedTag       string
+		expectedNumErrors int
+	}{
+		{name: "overlay root", rootMode: models.VolumeModeOverlay, valid: true},
+		{name: "overlay root with the minimum size", rootMode: models.VolumeModeOverlay, rootSize: 64, valid: true},
+		{name: "overlay root with a larger size", rootMode: models.VolumeModeOverlay, rootSize: 2048, valid: true},
+		{name: "full root", rootMode: models.VolumeModeFull, valid: true},
+		{name: "unset mode is full", rootMode: "", valid: true},
+		{
+			name:           "overlay root that is read-only",
+			rootMode:       models.VolumeModeOverlay,
+			rootIsReadOnly: true,
+			valid:          false,
+			expectedTag:    "noReadOnlyOverlay",
+		},
+		{
+			name:           "full root that is read-only",
+			rootMode:       models.VolumeModeFull,
+			rootIsReadOnly: true,
+			valid:          true,
+		},
+		{
+			name:        "overlay root with a writable disk below the minimum",
+			rootMode:    models.VolumeModeOverlay,
+			rootSize:    63,
+			valid:       false,
+			expectedTag: "overlayMinSize",
+		},
+		{
+			name:        "overlay root with a negative writable disk size",
+			rootMode:    models.VolumeModeOverlay,
+			rootSize:    -1,
+			valid:       false,
+			expectedTag: "overlayMinSize",
+		},
+		{name: "full root with a small size", rootMode: models.VolumeModeFull, rootSize: 10, valid: true},
+		{
+			name:           "overlay additional volume",
+			additionalMode: models.VolumeModeOverlay,
+			valid:          false,
+			expectedTag:    "noOverlayVolumes",
+		},
+		{name: "full additional volume", additionalMode: models.VolumeModeFull, valid: true},
+		{
+			name:          "overlay root with rdinit in the kernel command line",
+			rootMode:      models.VolumeModeOverlay,
+			kernelCmdLine: map[string]string{"rdinit": "/bin/sh"},
+			valid:         false,
+			expectedTag:   "noRdinitInOverlay",
+		},
+		{
+			name:          "overlay root with other kernel parameters",
+			rootMode:      models.VolumeModeOverlay,
+			kernelCmdLine: map[string]string{"init": "/sbin/init", "console": "ttyS0"},
+			valid:         true,
+		},
+		{
+			name:          "full root with rdinit in the kernel command line",
+			rootMode:      models.VolumeModeFull,
+			kernelCmdLine: map[string]string{"rdinit": "/bin/sh"},
+			valid:         true,
+		},
+		{name: "unknown root mode", rootMode: "bogus", valid: false, expectedTag: "oneof"},
+		{name: "unknown additional volume mode", additionalMode: "bogus", valid: false, expectedTag: "oneof"},
+		{
+			// The validator reports the first failing tag of a field, so the root volume
+			// gives one error and the kernel command line gives the other.
+			name:              "overlay root that is read-only with rdinit",
+			rootMode:          models.VolumeModeOverlay,
+			rootIsReadOnly:    true,
+			kernelCmdLine:     map[string]string{"rdinit": "/bin/sh"},
+			valid:             false,
+			expectedNumErrors: 2,
+		},
+	}
+
+	val := NewValidator()
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			vm := basicMicroVM
+			vm.Spec.Kernel.CmdLine = tc.kernelCmdLine
+			vm.Spec.RootVolume = models.Volume{
+				ID:         "my_root",
+				IsReadOnly: tc.rootIsReadOnly,
+				Size:       tc.rootSize,
+				Mode:       tc.rootMode,
+				Source: models.VolumeSource{
+					Container: &models.ContainerVolumeSource{Image: "docker.io/library/ubuntu:latest"},
+				},
+			}
+			vm.Spec.AdditionalVolumes = models.Volumes{
+				{
+					ID:   "my-extra",
+					Mode: tc.additionalMode,
+					Source: models.VolumeSource{
+						Container: &models.ContainerVolumeSource{Image: "docker.io/library/ubuntu:latest"},
+					},
+				},
+			}
+
+			err := val.ValidateStruct(vm)
+
+			if tc.valid {
+				Expect(err).NotTo(HaveOccurred())
+
+				return
+			}
+
+			Expect(err).To(HaveOccurred())
+
+			var valErrors validator.ValidationErrors
+
+			Expect(errors.As(err, &valErrors)).To(BeTrue())
+
+			if tc.expectedNumErrors > 0 {
+				Expect(valErrors).To(HaveLen(tc.expectedNumErrors))
+
+				return
+			}
+
+			Expect(valErrors).To(HaveLen(1))
+			Expect(valErrors[0].Tag()).To(Equal(tc.expectedTag))
+		})
+	}
+}
