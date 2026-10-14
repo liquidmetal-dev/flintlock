@@ -36,6 +36,7 @@ const sidebars = {
       label: 'Advanced Guides',
       items: [
         'guides/images',
+        'guides/volumes',
         'guides/metrics',
         'guides/service-opts',
         'guides/production',
