@@ -25,26 +25,26 @@ import (
 
 // Injectors from wire.go:
 
-func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
-	config2 := containerdConfig(cfg)
-	microVMRepository, err := containerd.NewMicroVMRepo(config2)
+func InitializePorts(cfg *config.Config, volumeCaps microvm.VolumeCapabilities) (*ports.Collection, error) {
+	containerdConfig := ContainerdConfig(cfg)
+	microVMRepository, err := containerd.NewMicroVMRepo(containerdConfig)
 	if err != nil {
 		return nil, err
 	}
-	config3 := networkConfig(cfg)
-	networkService := network.New(config3)
+	config2 := networkConfig(cfg)
+	networkService := network.New(config2)
 	fs := afero.NewOsFs()
 	diskService := godisk.New(fs)
-	v, err := microvm.NewFromConfig(cfg, networkService, diskService, fs)
+	v, err := microvm.NewFromConfig(cfg, volumeCaps, networkService, diskService, fs)
 	if err != nil {
 		return nil, err
 	}
-	eventService, err := containerd.NewEventService(config2)
+	eventService, err := containerd.NewEventService(containerdConfig)
 	if err != nil {
 		return nil, err
 	}
 	idService := ulid.New()
-	imageService, err := containerd.NewImageService(config2)
+	imageService, err := containerd.NewImageService(containerdConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +70,8 @@ func InializeController(app application.App, ports2 *ports.Collection) *controll
 func InitializeGRPCServer(cfg *config.Config, app application.App, startTime time.Time) ports.MicroVMGRPCService {
 	microVMCommandUseCases := commandUCFromApp(app)
 	microVMQueryUseCases := queryUCFromApp(app)
-	infoConfig2 := infoConfig(cfg, startTime)
-	microVMGRPCService := grpc.NewServer(microVMCommandUseCases, microVMQueryUseCases, infoConfig2)
+	grpcInfoConfig := infoConfig(cfg, startTime)
+	microVMGRPCService := grpc.NewServer(microVMCommandUseCases, microVMQueryUseCases, grpcInfoConfig)
 	return microVMGRPCService
 }
 
@@ -89,7 +89,8 @@ func InitializeSSHProxyGRPCServer(app application.App) ports.MicroVMSSHProxyGRPC
 
 // wire.go:
 
-func containerdConfig(cfg *config.Config) *containerd.Config {
+// ContainerdConfig is the containerd configuration of cfg.
+func ContainerdConfig(cfg *config.Config) *containerd.Config {
 	return &containerd.Config{
 		SnapshotterKernel: cfg.CtrSnapshotterKernel,
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
