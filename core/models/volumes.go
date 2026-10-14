@@ -30,6 +30,12 @@ func (v Volume) EffectiveMode() VolumeMode {
 	return v.Mode
 }
 
+// IsOverlay reports whether the volume comes from a container image and is
+// provisioned in VolumeModeOverlay.
+func (v Volume) IsOverlay() bool {
+	return v.Source.Container != nil && v.EffectiveMode() == VolumeModeOverlay
+}
+
 // VolumeMode is a type representing how a volume is provisioned.
 type VolumeMode string
 

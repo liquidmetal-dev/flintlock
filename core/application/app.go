@@ -29,4 +29,8 @@ type Config struct {
 	SocketDir       string
 	MaximumRetry    int
 	DefaultProvider string
+	// OverlayInitrdImage is the OCI image of the initrd that boots an overlay
+	// root when the spec names none. An empty value means the daemon has no
+	// default, and a spec that needs one is rejected.
+	OverlayInitrdImage string
 }

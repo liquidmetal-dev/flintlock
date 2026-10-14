@@ -82,7 +82,7 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 	}
 
 	// Images
-	if err := p.addImageSteps(ctx, p.vm, ports.ImageService); err != nil {
+	if err := p.addImageSteps(ctx, p.vm, ports); err != nil {
 		return nil, fmt.Errorf("adding image steps: %w", err)
 	}
 	if len(p.vm.Spec.AdditionalVolumes) > 0 {
@@ -159,18 +159,12 @@ func (p *microvmCreateOrUpdatePlan) addVirtioFSSteps(ctx context.Context,
 
 func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 	vm *models.MicroVM,
-	imageSvc ports.ImageService,
+	svcs *ports.Collection,
 ) error {
-	rootStatus, ok := vm.Status.Volumes[vm.Spec.RootVolume.ID]
-	if !ok {
-		rootStatus = &models.VolumeStatus{}
-		vm.Status.Volumes[vm.Spec.RootVolume.ID] = rootStatus
-	}
+	imageSvc := svcs.ImageService
 
-	if vm.Spec.RootVolume.Source.Container != nil {
-		if err := p.addStep(ctx, runtime.NewVolumeMount(&vm.ID, &vm.Spec.RootVolume, rootStatus, imageSvc)); err != nil {
-			return fmt.Errorf("adding root volume mount step: %w", err)
-		}
+	if err := p.addRootVolumeStep(ctx, vm, svcs); err != nil {
+		return err
 	}
 
 	for i := range vm.Spec.AdditionalVolumes {
@@ -197,6 +191,45 @@ func (p *microvmCreateOrUpdatePlan) addImageSteps(ctx context.Context,
 		if err := p.addStep(ctx, runtime.NewInitrdMount(vm, imageSvc)); err != nil {
 			return fmt.Errorf("adding initrd mount step: %w", err)
 		}
+	}
+
+	return nil
+}
+
+// addRootVolumeStep adds the step that provisions the root volume. A root in
+// overlay mode gets the OverlayVolumeMount step, which uses VolumeService.
+// A root in full mode keeps the VolumeMount step, which uses ImageService.
+func (p *microvmCreateOrUpdatePlan) addRootVolumeStep(ctx context.Context,
+	vm *models.MicroVM,
+	svcs *ports.Collection,
+) error {
+	root := &vm.Spec.RootVolume
+
+	rootStatus, ok := vm.Status.Volumes[root.ID]
+	if !ok {
+		rootStatus = &models.VolumeStatus{}
+		vm.Status.Volumes[root.ID] = rootStatus
+	}
+
+	if root.Source.Container == nil {
+		return nil
+	}
+
+	if !root.IsOverlay() {
+		if err := p.addStep(ctx, runtime.NewVolumeMount(&vm.ID, root, rootStatus, svcs.ImageService)); err != nil {
+			return fmt.Errorf("adding root volume mount step: %w", err)
+		}
+
+		return nil
+	}
+
+	if svcs.VolumeService == nil {
+		return errVolumeServiceMissing
+	}
+
+	step := runtime.NewOverlayVolumeMount(&vm.ID, root, rootStatus, svcs.VolumeService, svcs.FileSystem)
+	if err := p.addStep(ctx, step); err != nil {
+		return fmt.Errorf("adding overlay root volume mount step: %w", err)
 	}
 
 	return nil
