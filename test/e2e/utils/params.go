@@ -22,6 +22,10 @@ type Params struct {
 	// are saved to before the microvm is deleted. Nothing is saved if it is
 	// empty.
 	ArtefactsDir string
+	// OverlayInitrdImage is the image of the initrd which boots an overlay
+	// root, which flintlockd is started with. The overlay boot test is
+	// skipped if it is empty.
+	OverlayInitrdImage string
 	// Providers are the microvm providers to run the tests with. The first one
 	// is the default provider of flintlockd.
 	Providers []Provider
@@ -66,6 +70,11 @@ func NewParams() *Params {
 		"before the MicroVM is deleted. Nothing is saved if it is not set"
 
 	flag.StringVar(&params.ArtefactsDir, "artefacts.dir", "", artefactsUsage)
+
+	initrdUsage := "OCI image of the initrd which boots an overlay root, which flintlockd is started with " +
+		"(--overlay-initrd-image). The overlay boot test is skipped if it is not set"
+
+	flag.StringVar(&params.OverlayInitrdImage, "overlay.initrd.image", "", initrdUsage)
 
 	flag.Parse()
 
