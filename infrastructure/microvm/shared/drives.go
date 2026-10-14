@@ -27,6 +27,10 @@ type DriveOptions struct {
 // additional volumes in the order of the spec. A virtiofs volume is not a
 // block device and gets no drive.
 //
+// A root volume in VolumeModeOverlay is two drives: the read-only base, then
+// the writable disk. Neither is flagged as the root device. The guest
+// contract parameters tell the init which device is which.
+//
 // The path of a drive is empty until its volume has been mounted.
 func BuildDrives(vm *models.MicroVM, opts DriveOptions) (models.Drives, error) {
 	if vm == nil {
@@ -39,7 +43,13 @@ func BuildDrives(vm *models.MicroVM, opts DriveOptions) (models.Drives, error) {
 		drives = append(drives, drive)
 	}
 
-	add(volumeDrive(vm, &vm.Spec.RootVolume, models.DriveRoleRoot))
+	if vm.Spec.RootVolume.EffectiveMode() == models.VolumeModeOverlay {
+		base, rw := overlayDrives(vm, &vm.Spec.RootVolume)
+		add(base)
+		add(rw)
+	} else {
+		add(volumeDrive(vm, &vm.Spec.RootVolume, models.DriveRoleRoot))
+	}
 
 	if opts.CloudInitImage != "" {
 		add(models.Drive{
@@ -91,4 +101,53 @@ func GuestDeviceName(index int) string {
 	}
 
 	return guestDevicePrefix + suffix
+}
+
+// overlayDrives returns the two drives of a root volume in overlay mode. The
+// base is always read-only. The writable disk is never read-only, because
+// the init writes the upper and work directories of the overlay to it. The
+// paths are empty until the volume status records the mounts.
+func overlayDrives(vm *models.MicroVM, vol *models.Volume) (models.Drive, models.Drive) {
+	base := models.Drive{
+		ID:       vol.ID + OverlayBaseDriveSuffix,
+		Role:     models.DriveRoleRootBase,
+		VolumeID: vol.ID,
+		ReadOnly: true,
+	}
+	rw := models.Drive{
+		ID:       vol.ID + OverlayRWDriveSuffix,
+		Role:     models.DriveRoleRootRW,
+		VolumeID: vol.ID,
+	}
+
+	if status, ok := vm.Status.Volumes[vol.ID]; ok && status != nil {
+		rw.Path = status.Mount.Source
+
+		if status.BaseMount != nil {
+			base.Path = status.BaseMount.Source
+		}
+	}
+
+	return base, rw
+}
+
+// IsDriveMounted reports whether the volume status of a microvm records the
+// mount a drive needs. The cloud-init drive holds no volume and is always
+// mounted. The root-base drive needs the base mount. Every other drive needs
+// a status entry for its volume.
+func IsDriveMounted(vm *models.MicroVM, drive models.Drive) bool {
+	if drive.Role == models.DriveRoleCloudInit {
+		return true
+	}
+
+	status, ok := vm.Status.Volumes[drive.VolumeID]
+	if !ok {
+		return false
+	}
+
+	if drive.Role == models.DriveRoleRootBase {
+		return status != nil && status.BaseMount != nil
+	}
+
+	return true
 }
