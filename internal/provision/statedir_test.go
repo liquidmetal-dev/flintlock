@@ -214,6 +214,41 @@ func TestStateDirLoopFile(t *testing.T) {
 	g.Expect(fx.fstabContent(t)).To(Equal(loopFile + " " + fx.dir + " xfs loop,nofail 0 0\n"))
 }
 
+func TestStateDirLoopFileAlreadyFormattedDetaches(t *testing.T) {
+	g := NewWithT(t)
+	fx := newStateDirFixture(t, reflink.FilesystemXFS, nil)
+	loopFile := filepath.Join(t.TempDir(), "state.img")
+	fx.exec.outputs["losetup --find --show "+loopFile] = "/dev/loop7"
+	fx.exec.outputs["blkid -p -s TYPE -s PTTYPE -o value /dev/loop7"] = "xfs"
+
+	err := fx.sd.Setup(provision.StateDirOptions{Dir: fx.dir, LoopFile: loopFile})
+	g.Expect(err).To(MatchError(ContainSubstring("/dev/loop7 already holds a filesystem or partition table (xfs)")))
+
+	g.Expect(fx.exec.calls).To(Equal([]string{
+		"findmnt -rno SOURCE --mountpoint " + fx.dir,
+		"losetup --output NAME --noheadings --associated " + loopFile,
+		"losetup --find --show " + loopFile,
+		"blkid -p -s TYPE -s PTTYPE -o value /dev/loop7",
+		"losetup --detach /dev/loop7",
+	}))
+	g.Expect(fx.fstabContent(t)).To(BeEmpty())
+}
+
+func TestStateDirLoopFileDetachFails(t *testing.T) {
+	g := NewWithT(t)
+	fx := newStateDirFixture(t, reflink.FilesystemXFS, nil)
+	loopFile := filepath.Join(t.TempDir(), "state.img")
+	fx.exec.outputs["losetup --find --show "+loopFile] = "/dev/loop7"
+	fx.exec.fail["mkfs.xfs"] = errors.New("exit status 1")
+	fx.exec.fail["losetup --detach"] = errors.New("exit status 1")
+
+	err := fx.sd.Setup(provision.StateDirOptions{Dir: fx.dir, LoopFile: loopFile})
+	g.Expect(err).To(MatchError(ContainSubstring("formatting /dev/loop7 as xfs")))
+	g.Expect(err).To(MatchError(ContainSubstring("detaching /dev/loop7 from " + loopFile)))
+	g.Expect(fx.exec.calls).To(ContainElement("losetup --detach /dev/loop7"))
+	g.Expect(fx.exec.calls).NotTo(ContainElement(HavePrefix("mount")))
+}
+
 func TestStateDirLoopFileDefaultSize(t *testing.T) {
 	g := NewWithT(t)
 	fx := newStateDirFixture(t, reflink.FilesystemXFS, nil)
