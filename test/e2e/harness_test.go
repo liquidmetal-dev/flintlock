@@ -5,13 +5,17 @@ package e2e_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1518,4 +1522,434 @@ func TestSaveStateFilesReportsWhatItCannotSave(t *testing.T) {
 	g.Expect(err).To(MatchError(ContainSubstring("firecracker.log")))
 	g.Expect(saved).To(Equal([]string{"firecracker.stdout"}))
 	g.Expect(os.ReadFile(filepath.Join(destDir, "firecracker.stdout"))).To(Equal([]byte("the console\n")))
+}
+
+func TestParseOverlayContract(t *testing.T) {
+	const contract = "flintlock-overlay-init: contract=1 base=/dev/vda base_fs=erofs rw=/dev/vdb rw_fs=ext4 init=/sbin/init"
+
+	tt := []struct {
+		name      string
+		line      string
+		expected  u.OverlayContract
+		expectErr bool
+	}{
+		{
+			name: "line of the init",
+			line: contract,
+			expected: u.OverlayContract{
+				Line:     contract,
+				Contract: "1",
+				Base:     "/dev/vda",
+				BaseFS:   "erofs",
+				RW:       "/dev/vdb",
+				RWFS:     "ext4",
+				Init:     "/sbin/init",
+			},
+		},
+		{
+			name: "line with what the kernel put before it",
+			line: "[    1.204911] " + contract + "\r",
+			expected: u.OverlayContract{
+				Line:     "[    1.204911] " + contract,
+				Contract: "1",
+				Base:     "/dev/vda",
+				BaseFS:   "erofs",
+				RW:       "/dev/vdb",
+				RWFS:     "ext4",
+				Init:     "/sbin/init",
+			},
+		},
+		{
+			name:      "line of the init which is an error",
+			line:      "flintlock-overlay-init: error: waiting for /dev/vda: timeout",
+			expectErr: true,
+		},
+		{
+			name:      "line which is not of the init",
+			line:      "[    1.204911] EXT4-fs (vdb): mounted filesystem",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			parsed, err := u.ParseOverlayContract(tc.line)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(parsed).To(Equal(tc.expected))
+		})
+	}
+}
+
+func TestOverlayContractIsOverlay(t *testing.T) {
+	tt := []struct {
+		name      string
+		contract  u.OverlayContract
+		expectErr bool
+	}{
+		{
+			name:     "EROFS base and ext4 writable disk",
+			contract: u.OverlayContract{Contract: "1", Base: "/dev/vda", BaseFS: "erofs", RW: "/dev/vdb", RWFS: "ext4"},
+		},
+		{
+			name:      "base which is not EROFS",
+			contract:  u.OverlayContract{Contract: "1", Base: "/dev/vda", BaseFS: "ext4", RW: "/dev/vdb", RWFS: "ext4"},
+			expectErr: true,
+		},
+		{
+			name:      "writable disk which is not ext4",
+			contract:  u.OverlayContract{Contract: "1", Base: "/dev/vda", BaseFS: "erofs", RW: "/dev/vdb", RWFS: "xfs"},
+			expectErr: true,
+		},
+		{
+			name:      "one device for both",
+			contract:  u.OverlayContract{Contract: "1", Base: "/dev/vda", BaseFS: "erofs", RW: "/dev/vda", RWFS: "ext4"},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := tc.contract.IsOverlay()
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
+func TestConsoleOverlayContract(t *testing.T) {
+	g := NewWithT(t)
+
+	const contract = "flintlock-overlay-init: contract=1 base=/dev/vda base_fs=erofs rw=/dev/vdb rw_fs=ext4 init=/sbin/init"
+
+	dir := t.TempDir()
+	console := "[    0.000000] Linux version 6.1.0\r\n" +
+		"[    1.204911] " + contract + "\r\n" +
+		"[    2.000000] EXT4-fs (vdb): mounted filesystem\r\n"
+	g.Expect(os.WriteFile(filepath.Join(dir, "firecracker.stdout"), []byte(console), 0o600)).To(Succeed())
+
+	parsed, err := u.ConsoleOverlayContract(dir, u.Firecracker())
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsed.Line).To(Equal("[    1.204911] " + contract))
+	g.Expect(parsed.BaseFS).To(Equal("erofs"))
+	g.Expect(parsed.RWFS).To(Equal("ext4"))
+
+	_, err = u.ConsoleOverlayContract(dir, u.CloudHypervisor())
+	g.Expect(err).To(HaveOccurred(), "the console of another provider")
+}
+
+// The kernels of the overlay boot test are pinned to the builds which have
+// EROFS. Each of them is the kernel of a provider which the tests know, and
+// a subtest has a name and a namespace of its own.
+func TestOverlayKernels(t *testing.T) {
+	g := NewWithT(t)
+
+	kernels := u.OverlayKernels()
+	g.Expect(kernels).To(HaveLen(3))
+
+	names := []string{}
+	namespaces := []string{}
+
+	for _, kernel := range kernels {
+		g.Expect(kernel.Version).NotTo(BeEmpty())
+		// A moving tag, such as 5.10, is not a build with EROFS for ever.
+		g.Expect(kernel.Provider.KernelImage).To(MatchRegexp(`:`+regexp.QuoteMeta(kernel.Version)+`-[0-9]{8}-[0-9]{4}$`),
+			"the kernel %s of %s is not a pinned build", kernel.Provider.KernelImage, kernel.Name())
+		g.Expect(kernel.Provider.KernelFilename).NotTo(BeEmpty())
+		g.Expect(kernel.Provider.ConsoleFile).NotTo(BeEmpty())
+
+		names = append(names, kernel.Name())
+		namespaces = append(namespaces, kernel.Namespace())
+	}
+
+	g.Expect(names).To(ConsistOf("firecracker-5.10", "firecracker-6.1", "cloudhypervisor-6.2"))
+	g.Expect(namespaces).To(ConsistOf("firecracker-overlay-5-10", "firecracker-overlay-6-1", "cloudhypervisor-overlay-6-2"))
+}
+
+func TestOverlayPaths(t *testing.T) {
+	g := NewWithT(t)
+
+	volumes := u.OverlayVolumesOf("/var/lib/flintlock/vm/ns0/mvm0/uid0")
+	g.Expect(volumes.BaseLink).To(Equal("/var/lib/flintlock/vm/ns0/mvm0/uid0/volumes/root.base"))
+	g.Expect(volumes.RWDisk).To(Equal("/var/lib/flintlock/vm/ns0/mvm0/uid0/volumes/root.rw"))
+
+	g.Expect(u.OverlayTemplatePath("/var/lib/flintlock", 2048)).To(Equal("/var/lib/flintlock/templates/rw-2048.img"))
+}
+
+func TestOverlayBaseDigest(t *testing.T) {
+	const digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	tt := []struct {
+		name      string
+		path      string
+		expected  string
+		expectErr bool
+	}{
+		{
+			name:     "sha256 with the extension",
+			path:     "/var/lib/flintlock/bases/" + digest + ".img",
+			expected: digest,
+		},
+		{
+			name:      "no extension",
+			path:      "/var/lib/flintlock/bases/" + digest,
+			expectErr: true,
+		},
+		{
+			name:      "too short",
+			path:      "/var/lib/flintlock/bases/0123456789abcdef.img",
+			expectErr: true,
+		},
+		{
+			name:      "not hex",
+			path:      "/var/lib/flintlock/bases/" + strings.Repeat("z", 64) + ".img",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			digest, err := u.OverlayBaseDigest(tc.path)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(digest).To(Equal(tc.expected))
+		})
+	}
+}
+
+// writeOverlayBase writes a base with the layout of the state root, and
+// returns the state root and the link to the base of a microvm.
+func writeOverlayBase(g Gomega, content string, mode os.FileMode) (string, string) {
+	stateRoot, err := os.MkdirTemp("", "e2e-state-root-")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	sum := sha256.Sum256([]byte(content))
+	basePath := filepath.Join(stateRoot, "bases", hex.EncodeToString(sum[:])+".img")
+	g.Expect(os.MkdirAll(filepath.Dir(basePath), 0o755)).To(Succeed())
+	g.Expect(os.WriteFile(basePath, []byte(content), mode)).To(Succeed())
+
+	volumesDir := filepath.Join(stateRoot, "vm", "ns0", "mvm0", "uid0", "volumes")
+	g.Expect(os.MkdirAll(volumesDir, 0o755)).To(Succeed())
+
+	baseLink := filepath.Join(volumesDir, "root.base")
+	g.Expect(os.Symlink("../../../../../bases/"+filepath.Base(basePath), baseLink)).To(Succeed())
+
+	return stateRoot, baseLink
+}
+
+func TestVerifyOverlayBase(t *testing.T) {
+	g := NewWithT(t)
+
+	stateRoot, baseLink := writeOverlayBase(g, "the base", 0o400)
+	t.Cleanup(func() { _ = os.RemoveAll(stateRoot) })
+
+	base, err := u.VerifyOverlayBase(stateRoot, baseLink)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(base.Path).To(Equal(filepath.Join(stateRoot, "bases", base.Digest+".img")))
+	g.Expect(base.ModTime).NotTo(BeZero())
+
+	g.Expect(base.Verify()).To(Succeed(), "the base has not changed")
+
+	// A link to the base of a second microvm resolves to the same file.
+	otherLink := filepath.Join(stateRoot, "root.base")
+	g.Expect(os.Symlink(base.Path, otherLink)).To(Succeed())
+
+	same, err := u.SameInode(baseLink, otherLink)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(same).To(BeTrue())
+
+	// The content of the base cannot change without a change to its sha256.
+	// The file is made writable to change it, so the check of the mode is
+	// what fails.
+	g.Expect(os.Chmod(base.Path, 0o600)).To(Succeed())
+	g.Expect(base.Verify()).To(MatchError(ContainSubstring("mode")))
+
+	// A base which is written to has a new modification time.
+	g.Expect(os.Chmod(base.Path, 0o400)).To(Succeed())
+	g.Expect(os.Chtimes(base.Path, base.ModTime.Add(time.Second), base.ModTime.Add(time.Second))).To(Succeed())
+	g.Expect(base.Verify()).To(MatchError(ContainSubstring("modified")))
+}
+
+func TestVerifyOverlayBaseRejects(t *testing.T) {
+	tt := []struct {
+		name  string
+		setup func(g Gomega) (string, string)
+	}{
+		{
+			name: "base which is writable",
+			setup: func(g Gomega) (string, string) {
+				return writeOverlayBase(g, "the base", 0o600)
+			},
+		},
+		{
+			name: "base whose sha256 is not its name",
+			setup: func(g Gomega) (string, string) {
+				stateRoot, baseLink := writeOverlayBase(g, "the base", 0o400)
+
+				basePath, err := filepath.EvalSymlinks(baseLink)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(os.Chmod(basePath, 0o600)).To(Succeed())
+				g.Expect(os.WriteFile(basePath, []byte("another base"), 0o400)).To(Succeed())
+				g.Expect(os.Chmod(basePath, 0o400)).To(Succeed())
+
+				return stateRoot, baseLink
+			},
+		},
+		{
+			name: "link which is a file",
+			setup: func(g Gomega) (string, string) {
+				stateRoot, baseLink := writeOverlayBase(g, "the base", 0o400)
+				g.Expect(os.Remove(baseLink)).To(Succeed())
+				g.Expect(os.WriteFile(baseLink, []byte("the base"), 0o400)).To(Succeed())
+
+				return stateRoot, baseLink
+			},
+		},
+		{
+			name: "link to a file outside of the bases directory",
+			setup: func(g Gomega) (string, string) {
+				stateRoot, baseLink := writeOverlayBase(g, "the base", 0o400)
+
+				basePath, err := filepath.EvalSymlinks(baseLink)
+				g.Expect(err).NotTo(HaveOccurred())
+
+				elsewhere := filepath.Join(stateRoot, filepath.Base(basePath))
+				g.Expect(os.Rename(basePath, elsewhere)).To(Succeed())
+				g.Expect(os.Remove(baseLink)).To(Succeed())
+				g.Expect(os.Symlink(elsewhere, baseLink)).To(Succeed())
+
+				return stateRoot, baseLink
+			},
+		},
+		{
+			name: "no link",
+			setup: func(g Gomega) (string, string) {
+				stateRoot, baseLink := writeOverlayBase(g, "the base", 0o400)
+				g.Expect(os.Remove(baseLink)).To(Succeed())
+
+				return stateRoot, baseLink
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			stateRoot, baseLink := tc.setup(g)
+			t.Cleanup(func() { _ = os.RemoveAll(stateRoot) })
+
+			_, err := u.VerifyOverlayBase(stateRoot, baseLink)
+			g.Expect(err).To(HaveOccurred())
+		})
+	}
+}
+
+func TestAllocatedBlocks(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+	sparse := filepath.Join(dir, "sparse")
+	written := filepath.Join(dir, "written")
+
+	g.Expect(os.WriteFile(sparse, nil, 0o600)).To(Succeed())
+	g.Expect(os.Truncate(sparse, 1<<20)).To(Succeed())
+	g.Expect(os.WriteFile(written, make([]byte, 1<<20), 0o600)).To(Succeed())
+
+	sparseBlocks, err := u.AllocatedBlocks(sparse)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	writtenBlocks, err := u.AllocatedBlocks(written)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(writtenBlocks).To(BeNumerically(">", sparseBlocks))
+
+	_, err = u.AllocatedBlocks(filepath.Join(dir, "missing"))
+	g.Expect(err).To(HaveOccurred())
+
+	g.Expect(u.FormatBlocks(16)).To(Equal("16 blocks (8192 bytes)"))
+}
+
+func TestGone(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+	file := filepath.Join(dir, "root.rw")
+	link := filepath.Join(dir, "root.base")
+
+	g.Expect(os.WriteFile(file, []byte("disk"), 0o600)).To(Succeed())
+	g.Expect(os.Symlink(filepath.Join(dir, "missing"), link)).To(Succeed())
+
+	g.Expect(u.Gone(file)).NotTo(Succeed())
+	g.Expect(u.Gone(link)).NotTo(Succeed(), "a link which points to nothing is still there")
+	g.Expect(u.Gone(filepath.Join(dir, "missing"))).To(Succeed())
+}
+
+// The flags are parsed with the flags of flintlockd, so the test fails if
+// flintlockd does not have the flag for the initrd image.
+func TestOverlayFlagsAreFlagsOfFlintlockd(t *testing.T) {
+	g := NewWithT(t)
+
+	g.Expect(u.OverlayFlags("")).To(BeEmpty())
+
+	args := u.OverlayFlags("127.0.0.1:5000/flintlock-overlay-init:e2e")
+	g.Expect(args).To(Equal([]string{"--overlay-initrd-image", "127.0.0.1:5000/flintlock-overlay-init:e2e"}))
+
+	cfg := &config.Config{}
+	cmd := &cobra.Command{}
+	flags.AddOverlayFlagsToCommand(cmd, cfg)
+
+	g.Expect(cmd.Flags().Parse(args)).To(Succeed())
+	g.Expect(cfg.OverlayInitrdImage).To(Equal("127.0.0.1:5000/flintlock-overlay-init:e2e"))
+}
+
+func TestParseDebugfsListing(t *testing.T) {
+	g := NewWithT(t)
+
+	const listing = `     12   40755 (2)      0      0    4096 14-Oct-2026 10:00 .
+      2   40755 (2)      0      0    4096 14-Oct-2026 10:00 ..
+     13   40755 (2)      0      0    4096 14-Oct-2026 10:00 etc
+     14   40755 (2)      0      0    4096 14-Oct-2026 10:00 var
+     15   41777 (2)      0      0    4096 14-Oct-2026 10:01 tmp
+     16  100644 (1)   1000   1000      12 14-Oct-2026 10:01 a name with spaces
+`
+
+	g.Expect(u.ParseDebugfsListing(listing)).To(Equal([]string{"etc", "var", "tmp", "a name with spaces"}))
+	g.Expect(u.ParseDebugfsListing("")).To(BeEmpty())
+	g.Expect(u.ParseDebugfsListing("/upper: File not found by ext2_lookup\n")).To(BeEmpty())
+}
+
+// A clone needs a filesystem with reflinks, which the host of the harness
+// tests may not have. The errors are what is checked.
+func TestCloneFileErrors(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+
+	g.Expect(u.CloneFile(filepath.Join(dir, "missing"), filepath.Join(dir, "clone"))).NotTo(Succeed())
+	g.Expect(filepath.Join(dir, "clone")).NotTo(BeAnExistingFile())
+
+	g.Expect(os.WriteFile(filepath.Join(dir, "source"), []byte("template"), 0o600)).To(Succeed())
+	g.Expect(u.CloneFile(filepath.Join(dir, "source"), filepath.Join(dir, "no", "such", "dir"))).NotTo(Succeed())
 }

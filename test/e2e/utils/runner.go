@@ -357,6 +357,8 @@ func (r *Runner) startFlintlockd() {
 	}
 	args = append(args, providerFlags...)
 
+	args = append(args, OverlayFlags(r.params.OverlayInitrdImage)...)
+
 	//nolint: gosec // We know what we're doing.
 	flCmd := exec.Command(r.flintlockdBin, args...)
 
