@@ -175,3 +175,47 @@ func TestBaseKey_String(t *testing.T) {
 	g.Expect(key.String()).To(Equal(testChain.String() + "/erofs-v1"))
 	g.Expect(key.lockName()).To(Equal("sha256-" + testChain.Encoded() + "-erofs-v1.lock"))
 }
+
+func TestFSIndex_EntriesLastUseRemove(t *testing.T) {
+	g := NewWithT(t)
+	idx := testIndex(t)
+	key := baseKey{ChainID: testChain, Profile: "erofs-v1"}
+
+	entries, err := idx.Entries()
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(entries).To(BeEmpty())
+
+	_, err = idx.LastUse(key)
+	g.Expect(errors.Is(err, errBaseNotInIndex)).To(BeTrue(), "got %v", err)
+
+	path := filepath.Join(idx.root, "bases", testSum+".img")
+	g.Expect(os.WriteFile(path, []byte("base"), 0o400)).To(Succeed())
+	g.Expect(idx.Record(key, path)).To(Succeed())
+
+	entries, err = idx.Entries()
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(entries).To(HaveLen(1))
+	g.Expect(entries[0].Key).To(Equal(key))
+	g.Expect(entries[0].Digest).To(Equal(testSum))
+	g.Expect(entries[0].Path).To(Equal(path))
+	g.Expect(entries[0].LastUse).To(BeTemporally("~", time.Now(), time.Minute))
+
+	lastUse, err := idx.LastUse(key)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(lastUse).To(Equal(entries[0].LastUse))
+
+	// A dangling link is still listed, so the sweep can remove it.
+	g.Expect(os.Chmod(path, 0o600)).To(Succeed())
+	g.Expect(os.Remove(path)).To(Succeed())
+
+	entries, err = idx.Entries()
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(entries).To(HaveLen(1))
+
+	g.Expect(idx.Remove(key)).To(Succeed())
+	g.Expect(idx.Remove(key)).To(Succeed(), "a missing link is a success")
+
+	entries, err = idx.Entries()
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(entries).To(BeEmpty())
+}

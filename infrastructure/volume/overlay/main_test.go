@@ -24,7 +24,7 @@ import (
 // fakeMkfsVersionEnv sets the version -V reports. fakeMkfsFailEnv makes a
 // "layer" or "merge" run exit 1, and "layer-early" makes a layer run stop
 // after one tar block, as mkfs.erofs does at a bad entry. fakeMkfsSleepEnv
-// delays a merge.
+// delays a merge. A command line with -L is mkfs.ext4, see fakeMkfsExt4.
 const (
 	fakeMkfsEnv        = "FLINTLOCK_TEST_FAKE_MKFS"
 	fakeMkfsLogEnv     = "FLINTLOCK_TEST_FAKE_MKFS_LOG"
@@ -63,6 +63,10 @@ func fakeMkfs(args []string) int {
 
 		fmt.Fprintln(f, strings.Join(args, " "))
 		f.Close()
+	}
+
+	if slices.Contains(args, "-L") {
+		return fakeMkfsExt4(args)
 	}
 
 	mode := "merge"
@@ -130,6 +134,55 @@ func fakeMkfs(args []string) int {
 	}
 
 	if err := os.WriteFile(out, content.Bytes(), 0o644); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+
+		return 1
+	}
+
+	return 0
+}
+
+// fakeMkfsExt4 is the fake mkfs.ext4. It writes "ext4 <uuid> <label>\n" at
+// the start of the file named last, and keeps the size of the file.
+// fakeMkfsFailEnv set to "ext4" makes it exit 1, and fakeMkfsSleepEnv
+// delays it.
+func fakeMkfsExt4(args []string) int {
+	if os.Getenv(fakeMkfsFailEnv) == "ext4" {
+		fmt.Fprintln(os.Stderr, "fake mkfs.ext4: failed")
+
+		return 1
+	}
+
+	if d := os.Getenv(fakeMkfsSleepEnv); d != "" {
+		sleep, err := time.ParseDuration(d)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+
+			return 2
+		}
+
+		time.Sleep(sleep)
+	}
+
+	u := slices.Index(args, "-U")
+	l := slices.Index(args, "-L")
+
+	if u < 0 || l < 0 || len(args) < u+2 || len(args) < l+2 {
+		fmt.Fprintln(os.Stderr, "fake mkfs.ext4: bad arguments")
+
+		return 2
+	}
+
+	f, err := os.OpenFile(args[len(args)-1], os.O_WRONLY, 0)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+
+		return 1
+	}
+
+	defer f.Close()
+
+	if _, err := fmt.Fprintf(f, "ext4 %s %s\n", args[u+1], args[l+1]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 
 		return 1
