@@ -127,3 +127,19 @@ make build-release-overlay-initrd
 The release workflow publishes the archives as the multi-arch image
 `ghcr.io/liquidmetal-dev/flintlock-overlay-init:<version>` with the file at
 `/initrd.img` (`hack/packaging/flintlock-overlay-init.Dockerfile`).
+
+## build_erofs_utils.sh
+
+Builds the pinned static `mkfs.erofs` that `flintlock-provision erofs-utils`
+installs. CI runs it for every release and for the test job. Run it yourself
+to get the same binary:
+
+```bash
+# needs git, build-essential, autoconf, automake, libtool and pkg-config
+./hack/scripts/build_erofs_utils.sh 1.9.4 ./bin/erofs-utils
+
+# or in a linux/amd64 container, for example on an arm64 host
+./hack/scripts/build_erofs_utils.sh --docker 1.9.4 ./bin/erofs-utils
+```
+
+The output is `mkfs.erofs-<version>-linux-amd64` and its `.sha256` file.
