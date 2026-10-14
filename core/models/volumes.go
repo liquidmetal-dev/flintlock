@@ -18,7 +18,9 @@ type Volume struct {
 	// Size is the size to resize this volume to.
 	Size int32 `json:"size,omitempty"`
 	// MountPoint allows you to optionally specify a mount point for the volume. This only
-	// applied to additional volumes and it will use cloud-init to mount the volumes.
+	// applies to additional volumes and it will use cloud-init to mount the volumes. A
+	// virtiofs volume is mounted by its tag with the virtiofs filesystem type, which the
+	// guest kernel has to support.
 	MountPoint string `json:"mount_point,omitempty"`
 }
 
@@ -63,9 +65,10 @@ type ContainerVolumeSource struct {
 	Image ContainerImage `json:"image"`
 }
 
-// VirtioFSSource represents the details of the VirtioFS volume.
+// VirtioFSVolumeSource represents the details of a volume which is a directory of the
+// host, shared with virtiofs.
 type VirtioFSVolumeSource struct {
-	// Image is the OCI image to use.
+	// Path on the host machine to pass through.
 	Path string `json:"path"`
 }
 

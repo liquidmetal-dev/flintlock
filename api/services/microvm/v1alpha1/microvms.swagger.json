@@ -546,7 +546,7 @@
         },
         "mountPoint": {
           "type": "string",
-          "description": "MountPoint allows you to optionally specify a mount point for the volume. This only\napplied to additional volumes and it will use cloud-init to mount the volumes."
+          "description": "MountPoint allows you to optionally specify a mount point for the volume. This only\napplies to additional volumes and it will use cloud-init to mount the volumes. A\nvirtiofs volume is mounted by its tag with the virtiofs filesystem type, which the\nguest kernel has to support."
         },
         "source": {
           "$ref": "#/definitions/typesVolumeSource",
