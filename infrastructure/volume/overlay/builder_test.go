@@ -14,6 +14,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/go-digest"
 
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
 )
@@ -376,4 +377,60 @@ func TestBuild_ContextCancelled(t *testing.T) {
 	entries, err := os.ReadDir(filepath.Join(stateRoot, "scratch"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(entries).To(BeEmpty())
+}
+
+func TestBuild_DiffIDMismatch(t *testing.T) {
+	g := NewWithT(t)
+	source := twoLayers(t)
+	// The source claims the digest of another stream for layer 1.
+	source.claims = map[int]digest.Digest{1: digest.FromString("not the layer")}
+	b, stateRoot, logPath := fakeBuilder(t, source)
+
+	_, err := b.Build(context.Background(), overlay.LayerInput{ImageRef: "img"})
+
+	var derr *overlay.DiffIDError
+	g.Expect(errors.As(err, &derr)).To(BeTrue(), "got %v", err)
+	g.Expect(derr.LayerIndex).To(Equal(1))
+	g.Expect(derr.Want).To(Equal(digest.FromString("not the layer")))
+	g.Expect(derr.Got).To(Equal(digest.FromBytes(source.layers[1])))
+	g.Expect(err.Error()).To(ContainSubstring("layer 1: stream hashes to " + derr.Got.String()))
+
+	// The layer was converted, then refused. Nothing is recorded.
+	g.Expect(readLog(t, logPath)).To(HaveLen(2), "no merge runs after the refused layer")
+	g.Expect(listBases(t, stateRoot)).To(BeEmpty())
+
+	links, err := os.ReadDir(filepath.Join(stateRoot, "bases", "by-source"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(links).To(BeEmpty())
+
+	entries, err := os.ReadDir(filepath.Join(stateRoot, "scratch"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(entries).To(BeEmpty())
+}
+
+func TestBuild_DiffIDNotSHA256(t *testing.T) {
+	tests := []struct {
+		name  string
+		diff  digest.Digest
+		match string
+	}{
+		{name: "sha512", diff: digest.SHA512.FromString("x"), match: "is not a sha256 digest"},
+		{name: "malformed", diff: digest.Digest("sha256:short"), match: "invalid checksum digest length"},
+		{name: "empty", diff: digest.Digest(""), match: "invalid checksum digest format"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			source := twoLayers(t)
+			source.claims = map[int]digest.Digest{0: tt.diff}
+			b, stateRoot, logPath := fakeBuilder(t, source)
+
+			_, err := b.Build(context.Background(), overlay.LayerInput{ImageRef: "img"})
+			g.Expect(err).To(MatchError(ContainSubstring("layer 0: diff ID")))
+			g.Expect(err).To(MatchError(ContainSubstring(tt.match)))
+			g.Expect(readLog(t, logPath)).To(BeEmpty(), "the layer is refused before mkfs.erofs runs")
+			g.Expect(listBases(t, stateRoot)).To(BeEmpty())
+		})
+	}
 }
