@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+// Executor runs host commands. *Runner is the real implementation. Tests
+// substitute a fake that records the commands it is asked to run.
+type Executor interface {
+	Run(name string, args ...string) error
+	Output(name string, args ...string) (string, error)
+}
+
 // Runner is the single seam provisioning logic uses to execute host
 // commands (systemctl, apt, lvm2 tools, dmsetup, ...). Keeping every
 // exec.Command call behind this type means the rest of the package never

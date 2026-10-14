@@ -29,7 +29,7 @@ func FetchServiceFile(ctx context.Context, repo, service, dest string) error {
 
 // ReloadSystemd reloads the systemd manager configuration so unit file
 // changes on disk take effect.
-func ReloadSystemd(runner *Runner) error {
+func ReloadSystemd(runner Executor) error {
 	if err := runner.Run("systemctl", "daemon-reload"); err != nil {
 		return fmt.Errorf("reloading systemd: %w", err)
 	}

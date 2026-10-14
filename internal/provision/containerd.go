@@ -81,8 +81,22 @@ func InstallContainerd(ctx context.Context, runner *Runner, version, arch string
 }
 
 // BuildContainerdConfig renders the containerd config.toml content for the
-// given paths and thinpool name.
+// given paths and thinpool name. An empty thinpool means the host has no
+// pool: the devmapper snapshotter section is left out and containerd runs
+// with its native snapshotter only.
 func BuildContainerdConfig(paths ContainerdPaths, thinpool string) string {
+	devmapper := ""
+	if thinpool != "" {
+		devmapper = fmt.Sprintf(`
+[plugins]
+  [plugins."io.containerd.snapshotter.v1.devmapper"]
+    pool_name = "%s-thinpool"
+    root_path = "%s"
+    base_image_size = "10GB"
+    discard_blocks = true
+`, thinpool, paths.DevMapperDir)
+	}
+
 	return fmt.Sprintf(`version = 2
 
 root = "%s"
@@ -93,20 +107,14 @@ state = "%s"
 
 [metrics]
   address = "127.0.0.1:1338"
-
-[plugins]
-  [plugins."io.containerd.snapshotter.v1.devmapper"]
-    pool_name = "%s-thinpool"
-    root_path = "%s"
-    base_image_size = "10GB"
-    discard_blocks = true
-
+%s
 [debug]
   level = "trace"
-`, paths.RootDir, paths.StateDir, filepath.Join(paths.StateDir, "containerd.sock"), thinpool, paths.DevMapperDir)
+`, paths.RootDir, paths.StateDir, filepath.Join(paths.StateDir, "containerd.sock"), devmapper)
 }
 
-// WriteContainerdConfig writes the containerd config.toml for the given paths and thinpool.
+// WriteContainerdConfig writes the containerd config.toml for the given paths
+// and thinpool. An empty thinpool leaves the devmapper section out.
 func WriteContainerdConfig(paths ContainerdPaths, thinpool string) error {
 	content := BuildContainerdConfig(paths, thinpool)
 
