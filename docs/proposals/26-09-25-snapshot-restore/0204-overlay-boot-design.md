@@ -6,11 +6,9 @@
 * Issue: [#204](https://github.com/liquidmetal-dev/flintlock/issues/204)
 * Companions: [requirements](0204-snapshot-restore-requirements.md),
   [options survey](0204-root-volume-options.md),
-  [Option B](0204-option-b-blockfile.md),
+  [Option A](0204-option-a-devmapper.md), [Option B](0204-option-b-blockfile.md),
   [Option C](0204-option-c-ro-base-rw-disk.md),
-  decision record `0204-root-volume-decision.md`
-  ([#1252](https://github.com/liquidmetal-dev/flintlock/pull/1252), not yet
-  merged)
+  [decision record](0204-root-volume-decision.md)
 
 ## 1. Summary
 
@@ -28,9 +26,10 @@ build and the drive order.
 ## 2. Relationship to other documents
 
 The design starts from [Option C](0204-option-c-ro-base-rw-disk.md) as amended
-by decisions D1 to D15 of the decision record. Where this document departs
+by decisions D1 to D15 of the
+[decision record](0204-root-volume-decision.md). Where this document departs
 from either, the change is listed as a numbered amendment in
-[section 13](#13-amendments-to-the-decision-record).
+[section 13](#13-amendments-to-the-decision-record-and-to-option-c).
 
 Option C as amended splits into eight pieces of work. This document covers
 the first four.
@@ -38,7 +37,7 @@ the first four.
 | # | Piece | Depends on | In this document |
 | - | ----- | ---------- | ---------------- |
 | 1 | Guest artefacts: kernel and initrd | none | yes |
-| 2 | Base builder | none | yes |
+| 2 | Base builder | 4, for the pinned `mkfs.erofs` | yes |
 | 3 | Overlay boot path | 1, 2 | yes |
 | 4 | Host provisioning | none | yes |
 | 5 | Base distribution (D10, D11) | 2 | no |
@@ -65,8 +64,14 @@ the first four.
 
 * Base push and pull, snapshot capture, restore and clone.
 * Additional volumes in overlay form (D12). They stay `full`, so a VM that
-  uses container additional volumes still needs the thin pool.
+  uses container additional volumes still needs the thin pool, and it cannot
+  be snapshotted by a later milestone (SNAP-VOL-010), because snapshot
+  support is chosen at creation.
 * The default flip to `overlay` (D6) and writable disk growth.
+* The deprecation notice for `full` (D6). It lands with the default flip.
+* Enforcing the guest kernel requirement (D5). A spec that pairs `overlay`
+  with a kernel without EROFS, such as the 4.19 image, is accepted and fails
+  at boot as in section 4.5.
 * A read-only root in overlay mode. Validation rejects it.
 * arm64.
 * Moving the state directory of a host that has running VMs onto a new
@@ -81,7 +86,8 @@ the first four.
 4. A second VM from the same image reuses the base and gets its own writable
    disk.
 5. Deleting a VM removes its writable disk and links, and leaves the base.
-6. `full` mode is unchanged and the existing e2e suite passes without edits.
+6. `full` mode is unchanged from `main` after F1 to F3 (section 12.3), and
+   the existing e2e suite passes without edits.
 7. A host with no thin pool rejects `full` VMs with a capability error.
 
 ## 4. Guest contract
@@ -153,8 +159,17 @@ mode.
 `flintlockd` computes the device names from the drive order it emits, so the
 init hard-codes no order. The init reads `/proc/cmdline`, because the kernel
 does not pass parameters that contain a dot to init's environment.
-`flintlockd` sets the `flintlock.root.*` parameters after the spec's own
-kernel command line is applied, so a spec cannot override them.
+
+The kernel command line is a map of unique keys
+(`internal/config/kernel_cmd_line.go`). `flintlockd` sets the
+`flintlock.root.*` keys after the spec's entries are merged, so a spec value
+for one of them is replaced and the init never sees a key twice. The order of
+the parameters in the emitted line is not defined.
+
+When an initramfs carries `/init`, the kernel runs it and ignores `init=`,
+which is why the init can read `init=` as the name of the image's init.
+`rdinit=` is different: it replaces `/init` itself. Validation rejects a spec
+that sets `rdinit` in overlay mode, because it would bypass the contract.
 
 ### 4.4 Init behaviour
 
@@ -167,26 +182,32 @@ kernel command line is applied, so a spec cannot override them.
 6. Mount the overlay.
 7. Write one line to the console that names the contract version, both
    devices and their filesystem types.
-8. Delete the contents of the initramfs, `switch_root` to the overlay and
-   exec the image's init.
+8. `switch_root` to the overlay, which empties the initramfs, and exec the
+   image's init.
 
-The base and the writable disk are not exposed inside the guest. The overlay
-keeps working without their mount points being reachable.
+The mount points of the base and the writable disk are not reachable from
+the overlay root; the block devices stay visible in `/dev`. The overlay keeps
+working without the mount points being reachable.
 
 ### 4.5 Failure behaviour
 
 On any error the init writes one line with the reason to the console and
-exits. The kernel panics, and with the existing `panic=1 reboot=k` parameters
-the VMM process exits. The host sees a VM that stopped, with the reason in its
-console log. There is no rescue shell.
+exits. The kernel panics, and with the `panic=1 reboot=k` parameters the VMM
+process exits. Both providers hard-code those parameters, and a spec can
+replace a value but not remove a key (section 4.3), so they are always
+present. The host sees a VM that stopped, with the reason in its console log.
+There is no rescue shell.
 
 ### 4.6 Initrd build and publication
 
 The init's source lives in `cmd/flintlock-overlay-init/`. It is built with
 `CGO_ENABLED=0`. Syscalls sit behind an interface so that parsing, ordering
 and failure paths are unit tested without a boot. Packaging into a gzip
-compressed cpio archive lives under `hack/` (D3). The release workflow
-publishes the initrd as an OCI image tagged with the `flintlockd` version.
+compressed cpio archive lives under `hack/` (D3). The release workflow gains
+a step that publishes the initrd as an OCI image,
+`ghcr.io/liquidmetal-dev/flintlock-overlay-init`, tagged with the `flintlockd`
+version. The workflow publishes no OCI image today, only the GoReleaser
+binaries and packages, so the registry login and the push are new.
 
 ## 5. Host design
 
@@ -204,14 +225,19 @@ publishes the initrd as an OCI image tagged with the `flintlockd` version.
 └── scratch/                                              # build temp
 ```
 
+The chain ID is the OCI rootfs chain ID of the image: the hash chain of its
+uncompressed layer digests. It identifies the unpacked tree and does not
+change when a registry recompresses a layer. The profile names the fixed set
+of build inputs (section 5.4). Together they are the key of a base.
+
 Everything is on one filesystem, so that renames are atomic and reflinks are
 possible.
 
 **Rule.** Every fact about a base or a writable disk is derivable from this
 layout plus the VM record. There is no ledger in this milestone
-([A7](#13-amendments-to-the-decision-record)). When the snapshot milestones
-add one, it is an index that a scan can rebuild, and the backfill for VMs
-created before it is the same code as its recovery path.
+([A7](#13-amendments-to-the-decision-record-and-to-option-c)). When the
+snapshot milestones add one, it is an index that a scan can rebuild, and the
+backfill for VMs created before it is the same code as its recovery path.
 
 ### 5.2 Port
 
@@ -232,6 +258,13 @@ base digest. `Capture`, `Base`, `Delta` and `Restore` from
 [Option B section 5.1](0204-option-b-blockfile.md#51-new-port-volumeservice)
 are added by later milestones.
 
+`Create` is idempotent in this sense. The create plan runs again on every
+daemon restart and resync, and a writable disk that exists may hold guest
+writes, so if `volumes/root.rw` exists it is kept and never reflinked over.
+If `root.base` exists and resolves to a base with the VM's key, it is kept.
+The plan step's `ShouldDo` is false when the status records both mounts and
+both files are present.
+
 `full` mode does not use this port. It keeps the existing `VolumeMount` step
 and `ImageService`.
 
@@ -241,12 +274,19 @@ and `ImageService`.
 | ---- | ---- | ---------- |
 | Base builder | Layers to one EROFS file. Writes to `scratch/`, fsyncs, computes the sha256, renames into `bases/` | `LayerSource`, `mkfs.erofs` |
 | Base index | Look up by chain ID and profile, record, list references. One `flock` per key, so concurrent creates build once | filesystem |
-| Writable disk | Creates a template per size on first use, then `FICLONE`s it per VM | `mkfs.ext4` |
-| Sweep | On release, removes bases that no VM links to and that are older than the retention period. Clears `scratch/` at startup | filesystem |
+| Writable disk | Creates a template per size on first use, in `scratch/` with an fsync and a rename under a per-size `flock`, then `FICLONE`s it per VM | `mkfs.ext4` |
+| Sweep | On release, removes bases that no VM links to and whose last use is older than the retention period. Clears `scratch/` at startup | filesystem |
 
 The base index is an internal interface with the filesystem as its only
 implementation. A database-backed implementation can replace it without
 changes to the builder or the port.
+
+A base's last use is the modification time of its `by-source` link, which
+`Create` refreshes on every use. The base file's own mtime is never touched,
+so section 9 can use it as evidence that the base is unchanged. The sweep
+finds references by scanning `vm/*/*/*/volumes/root.base`. It holds the
+per-key lock while it scans and unlinks, so a `Create` that is linking the
+same base waits (section 8).
 
 Locks are `flock`s, not in-process mutexes, because
 `internal/command/run/run.go` initialises two sets of ports.
@@ -268,19 +308,19 @@ code, so its tests run on tar fixtures.
 ### 5.4 Base build
 
 The base is keyed by the image's rootfs chain ID and a profile name
-([A6](#13-amendments-to-the-decision-record)). The profile `erofs-v1` fixes
-every input to the build:
+([A6](#13-amendments-to-the-decision-record-and-to-option-c)). The profile
+`erofs-v1` fixes every input to the build:
 
 | Input | Value |
 | ----- | ----- |
 | erofs-utils | 1.9.4, the static binary that provisioning installs |
 | Block size | 4096, passed explicitly, because the default is the build host's page size |
-| Compression | none ([A4](#13-amendments-to-the-decision-record)) |
+| Compression | none ([A4](#13-amendments-to-the-decision-record-and-to-option-c)) |
 | Build time | `-T0 --mkfs-time`: superblock time is zero, files keep the mtimes recorded in the layers |
-| UUID | Version 5, derived from the layer diff ID (per layer) or from the chain ID and profile (merged image) |
+| UUID | Version 5 in the namespace `uuid5(NAMESPACE_URL, "https://liquidmetal.dev/flintlock/erofs-base")`, from the layer diff ID (per layer) or from the chain ID and profile (merged image) |
 
 The build has two steps and never unpacks the image
-([A5](#13-amendments-to-the-decision-record)):
+([A5](#13-amendments-to-the-decision-record-and-to-option-c)):
 
 ```text
 # per layer, tar stream on stdin
@@ -292,7 +332,9 @@ mkfs.erofs -b4096 --clean=data --ovlfs-strip=1 -T0 --mkfs-time -U <uuid> \
 ```
 
 The per-layer files are intermediate and are removed after the merge. The
-base digest is the sha256 of the merged file.
+base digest is the sha256 of the merged file. D8's `--sort` keeps its
+default, `path`: both values are deterministic for a fixed tar stream, and
+the stream is fixed by the layer digest.
 
 The builder checks the version that `mkfs.erofs` reports against the profile
 before every build. A change to any input in the table is a new profile name
@@ -322,42 +364,50 @@ gives none (D13). The minimum is 64 MB.
 
 ### 6.1 One source for drive order
 
-The drive order is decided in three places today: each provider's emission
-code and the arithmetic in `core/steps/cloudinit/disk_mount.go`. One function
-in `infrastructure/microvm/shared` replaces them. It is exposed through a new
-method on the provider port:
+Since F1 ([#1270](https://github.com/liquidmetal-dev/flintlock/pull/1270),
+merged 2026-10-03) the drive order has one source, `BuildDrives` in
+`infrastructure/microvm/shared/drives.go`, exposed through the provider port:
 
 ```go
 // Drives returns the drives the provider will present, in guest order.
 Drives(vm *models.MicroVM) (models.Drives, error)
 ```
 
-A `Drive` carries its ID, role, guest device name, read-only flag and, when
-the volume status has one, its host path.
+A `Drive` (`core/models/drive.go`) carries its ID, role (`root`, `cloud-init`
+or `volume`), volume ID, guest device name, read-only flag and, when the
+volume status has one, its host path. Both providers emit from the list, and
+the cloud-init mount step takes its device names from it (D14). F1 also fixed
+two defects in that step: it counted virtiofs entries as block devices, and
+on Cloud Hypervisor it ignored the cloud-init image at `vdb`.
 
-| Consumer | Uses |
-| -------- | ---- |
-| Provider emission | The whole list, in order |
-| Kernel parameters | Device names of the base and the writable disk |
-| Cloud-init mount step | Device names of the additional volumes (D14) |
+This milestone adds two roles, `root-base` and `root-rw`, and one consumer:
 
-This fixes two existing defects in the cloud-init mount step: it counts
-virtiofs entries as block devices, and on Cloud Hypervisor it ignores the
-cloud-init image at `vdb`.
+| Consumer | Uses | State |
+| -------- | ---- | ----- |
+| Provider emission | The whole list, in order | exists |
+| Cloud-init mount step | Device names of the additional volumes | exists |
+| Kernel parameters | Device names of the base and the writable disk | new |
 
 ### 6.2 Provider changes
 
 | | Firecracker | Cloud Hypervisor |
 | - | ----------- | ---------------- |
 | Drives | `<id>_base` read-only and `<id>_rw`; neither is the root device | `--disk` for the base with `readonly=on`, then the writable disk |
-| Initrd | Already passes `initrd_path` | Gains `--initramfs` (D4) |
+| Initrd | Already passes `initrd_path` | Passes `--initramfs` since F2 (D4) |
 | Command line | Adds the `flintlock.root.*` parameters | Same, and omits `root=/dev/vda rw` |
 | Paths | Relative (`volumes/root.base`, `volumes/root.rw`), with the process working directory set to the VM state directory | Absolute, unchanged |
+| Guest TRIM | Not enabled; `discard` keeps its default | Not enabled; `sparse` keeps its default |
 
 Firecracker stores the drive path string in its snapshot, and a clone must
 resolve that string to its own disk (SNAP-VOL-007). Overlay VMs are therefore
 created with relative paths from the start, so that VMs created by this
 milestone can be snapshotted by a later one. `full` mode keeps absolute paths.
+
+For the same reason guest TRIM (Option C section 5.3) is a decision and not
+an omission: a drive's flags are part of the device configuration a snapshot
+restores with. It stays at the VMM defaults for VMs created by this milestone
+([A9](#13-amendments-to-the-decision-record-and-to-option-c)). Enabling it
+for VMs created later does not affect existing VMs.
 
 ### 6.3 Application and plan
 
@@ -365,8 +415,8 @@ milestone can be snapshotted by a later one. `full` mode keeps absolute paths.
 | ----- | ------ |
 | `app.CreateMicroVM` | In overlay mode with no initrd in the spec, write the configured default into the spec (D2). The stored spec names the initrd that was used |
 | Validation | Reject overlay with a read-only root. Reject overlay on additional volumes. Reject a writable disk size under the minimum |
-| Capabilities | Host probes at startup add `volume-overlay` and `volume-full` to each provider's capabilities. A spec that asks for a missing mode is rejected (D7) |
-| Create plan | New `OverlayVolumeMount` step calls `VolumeService.Create` and records both mounts and the base digest |
+| Capabilities | Each provider's `Capabilities()` is a static list today. Host probes run once at startup and their result is given to both providers, which append `volume-overlay` and `volume-full`. `checkProviderCapabilities` gains a check of the volume mode with a fixed error per missing mode (D7) |
+| Create plan | New `OverlayVolumeMount` step calls `VolumeService.Create` and records both mounts and the base digest. Its `ShouldDo` is defined in section 5.2 |
 | Delete plan | New `VolumeRelease` step before the directory delete. It also runs the base sweep |
 
 Host probes:
@@ -382,8 +432,8 @@ A failed probe is logged with its reason.
 
 | Flag | Default |
 | ---- | ------- |
-| `--overlay-initrd-image` | The published initrd image at the daemon's own version |
-| `--overlay-rw-size-mb` | 10240, the devmapper base size used today |
+| `--overlay-initrd-image` | The published initrd image at the daemon's own version. A build whose version is not a release tag has no default, and overlay mode is rejected with an error that names the flag until it is set |
+| `--overlay-rw-size-mb` | 10240, the 10 GB `base_image_size` that provisioning gives devmapper today |
 | `--overlay-base-retention` | 24h |
 | `--mkfs-erofs-path` | The location provisioning installs to |
 
@@ -395,12 +445,14 @@ A failed probe is logged with its reason.
 
 Installs the pinned `mkfs.erofs` as a static binary. The binary is built in
 CI from the erofs-utils tag that the profile names, published as a flintlock
-release asset, and verified by checksum on download, in the way Firecracker
-and Cloud Hypervisor are installed. It is installed under flintlock's own
-directory and does not replace a system `mkfs.erofs`.
+release asset with its sha256, and verified against that checksum on
+download. The provisioner does not checksum Firecracker or Cloud Hypervisor
+today; this is the first install that is verified. The binary is installed
+under flintlock's own directory and does not replace a system `mkfs.erofs`.
 
 The distribution package is not used. Ubuntu 24.04 ships erofs-utils 1.7.1,
-and the merge step needs 1.8 or later.
+which predates the multi-source merge of section 5.4, and the inline xattr
+ordering fix for reproducible builds arrived in 1.9.3.
 
 ### 7.2 `flintlock-provision state-dir`
 
@@ -440,6 +492,7 @@ host with no pool.
 | Base build | Daemon crash during the build | The kernel drops the `flock`. The startup sweep clears `scratch/` |
 | Base build | Two creates for one image at once | The second waits on the lock, then finds the finished base |
 | Base build | Disk full | Remove scratch files and fail |
+| Template | Two creates for one size at once | The second waits on the per-size lock, then reflinks the finished template |
 | Writable disk | `FICLONE` is not supported | Fail with a configuration error. There is no fallback to a full copy, because it would hide a misprovisioned host |
 | Sweep | A base is removed while a create is linking it | The sweep takes the same per-key lock and rechecks references under it |
 | Release | Files already gone | Success |
@@ -456,13 +509,20 @@ base distribution.
 | ----- | ------ | ----- |
 | Unit | Init parameter parsing, contract refusal, device timeout and mount order; drive order for both providers and both modes; validation and capability rules; plan steps with a mocked `VolumeService`; provider argument building | nothing |
 | Integration | Base determinism; the merged image equals containerd's own unpack of the same layers by path, mode, owner, size, content hash, link groups and xattrs; index locking | pinned `mkfs.erofs`; root for the unpack comparison |
-| e2e | Success criteria 1, 2, 4, 5 and 6 on Firecracker 6.1, Firecracker 5.10 and Cloud Hypervisor 6.2 | KVM, reflink state directory, rebuilt kernels |
+| e2e | Success criteria 1, 2, 4, 5 and 6 on Firecracker 6.1, Firecracker 5.10 and Cloud Hypervisor 6.2 | KVM, a reflink state directory, the published kernels |
 
 Criterion 3 is proven by the integration tests. Criterion 7 is proven by the
 unit tests of the host probes and the capability rules.
 
 In CI a missing `mkfs.erofs` fails the integration tests. It does not skip
-them.
+them. The integration job builds the pinned erofs-utils from source, or
+restores it from the actions cache, because F7's tests run before a release
+that carries the binary exists.
+
+The e2e runner has no reflink filesystem today, and the e2e harness starts
+`flintlockd` with the default state directory. The hosted e2e workflow
+creates the loop-backed XFS of section 7.2 and mounts it at that directory
+before `flintlockd` starts.
 
 The rootfs image for e2e is the unmodified `ubuntu` image from
 `mikrolite-images`. Cloud Hypervisor e2e depends on
@@ -619,8 +679,8 @@ configuration. They were not booted.
 
 Two questions were open before the base builder could be planned: whether
 the layer merge is correct for a real image, and whether a 5.10 guest kernel
-boots an overlay root on the result. Experiments X-4 and X-5 answer both with
-yes.
+boots an overlay root on the result. Experiments X-4 and X-5, the two spikes,
+answer both with yes.
 
 The first yes rests on the override in X-4. The comparison read the base
 with `fsck.erofs` and not through a kernel mount, and the file capabilities
@@ -697,36 +757,37 @@ Bottom first.
 
 | Layer | Branch | Change | Note |
 | ----- | ------ | ------ | ---- |
-| F1 | `overlay/drive-order` | Derive cloud-init device names from the provider's drive order | Fixes `full` mode today. Changes guest device names for Cloud Hypervisor VMs that have additional volumes with mount points; needs a release note |
-| F2 | `overlay/ch-initramfs` | Cloud Hypervisor passes the initrd to the VMM | Fixes `full` mode today |
-| F3 | `overlay/ch-readonly` | Cloud Hypervisor honours read-only volumes | Fixes `full` mode today |
+| F1 | `overlay/drive-order` | Derive cloud-init device names from the provider's drive order | Merged 2026-10-03, [#1270](https://github.com/liquidmetal-dev/flintlock/pull/1270). Changes guest device names for Cloud Hypervisor VMs that have additional volumes with mount points; needs a release note |
+| F2 | `overlay/ch-initramfs` | Cloud Hypervisor passes the initrd to the VMM | Merged 2026-10-03, [#1271](https://github.com/liquidmetal-dev/flintlock/pull/1271) |
+| F3 | `overlay/ch-readonly` | Cloud Hypervisor honours read-only volumes | Merged 2026-10-03, [#1272](https://github.com/liquidmetal-dev/flintlock/pull/1272) |
 | F4 | `overlay/api-volume-mode` | Volume mode, base mount and capabilities in the API and models, with validation | Changes `userdocs/` |
 | F5 | `overlay/init` | Overlay init and initrd packaging and publication | |
 | F6 | `overlay/mkfs-erofs` | CI build of the static `mkfs.erofs`, and `flintlock-provision erofs-utils` | Below F7, whose integration tests need the binary |
-| F7 | `overlay/base-builder` | Base builder and `LayerSource` | After the spikes |
+| F7 | `overlay/base-builder` | Base builder and `LayerSource` | After the spikes of section 11 |
 | F8 | `overlay/volume-service` | `VolumeService`, writable disks, base index, sweep, settings and host probes | |
 | F9 | `overlay/providers` | Overlay drives and kernel parameters in both providers | |
 | F10 | `overlay/plan` | Overlay volume step, release step and default initrd | |
 | F11 | `overlay/provision-host` | `flintlock-provision state-dir` and the optional thin pool | |
-| F12 | `overlay/e2e` | e2e for overlay boot | Needs M2 published |
+| F12 | `overlay/e2e` | e2e for overlay boot | Needs F11 for the state directory on the runner; the Cloud Hypervisor e2e of [#1264](https://github.com/liquidmetal-dev/flintlock/pull/1264) is merged |
 
-F1 to F3 can merge as soon as they are approved. Overlay mode becomes usable
-when F10 merges.
+F1 to F3 are merged. Overlay mode becomes usable when F10 and F11 are
+merged: F10 completes the create path, and F11 gives a host the reflink
+state directory that the `volume-overlay` probe needs.
 
-## 13. Amendments to the decision record
+## 13. Amendments to the decision record and to Option C
 
 | # | Amends | Change |
 | - | ------ | ------ |
-| A1 | D3, D5, record section 4 | Kernel work goes to `mikrolite-images`, not `image-builder`. EROFS and its options are built in |
-| A2 | D1 | The initrd uses `switch_root`. `pivot_root` does not work from an initramfs root |
-| A3 | D5 | The base is limited to EROFS features a 5.10 kernel can mount, and the profile that fixes them is part of the base identity |
+| A1 | D3, D5, record section 4 | Kernel work goes to `mikrolite-images`, which builds the published kernels, not `image-builder`. EROFS and its options are built in, because those kernels carry no modules |
+| A2 | D1 | The initrd uses `switch_root`. On the 5.10 and 6.1 guest kernels `pivot_root` does not work from an initramfs root, whose rootfs cannot be unmounted. Newer kernels lift that; the design does not depend on it |
+| A3 | D5, D8, D11 | The base is limited to EROFS features a 5.10 kernel can mount, and the profile that fixes them is part of the base identity |
 | A4 | D8 | No compression in the base. Compressed output depends on the compression library's version as well as on erofs-utils. Bases can be compressed in transit when distribution is built |
 | A5 | D8 | The base is built from layer tar streams and a merge, not from a native snapshotter `View`. The native snapshotter copies the whole tree for every layer. The tar route needs no snapshotter and never creates the image's device nodes or setuid files on the host |
-| A6 | D8, D11 | The base is keyed by rootfs chain ID and profile, not by image digest. Two manifests with the same layers share one base, and the key does not change when a registry recompresses a layer |
-| A7 | Option C sections 4, 5.1 and 6; Option B section 5.3 | No bolt `volumes.db`. [#1251](https://github.com/liquidmetal-dev/flintlock/pull/1251) selects SQLite for the local store and rules out bbolt. Volume records go into that store when the snapshot milestones need them |
-
-D3 is also refined: the init's Go source lives in `cmd/`, where the
-repository keeps binary entrypoints, and only the packaging is under `hack/`.
+| A6 | D8, D11, Option C section 8 | The base is keyed by rootfs chain ID and profile, not by image digest, and the filesystem UUIDs derive from the diff IDs and from that key rather than from the image digest. Two manifests with the same layers share one base, and the key does not change when a registry recompresses a layer |
+| A7 | Option C sections 4, 5.1, 6 and 8; Option B section 5.3 | No bolt `volumes.db`. [#1251](https://github.com/liquidmetal-dev/flintlock/pull/1251) selects SQLite for the local store and rules out bbolt. Volume records go into that store when the snapshot milestones need them |
+| A8 | Option C section 5.5 | erofs-utils is a pinned static binary that the provisioner installs, not the distribution package. Ubuntu 24.04 ships 1.7.1, which lacks the merge step |
+| A9 | Option C section 5.3 | Guest TRIM is not enabled on the writable disk. Drive flags are part of the device configuration a snapshot restores with, so the choice is recorded now; VMs created later can differ |
+| A10 | D3 | The init's Go source lives in `cmd/`, where the repository keeps binary entrypoints. Only the packaging is under `hack/` |
 
 ## 14. References
 

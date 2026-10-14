@@ -16,7 +16,8 @@ MicroVM snapshot and restore. Tracking issue:
 [#204](https://github.com/liquidmetal-dev/flintlock/issues/204).
 
 Suggested reading order: requirements, then the options survey, then the
-three design candidates, then the decision record.
+three design candidates, then the decision record, then the overlay boot
+design.
 
 | Document | Status |
 | --- | --- |
