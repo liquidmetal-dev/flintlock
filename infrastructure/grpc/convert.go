@@ -136,6 +136,7 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 	convertedVol := &models.Volume{
 		ID:         volume.Id,
 		IsReadOnly: volume.IsReadOnly,
+		Mode:       convertVolumeModeToModel(volume.Mode),
 	}
 
 	if volume.PartitionId != nil {
@@ -163,6 +164,24 @@ func convertVolumeToModel(volume *types.Volume) *models.Volume {
 	}
 
 	return convertedVol
+}
+
+// convertVolumeModeToModel maps the proto volume mode to the model. FULL is the
+// proto default, so a request from a client that predates the field is full.
+func convertVolumeModeToModel(mode types.VolumeMode) models.VolumeMode {
+	if mode == types.VolumeMode_OVERLAY {
+		return models.VolumeModeOverlay
+	}
+
+	return models.VolumeModeFull
+}
+
+func convertModelToVolumeMode(mode models.VolumeMode) types.VolumeMode {
+	if mode == models.VolumeModeOverlay {
+		return types.VolumeMode_OVERLAY
+	}
+
+	return types.VolumeMode_FULL
 }
 
 func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
@@ -225,6 +244,7 @@ func convertModelToVolumne(modelVolume *models.Volume) *types.Volume {
 		IsReadOnly:  modelVolume.IsReadOnly,
 		PartitionId: &modelVolume.PartitionID,
 		SizeInMb:    &modelVolume.Size,
+		Mode:        convertModelToVolumeMode(modelVolume.Mode),
 	}
 
 	volumeSource := &types.VolumeSource{}
@@ -313,7 +333,12 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 
 func convertModelToVolumeStatus(volStatus *models.VolumeStatus) *types.VolumeStatus {
 	converted := &types.VolumeStatus{
-		Mount: convertModelToVolumeMount(&volStatus.Mount),
+		Mount:      convertModelToVolumeMount(&volStatus.Mount),
+		BaseDigest: volStatus.BaseDigest,
+	}
+
+	if volStatus.BaseMount != nil {
+		converted.BaseMount = convertModelToVolumeMount(volStatus.BaseMount)
 	}
 
 	return converted
@@ -329,6 +354,8 @@ func convertModelToVolumeMount(volMount *models.Mount) *types.Mount {
 		converted.Type = types.Mount_DEV
 	case models.MountTypeHostPath:
 		converted.Type = types.Mount_HOSTPATH
+	case models.MountTypeFile:
+		converted.Type = types.Mount_FILE
 	}
 
 	return converted

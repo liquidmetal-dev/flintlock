@@ -29,6 +29,7 @@
     - [MicroVMStatus.MicroVMState](#flintlock-types-MicroVMStatus-MicroVMState)
     - [Mount.MountType](#flintlock-types-Mount-MountType)
     - [NetworkInterface.IfaceType](#flintlock-types-NetworkInterface-IfaceType)
+    - [VolumeMode](#flintlock-types-VolumeMode)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -368,7 +369,8 @@ Volume represents the configuration for a volume to be attached to a microvm.
 | mount_point | [string](#string) | optional | MountPoint allows you to optionally specify a mount point for the volume. This only applied to additional volumes and it will use cloud-init to mount the volumes. |
 | source | [VolumeSource](#flintlock-types-VolumeSource) |  | Source is where the volume will be sourced from. |
 | partition_id | [string](#string) | optional | PartitionID is the uuid of the boot partition. |
-| size_in_mb | [int32](#int32) | optional | Size is the size to resize this volume to.
+| size_in_mb | [int32](#int32) | optional | Size is the size to resize this volume to. In overlay mode it is the size of the writable disk, and the minimum is 64 MB. |
+| mode | [VolumeMode](#flintlock-types-VolumeMode) |  | Mode selects how the volume is provisioned. The default is FULL. Only the root volume can use OVERLAY, and a read-only root cannot use it.
 
 TODO: add rate limiting |
 
@@ -401,7 +403,9 @@ VolumeSource is the source of a volume. Based loosely on the volumes in Kubernet
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| mount | [Mount](#flintlock-types-Mount) |  | Mount represents a volume mount point. |
+| mount | [Mount](#flintlock-types-Mount) |  | Mount represents a volume mount point. In overlay mode it is the writable disk. |
+| base_mount | [Mount](#flintlock-types-Mount) |  | BaseMount represents the mount point of the read-only base in overlay mode. It is unset in full mode. |
+| base_digest | [string](#string) |  | BaseDigest is the sha256 digest of the base in overlay mode. It is empty in full mode. |
 
 
 
@@ -431,8 +435,9 @@ VolumeSource is the source of a volume. Based loosely on the volumes in Kubernet
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| DEV | 0 |  |
-| HOSTPATH | 1 |  |
+| DEV | 0 | DEV is a block device. |
+| HOSTPATH | 1 | HOSTPATH is a directory on the host. |
+| FILE | 2 | FILE is a file on the host, such as a disk image. |
 
 
 
@@ -445,6 +450,18 @@ VolumeSource is the source of a volume. Based loosely on the volumes in Kubernet
 | ---- | ------ | ----------- |
 | MACVTAP | 0 | MACVTAP represents a network interface that is macvtap. |
 | TAP | 1 | TAP represents a network interface that is a tap. |
+
+
+
+<a name="flintlock-types-VolumeMode"></a>
+
+### VolumeMode
+VolumeMode selects how a volume is provisioned.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| FULL | 0 | FULL provisions the volume as a full copy of the image in a containerd snapshot. |
+| OVERLAY | 1 | OVERLAY provisions the volume as a shared read-only base built from the image, plus a writable disk for the microvm. The guest&#39;s init joins them with overlayfs. |
 
 
  
