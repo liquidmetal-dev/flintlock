@@ -39,7 +39,9 @@ func serveCommand() *cli.Command {
 }
 
 func serve(cfg *config.Config) error {
-	aports, err := inject.InitializePorts(cfg)
+	// The metrics server reads microvm state only, so it needs no volume
+	// capabilities.
+	aports, err := inject.InitializePorts(cfg, nil)
 	if err != nil {
 		return fmt.Errorf("initialising ports for application: %w", err)
 	}
