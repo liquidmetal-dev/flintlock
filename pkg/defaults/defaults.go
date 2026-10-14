@@ -60,6 +60,14 @@ const (
 	// is kept after its last use.
 	OverlayBaseRetention = 24 * time.Hour
 
+	// OverlayInitrdImage is the OCI image repository of the initrd that boots
+	// an overlay root. Each release publishes it with the tag of the release,
+	// in the form GoReleaser gives the daemon (0.16.0) and with a v prefix.
+	OverlayInitrdImage = "ghcr.io/liquidmetal-dev/flintlock-overlay-init"
+
+	// OverlayInitrdFilename is the path of the initrd in OverlayInitrdImage.
+	OverlayInitrdFilename = "initrd.img"
+
 	// ConfigurationDir is the default configuration directory.
 	ConfigurationDir = "/etc/opt/flintlockd"
 
