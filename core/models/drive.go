@@ -4,8 +4,14 @@ package models
 type DriveRole string
 
 const (
-	// DriveRoleRoot is the drive that holds the root volume.
+	// DriveRoleRoot is the drive that holds the root volume in VolumeModeFull.
 	DriveRoleRoot DriveRole = "root"
+	// DriveRoleRootBase is the read-only base of the root volume in
+	// VolumeModeOverlay.
+	DriveRoleRootBase DriveRole = "root-base"
+	// DriveRoleRootRW is the writable disk of the root volume in
+	// VolumeModeOverlay.
+	DriveRoleRootRW DriveRole = "root-rw"
 	// DriveRoleCloudInit is the drive that holds the cloud-init data.
 	DriveRoleCloudInit DriveRole = "cloud-init"
 	// DriveRoleVolume is a drive that holds an additional volume.
@@ -44,4 +50,16 @@ func (d Drives) GuestDeviceForVolume(volumeID string) (string, bool) {
 	}
 
 	return "", false
+}
+
+// ByRole returns the first drive with the role. It returns false when no
+// drive has the role.
+func (d Drives) ByRole(role DriveRole) (Drive, bool) {
+	for _, drive := range d {
+		if drive.Role == role {
+			return drive, true
+		}
+	}
+
+	return Drive{}, false
 }
