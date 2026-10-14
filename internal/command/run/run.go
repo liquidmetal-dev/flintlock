@@ -28,6 +28,7 @@ import (
 	mvmsshproxyv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmsshproxy/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/probe"
 	cmdflags "github.com/liquidmetal-dev/flintlock/internal/command/flags"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -114,6 +115,14 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 
 	wg := &sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(log.WithLogger(ctx, logger))
+
+	// A build that a crash interrupted left its files in scratch/, and the
+	// kernel dropped its lock. Clear it before any port can start a build.
+	if err := overlay.ClearScratch(cfg.StateRootDir); err != nil {
+		cancel()
+
+		return fmt.Errorf("clearing overlay scratch directory: %w", err)
+	}
 
 	volumeCaps, err := probeHost(ctx, cfg)
 	if err != nil {
