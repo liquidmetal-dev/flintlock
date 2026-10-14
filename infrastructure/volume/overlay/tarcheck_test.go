@@ -115,13 +115,15 @@ func TestHardlinkCheck_DrainAfterShortRead(t *testing.T) {
 	g := NewWithT(t)
 	stream := writeTar(t, reg("a", 4096), link("b", "zzz"))
 	c := newHardlinkCheck()
-	r := bytes.NewReader(stream)
+	r := c.reader(bytes.NewReader(stream))
 
-	// The consumer stops after one block, as mkfs.erofs does at an error.
-	_, err := io.ReadFull(c.reader(r), make([]byte, 512))
+	// The consumer stops after one block, as mkfs.erofs does at an error,
+	// and the builder then reads the rest.
+	_, err := io.ReadFull(r, make([]byte, 512))
 	g.Expect(err).NotTo(HaveOccurred())
 
-	c.drain(r)
+	_, err = io.Copy(io.Discard, r)
+	g.Expect(err).NotTo(HaveOccurred())
 
 	entry, target, found := c.finish()
 	g.Expect(found).To(BeTrue())

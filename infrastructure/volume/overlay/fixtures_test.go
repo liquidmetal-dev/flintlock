@@ -97,9 +97,11 @@ func tarBytes(t *testing.T, entries ...entry) []byte {
 	return buf.Bytes()
 }
 
-// memSource is a LayerSource over in-memory tar streams.
+// memSource is a LayerSource over in-memory tar streams. Each layer's
+// DiffID is the digest of its bytes unless claims overrides it.
 type memSource struct {
 	layers [][]byte
+	claims map[int]digest.Digest
 	opens  int
 }
 
@@ -111,6 +113,10 @@ func (s *memSource) diffIDs() []digest.Digest {
 	ids := make([]digest.Digest, len(s.layers))
 	for i, l := range s.layers {
 		ids[i] = digest.FromBytes(l)
+
+		if claimed, ok := s.claims[i]; ok {
+			ids[i] = claimed
+		}
 	}
 
 	return ids
@@ -123,9 +129,9 @@ func (s *memSource) chainID() digest.Digest {
 func (s *memSource) Layers(_ context.Context, _ overlay.LayerInput) (*overlay.ImageLayers, error) {
 	out := &overlay.ImageLayers{ChainID: s.chainID()}
 
-	for i, l := range s.layers {
+	for i, id := range s.diffIDs() {
 		out.Layers = append(out.Layers, overlay.Layer{
-			DiffID: digest.FromBytes(l),
+			DiffID: id,
 			Open: func(context.Context) (io.ReadCloser, error) {
 				s.opens++
 

@@ -19,7 +19,8 @@ type LayerInput struct {
 
 // Layer is one layer of an image.
 type Layer struct {
-	// DiffID is the digest of the uncompressed tar stream of the layer.
+	// DiffID is the sha256 digest of the uncompressed tar stream of the
+	// layer. The builder checks the stream against it.
 	DiffID digest.Digest
 	// Open returns a new uncompressed tar stream of the layer. The caller
 	// closes the stream. Open can be called more than once.
@@ -35,6 +36,12 @@ type ImageLayers struct {
 }
 
 // LayerSource gives the builder the layers of an image.
+//
+// The builder trusts no source for the content of a layer. It hashes each
+// stream as it converts it and fails the build when the digest is not the
+// layer's DiffID. The chain ID is derived from the diff IDs, so a recorded
+// base is keyed by the identity of the bytes that were built, whatever the
+// source claimed.
 type LayerSource interface {
 	// Layers pulls the image if needed and returns its rootfs chain ID and
 	// one uncompressed tar stream per layer, lowest first.

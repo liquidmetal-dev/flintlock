@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/opencontainers/go-digest"
+
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
@@ -157,6 +159,14 @@ func (b *Builder) build(ctx context.Context, key baseKey, layers *ImageLayers) (
 // in the layer fails the build with a HardlinkError, whatever mkfs.erofs
 // reported.
 func (b *Builder) buildLayer(ctx context.Context, i int, layer Layer, out string) error {
+	if err := layer.DiffID.Validate(); err != nil {
+		return fmt.Errorf("layer %d: diff ID %q: %w", i, layer.DiffID, err)
+	}
+
+	if layer.DiffID.Algorithm() != digest.SHA256 {
+		return fmt.Errorf("layer %d: diff ID %q: %w", i, layer.DiffID, errDiffIDNotSHA256)
+	}
+
 	stream, err := layer.Open(ctx)
 	if err != nil {
 		return fmt.Errorf("opening layer %d (%s): %w", i, layer.DiffID, err)
@@ -164,14 +174,19 @@ func (b *Builder) buildLayer(ctx context.Context, i int, layer Layer, out string
 
 	defer stream.Close()
 
+	// Every byte mkfs.erofs reads also goes to the hardlink check and to
+	// the digest that is compared with the diff ID.
 	check := newHardlinkCheck()
+	digester := digest.SHA256.Digester()
+	in := io.TeeReader(check.reader(stream), digester.Hash())
 	args := b.mkfs.layerArgs(LayerUUID(layer.DiffID).String(), out)
 
-	runErr := b.mkfs.run(ctx, args, check.reader(stream))
-	if runErr != nil && ctx.Err() == nil {
-		// mkfs.erofs stops at the first bad entry. Read the rest so that
-		// the check reports the entry even when it is later in the stream.
-		check.drain(stream)
+	runErr := b.mkfs.run(ctx, args, in)
+	if ctx.Err() == nil {
+		// mkfs.erofs stops at the end-of-archive marker, or at the first
+		// bad entry. Read the rest so that the digest covers the whole
+		// stream and the check reports an entry wherever it is.
+		_, _ = io.Copy(io.Discard, in)
 	}
 
 	if entry, target, found := check.finish(); found {
@@ -180,6 +195,10 @@ func (b *Builder) buildLayer(ctx context.Context, i int, layer Layer, out string
 
 	if runErr != nil {
 		return fmt.Errorf("converting layer %d (%s): %w", i, layer.DiffID, runErr)
+	}
+
+	if got := digester.Digest(); got != layer.DiffID {
+		return &DiffIDError{LayerIndex: i, Want: layer.DiffID, Got: got}
 	}
 
 	return nil
