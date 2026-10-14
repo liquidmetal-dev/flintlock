@@ -17,6 +17,8 @@ type fakeSystem struct {
 	blockDevices map[string]time.Time
 	// charDevices holds paths that exist as character devices.
 	charDevices map[string]bool
+	// regularFiles holds paths that exist as regular files, with their mode.
+	regularFiles map[string]os.FileMode
 	// fail maps a call prefix, as recorded in calls, to the error to return.
 	fail map[string]error
 	env  []string
@@ -33,9 +35,13 @@ func newFakeSystem(cmdline string) *fakeSystem {
 			"/dev/vdb": start,
 		},
 		charDevices: map[string]bool{},
-		fail:        map[string]error{},
-		env:         []string{"HOME=/", "TERM=linux"},
-		now:         start,
+		regularFiles: map[string]os.FileMode{
+			"/sbin/init":           0o755,
+			"/lib/systemd/systemd": 0o755,
+		},
+		fail: map[string]error{},
+		env:  []string{"HOME=/", "TERM=linux"},
+		now:  start,
 	}
 }
 
@@ -72,6 +78,10 @@ func (f *fakeSystem) Stat(path string) (os.FileInfo, error) {
 
 	if appears, ok := f.blockDevices[path]; ok && !f.now.Before(appears) {
 		return fakeFileInfo{name: path, mode: os.ModeDevice}, nil
+	}
+
+	if mode, ok := f.regularFiles[path]; ok {
+		return fakeFileInfo{name: path, mode: mode}, nil
 	}
 
 	if f.charDevices[path] {
