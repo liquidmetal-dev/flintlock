@@ -72,7 +72,7 @@ func parseSize(size string) (int64, error) {
 
 // AssociateLoopDevice returns the loop device associated with sparseFile,
 // creating one if none exists yet, matching associate_loop_device.
-func AssociateLoopDevice(runner *Runner, sparseFile string) (string, error) {
+func AssociateLoopDevice(runner Executor, sparseFile string) (string, error) {
 	device, err := runner.Output("losetup", "--output", "NAME", "--noheadings", "--associated", sparseFile)
 	if err == nil && device != "" {
 		return device, nil
