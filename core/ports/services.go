@@ -220,3 +220,47 @@ type VirtioFSService interface {
 	Delete(ctx context.Context, vmid *models.VMID) error
 	HasVirtioFSDProcess(ctx context.Context, vmid *models.VMID) (bool, error)
 }
+
+// VolumeService provisions the drives of a volume in VolumeModeOverlay: a
+// link to the shared read-only base and a writable disk for the microvm.
+type VolumeService interface {
+	// Create provisions the drives of an overlay volume for a microvm. It is
+	// idempotent: a writable disk that exists is kept, and a base link that
+	// resolves to the base of the image is kept.
+	Create(ctx context.Context, input VolumeCreateInput) (*VolumeMounts, error)
+	// Release removes the writable disk and the base link of a microvm. It is
+	// idempotent: files that are already gone are a success. It also removes
+	// bases that no microvm links to and whose last use is older than the
+	// retention period.
+	Release(ctx context.Context, ref VolumeRef) error
+}
+
+// VolumeRef names one volume of one microvm.
+type VolumeRef struct {
+	// VMID is the identifier of the microvm.
+	VMID models.VMID
+	// VolumeID is the identifier of the volume in the spec.
+	VolumeID string
+}
+
+// VolumeCreateInput is the input of VolumeService.Create.
+type VolumeCreateInput struct {
+	VolumeRef
+	// ImageRef is the OCI image the base is built from.
+	ImageRef string
+	// SizeMB is the size of the writable disk in megabytes. Zero selects the
+	// daemon default.
+	SizeMB int32
+	// Owner is the owner of the image content, used for the containerd lease.
+	Owner string
+}
+
+// VolumeMounts is the output of VolumeService.Create.
+type VolumeMounts struct {
+	// BaseMount is the mount of the read-only base. Its type is MountTypeFile.
+	BaseMount models.Mount
+	// RWMount is the mount of the writable disk. Its type is MountTypeFile.
+	RWMount models.Mount
+	// BaseDigest is the sha256 of the base file in hex.
+	BaseDigest string
+}
