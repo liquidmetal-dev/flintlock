@@ -1,6 +1,7 @@
 package firecracker_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -217,4 +218,124 @@ func TestProviderCapabilities(t *testing.T) {
 	g.Expect(provider.Capabilities()).To(g.ContainElement(models.VolumeOverlayCapability))
 	g.Expect(provider.Capabilities()).NotTo(g.ContainElement(models.VolumeFullCapability))
 	g.Expect(provider.Capabilities()).To(g.ContainElement(models.MetadataServiceCapability))
+}
+
+// withOverlayRoot puts the root volume in overlay mode and records both
+// mounts, as the volume step does.
+func withOverlayRoot(vm *models.MicroVM) *models.MicroVM {
+	vm.Spec.RootVolume.Mode = models.VolumeModeOverlay
+	vm.Status.Volumes["root"] = &models.VolumeStatus{
+		Mount:     models.Mount{Type: models.MountTypeFile, Source: "/var/lib/flintlock/vm/ns/test/uid/volumes/root.rw"},
+		BaseMount: &models.Mount{Type: models.MountTypeFile, Source: "/var/lib/flintlock/bases/abc.img"},
+	}
+
+	return vm
+}
+
+func bootParams(cfg *firecracker.VmmConfig) []string {
+	return strings.Fields(*cfg.BootSource.BootArgs)
+}
+
+func TestWithMicroVM_OverlayBlockDevices(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := withOverlayRoot(vmForMicroVM(t, nil))
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	got, err := json.MarshalIndent(cfg.BlockDevices, "", "  ")
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	want, err := os.ReadFile("testdata/overlay_drives.json")
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(string(got)).To(g.Equal(strings.TrimSpace(string(want))))
+}
+
+func TestWithMicroVM_OverlayKernelParams(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := withOverlayRoot(vmForMicroVM(t, nil))
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	params := bootParams(cfg)
+	g.Expect(params).To(g.ContainElements(
+		"flintlock.root.contract=1",
+		"flintlock.root.base=/dev/vda",
+		"flintlock.root.rw=/dev/vdb",
+	))
+	g.Expect(params).NotTo(g.ContainElement(g.HavePrefix("root=")))
+}
+
+func TestWithMicroVM_OverlayKernelParamsReplaceSpec(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := withOverlayRoot(vmForMicroVM(t, nil))
+	vm.Spec.Kernel.CmdLine = map[string]string{
+		"flintlock.root.contract": "2",
+		"flintlock.root.base":     "/dev/sda",
+		"flintlock.root.rw":       "/dev/sdb",
+		"init":                    "/bin/sh",
+	}
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	params := bootParams(cfg)
+	g.Expect(params).To(g.ContainElements(
+		"flintlock.root.contract=1",
+		"flintlock.root.base=/dev/vda",
+		"flintlock.root.rw=/dev/vdb",
+		"init=/bin/sh",
+	))
+	g.Expect(params).NotTo(g.ContainElements("flintlock.root.contract=2", "flintlock.root.base=/dev/sda"))
+}
+
+func TestWithMicroVM_FullModeHasNoOverlayKernelParams(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vmForMicroVM(t, nil)))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(bootParams(cfg)).NotTo(g.ContainElement(g.HavePrefix("flintlock.root.")))
+	g.Expect(cfg.BlockDevices).To(g.HaveLen(1))
+	g.Expect(cfg.BlockDevices[0].PathOnHost).To(g.Equal("/root.img"))
+	g.Expect(cfg.BlockDevices[0].IsRootDevice).To(g.BeTrue())
+}
+
+func TestWithMicroVM_OverlayBaseNotMounted(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := withOverlayRoot(vmForMicroVM(t, nil))
+	vm.Status.Volumes["root"].BaseMount = nil
+
+	_, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).To(g.MatchError(errors.NewVolumeNotMounted("root")))
+}
+
+func TestProviderDrives_Overlay(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := withOverlayRoot(vmForMicroVM(t, nil))
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+
+	provider := firecracker.New(&firecracker.Config{}, nil, afero.NewMemMapFs())
+
+	drives, err := provider.Drives(vm)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(drives).To(g.HaveLen(3))
+	g.Expect(drives[0].Role).To(g.Equal(models.DriveRoleRootBase))
+	g.Expect(drives[0].Path).To(g.Equal("/var/lib/flintlock/bases/abc.img"))
+	g.Expect(drives[1].Role).To(g.Equal(models.DriveRoleRootRW))
+	g.Expect(drives[1].GuestDevice).To(g.Equal("vdb"))
+
+	device, found := drives.GuestDeviceForVolume("data")
+	g.Expect(found).To(g.BeTrue())
+	g.Expect(device).To(g.Equal("vdc"))
 }
