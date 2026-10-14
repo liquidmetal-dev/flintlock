@@ -25,9 +25,6 @@ const (
 	dirPerm  = 0o755
 	basePerm = 0o400
 	lockPerm = 0o600
-
-	// lockPoll is the time between two attempts to take a held lock.
-	lockPoll = 50 * time.Millisecond
 )
 
 // baseKey identifies a base: the rootfs chain ID of its image and the
@@ -71,8 +68,8 @@ type Reference struct {
 }
 
 // baseIndex finds and records bases. The filesystem is its only
-// implementation today. The sweep of a later change adds a method to list
-// the bases and uses References and Lock to remove unused ones.
+// implementation today. The sweep lists its entries and uses References and
+// Lock to remove unused bases.
 type baseIndex interface {
 	// Lock takes the lock of key and returns the function that releases
 	// it. It waits until the lock is free or ctx ends.
@@ -84,6 +81,13 @@ type baseIndex interface {
 	Record(key baseKey, path string) error
 	// Touch sets the last-use time of key's link to now.
 	Touch(key baseKey) error
+	// LastUse returns the last-use time of key. The error wraps
+	// errBaseNotInIndex when the key has no link.
+	LastUse(key baseKey) (time.Time, error)
+	// Entries lists every by-source link of the index.
+	Entries() ([]Entry, error)
+	// Remove deletes the by-source link of key. A missing link is a success.
+	Remove(key baseKey) error
 	// References lists every VM link to a base under the state root.
 	References() ([]Reference, error)
 }
@@ -122,43 +126,7 @@ func (i *fsIndex) linkPath(key baseKey) string {
 // and not a mutex because the daemon initialises more than one set of
 // ports, and the kernel drops the lock when the process dies.
 func (i *fsIndex) Lock(ctx context.Context, key baseKey) (func() error, error) {
-	path := filepath.Join(i.basesPath(), locksDir, key.lockName())
-
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, lockPerm)
-	if err != nil {
-		return nil, fmt.Errorf("opening lock %s: %w", path, err)
-	}
-
-	for {
-		err := unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
-		if err == nil {
-			break
-		}
-
-		if !errors.Is(err, unix.EWOULDBLOCK) {
-			_ = f.Close()
-
-			return nil, fmt.Errorf("locking %s: %w", path, err)
-		}
-
-		select {
-		case <-ctx.Done():
-			_ = f.Close()
-
-			return nil, fmt.Errorf("waiting for lock %s: %w", path, ctx.Err())
-		case <-time.After(lockPoll):
-		}
-	}
-
-	return func() error {
-		if err := unix.Flock(int(f.Fd()), unix.LOCK_UN); err != nil {
-			_ = f.Close()
-
-			return fmt.Errorf("unlocking %s: %w", path, err)
-		}
-
-		return f.Close()
-	}, nil
+	return lockFile(ctx, filepath.Join(i.basesPath(), locksDir, key.lockName()))
 }
 
 // Lookup follows the by-source link of key to the base file.
@@ -238,6 +206,96 @@ func (i *fsIndex) Touch(key baseKey) error {
 
 	if err := unix.Lutimes(link, nil); err != nil {
 		return fmt.Errorf("touching %s: %w", link, err)
+	}
+
+	return nil
+}
+
+// LastUse returns the modification time of the by-source link of key.
+func (i *fsIndex) LastUse(key baseKey) (time.Time, error) {
+	link := i.linkPath(key)
+
+	info, err := os.Lstat(link)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return time.Time{}, fmt.Errorf("%s: %w", key, errBaseNotInIndex)
+		}
+
+		return time.Time{}, fmt.Errorf("stat %s: %w", link, err)
+	}
+
+	return info.ModTime(), nil
+}
+
+// Entry is one by-source link of the index: the key, the base it points
+// to and the time of its last use.
+type Entry struct {
+	// Key is the chain ID and profile of the link.
+	Key baseKey
+	// Digest is the sha256 the link target names.
+	Digest string
+	// Path is the absolute path of the base file the link points to. The
+	// file can be missing.
+	Path string
+	// LastUse is the modification time of the link, which Touch refreshes.
+	LastUse time.Time
+}
+
+// Entries lists every by-source link of the index.
+func (i *fsIndex) Entries() ([]Entry, error) {
+	pattern := filepath.Join(i.basesPath(), bySourceDir, "*", "*")
+
+	links, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("listing %s: %w", pattern, err)
+	}
+
+	entries := make([]Entry, 0, len(links))
+
+	for _, link := range links {
+		info, err := os.Lstat(link)
+		if err != nil {
+			return nil, fmt.Errorf("stat %s: %w", link, err)
+		}
+
+		if info.Mode()&os.ModeSymlink == 0 {
+			continue
+		}
+
+		target, err := os.Readlink(link)
+		if err != nil {
+			return nil, fmt.Errorf("reading link %s: %w", link, err)
+		}
+
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(filepath.Dir(link), target)
+		}
+
+		sum, err := digestFromPath(target)
+		if err != nil {
+			return nil, fmt.Errorf("link %s: %w", link, err)
+		}
+
+		entries = append(entries, Entry{
+			Key: baseKey{
+				ChainID: digest.Digest(filepath.Base(filepath.Dir(link))),
+				Profile: filepath.Base(link),
+			},
+			Digest:  sum,
+			Path:    target,
+			LastUse: info.ModTime(),
+		})
+	}
+
+	return entries, nil
+}
+
+// Remove deletes the by-source link of key. A missing link is a success.
+func (i *fsIndex) Remove(key baseKey) error {
+	link := i.linkPath(key)
+
+	if err := os.Remove(link); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("removing %s: %w", link, err)
 	}
 
 	return nil
