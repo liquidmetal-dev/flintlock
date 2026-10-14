@@ -23,7 +23,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
-func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
+func InitializePorts(cfg *config.Config, volumeCaps microvm.VolumeCapabilities) (*ports.Collection, error) {
 	wire.Build(containerd.NewEventService,
 		containerd.NewImageService,
 		containerd.NewMicroVMRepo,
@@ -32,7 +32,7 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 		network.New,
 		godisk.New,
 		appPorts,
-		containerdConfig,
+		ContainerdConfig,
 		networkConfig,
 		afero.NewOsFs,
 		virtiofs.New)
@@ -70,7 +70,8 @@ func InitializeSSHProxyGRPCServer(app application.App) ports.MicroVMSSHProxyGRPC
 	return nil
 }
 
-func containerdConfig(cfg *config.Config) *containerd.Config {
+// ContainerdConfig is the containerd configuration of cfg.
+func ContainerdConfig(cfg *config.Config) *containerd.Config {
 	return &containerd.Config{
 		SnapshotterKernel: cfg.CtrSnapshotterKernel,
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
