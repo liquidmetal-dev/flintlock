@@ -163,12 +163,8 @@ func (s *StateDir) setupLoop(opts StateDirOptions) error {
 		return err
 	}
 
-	if err := s.formatXFS(device, opts.Force); err != nil {
+	if err := s.formatLoopDevice(device, opts.LoopFile, opts.Force); err != nil {
 		return err
-	}
-
-	if err := s.Exec.Run("losetup", "--detach", device); err != nil {
-		return fmt.Errorf("detaching %s from %s: %w", device, opts.LoopFile, err)
 	}
 
 	if err := s.mountPersistent(opts.LoopFile, opts.Dir, "loop,nofail"); err != nil {
@@ -176,6 +172,24 @@ func (s *StateDir) setupLoop(opts StateDirOptions) error {
 	}
 
 	return s.verify(opts.Dir)
+}
+
+// formatLoopDevice formats device, which is attached to file, and detaches
+// it again on every path. A failed format must not leave the loop device
+// allocated. mount(8) attaches its own loop device from the fstab entry.
+func (s *StateDir) formatLoopDevice(device, file string, force bool) error {
+	formatErr := s.formatXFS(device, force)
+
+	if err := s.Exec.Run("losetup", "--detach", device); err != nil {
+		detachErr := fmt.Errorf("detaching %s from %s: %w", device, file, err)
+		if formatErr != nil {
+			return errors.Join(formatErr, detachErr)
+		}
+
+		return detachErr
+	}
+
+	return formatErr
 }
 
 // ensureNotMounted fails when dir is already a mount point. The provisioner
