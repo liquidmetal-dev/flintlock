@@ -77,9 +77,3 @@ func (c *hardlinkCheck) finish() (entry, target string, found bool) {
 func cleanTarPath(name string) string {
 	return path.Clean("/" + strings.TrimPrefix(name, "/"))[1:]
 }
-
-// drain reads the rest of r through the check so that the check sees the
-// whole layer when mkfs.erofs stopped early.
-func (c *hardlinkCheck) drain(r io.Reader) {
-	_, _ = io.Copy(io.Discard, c.reader(r))
-}
