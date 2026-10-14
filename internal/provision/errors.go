@@ -7,5 +7,11 @@ var (
 	// the sha256 published next to it. The file is not installed.
 	ErrChecksumMismatch = errors.New("sha256 mismatch")
 
+	// ErrErofsUtilsArch is returned when the host is not linux/amd64, the
+	// only architecture flintlock releases ship mkfs.erofs for. arm64 is
+	// tracked in https://github.com/liquidmetal-dev/flintlock/issues/1317.
+	ErrErofsUtilsArch = errors.New("flintlock releases ship mkfs.erofs for linux/amd64 only " +
+		"(arm64 is tracked in https://github.com/liquidmetal-dev/flintlock/issues/1317)")
+
 	errEmptySHA256 = errors.New("sha256 file is empty")
 )
