@@ -18,8 +18,8 @@ func NewRootCommand() (*cobra.Command, error) {
 		Use:   "flintlock-provision",
 		Short: "Provision a host for running flintlock microvms",
 		Long: "flintlock-provision bootstraps a host to run flintlock: installing " +
-			"Firecracker, Cloud Hypervisor, containerd and flintlockd, and setting up " +
-			"the devicemapper thinpool containerd needs.",
+			"Firecracker, Cloud Hypervisor, containerd, flintlockd and the pinned " +
+			"mkfs.erofs, and setting up the devicemapper thinpool containerd needs.",
 		RunE: func(c *cobra.Command, _ []string) error {
 			return c.Help()
 		},
@@ -32,6 +32,7 @@ func NewRootCommand() (*cobra.Command, error) {
 		newCloudHypervisorCommand(),
 		newContainerdCommand(),
 		newFlintlockCommand(),
+		newErofsUtilsCommand(),
 		newDirectLVMCommand(),
 		newDevPoolCommand(),
 		newVersionCommand(),
