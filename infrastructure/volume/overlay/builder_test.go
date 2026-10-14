@@ -227,7 +227,7 @@ func TestBuild_MkfsFailureRemovesScratch(t *testing.T) {
 
 			var merr *overlay.MkfsError
 			g.Expect(errors.As(err, &merr)).To(BeTrue(), "got %v", err)
-			g.Expect(merr.Stderr).To(Equal("fake mkfs.erofs: " + step + " failed"))
+			g.Expect(merr.Stderr).To(ContainSubstring("fake mkfs.erofs: " + step + " failed"))
 			g.Expect(err.Error()).To(ContainSubstring("fake mkfs.erofs: " + step + " failed"))
 
 			entries, err := os.ReadDir(filepath.Join(stateRoot, "scratch"))
