@@ -143,7 +143,7 @@ test: ## Run unit tests
 
 .PHONY: test-with-cov
 test-with-cov: ## Run unit tests with coverage
-	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt -exec "sudo --preserve-env=CTR_SOCK_PATH" ./...
+	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt -exec "sudo --preserve-env=CTR_SOCK_PATH,CI" ./...
 
 .PHONY: test-e2e
 test-e2e: compile-e2e ## Run e2e tests locally
