@@ -55,16 +55,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("saving firecracker metadata: %w", err)
 	}
 
-	args := []string{"--id", vm.ID.UID(), "--boot-timer", "--no-api"}
-	args = append(args, "--config-file", vmState.ConfigPath())
-	args = append(args, "--metadata", vmState.MetadataPath())
-
-	cmd := firecracker.VMCommandBuilder{}.
-		WithBin(p.config.FirecrackerBin).
-		WithArgs(args).
-		Build(context.TODO()) //nolint: contextcheck // Intentional.
-
-	proc, err := p.startFirecracker(cmd, vmState, p.config.RunDetached)
+	proc, err := p.startFirecracker(p.command(vm, vmState), vmState, p.config.RunDetached)
 	if err != nil {
 		return fmt.Errorf("starting firecracker process: %w", err)
 	}
@@ -74,6 +65,24 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	}
 
 	return nil
+}
+
+// command returns the command that starts firecracker for a microvm. The
+// working directory of the process is the state directory of the microvm, so
+// that the relative drive paths of an overlay root resolve to its own disks.
+func (p *fcProvider) command(vm *models.MicroVM, vmState State) *exec.Cmd {
+	args := []string{"--id", vm.ID.UID(), "--boot-timer", "--no-api"}
+	args = append(args, "--config-file", vmState.ConfigPath())
+	args = append(args, "--metadata", vmState.MetadataPath())
+
+	cmd := firecracker.VMCommandBuilder{}.
+		WithBin(p.config.FirecrackerBin).
+		WithArgs(args).
+		Build(context.TODO()) //nolint: contextcheck // Intentional.
+
+	cmd.Dir = vmState.Root()
+
+	return cmd
 }
 
 func (p *fcProvider) startFirecracker(cmd *exec.Cmd, vmState State, detached bool) (*os.Process, error) {
