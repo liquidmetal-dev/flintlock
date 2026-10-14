@@ -34,6 +34,9 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("noReadOnlyVirtioFS", customNoReadOnlyVirtioFSValidator, false)
 	_ = validator.RegisterValidation("kvmCapability", customKVMCapabilityValidator, false)
 	_ = validator.RegisterValidation("imageFilePath", customImageFilePathValidator, false)
+	_ = validator.RegisterValidation("noReadOnlyOverlay", customNoReadOnlyOverlayValidator, false)
+	_ = validator.RegisterValidation("overlayMinSize", customOverlayMinSizeValidator, false)
+	_ = validator.RegisterValidation("noOverlayVolumes", customNoOverlayVolumesValidator, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
 
 	return &validate{
@@ -85,6 +88,48 @@ func customMicroVMSpecStructLevelValidation(structLevel playgroundValidator.Stru
 
 		return
 	}
+
+	// In overlay mode the initramfs /init is the contract between flintlock and the guest.
+	// rdinit= replaces that /init, so a spec that sets it in overlay mode is rejected.
+	if spec.RootVolume.EffectiveMode() == models.VolumeModeOverlay {
+		if _, ok := spec.Kernel.CmdLine["rdinit"]; ok {
+			structLevel.ReportError(spec.Kernel.CmdLine, "kernel.cmdline", "CmdLine", "noRdinitInOverlay", "")
+		}
+	}
+}
+
+// customNoReadOnlyOverlayValidator ensures a volume in overlay mode is not read-only.
+// The overlay root needs its writable disk, so a read-only root has no meaning there.
+func customNoReadOnlyOverlayValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	volume, _ := fieldLevel.Field().Interface().(models.Volume)
+
+	return !(volume.EffectiveMode() == models.VolumeModeOverlay && volume.IsReadOnly)
+}
+
+// customOverlayMinSizeValidator ensures the writable disk of a volume in overlay mode is
+// at least models.OverlayMinWritableDiskMB. A size of zero means the daemon default.
+func customOverlayMinSizeValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	volume, _ := fieldLevel.Field().Interface().(models.Volume)
+
+	if volume.EffectiveMode() != models.VolumeModeOverlay || volume.Size == 0 {
+		return true
+	}
+
+	return volume.Size >= models.OverlayMinWritableDiskMB
+}
+
+// customNoOverlayVolumesValidator ensures no additional volume is in overlay mode.
+// Only the root volume can be an overlay.
+func customNoOverlayVolumesValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	field, _ := fieldLevel.Field().Interface().(models.Volumes)
+
+	for _, volume := range field {
+		if volume.EffectiveMode() == models.VolumeModeOverlay {
+			return false
+		}
+	}
+
+	return true
 }
 
 func customNoVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel) bool {
