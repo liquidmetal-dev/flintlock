@@ -49,9 +49,10 @@ A provider advertises the volume modes its host can serve:
 | `volume-overlay` | `OVERLAY` root | A state directory on a filesystem with reflinks, `mkfs.erofs` and `mkfs.ext4`. |
 
 A request for a mode the provider does not advertise fails with an error
-that names the missing capability. Today both providers advertise
-`volume-full`. No provider advertises `volume-overlay` yet, so a request with
-`mode: OVERLAY` is rejected.
+that names the missing capability. Probes at daemon start decide what the
+host has, and both providers advertise the result. A failed probe is logged
+with its reason. A host with no thin pool advertises only `volume-overlay`,
+and a host whose state directory has no reflinks advertises only `volume-full`.
 
 ## Volume status
 
