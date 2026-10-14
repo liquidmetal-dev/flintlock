@@ -21,6 +21,7 @@ type mockList struct {
 	MicroVMService    *mock.MockMicroVMService
 	NetworkService    *mock.MockNetworkService
 	ImageService      *mock.MockImageService
+	VolumeService     *mock.MockVolumeService
 }
 
 func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
@@ -31,6 +32,7 @@ func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
 		MicroVMService:    mock.NewMockMicroVMService(mockCtrl),
 		NetworkService:    mock.NewMockNetworkService(mockCtrl),
 		ImageService:      mock.NewMockImageService(mockCtrl),
+		VolumeService:     mock.NewMockVolumeService(mockCtrl),
 	}
 
 	return mList, &ports.Collection{
@@ -42,6 +44,7 @@ func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
 		},
 		NetworkService: mList.NetworkService,
 		ImageService:   mList.ImageService,
+		VolumeService:  mList.VolumeService,
 		FileSystem:     afero.NewMemMapFs(),
 		Clock:          time.Now,
 	}
