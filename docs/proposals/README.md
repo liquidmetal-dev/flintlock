@@ -16,15 +16,16 @@ MicroVM snapshot and restore. Tracking issue:
 [#204](https://github.com/liquidmetal-dev/flintlock/issues/204).
 
 Suggested reading order: requirements, then the options survey, then the
-three design candidates.
+three design candidates, then the decision record.
 
 | Document | Status |
 | --- | --- |
 | [MicroVM Snapshot & Restore Requirements](26-09-25-snapshot-restore/0204-snapshot-restore-requirements.md) | proposed |
 | [Root Volume Options for Snapshot & Restore](26-09-25-snapshot-restore/0204-root-volume-options.md) | informative |
 | [Option A: stay on devmapper (dm-thin)](26-09-25-snapshot-restore/0204-option-a-devmapper.md) | proposed design candidate |
-| [Option B: containerd blockfile snapshotter on a reflink filesystem](26-09-25-snapshot-restore/0204-option-b-blockfile.md) | proposed design candidate |
-| [Option C: read-only deterministic base plus a per-VM writable disk](26-09-25-snapshot-restore/0204-option-c-ro-base-rw-disk.md) | proposed design candidate |
+| [Option B: containerd blockfile snapshotter on a reflink filesystem](26-09-25-snapshot-restore/0204-option-b-blockfile.md) | considered, may be revisited |
+| [Option C: read-only deterministic base plus a per-VM writable disk](26-09-25-snapshot-restore/0204-option-c-ro-base-rw-disk.md) | proposed design candidate (selected) |
+| [Root Volume Decision: implement Option C directly](26-09-25-snapshot-restore/0204-root-volume-decision.md) | proposed |
 
 ## Adding a proposal
 

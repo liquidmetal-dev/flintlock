@@ -1,12 +1,13 @@
 # 0204. Option B: containerd blockfile snapshotter on a reflink filesystem
 
-* Status: proposed design candidate
+* Status: considered, may be revisited (see [decision](0204-root-volume-decision.md))
 * Date: 2026-09-25
 * Authors: @richardcase
 * Issue: [#204](https://github.com/liquidmetal-dev/flintlock/issues/204)
 * Companions: [requirements](0204-snapshot-restore-requirements.md),
   [options survey](0204-root-volume-options.md),
-  [Option A](0204-option-a-devmapper.md), [Option C](0204-option-c-ro-base-rw-disk.md)
+  [Option A](0204-option-a-devmapper.md), [Option C](0204-option-c-ro-base-rw-disk.md),
+  [decision](0204-root-volume-decision.md)
 
 ## 1. Summary
 
