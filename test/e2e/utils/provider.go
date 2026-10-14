@@ -19,7 +19,24 @@ const (
 	// KernelWithoutPVHFilename is the path of the kernel in the
 	// KernelWithoutPVHImage.
 	KernelWithoutPVHFilename = "boot/vmlinux"
+
+	// VirtioFSDBin is the virtiofsd binary which flintlockd starts for a
+	// virtiofs volume. It is the default of --virtiofs-bin, which the runner
+	// does not pass. Like the names of the files, it is not taken from the
+	// code of flintlockd.
+	VirtioFSDBin = "/usr/libexec/virtiofsd"
+	// VirtioFSDPidFile is the file in the state directory of a microvm which
+	// holds the pid of virtiofsd.
+	VirtioFSDPidFile = "virtiofs.pid"
+	// VirtioFSDSocketFile is the socket in the socket directory of a microvm
+	// which virtiofsd listens on, and which the VMM gets the share from.
+	VirtioFSDSocketFile = "virtiofs.sock"
 )
+
+// VirtioFSDDiagnosticFiles are the files in the state directory of a microvm
+// which virtiofsd writes to. They are only there for a microvm with a virtiofs
+// volume, so they are not in the DiagnosticFiles of a provider.
+var VirtioFSDDiagnosticFiles = []string{"virtiofs.stdout", "virtiofs.stderr"}
 
 // Provider describes a microvm provider of flintlockd as the tests see it
 // from the outside. The names of the files are not taken from the code of the
@@ -56,9 +73,16 @@ type Provider struct {
 // looked up on the PATH. It is the path which the kernel reports for a
 // process of the binary.
 func (p Provider) BinaryPath() (string, error) {
-	found, err := exec.LookPath(p.Binary)
+	return binaryPath(p.Binary, "the VMM of the "+p.Name+" provider")
+}
+
+// binaryPath returns the path of a binary, which is looked up on the PATH when
+// it has no directory. It is the path which the kernel reports for a process
+// of the binary. The what is for the error, it says whose binary it is.
+func binaryPath(binary, what string) (string, error) {
+	found, err := exec.LookPath(binary)
 	if err != nil {
-		return "", fmt.Errorf("looking for the VMM of the %s provider: %w", p.Name, err)
+		return "", fmt.Errorf("looking for %s: %w", what, err)
 	}
 
 	absolute, err := filepath.Abs(found)

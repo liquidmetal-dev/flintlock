@@ -846,6 +846,7 @@ func TestE2ETestsSkipWhenTheEnvironmentIsLeftRunning(t *testing.T) {
 		{name: "TestE2EPrivateRegistryNoCredentials", test: TestE2EPrivateRegistryNoCredentials},
 		{name: "TestE2ECloudHypervisorKernelWithoutPVH", test: TestE2ECloudHypervisorKernelWithoutPVH},
 		{name: "TestE2EGuestWithoutInit", test: TestE2EGuestWithoutInit},
+		{name: "TestE2ECloudHypervisorVirtioFS", test: TestE2ECloudHypervisorVirtioFS},
 	}
 
 	leftRunning := environmentLeftRunning
@@ -1524,4 +1525,172 @@ func TestSaveStateFilesReportsWhatItCannotSave(t *testing.T) {
 	g.Expect(err).To(MatchError(ContainSubstring("firecracker.log")))
 	g.Expect(saved).To(Equal([]string{"firecracker.stdout"}))
 	g.Expect(os.ReadFile(filepath.Join(destDir, "firecracker.stdout"))).To(Equal([]byte("the console\n")))
+}
+
+func TestMicroVMMetadataRunCommands(t *testing.T) {
+	g := NewWithT(t)
+
+	metadata, err := u.MicroVMMetadata("mvm0", "ns0", "echo one", "echo two")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	userData, err := base64.StdEncoding.DecodeString(metadata["user-data"])
+	g.Expect(err).NotTo(HaveOccurred())
+
+	cloudConfig := map[string]any{}
+	g.Expect(yaml.Unmarshal(userData, &cloudConfig)).To(Succeed())
+	g.Expect(cloudConfig).To(HaveKeyWithValue("runcmd", []any{"echo one", "echo two"}))
+	g.Expect(cloudConfig).To(HaveKeyWithValue("hostname", "mvm0"))
+}
+
+func TestNewVirtioFSMicroVMSpec(t *testing.T) {
+	g := NewWithT(t)
+
+	provider := u.CloudHypervisor()
+
+	spec, err := u.NewVirtioFSMicroVMSpec(provider, "mvm0", "ns0", "/srv/share", "/mnt/share")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// The spec is the one of the other test microvms, with the volume added.
+	g.Expect(spec.Id).To(Equal("mvm0"))
+	g.Expect(spec.Namespace).To(Equal("ns0"))
+	g.Expect(spec.Provider).To(HaveValue(Equal(provider.Name)))
+	g.Expect(spec.Kernel.Image).To(Equal(provider.KernelImage))
+	g.Expect(spec.RootVolume.Source.ContainerSource).To(HaveValue(Equal(u.DefaultRootImage)))
+
+	g.Expect(spec.AdditionalVolumes).To(HaveLen(1))
+	volume := spec.AdditionalVolumes[0]
+	g.Expect(volume.Id).To(Equal(u.VirtioFSVolumeID))
+	g.Expect(volume.IsReadOnly).To(BeFalse())
+	g.Expect(volume.Source.VirtiofsSource).To(HaveValue(Equal("/srv/share")))
+	g.Expect(volume.Source.ContainerSource).To(BeNil())
+	g.Expect(volume.MountPoint).To(HaveValue(Equal("/mnt/share")))
+
+	// The guest writes the marker of the microvm into the share, in the file
+	// which ShareMarker reads on the host.
+	userData, err := base64.StdEncoding.DecodeString(spec.Metadata["user-data"])
+	g.Expect(err).NotTo(HaveOccurred())
+
+	cloudConfig := map[string]any{}
+	g.Expect(yaml.Unmarshal(userData, &cloudConfig)).To(Succeed())
+	g.Expect(cloudConfig).To(HaveKey("runcmd"))
+	g.Expect(cloudConfig["runcmd"]).To(ContainElement(SatisfyAll(
+		ContainSubstring("/mnt/share/"+u.ShareMarkerFile),
+		ContainSubstring("flintlock-e2e share ok ns0/mvm0"),
+	)))
+	g.Expect(cloudConfig).To(HaveKeyWithValue("final_message", "flintlock-e2e boot ok ns0/mvm0 uptime=$UPTIME"))
+}
+
+func TestShareMarker(t *testing.T) {
+	tt := []struct {
+		name      string
+		content   *string
+		expectErr bool
+	}{
+		{
+			name:    "marker of the microvm",
+			content: ptr.String("flintlock-e2e share ok ns0/mvm0\n"),
+		},
+		{
+			name:      "no file",
+			expectErr: true,
+		},
+		{
+			name:      "empty file",
+			content:   ptr.String(""),
+			expectErr: true,
+		},
+		{
+			name:      "marker of another microvm",
+			content:   ptr.String("flintlock-e2e share ok ns0/mvm1\n"),
+			expectErr: true,
+		},
+		{
+			name:      "something else",
+			content:   ptr.String("hello\n"),
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			share := t.TempDir()
+			if tc.content != nil {
+				g.Expect(os.WriteFile(filepath.Join(share, u.ShareMarkerFile), []byte(*tc.content), 0o600)).To(Succeed())
+			}
+
+			content, err := u.ShareMarker(share, "mvm0", "ns0")
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(content).To(Equal(u.ShareMarkerContent("ns0", "mvm0")))
+			g.Expect(content).To(Equal(*tc.content))
+		})
+	}
+}
+
+func TestVerifyVirtioFSD(t *testing.T) {
+	testBinary, err := os.Executable()
+	NewWithT(t).Expect(err).NotTo(HaveOccurred())
+
+	otherBinary, err := exec.LookPath("sh")
+	NewWithT(t).Expect(err).NotTo(HaveOccurred())
+
+	tt := []struct {
+		name      string
+		binary    string
+		pid       *string
+		expected  int
+		expectErr bool
+	}{
+		{
+			name:     "running process of the binary",
+			binary:   testBinary,
+			pid:      ptr.String(strconv.Itoa(os.Getpid())),
+			expected: os.Getpid(),
+		},
+		{
+			name:      "running process of another binary",
+			binary:    otherBinary,
+			pid:       ptr.String(strconv.Itoa(os.Getpid())),
+			expectErr: true,
+		},
+		{
+			name:      "binary which is not installed",
+			binary:    "/usr/libexec/flintlock-e2e-no-such-virtiofsd",
+			pid:       ptr.String(strconv.Itoa(os.Getpid())),
+			expectErr: true,
+		},
+		{
+			name:      "no pid file",
+			binary:    testBinary,
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			dir := t.TempDir()
+			if tc.pid != nil {
+				g.Expect(os.WriteFile(filepath.Join(dir, u.VirtioFSDPidFile), []byte(*tc.pid), 0o600)).To(Succeed())
+			}
+
+			pid, err := u.VerifyVirtioFSD(dir, tc.binary)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(pid).To(Equal(tc.expected))
+		})
+	}
 }
