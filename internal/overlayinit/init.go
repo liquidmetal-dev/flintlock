@@ -29,6 +29,8 @@ const (
 	workDir     = rwDir + "/work"
 
 	dirPerm os.FileMode = 0o755
+	// execBits are the executable permission bits of a file mode.
+	execBits os.FileMode = 0o111
 )
 
 // Run assembles the overlay root and execs the init of the image. args are
@@ -67,10 +69,11 @@ func run(sys System, console io.Writer, args []string) error {
 		return err
 	}
 
-	fmt.Fprintf(console, "%scontract=%s base=%s base_fs=%s rw=%s rw_fs=%s init=%s\n",
-		ConsolePrefix, params.Contract, params.Base, BaseFSType, params.RW, RWFSType, params.Init)
+	if err := switchRoot(sys); err != nil {
+		return err
+	}
 
-	return switchRoot(sys, params.Init, args)
+	return execInit(sys, console, params, args)
 }
 
 // mountEarly mounts devtmpfs on /dev and proc on /proc. The init needs /dev
@@ -170,11 +173,11 @@ func mountAt(sys System, source, target, fstype string, flags uintptr, data stri
 	return nil
 }
 
-// switchRoot does what switch_root(8) does: it moves /dev and /proc into the
-// new root, deletes the contents of the initramfs to give the memory back,
-// moves the new root to /, changes the root of the process to it and execs
-// the init of the image.
-func switchRoot(sys System, initPath string, args []string) error {
+// switchRoot does what switch_root(8) does before the exec: it moves /dev
+// and /proc into the new root, deletes the contents of the initramfs to give
+// the memory back, moves the new root to / and changes the root of the
+// process to it.
+func switchRoot(sys System) error {
 	for _, dir := range []string{devDir, procDir} {
 		target := newRootDir + dir
 
@@ -207,10 +210,47 @@ func switchRoot(sys System, initPath string, args []string) error {
 		return fmt.Errorf("chdir /: %w", err)
 	}
 
-	argv := append([]string{initPath}, args...)
+	return nil
+}
 
-	if err := sys.Exec(initPath, argv, sys.Environ()); err != nil {
-		return fmt.Errorf("exec %s: %w", initPath, err)
+// execInit checks the init of the image, writes the contract line and execs
+// the init. The root of the process is the overlay by now, so the path is
+// resolved inside the image. The check keeps the console to one line in the
+// usual failure, a missing or non-executable init. Only when exec itself
+// fails after the check, which takes a fault the check cannot see such as a
+// missing dynamic loader, does the console get the contract line and then
+// the error line.
+func execInit(sys System, console io.Writer, params Params, args []string) error {
+	if err := checkInit(sys, params.Init); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(console, "%scontract=%s base=%s base_fs=%s rw=%s rw_fs=%s init=%s\n",
+		ConsolePrefix, params.Contract, params.Base, BaseFSType, params.RW, RWFSType, params.Init)
+
+	argv := append([]string{params.Init}, args...)
+
+	if err := sys.Exec(params.Init, argv, sys.Environ()); err != nil {
+		return fmt.Errorf("exec %s: %w", params.Init, err)
+	}
+
+	return nil
+}
+
+// checkInit requires that initPath is a regular file with an executable
+// bit. Symlinks are followed.
+func checkInit(sys System, initPath string) error {
+	info, err := sys.Stat(initPath)
+	if err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrInitNotExecutable, initPath, err)
+	}
+
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("%w: %s is not a regular file", ErrInitNotExecutable, initPath)
+	}
+
+	if info.Mode().Perm()&execBits == 0 {
+		return fmt.Errorf("%w: %s has no executable bit", ErrInitNotExecutable, initPath)
 	}
 
 	return nil

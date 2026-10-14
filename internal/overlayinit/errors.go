@@ -13,4 +13,6 @@ var (
 	ErrDeviceTimeout = errors.New("timed out waiting for block device")
 	// ErrNotBlockDevice is returned when a device path exists but is not a block device.
 	ErrNotBlockDevice = errors.New("not a block device")
+	// ErrInitNotExecutable is returned when the init of the image is missing or is not an executable file.
+	ErrInitNotExecutable = errors.New("image init is not an executable file")
 )
