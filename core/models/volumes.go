@@ -1,5 +1,9 @@
 package models
 
+// VirtioFSTag is the tag which the VMM gives the virtiofs share. The guest
+// mounts the share by it: mount -t virtiofs <tag> <mount_point>.
+const VirtioFSTag = "user"
+
 // Volume represents a volume to be attached to a microvm machine.
 type Volume struct {
 	// ID is the uinique identifier of the volume.

@@ -297,6 +297,7 @@ func diskArg(drive models.Drive) string {
 
 // buildVirtioFSArgs returns one --fs option per virtiofs volume. The option has no
 // read-only setting, which is why validation rejects a read-only virtiofs volume.
+// The tag is what the guest mounts the share by, see the cloud-init mount step.
 func (p *provider) buildVirtioFSArgs(vm *models.MicroVM) ([]string, error) {
 	args := []string{}
 
@@ -311,7 +312,8 @@ func (p *provider) buildVirtioFSArgs(vm *models.MicroVM) ([]string, error) {
 
 		vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
 		args = append(args, "--fs",
-			fmt.Sprintf("tag=user,socket=%s,num_queues=1,queue_size=1024", vfsstate.ResolveVirtioFSPath()))
+			fmt.Sprintf("tag=%s,socket=%s,num_queues=1,queue_size=1024",
+				models.VirtioFSTag, vfsstate.ResolveVirtioFSPath()))
 	}
 
 	return args, nil
