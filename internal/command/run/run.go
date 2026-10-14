@@ -26,7 +26,9 @@ import (
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	mvmexecv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmexec/v1alpha1"
 	mvmsshproxyv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmsshproxy/v1alpha1"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/probe"
 	cmdflags "github.com/liquidmetal-dev/flintlock/internal/command/flags"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/internal/inject"
@@ -113,6 +115,13 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 	wg := &sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(log.WithLogger(ctx, logger))
 
+	volumeCaps, err := probeHost(ctx, cfg)
+	if err != nil {
+		cancel()
+
+		return err
+	}
+
 	if cfg.DebugEndpoint != "" {
 		wg.Add(1)
 
@@ -133,7 +142,7 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 		go func() {
 			defer wg.Done()
 
-			if err := serveAPI(ctx, cfg, startTime); err != nil {
+			if err := serveAPI(ctx, cfg, volumeCaps, startTime); err != nil {
 				logger.Errorf("failed serving api: %v", err)
 				// Cancel all processes if at least one fails.
 				cancel()
@@ -160,7 +169,7 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 		go func() {
 			defer wg.Done()
 
-			if err := runControllers(ctx, cfg); err != nil {
+			if err := runControllers(ctx, cfg, volumeCaps); err != nil {
 				logger.Errorf("failed running controllers: %v", err)
 				// Cancel all processes if at least one fails.
 				cancel()
@@ -179,14 +188,31 @@ func runServer(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func serveAPI(ctx context.Context, cfg *config.Config, startTime time.Time) error {
+// probeHost runs the host probes once and returns the volume modes the
+// host accepts. Every provider advertises them.
+func probeHost(ctx context.Context, cfg *config.Config) (microvm.VolumeCapabilities, error) {
+	ctrCfg := inject.ContainerdConfig(cfg)
+
+	client, err := containerd.NewClient(ctrCfg)
+	if err != nil {
+		return nil, fmt.Errorf("connecting to containerd for host probes: %w", err)
+	}
+
+	defer client.Close()
+
+	probes := probe.Host(cfg.StateRootDir, cfg.MkfsErofsPath, ctrCfg, client)
+
+	return microvm.VolumeCapabilities(probe.Run(ctx, probes)), nil
+}
+
+func serveAPI(ctx context.Context, cfg *config.Config, volumeCaps microvm.VolumeCapabilities, startTime time.Time) error {
 	logger := log.GetLogger(ctx)
 
 	if err := cfg.TLS.Validate(); err != nil {
 		return fmt.Errorf("validating tls config: %w", err)
 	}
 
-	ports, err := inject.InitializePorts(cfg)
+	ports, err := inject.InitializePorts(cfg, volumeCaps)
 	if err != nil {
 		return fmt.Errorf("initialising ports for application: %w", err)
 	}
@@ -247,10 +273,10 @@ func serveAPI(ctx context.Context, cfg *config.Config, startTime time.Time) erro
 	return nil
 }
 
-func runControllers(ctx context.Context, cfg *config.Config) error {
+func runControllers(ctx context.Context, cfg *config.Config, volumeCaps microvm.VolumeCapabilities) error {
 	logger := log.GetLogger(ctx)
 
-	ports, err := inject.InitializePorts(cfg)
+	ports, err := inject.InitializePorts(cfg, volumeCaps)
 	if err != nil {
 		return fmt.Errorf("initialising ports for controller: %w", err)
 	}
