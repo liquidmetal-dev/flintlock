@@ -39,6 +39,44 @@ In `OVERLAY` mode `size_in_mb` is the size of the writable disk. The minimum is
   overlay initramfs `/init` is the contract between flintlock and the guest,
   and `rdinit` would replace it.
 
+## Overlay root
+
+To boot a microVM from a shared base, set `mode: OVERLAY` on its root volume:
+
+```yaml
+root_volume:
+  id: root
+  mode: OVERLAY
+  source:
+    container_source: ghcr.io/liquidmetal-dev/ubuntu:22.04
+```
+
+The guest boots from an initrd that joins the base and the writable disk
+with overlayfs. A request that names no `initrd` gets the default one, and
+the stored spec names it. The default is the image `--overlay-initrd-image`
+points at. When the flag is not set, a release build uses the initrd that is
+published for its own version. A build with no release version has no
+default and rejects the request until the flag is set. A request can also
+name its own `initrd`, and it is used as given.
+
+The host needs a state directory on a filesystem with reflinks, such as XFS
+or btrfs, and the pinned `mkfs.erofs`. `flintlock-provision state-dir` sets up
+the directory and `flintlock-provision erofs-utils` installs the binary. See
+[Provisioning](provisioning.md).
+
+`flintlockd` has these flags for overlay volumes:
+
+| Flag                       | Default                          | Description                                                               |
+| -------------------------- | -------------------------------- | ------------------------------------------------------------------------- |
+| `--overlay-initrd-image`   | The initrd of the daemon version | The OCI image of the initrd that boots an overlay root.                   |
+| `--overlay-rw-size-mb`     | `10240`                          | The size of the writable disk when the request does not set `size_in_mb`. |
+| `--overlay-base-retention` | `24h`                            | How long a base that no microVM uses is kept after its last use.          |
+| `--mkfs-erofs-path`        | `/opt/flintlock/bin/mkfs.erofs`  | The `mkfs.erofs` that builds bases.                                       |
+
+Deleting the microVM removes its writable disk and its link to the base.
+The base stays for other microVMs and is removed after the retention period
+once no microVM links to it.
+
 ## Capabilities
 
 A provider advertises the volume modes its host can serve:
