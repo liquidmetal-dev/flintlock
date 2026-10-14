@@ -3,7 +3,7 @@ package provision
 import "fmt"
 
 // AptPackages are the apt packages required to run flintlock.
-var AptPackages = []string{"thin-provisioning-tools", "lvm2", "git", "curl", "wget"}
+var AptPackages = []string{"thin-provisioning-tools", "lvm2", "xfsprogs", "git", "curl", "wget"}
 
 // InstallAptPackages installs AptPackages via apt.
 func InstallAptPackages(runner *Runner) error {
