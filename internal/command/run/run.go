@@ -88,6 +88,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddDebugFlagsToCommand(cmd, cfg)
 	cmdflags.AddGWServerFlagsToCommand(cmd, cfg)
 	cmdflags.AddVirtioFSFlagsToCommand(cmd, cfg)
+	cmdflags.AddOverlayFlagsToCommand(cmd, cfg)
 	cmdflags.AddGuestAgentAPIFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
