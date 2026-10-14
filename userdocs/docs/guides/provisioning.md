@@ -51,7 +51,9 @@ sudo flintlock-provision erofs-utils
 ```
 
 A wrong checksum stops the install. Nothing is written to the install path
-in that case. A `mkfs.erofs` from the distribution is not touched.
+in that case. A `mkfs.erofs` from the distribution is not touched. The release
+ships the binary for `linux/amd64` only; on any other host the command stops
+before it downloads anything ([#1317][arm64] tracks arm64).
 
 The asset is fetched from the flintlock release of the same version as
 `flintlock-provision` itself. `--version` or the `FLINTLOCK` environment
@@ -63,3 +65,4 @@ the asset do not carry it, and the install fails with a 404.
 made yourself with `hack/scripts/build_erofs_utils.sh`.
 
 [releases]: https://github.com/liquidmetal-dev/flintlock/releases
+[arm64]: https://github.com/liquidmetal-dev/flintlock/issues/1317

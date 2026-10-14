@@ -1,6 +1,8 @@
 package provision_test
 
 import (
+	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,4 +33,17 @@ func TestErofsUtilsVersionPinsAgree(t *testing.T) {
 	action, err := os.ReadFile(filepath.Join("..", "..", ".github", "actions", "erofs-utils", "action.yml"))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(string(action)).To(ContainSubstring(`default: "` + defaults.ErofsUtilsVersion + `"`))
+}
+
+func TestInstallErofsUtils_RefusesNonAMD64(t *testing.T) {
+	g := NewWithT(t)
+
+	// A concrete tag means no release lookup. The refusal must come before
+	// any download, so no server is needed.
+	err := provision.InstallErofsUtils(context.Background(), provision.NewRunner(io.Discard, io.Discard), "v1.0.0", "arm64")
+
+	g.Expect(err).To(MatchError(provision.ErrErofsUtilsArch))
+	g.Expect(err.Error()).To(ContainSubstring("amd64 only"))
+	g.Expect(err.Error()).To(ContainSubstring("issues/1317"))
+	g.Expect(err.Error()).To(ContainSubstring("host is arm64"))
 }
