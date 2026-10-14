@@ -203,3 +203,18 @@ func TestProviderDrives(t *testing.T) {
 	g.Expect(found).To(g.BeTrue())
 	g.Expect(device).To(g.Equal("vdb"))
 }
+
+func TestProviderCapabilities(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	provider := firecracker.New(&firecracker.Config{}, nil, afero.NewMemMapFs())
+	g.Expect(provider.Capabilities()).NotTo(g.ContainElement(models.VolumeFullCapability))
+	g.Expect(provider.Capabilities()).NotTo(g.ContainElement(models.VolumeOverlayCapability))
+
+	provider = firecracker.New(&firecracker.Config{
+		VolumeCapabilities: models.Capabilities{models.VolumeOverlayCapability},
+	}, nil, afero.NewMemMapFs())
+	g.Expect(provider.Capabilities()).To(g.ContainElement(models.VolumeOverlayCapability))
+	g.Expect(provider.Capabilities()).NotTo(g.ContainElement(models.VolumeFullCapability))
+	g.Expect(provider.Capabilities()).To(g.ContainElement(models.MetadataServiceCapability))
+}

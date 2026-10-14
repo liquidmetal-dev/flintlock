@@ -110,3 +110,12 @@ func trimStderr(b []byte) string {
 
 	return strings.TrimSpace(string(b))
 }
+
+// CheckMkfsErofs runs the mkfs.erofs at path with -V and checks that it
+// reports the erofs-utils version of the erofs-v1 profile. It is the
+// startup probe of the base builder.
+func CheckMkfsErofs(ctx context.Context, path string) error {
+	m := mkfs{path: path, profile: ErofsV1()}
+
+	return m.checkVersion(ctx)
+}

@@ -19,11 +19,12 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
-func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
+func InitializePorts(cfg *config.Config, volumeCaps microvm.VolumeCapabilities) (*ports.Collection, error) {
 	wire.Build(containerd.NewEventService,
 		containerd.NewImageService,
 		containerd.NewMicroVMRepo,
@@ -32,10 +33,14 @@ func InitializePorts(cfg *config.Config) (*ports.Collection, error) {
 		network.New,
 		godisk.New,
 		appPorts,
-		containerdConfig,
+		ContainerdConfig,
 		networkConfig,
 		afero.NewOsFs,
-		virtiofs.New)
+		virtiofs.New,
+		containerd.NewClient,
+		containerd.NewLayerSource,
+		overlayConfig,
+		volumeService)
 
 	return nil, nil
 }
@@ -70,7 +75,8 @@ func InitializeSSHProxyGRPCServer(app application.App) ports.MicroVMSSHProxyGRPC
 	return nil
 }
 
-func containerdConfig(cfg *config.Config) *containerd.Config {
+// ContainerdConfig is the containerd configuration of cfg.
+func ContainerdConfig(cfg *config.Config) *containerd.Config {
 	return &containerd.Config{
 		SnapshotterKernel: cfg.CtrSnapshotterKernel,
 		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
@@ -96,6 +102,19 @@ func networkConfig(cfg *config.Config) *network.Config {
 	}
 }
 
+func overlayConfig(cfg *config.Config) overlay.Config {
+	return overlay.Config{
+		StateRoot:       cfg.StateRootDir,
+		MkfsErofsPath:   cfg.MkfsErofsPath,
+		DefaultRWSizeMB: cfg.OverlayRWSizeMB,
+		BaseRetention:   cfg.OverlayBaseRetention,
+	}
+}
+
+func volumeService(cfg overlay.Config, source overlay.LayerSource) (ports.VolumeService, error) {
+	return overlay.NewService(cfg, source)
+}
+
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
 		RootStateDir:    cfg.StateRootDir,
@@ -105,7 +124,7 @@ func appConfig(cfg *config.Config) *application.Config {
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService, vs ports.VolumeService) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
 		MicrovmProviders:  providers,
@@ -117,6 +136,7 @@ func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMSe
 		Clock:             time.Now,
 		DiskService:       ds,
 		VirtioFSService:   vfs,
+		VolumeService:     vs,
 	}
 }
 
