@@ -187,9 +187,11 @@
       "type": "string",
       "enum": [
         "DEV",
-        "HOSTPATH"
+        "HOSTPATH",
+        "FILE"
       ],
-      "default": "DEV"
+      "default": "DEV",
+      "description": " - DEV: DEV is a block device.\n - HOSTPATH: HOSTPATH is a directory on the host.\n - FILE: FILE is a file on the host, such as a disk image."
     },
     "NetworkInterfaceIfaceType": {
       "type": "string",
@@ -559,10 +561,23 @@
         "sizeInMb": {
           "type": "integer",
           "format": "int32",
-          "description": "Size is the size to resize this volume to.\n\nTODO: add rate limiting"
+          "description": "Size is the size to resize this volume to. In overlay mode it is the size of the\nwritable disk, and the minimum is 64 MB."
+        },
+        "mode": {
+          "$ref": "#/definitions/typesVolumeMode",
+          "description": "Mode selects how the volume is provisioned. The default is FULL. Only the root\nvolume can use OVERLAY, and a read-only root cannot use it.\n\nTODO: add rate limiting"
         }
       },
       "description": "Volume represents the configuration for a volume to be attached to a microvm."
+    },
+    "typesVolumeMode": {
+      "type": "string",
+      "enum": [
+        "FULL",
+        "OVERLAY"
+      ],
+      "default": "FULL",
+      "description": "VolumeMode selects how a volume is provisioned.\n\n - FULL: FULL provisions the volume as a full copy of the image in a containerd snapshot.\n - OVERLAY: OVERLAY provisions the volume as a shared read-only base built from the image, plus\na writable disk for the microvm. The guest's init joins them with overlayfs."
     },
     "typesVolumeSource": {
       "type": "object",
@@ -583,7 +598,15 @@
       "properties": {
         "mount": {
           "$ref": "#/definitions/typesMount",
-          "description": "Mount represents a volume mount point."
+          "description": "Mount represents a volume mount point. In overlay mode it is the writable disk."
+        },
+        "baseMount": {
+          "$ref": "#/definitions/typesMount",
+          "description": "BaseMount represents the mount point of the read-only base in overlay mode.\nIt is unset in full mode."
+        },
+        "baseDigest": {
+          "type": "string",
+          "description": "BaseDigest is the sha256 digest of the base in overlay mode. It is empty in full mode."
         }
       }
     },
