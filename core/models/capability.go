@@ -26,6 +26,14 @@ const (
 	// KVMCapabilitiesDisableCapability indicates the microvm provider supports disabling
 	// specific KVM capabilities via CPUConfig.KVMCapabilitiesToDisable.
 	KVMCapabilitiesDisableCapability Capability = "kvm-capabilities-disable"
+
+	// VolumeFullCapability indicates the microvm provider can provision a volume
+	// in VolumeModeFull. It needs the containerd devmapper snapshotter.
+	VolumeFullCapability Capability = "volume-full"
+
+	// VolumeOverlayCapability indicates the microvm provider can provision a volume
+	// in VolumeModeOverlay. It needs a reflink state directory, mkfs.erofs and mkfs.ext4.
+	VolumeOverlayCapability Capability = "volume-overlay"
 )
 
 // Capabilities represents a list of capabilities.
