@@ -19,6 +19,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/internal/version"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/spf13/afero"
 	"time"
@@ -142,10 +143,11 @@ func volumeService(cfg overlay.Config, source overlay.LayerSource) (ports.Volume
 
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
-		RootStateDir:    cfg.StateRootDir,
-		SocketDir:       cfg.SocketDir,
-		MaximumRetry:    cfg.MaximumRetry,
-		DefaultProvider: cfg.DefaultVMProvider,
+		RootStateDir:       cfg.StateRootDir,
+		SocketDir:          cfg.SocketDir,
+		MaximumRetry:       cfg.MaximumRetry,
+		DefaultProvider:    cfg.DefaultVMProvider,
+		OverlayInitrdImage: cfg.EffectiveOverlayInitrdImage(version.Version),
 	}
 }
 
