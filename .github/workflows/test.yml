@@ -10,6 +10,8 @@ jobs:
       - uses: yitsushi/devmapper-containerd-action@bfb86f4fe3121aeb8a1b06601b3f07d064665204 # v1.0.1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - name: Install pinned mkfs.erofs
+        uses: ./.github/actions/erofs-utils
       - name: Build
         run: make build
       - name: Build e2e
