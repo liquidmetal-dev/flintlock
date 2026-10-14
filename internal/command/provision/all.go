@@ -12,17 +12,18 @@ import (
 )
 
 type allOptions struct {
-	unattended bool
-	skipApt    bool
-	thinpool   string
-	disk       string
-	address    string
-	port       string
-	iface      string
-	bridgeName string
-	insecure   bool
-	dev        bool
-	configFile string
+	unattended   bool
+	skipApt      bool
+	skipThinpool bool
+	thinpool     string
+	disk         string
+	address      string
+	port         string
+	iface        string
+	bridgeName   string
+	insecure     bool
+	dev          bool
+	configFile   string
 }
 
 func newAllCommand() *cobra.Command {
@@ -43,6 +44,8 @@ func newAllCommand() *cobra.Command {
 
 	cmd.Flags().BoolVarP(&opts.unattended, "unattended", "y", false, "Autoapprove all prompts (danger)")
 	cmd.Flags().BoolVarP(&opts.skipApt, "skip-apt", "s", false, "Skip installation of apt packages")
+	cmd.Flags().BoolVar(&opts.skipThinpool, "skip-thinpool", false,
+		"Skip the thin pool. containerd then runs with its native snapshotter only, which is enough for overlay boot")
 	cmd.Flags().StringVarP(&opts.thinpool, "thinpool", "t", provision.DefaultThinpool,
 		"Name of thinpool to create (default: flintlock or flintlock-dev)")
 	cmd.Flags().StringVarP(&opts.disk, "disk", "d", "",
@@ -71,8 +74,8 @@ func runAll(cmd *cobra.Command, opts *allOptions) error {
 	runner := provision.NewRunner(out, errOut)
 
 	fmt.Fprintf(out, "%s: Provisioning host\n", time.Now().UTC().Format("2006-01-02 15:04:05 UTC"))
-	fmt.Fprintln(out, "The following will be performed: apt, firecracker, cloudhypervisor, "+
-		"containerd, flintlock, direct-lvm|devpool")
+	fmt.Fprintf(out, "The following will be performed: apt, firecracker, cloudhypervisor, "+
+		"containerd, flintlock%s\n", storageStep(opts))
 	fmt.Fprintf(out, "Will install binaries for architecture: %s\n", arch)
 
 	if err := provision.EnsureKVM(); err != nil {
@@ -85,8 +88,10 @@ func runAll(cmd *cobra.Command, opts *allOptions) error {
 		}
 	}
 
-	if err := setupStorage(cmd, runner, opts); err != nil {
-		return err
+	if !opts.skipThinpool {
+		if err := setupStorage(cmd, runner, opts); err != nil {
+			return err
+		}
 	}
 
 	fcVersion := provision.VersionFromEnv(provision.FirecrackerVersionEnv)
@@ -101,7 +106,9 @@ func runAll(cmd *cobra.Command, opts *allOptions) error {
 
 	ctrdVersion := provision.VersionFromEnv(provision.ContainerdVersionEnv)
 
-	containerdPaths, err := provision.AllContainerd(cmd.Context(), runner, ctrdVersion, opts.thinpool, arch, opts.dev)
+	containerdPaths, err := provision.AllContainerd(
+		cmd.Context(), runner, ctrdVersion, containerdThinpool(opts), arch, opts.dev,
+	)
 	if err != nil {
 		return err
 	}
@@ -125,6 +132,30 @@ func runAll(cmd *cobra.Command, opts *allOptions) error {
 	fmt.Fprintf(out, "%s: Host %s provisioned\n", time.Now().UTC().Format("2006-01-02 15:04:05 UTC"), hostname)
 
 	return nil
+}
+
+// storageStep names the storage step in the summary printed before
+// provisioning starts.
+func storageStep(opts *allOptions) string {
+	switch {
+	case opts.skipThinpool:
+		return ""
+	case opts.dev:
+		return ", devpool"
+	default:
+		return ", direct-lvm"
+	}
+}
+
+// containerdThinpool returns the thin pool name to write into the
+// containerd config, or "" when the thin pool is skipped so the devmapper
+// section is left out.
+func containerdThinpool(opts *allOptions) string {
+	if opts.skipThinpool {
+		return ""
+	}
+
+	return opts.thinpool
 }
 
 func setupStorage(cmd *cobra.Command, runner *provision.Runner, opts *allOptions) error {
