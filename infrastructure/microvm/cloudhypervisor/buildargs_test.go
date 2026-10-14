@@ -399,3 +399,150 @@ func TestProviderDrives(t *testing.T) {
 	g.Expect(found).To(g.BeTrue())
 	g.Expect(device).To(g.Equal("vdc"))
 }
+
+// withOverlayRoot puts the root volume in overlay mode and records both
+// mounts, as the volume step does.
+func withOverlayRoot(vm *models.MicroVM) *models.MicroVM {
+	vm.Spec.RootVolume.Mode = models.VolumeModeOverlay
+	vm.Status.Volumes["root"] = &models.VolumeStatus{
+		Mount:     models.Mount{Type: models.MountTypeFile, Source: "/state/volumes/root.rw"},
+		BaseMount: &models.Mount{Type: models.MountTypeFile, Source: "/state/bases/abc.img"},
+	}
+
+	return vm
+}
+
+func TestBuildArgs_OverlayDisksInGuestOrder(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := withOverlayRoot(vmForArgs(t, false))
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
+		"path=/state/bases/abc.img,readonly=on",
+		"path=/state/volumes/root.rw",
+		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
+		"path=/data.img",
+	}))
+}
+
+func TestBuildArgs_OverlayKernelParams(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	args, err := p.buildArgs(withOverlayRoot(vmForArgs(t, false)), state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	params := cmdLineParams(t, args)
+	g.Expect(params).To(g.ContainElements(
+		"flintlock.root.contract=1",
+		"flintlock.root.base=/dev/vda",
+		"flintlock.root.rw=/dev/vdb",
+	))
+	g.Expect(params).NotTo(g.ContainElement(g.HavePrefix("root=")))
+	g.Expect(params).NotTo(g.ContainElement("rw"))
+	g.Expect(params).NotTo(g.ContainElement("ro"))
+}
+
+func TestBuildArgs_OverlayKernelParamsReplaceSpec(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := withOverlayRoot(vmForArgs(t, false))
+	vm.Spec.Kernel.CmdLine = map[string]string{
+		"flintlock.root.contract": "2",
+		"flintlock.root.base":     "/dev/sda",
+		"flintlock.root.rw":       "/dev/sdb",
+		"init":                    "/bin/sh",
+	}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	params := cmdLineParams(t, args)
+	g.Expect(params).To(g.ContainElements(
+		"flintlock.root.contract=1",
+		"flintlock.root.base=/dev/vda",
+		"flintlock.root.rw=/dev/vdb",
+		"init=/bin/sh",
+	))
+	g.Expect(params).NotTo(g.ContainElements("flintlock.root.contract=2", "flintlock.root.base=/dev/sda"))
+}
+
+func TestBuildArgs_OverlaySpecMayStillSetRoot(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := withOverlayRoot(vmForArgs(t, false))
+	vm.Spec.Kernel.CmdLine = map[string]string{"root": "/dev/vdc"}
+
+	args, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cmdLineParams(t, args)).To(g.ContainElement("root=/dev/vdc"))
+}
+
+func TestBuildArgs_FullModeHasNoOverlayKernelParams(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	args, err := p.buildArgs(vmForArgs(t, false), state, nil)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	params := cmdLineParams(t, args)
+	g.Expect(params).NotTo(g.ContainElement(g.HavePrefix("flintlock.root.")))
+	g.Expect(params).To(g.ContainElements("root=/dev/vda", "rw"))
+}
+
+func TestBuildArgs_OverlayBaseNotMounted(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := withOverlayRoot(vmForArgs(t, false))
+	vm.Status.Volumes["root"].BaseMount = nil
+
+	_, err := p.buildArgs(vm, state, nil)
+
+	g.Expect(err).To(g.MatchError(cerrors.NewVolumeNotMounted("root")))
+}
+
+func TestProviderDrives_Overlay(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := withOverlayRoot(vmForArgs(t, false))
+	vmid, err := models.NewVMID(testVMName, testVMNamespace, testVMUID)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	vm.ID = *vmid
+	vm.Spec.AdditionalVolumes = models.Volumes{{ID: "data"}}
+	vm.Status.Volumes["data"] = &models.VolumeStatus{Mount: models.Mount{Source: "/data.img"}}
+
+	drives, err := p.Drives(vm)
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(drives).To(g.HaveLen(4))
+	g.Expect(drives[0].Role).To(g.Equal(models.DriveRoleRootBase))
+	g.Expect(drives[0].ReadOnly).To(g.BeTrue())
+	g.Expect(drives[1].Role).To(g.Equal(models.DriveRoleRootRW))
+	g.Expect(drives[2].Role).To(g.Equal(models.DriveRoleCloudInit))
+	g.Expect(drives[2].Path).To(g.Equal(state.CloudInitImage()))
+
+	device, found := drives.GuestDeviceForVolume("data")
+	g.Expect(found).To(g.BeTrue())
+	g.Expect(device).To(g.Equal("vdd"))
+}
