@@ -105,3 +105,25 @@ independently.
 
 For example, `./provision.sh firecracker` will install the latest release of
 the macvtap branch of firecracker.
+
+## build-overlay-initrd.sh
+
+The `build-overlay-initrd.sh` script builds `flintlock-overlay-init` and
+packs it into a gzip compressed cpio archive with the binary at `/init`.
+That archive is the initrd flintlock boots an overlay root volume with.
+See `internal/overlayinit` for the guest contract.
+
+```bash
+# host architecture, written to out/
+make build-overlay-initrd
+
+# amd64 and arm64
+make build-release-overlay-initrd
+
+# or directly
+./hack/scripts/build-overlay-initrd.sh out/flintlock-overlay-initrd_amd64.img amd64
+```
+
+The release workflow publishes the archives as the multi-arch image
+`ghcr.io/liquidmetal-dev/flintlock-overlay-init:<version>` with the file at
+`/initrd.img` (`hack/packaging/flintlock-overlay-init.Dockerfile`).
