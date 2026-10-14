@@ -10,9 +10,10 @@ import (
 
 func newContainerdCommand() *cobra.Command {
 	var (
-		version  string
-		thinpool string
-		dev      bool
+		version      string
+		thinpool     string
+		dev          bool
+		skipThinpool bool
 	)
 
 	cmd := &cobra.Command{
@@ -26,6 +27,10 @@ func newContainerdCommand() *cobra.Command {
 
 			if dev && !cmd.Flags().Changed("thinpool") {
 				thinpool = provision.DefaultDevThinpool
+			}
+
+			if skipThinpool {
+				thinpool = ""
 			}
 
 			runner := provision.NewRunner(cmd.OutOrStdout(), cmd.ErrOrStderr())
@@ -43,6 +48,8 @@ func newContainerdCommand() *cobra.Command {
 		"Name of thinpool to include in config toml")
 	cmd.Flags().BoolVar(&dev, "dev", false,
 		"Set up development environment. Containerd will keep state under 'dev' tagged paths.")
+	cmd.Flags().BoolVar(&skipThinpool, "skip-thinpool", false,
+		"Leave the devmapper snapshotter out of the config toml. Use on a host with no thin pool.")
 
 	return cmd
 }
