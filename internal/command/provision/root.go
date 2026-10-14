@@ -35,6 +35,7 @@ func NewRootCommand() (*cobra.Command, error) {
 		newErofsUtilsCommand(),
 		newDirectLVMCommand(),
 		newDevPoolCommand(),
+		newStateDirCommand(),
 		newVersionCommand(),
 	)
 

@@ -13,5 +13,10 @@ var (
 	ErrErofsUtilsArch = errors.New("flintlock releases ship mkfs.erofs for linux/amd64 only " +
 		"(arm64 is tracked in https://github.com/liquidmetal-dev/flintlock/issues/1317)")
 
+	// ErrNoReflink is returned when the state directory is on a filesystem
+	// that cannot clone files with FICLONE and no device or loop file was
+	// given to create one.
+	ErrNoReflink = errors.New("state directory has no reflink support")
+
 	errEmptySHA256 = errors.New("sha256 file is empty")
 )
