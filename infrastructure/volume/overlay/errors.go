@@ -88,3 +88,37 @@ func (e *HardlinkError) Error() string {
 	return fmt.Sprintf("layer %d (%s): entry %q is a hardlink to %q, which is not in the same layer",
 		e.LayerIndex, e.DiffID, e.Entry, e.Target)
 }
+
+var (
+	// ErrReflinkNotSupported reports a state directory whose filesystem
+	// cannot clone files with FICLONE. It is a configuration error: there is
+	// no fallback to a full copy, because that would hide a misprovisioned
+	// host.
+	ErrReflinkNotSupported = errors.New("filesystem does not support reflinks")
+	// ErrDiskTooSmall reports a writable disk size under the minimum.
+	ErrDiskTooSmall = errors.New("writable disk size is under the minimum")
+)
+
+// Ext4Error reports a mkfs.ext4 run that exited with an error. Stderr
+// holds what the command printed.
+type Ext4Error struct {
+	// Args is the command line without the program path.
+	Args []string
+	// Stderr is the standard error of the command, trimmed.
+	Stderr string
+	// Err is the error exec returned.
+	Err error
+}
+
+func (e *Ext4Error) Error() string {
+	msg := "mkfs.ext4 " + strings.Join(e.Args, " ") + ": " + e.Err.Error()
+	if e.Stderr != "" {
+		msg += ": " + e.Stderr
+	}
+
+	return msg
+}
+
+func (e *Ext4Error) Unwrap() error {
+	return e.Err
+}
