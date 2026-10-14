@@ -3,6 +3,8 @@ package config
 import (
 	"time"
 
+	"github.com/liquidmetal-dev/flintlock/internal/version"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
@@ -91,4 +93,21 @@ type TLSConfig struct {
 	ValidateClient bool
 	// ClientCAFile is the path to a CA certificate file to use when validating client certificates.
 	ClientCAFile string
+}
+
+// EffectiveOverlayInitrdImage returns the initrd image that boots an overlay
+// root when a spec names none: OverlayInitrdImage when it is set, else the
+// initrd published for buildVersion when that is a release version, else an
+// empty string. A build with no release version has no published initrd,
+// so it has no default until the flag is set.
+func (c *Config) EffectiveOverlayInitrdImage(buildVersion string) string {
+	if c.OverlayInitrdImage != "" {
+		return c.OverlayInitrdImage
+	}
+
+	if !version.IsRelease(buildVersion) {
+		return ""
+	}
+
+	return defaults.OverlayInitrdImage + ":" + buildVersion
 }
