@@ -1,0 +1,71 @@
+name: erofs-utils
+description: >-
+  Install the pinned static mkfs.erofs on the runner. The build output is
+  restored from the actions cache, keyed on the erofs-utils version and the
+  build script, or built from source with hack/scripts/build_erofs_utils.sh
+  on a cache miss. The binary is installed at <install-dir>/mkfs.erofs, by
+  default the path flintlockd uses when --mkfs-erofs-path is not set, and
+  install-dir is added to PATH. Steps that run under sudo do not see PATH
+  changes and must use the absolute path.
+
+inputs:
+  version:
+    description: erofs-utils version to install. Keep it equal to pkg/defaults.ErofsUtilsVersion.
+    required: false
+    default: "1.9.4"
+  install-dir:
+    description: Directory to install mkfs.erofs into. Created with sudo when missing.
+    required: false
+    default: /opt/flintlock/bin
+  cache:
+    description: Restore and save the build output in the actions cache. Set to false to always build from source.
+    required: false
+    default: "true"
+
+outputs:
+  asset-dir:
+    description: Directory holding mkfs.erofs-<version>-linux-amd64 and its .sha256 file.
+    value: ${{ steps.paths.outputs.asset-dir }}
+  mkfs-erofs:
+    description: Path of the installed mkfs.erofs.
+    value: ${{ steps.paths.outputs.mkfs-erofs }}
+
+runs:
+  using: composite
+  steps:
+    - id: paths
+      shell: bash
+      run: |
+        echo "asset-dir=${{ runner.temp }}/erofs-utils/assets" >> "$GITHUB_OUTPUT"
+        echo "mkfs-erofs=${{ inputs.install-dir }}/mkfs.erofs" >> "$GITHUB_OUTPUT"
+
+    - id: cache
+      if: inputs.cache == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.paths.outputs.asset-dir }}
+        key: erofs-utils-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('hack/scripts/build_erofs_utils.sh') }}
+
+    - name: Install build dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+          git build-essential autoconf automake libtool pkg-config
+
+    - name: Build mkfs.erofs
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: hack/scripts/build_erofs_utils.sh "${{ inputs.version }}" "${{ steps.paths.outputs.asset-dir }}"
+
+    - name: Install mkfs.erofs
+      shell: bash
+      run: |
+        asset_dir="${{ steps.paths.outputs.asset-dir }}"
+        asset="mkfs.erofs-${{ inputs.version }}-linux-amd64"
+        (cd "$asset_dir" && sha256sum -c "$asset.sha256")
+        sudo install -d -m 0755 "${{ inputs.install-dir }}"
+        sudo install -m 0755 "$asset_dir/$asset" "${{ steps.paths.outputs.mkfs-erofs }}"
+        echo "${{ inputs.install-dir }}" >> "$GITHUB_PATH"
+        "${{ steps.paths.outputs.mkfs-erofs }}" -V
