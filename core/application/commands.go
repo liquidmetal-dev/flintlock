@@ -151,6 +151,32 @@ func checkProviderCapabilities(mvm *models.MicroVM, provider ports.MicroVMServic
 		return errKVMCapabilitiesDisableNotSupported
 	}
 
+	return checkVolumeModeCapabilities(mvm, caps)
+}
+
+// checkVolumeModeCapabilities rejects a spec whose volumes use a mode the provider
+// does not support. Only a volume backed by a container image is provisioned, so a
+// volume with no container source needs no mode capability.
+func checkVolumeModeCapabilities(mvm *models.MicroVM, caps models.Capabilities) error {
+	volumes := append(models.Volumes{mvm.Spec.RootVolume}, mvm.Spec.AdditionalVolumes...)
+
+	for _, volume := range volumes {
+		if volume.Source.Container == nil {
+			continue
+		}
+
+		switch volume.EffectiveMode() {
+		case models.VolumeModeOverlay:
+			if !caps.Has(models.VolumeOverlayCapability) {
+				return errVolumeOverlayNotSupported
+			}
+		case models.VolumeModeFull:
+			if !caps.Has(models.VolumeFullCapability) {
+				return errVolumeFullNotSupported
+			}
+		}
+	}
+
 	return nil
 }
 
