@@ -65,6 +65,9 @@ func (p *provider) Capabilities() models.Capabilities {
 		models.MacvtapCapability,
 		models.VirtioFSCapability,
 		models.VSockCapability,
+		// Every host today has the devmapper snapshotter. A startup probe will
+		// replace this static entry.
+		models.VolumeFullCapability,
 	}
 }
 

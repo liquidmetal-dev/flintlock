@@ -62,6 +62,9 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 		models.MetadataServiceCapability,
 		models.VSockCapability,
 		models.KVMCapabilitiesDisableCapability,
+		// Every host today has the devmapper snapshotter. A startup probe will
+		// replace this static entry.
+		models.VolumeFullCapability,
 	}
 }
 
