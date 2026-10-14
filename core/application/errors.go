@@ -15,6 +15,12 @@ var (
 	errKVMCapabilitiesDisableNotSupported = errors.New(
 		"disabling kvm capabilities not supported by the microvm provider",
 	)
+	errVolumeFullNotSupported = errors.New(
+		"volume mode full not supported by the microvm provider: it needs the volume-full capability",
+	)
+	errVolumeOverlayNotSupported = errors.New(
+		"volume mode overlay not supported by the microvm provider: it needs the volume-overlay capability",
+	)
 )
 
 type specAlreadyExistsError struct {
