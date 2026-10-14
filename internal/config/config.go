@@ -30,6 +30,15 @@ type Config struct {
 	CloudHypervisorDetatch bool
 	// MkfsErofsPath is the path of the pinned mkfs.erofs used to build overlay base images.
 	MkfsErofsPath string
+	// OverlayRWSizeMB is the size in megabytes of the writable disk of an overlay volume
+	// when the spec gives none.
+	OverlayRWSizeMB int32
+	// OverlayBaseRetention is how long an overlay base that no microvm uses is kept after
+	// its last use.
+	OverlayBaseRetention time.Duration
+	// OverlayInitrdImage is the OCI image of the initrd that boots an overlay root. An empty
+	// value selects the initrd published for the version of the daemon.
+	OverlayInitrdImage string
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
 	// SocketDir is the directory to act as the root for the per-microvm unix sockets.

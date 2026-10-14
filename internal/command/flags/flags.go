@@ -38,6 +38,9 @@ const (
 	enableSSHProxyAPIFlag     = "enable-ssh-proxy-api"
 	socketDirFlag             = "socket-dir"
 	mkfsErofsPathFlag         = "mkfs-erofs-path"
+	overlayRWSizeMBFlag       = "overlay-rw-size-mb"
+	overlayBaseRetentionFlag  = "overlay-base-retention"
+	overlayInitrdImageFlag    = "overlay-initrd-image"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -257,4 +260,20 @@ func AddOverlayFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		defaults.MkfsErofsPath,
 		"The path to the mkfs.erofs binary to use for overlay base images. "+
 			"flintlock-provision erofs-utils installs the pinned version at the default path.")
+
+	cmd.Flags().Int32Var(&cfg.OverlayRWSizeMB,
+		overlayRWSizeMBFlag,
+		defaults.OverlayRWSizeMB,
+		"The size in MB of the writable disk of an overlay volume when the spec gives none.")
+
+	cmd.Flags().DurationVar(&cfg.OverlayBaseRetention,
+		overlayBaseRetentionFlag,
+		defaults.OverlayBaseRetention,
+		"How long an overlay base that no microvm uses is kept after its last use.")
+
+	cmd.Flags().StringVar(&cfg.OverlayInitrdImage,
+		overlayInitrdImageFlag,
+		"",
+		"The OCI image of the initrd that boots an overlay root. "+
+			"When empty, a release build uses the initrd published for its own version.")
 }
