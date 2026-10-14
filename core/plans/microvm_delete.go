@@ -85,6 +85,12 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, fmt.Errorf("adding network steps: %w", err)
 	}
 
+	// The overlay root is released before its directory is deleted, so the
+	// base sweep sees the link go.
+	if err := p.addVolumeReleaseStep(ctx, p.vm, ports); err != nil {
+		return nil, fmt.Errorf("adding volume release step: %w", err)
+	}
+
 	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.stateDir, ports.FileSystem)); err != nil {
 		return nil, fmt.Errorf("adding root dir step: %w", err)
 	}
@@ -128,6 +134,29 @@ func (p *microvmDeletePlan) addStep(ctx context.Context, step planner.Procedure)
 
 	if shouldDo {
 		p.steps = append(p.steps, step)
+	}
+
+	return nil
+}
+
+// addVolumeReleaseStep adds the VolumeRelease step for a root volume in
+// overlay mode. A root in full mode has nothing to release: its snapshot
+// goes with the containerd lease.
+func (p *microvmDeletePlan) addVolumeReleaseStep(ctx context.Context,
+	vm *models.MicroVM,
+	svcs *ports.Collection,
+) error {
+	if !vm.Spec.RootVolume.IsOverlay() {
+		return nil
+	}
+
+	if svcs.VolumeService == nil {
+		return errVolumeServiceMissing
+	}
+
+	step := runtime.NewVolumeRelease(vm, p.stateDir, svcs.VolumeService, svcs.FileSystem)
+	if err := p.addStep(ctx, step); err != nil {
+		return fmt.Errorf("adding volume release step: %w", err)
 	}
 
 	return nil
