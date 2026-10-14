@@ -15,16 +15,21 @@
 //     keys that contain a dot to the environment of init.
 //   - The init mounts devtmpfs on /dev and proc on /proc, waits up to
 //     DeviceTimeout for both devices, mounts the base read-only, mounts the
-//     writable disk and creates upper/ and work/ on it, mounts the overlay,
-//     writes one console line that names the contract version, both devices
-//     and their filesystem types, and then does the switch_root sequence:
-//     move /dev and /proc into the overlay, delete the contents of the
-//     initramfs, move the overlay to /, chroot and exec the init of the
-//     image. It uses switch_root and not pivot_root, because the initramfs
-//     rootfs cannot be unmounted on the 5.10 and 6.1 guest kernels.
+//     writable disk and creates upper/ and work/ on it, and mounts the
+//     overlay. Then it does the switch_root sequence: move /dev and /proc
+//     into the overlay, delete the contents of the initramfs, move the
+//     overlay to / and chroot. It uses switch_root and not pivot_root,
+//     because the initramfs rootfs cannot be unmounted on the 5.10 and 6.1
+//     guest kernels. It checks that the init of the image is an executable
+//     file, writes one console line that names the contract version, both
+//     devices and their filesystem types, and execs the init of the image.
 //   - On any error the init writes one line with the reason to the console
 //     and exits with a non-zero status. The kernel then panics. There is no
-//     rescue shell.
+//     rescue shell. The contract line is written last, just before the exec,
+//     so a failure leaves only the error line on the console. The one
+//     exception is an exec that fails after the check of the init, for
+//     example because the image lacks its dynamic loader. Then the console
+//     holds the contract line and the error line.
 //
 // The console is standard output. The kernel opens /dev/console as the
 // standard streams of /init before it runs, so the lines reach the serial
