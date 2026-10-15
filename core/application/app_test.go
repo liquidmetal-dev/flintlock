@@ -205,6 +205,14 @@ func TestApp_CreateMicroVM(t *testing.T) {
 			},
 		},
 		{
+			name:         "guest mac reserved for the metadata interface, should fail",
+			specToCreate: createTestSpecWithGuestMAC("eth2", "aa:ff:00:00:00:01"),
+			expectError:  true,
+			// Rejected by struct validation before any port is called.
+			expect: func(rm *mock.MockMicroVMRepositoryMockRecorder, em *mock.MockEventServiceMockRecorder, im *mock.MockIDServiceMockRecorder, pm *mock.MockMicroVMServiceMockRecorder) {
+			},
+		},
+		{
 			name:         "allow guest agent but provider lacks vsock capability, should fail",
 			specToCreate: createTestSpecWithGuestAgent("id1234", "default", testUID),
 			expectError:  true,
@@ -653,6 +661,14 @@ func createTestSpec(name, ns, uid string) *models.MicroVM {
 func createTestSpecWithGuestAgent(name, ns, uid string) *models.MicroVM {
 	spec := createTestSpecWithMetadata(name, ns, uid, map[string]string{})
 	spec.Spec.AllowGuestAgent = true
+
+	return spec
+}
+
+func createTestSpecWithGuestMAC(deviceName, mac string) *models.MicroVM {
+	spec := createTestSpec("id1234", "default", testUID)
+	spec.Spec.NetworkInterfaces[0].GuestDeviceName = deviceName
+	spec.Spec.NetworkInterfaces[0].GuestMAC = mac
 
 	return spec
 }
