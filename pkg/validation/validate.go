@@ -32,6 +32,7 @@ func NewValidator() Validator {
 	_ = validator.RegisterValidation("onlyOneVirtioFS", customOnlyOneVirtioFSValidator, false)
 	_ = validator.RegisterValidation("multipleVolSources", customMultipleVolSources, false)
 	_ = validator.RegisterValidation("noReadOnlyVirtioFS", customNoReadOnlyVirtioFSValidator, false)
+	_ = validator.RegisterValidation("uniqueMountPoints", customUniqueMountPointsValidator, false)
 	_ = validator.RegisterValidation("kvmCapability", customKVMCapabilityValidator, false)
 	_ = validator.RegisterValidation("imageFilePath", customImageFilePathValidator, false)
 	validator.RegisterStructValidation(customMicroVMSpecStructLevelValidation, models.MicroVMSpec{})
@@ -140,6 +141,27 @@ func customNoReadOnlyVirtioFSValidator(fieldLevel playgroundValidator.FieldLevel
 		if volume.Source.VirtioFS != nil && volume.IsReadOnly {
 			return false
 		}
+	}
+
+	return true
+}
+
+// customUniqueMountPointsValidator ensures that no two volumes share a mount point.
+// Cloud-init would otherwise mount only the first of them and drop the rest silently.
+func customUniqueMountPointsValidator(fieldLevel playgroundValidator.FieldLevel) bool {
+	field, _ := fieldLevel.Field().Interface().(models.Volumes)
+	seen := map[string]bool{}
+
+	for _, volume := range field {
+		if volume.MountPoint == "" {
+			continue
+		}
+
+		if seen[volume.MountPoint] {
+			return false
+		}
+
+		seen[volume.MountPoint] = true
 	}
 
 	return true
