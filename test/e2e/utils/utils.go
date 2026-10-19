@@ -30,6 +30,9 @@ const (
 	// DefaultRootImage is the image which the test microvms use for their root volume.
 	DefaultRootImage = "ghcr.io/liquidmetal-dev/capmvm-k8s-os:1.23.5"
 
+	// VirtioFSVolumeID is the id of the virtiofs volume of a test microvm.
+	VirtioFSVolumeID = "share"
+
 	// cloud-init only reads the user-data as a cloud-config if it starts with this line.
 	cloudConfigHeader = "#cloud-config\n"
 	metadataPlatform  = "liquid_metal"
@@ -142,8 +145,10 @@ func ListMVMs(client v1alpha1.MicroVMClient, ns string, name *string) *v1alpha1.
 // state directory of a microvm. It returns an error and does not fail the
 // test, so that it can be used while the file is being written.
 func ReadPID(stateDir string, provider Provider) (int, error) {
-	pidFile := filepath.Join(stateDir, provider.PidFile)
+	return readPID(filepath.Join(stateDir, provider.PidFile))
+}
 
+func readPID(pidFile string) (int, error) {
 	contents, err := os.ReadFile(pidFile)
 	if err != nil {
 		return 0, fmt.Errorf("reading the pid file: %w", err)
@@ -187,8 +192,9 @@ func PidRunning(pid int) bool {
 }
 
 // MicroVMMetadata returns the cloud-init data for a test microvm, in the
-// encoding which the API expects.
-func MicroVMMetadata(name, namespace string) (map[string]string, error) {
+// encoding which the API expects. The run commands, if there are any, are
+// run by cloud-init in its final stage, before it writes the boot marker.
+func MicroVMMetadata(name, namespace string, runCommands ...string) (map[string]string, error) {
 	instanceData, err := yaml.Marshal(instance.New(
 		instance.WithLocalHostname(name),
 		instance.WithPlatform(metadataPlatform),
@@ -203,6 +209,7 @@ func MicroVMMetadata(name, namespace string) (map[string]string, error) {
 		HostName:      name,
 		PackageUpdate: pointyBool(false),
 		FinalMessage:  fmt.Sprintf(bootMarkerFormat, namespace, name) + bootMarkerUptime,
+		RunCommands:   runCommands,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("marshalling the user data: %w", err)
@@ -261,6 +268,54 @@ func NewMicroVMSpec(provider Provider, name, namespace string) (*types.MicroVMSp
 		},
 		Metadata: metadata,
 	}, nil
+}
+
+// NewVirtioFSMicroVMSpec returns the spec of a test microvm with a virtiofs
+// volume: the guest has the directory sharePath of the host mounted at
+// mountPoint, and writes the share marker into it when it boots.
+func NewVirtioFSMicroVMSpec(
+	provider Provider,
+	name, namespace, sharePath, mountPoint string,
+) (*types.MicroVMSpec, error) {
+	spec, err := NewMicroVMSpec(provider, name, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	spec.AdditionalVolumes = []*types.Volume{{
+		Id:         VirtioFSVolumeID,
+		Source:     &types.VolumeSource{VirtiofsSource: pointyString(sharePath)},
+		MountPoint: pointyString(mountPoint),
+	}}
+
+	// What is mounted goes to the console first, so that the console shows
+	// why the marker is not in the share when it is not.
+	spec.Metadata, err = MicroVMMetadata(name, namespace,
+		mountStateCommand(mountPoint), shareMarkerCommand(mountPoint, namespace, name))
+	if err != nil {
+		return nil, err
+	}
+
+	return spec, nil
+}
+
+// CreateVirtioFSMVM creates a microvm with a virtiofs volume, see
+// NewVirtioFSMicroVMSpec.
+func CreateVirtioFSMVM(
+	client v1alpha1.MicroVMClient,
+	provider Provider,
+	name, ns, sharePath, mountPoint string,
+) *v1alpha1.CreateMicroVMResponse {
+	spec, err := NewVirtioFSMicroVMSpec(provider, name, ns, sharePath, mountPoint)
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	created, err := client.CreateMicroVM(ctx, &v1alpha1.CreateMicroVMRequest{Microvm: spec})
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	return created
 }
 
 // guestNetwork returns a MAC address and a static address for the interface
