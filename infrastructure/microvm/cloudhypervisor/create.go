@@ -134,8 +134,13 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		"-v",
 	}
 
+	drives, err := shared.BuildDrives(vm, shared.DriveOptions{CloudInitImage: state.CloudInitImage()})
+	if err != nil {
+		return nil, fmt.Errorf("building drives: %w", err)
+	}
+
 	// Kernel, initrd and cmdline args
-	bootArgs, err := buildBootArgs(vm, buildKernelCmdLine(vm))
+	bootArgs, err := buildBootArgs(vm, buildKernelCmdLine(vm, drives))
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +155,7 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	args = append(args, "--cpus", cpusArg)
 
 	// Volumes (root, metadata, additional)
-	diskArgs, err := p.buildDiskArgs(vm, state)
+	diskArgs, err := buildDiskArgs(vm, drives)
 	if err != nil {
 		return nil, err
 	}
@@ -231,16 +236,26 @@ func buildBootArgs(vm *models.MicroVM, cmdLine string) ([]string, error) {
 }
 
 const (
-	cmdLineReadOnly  = "ro"
-	cmdLineReadWrite = "rw"
+	cmdLineReadOnly   = "ro"
+	cmdLineReadWrite  = "rw"
+	cmdLineRootDevice = "root"
 )
 
 // buildKernelCmdLine returns the kernel command line of a microvm: the
 // defaults, changed to mount the root filesystem read-only when the root
 // volume is read-only, then what the spec sets. The spec has the last word.
 // The result holds both ro and rw only when the spec itself sets both.
-func buildKernelCmdLine(vm *models.MicroVM) string {
+//
+// In overlay mode the kernel mounts no root device itself. The defaults
+// lose root= and rw, and the guest contract parameters are set after the
+// spec, so that the init sees the devices of the drives this command emits.
+func buildKernelCmdLine(vm *models.MicroVM, drives models.Drives) string {
 	kernelCmdLine := DefaultKernelCmdLine()
+
+	if vm.Spec.RootVolume.EffectiveMode() == models.VolumeModeOverlay {
+		delete(kernelCmdLine, cmdLineRootDevice)
+		delete(kernelCmdLine, cmdLineReadWrite)
+	}
 
 	if vm.Spec.RootVolume.IsReadOnly {
 		delete(kernelCmdLine, cmdLineReadWrite)
@@ -259,24 +274,19 @@ func buildKernelCmdLine(vm *models.MicroVM) string {
 		kernelCmdLine.Set(key, value)
 	}
 
+	shared.SetOverlayKernelParams(kernelCmdLine, drives)
+
 	return kernelCmdLine.String()
 }
 
 // buildDiskArgs returns the --disk option followed by one value per drive, in
 // the order the guest sees the drives.
-func (p *provider) buildDiskArgs(vm *models.MicroVM, state State) ([]string, error) {
-	drives, err := shared.BuildDrives(vm, shared.DriveOptions{CloudInitImage: state.CloudInitImage()})
-	if err != nil {
-		return nil, fmt.Errorf("building drives: %w", err)
-	}
-
+func buildDiskArgs(vm *models.MicroVM, drives models.Drives) ([]string, error) {
 	args := []string{"--disk"}
 
 	for _, drive := range drives {
-		if drive.Role != models.DriveRoleCloudInit {
-			if _, ok := vm.Status.Volumes[drive.VolumeID]; !ok {
-				return nil, cerrors.NewVolumeNotMounted(drive.VolumeID)
-			}
+		if !shared.IsDriveMounted(vm, drive) {
+			return nil, cerrors.NewVolumeNotMounted(drive.VolumeID)
 		}
 
 		args = append(args, diskArg(drive))

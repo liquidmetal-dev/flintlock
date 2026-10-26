@@ -37,6 +37,9 @@ type Config struct {
 	RunDetached bool
 	// DeleteVMTimeout is the timeout to wait for the microvm to be deleted.
 	DeleteVMTimeout time.Duration
+	// VolumeCapabilities are the volume modes the host accepts, from the
+	// startup probes. The provider advertises them with its own capabilities.
+	VolumeCapabilities models.Capabilities
 }
 
 func New(cfg *Config, networkSvc ports.NetworkService, ds ports.DiskService, fs afero.Fs) ports.MicroVMService {
@@ -60,12 +63,14 @@ type provider struct {
 
 // Capabilities returns a list of the capabilities the provider supports.
 func (p *provider) Capabilities() models.Capabilities {
-	return models.Capabilities{
+	caps := models.Capabilities{
 		models.AutoStartCapability,
 		models.MacvtapCapability,
 		models.VirtioFSCapability,
 		models.VSockCapability,
 	}
+
+	return append(caps, p.config.VolumeCapabilities...)
 }
 
 // Drives returns the drives the Cloud Hypervisor provider presents to a

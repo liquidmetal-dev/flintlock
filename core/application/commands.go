@@ -91,6 +91,10 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, err
 	}
 
+	if err := a.setDefaultInitrd(mvm, logger); err != nil {
+		return nil, err
+	}
+
 	err = a.addInstanceData(mvm, logger)
 	if err != nil {
 		return nil, fmt.Errorf("adding instance data: %w", err)
@@ -149,6 +153,57 @@ func checkProviderCapabilities(mvm *models.MicroVM, provider ports.MicroVMServic
 		len(mvm.Spec.CPUConfig.KVMCapabilitiesToDisable) > 0 &&
 		!caps.Has(models.KVMCapabilitiesDisableCapability) {
 		return errKVMCapabilitiesDisableNotSupported
+	}
+
+	return checkVolumeModeCapabilities(mvm, caps)
+}
+
+// checkVolumeModeCapabilities rejects a spec whose volumes use a mode the provider
+// does not support. Only a volume backed by a container image is provisioned, so a
+// volume with no container source needs no mode capability.
+func checkVolumeModeCapabilities(mvm *models.MicroVM, caps models.Capabilities) error {
+	volumes := append(models.Volumes{mvm.Spec.RootVolume}, mvm.Spec.AdditionalVolumes...)
+
+	for _, volume := range volumes {
+		if volume.Source.Container == nil {
+			continue
+		}
+
+		switch volume.EffectiveMode() {
+		case models.VolumeModeOverlay:
+			if !caps.Has(models.VolumeOverlayCapability) {
+				return errVolumeOverlayNotSupported
+			}
+		case models.VolumeModeFull:
+			if !caps.Has(models.VolumeFullCapability) {
+				return errVolumeFullNotSupported
+			}
+		}
+	}
+
+	return nil
+}
+
+// setDefaultInitrd writes the configured overlay initrd into a spec whose
+// root volume is an overlay and that names no initrd. The stored spec then
+// names the initrd the microvm boots with. A daemon with no configured
+// initrd has no default, and the spec is rejected with an error that names
+// the flag.
+func (a *app) setDefaultInitrd(mvm *models.MicroVM, logger *logrus.Entry) error {
+	if mvm.Spec.Initrd != nil || !mvm.Spec.RootVolume.IsOverlay() {
+		return nil
+	}
+
+	image := a.cfg.OverlayInitrdImage
+	if image == "" {
+		return errOverlayInitrdImageRequired
+	}
+
+	logger.Infof("Using default overlay initrd %s", image)
+
+	mvm.Spec.Initrd = &models.Initrd{
+		Image:    models.ContainerImage(image),
+		Filename: defaults.OverlayInitrdFilename,
 	}
 
 	return nil

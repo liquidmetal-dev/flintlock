@@ -14,6 +14,9 @@ OUT_DIR := out
 FLINTLOCKD_CMD := cmd/flintlockd
 FLINTLOCK_METRICS_CMD := cmd/flintlock-metrics
 FLINTLOCK_PROVISION_CMD := cmd/flintlock-provision
+FLINTLOCK_OVERLAY_INIT_CMD := cmd/flintlock-overlay-init
+OVERLAY_INITRD_SCRIPT := hack/scripts/build-overlay-initrd.sh
+OVERLAY_INITRD_IMAGE := ghcr.io/liquidmetal-dev/flintlock-overlay-init
 TEST_E2E_DIR := test/e2e
 
 $(BIN_DIR):
@@ -30,7 +33,7 @@ test_image = liquidmetal-dev/flintlock-e2e
 ##@ Build
 
 .PHONY: build
-build: build-flintlockd build-flintlock-metrics build-flintlock-provision ## Build the binaries
+build: build-flintlockd build-flintlock-metrics build-flintlock-provision build-flintlock-overlay-init ## Build the binaries
 
 .PHONY: build-flintlockd
 build-flintlockd: $(BIN_DIR) ## Build flintlockd binary
@@ -44,8 +47,31 @@ build-flintlock-metrics: $(BIN_DIR)
 build-flintlock-provision: $(BIN_DIR)
 	go build -o $(BIN_DIR)/flintlock-provision ./$(FLINTLOCK_PROVISION_CMD)
 
+.PHONY: build-flintlock-overlay-init ## Build flintlock-overlay-init binary
+build-flintlock-overlay-init: $(BIN_DIR)
+	CGO_ENABLED=0 GOOS=linux go build -o $(BIN_DIR)/flintlock-overlay-init ./$(FLINTLOCK_OVERLAY_INIT_CMD)
+
+.PHONY: build-overlay-initrd
+build-overlay-initrd: $(OUT_DIR) ## Build the overlay initrd (gzip cpio with flintlock-overlay-init at /init) for the host architecture
+	VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE) GIT_COMMIT=$(GIT_COMMIT) ./$(OVERLAY_INITRD_SCRIPT) $(OUT_DIR)/flintlock-overlay-initrd_$(ARCH).img $(ARCH)
+
 .PHONY: build-release
-build-release: build-release-flintlockd build-release-flintlock-metrics build-release-flintlock-provision ## Build the release binaries
+build-release: build-release-flintlockd build-release-flintlock-metrics build-release-flintlock-provision build-release-overlay-initrd ## Build the release binaries
+
+.PHONY: build-release-overlay-initrd
+build-release-overlay-initrd: $(OUT_DIR) ## Build the overlay initrd for amd64 and arm64
+	VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE) GIT_COMMIT=$(GIT_COMMIT) ./$(OVERLAY_INITRD_SCRIPT) $(OUT_DIR)/flintlock-overlay-initrd_amd64.img amd64
+	VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE) GIT_COMMIT=$(GIT_COMMIT) ./$(OVERLAY_INITRD_SCRIPT) $(OUT_DIR)/flintlock-overlay-initrd_arm64.img arm64
+
+.PHONY: push-overlay-initrd-image
+push-overlay-initrd-image: build-release-overlay-initrd ## Publish the overlay initrd as a multi-arch OCI image. Set OVERLAY_INITRD_TAGS to the tags to push.
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		--provenance=false --sbom=false \
+		--file hack/packaging/flintlock-overlay-init.Dockerfile \
+		$(foreach tag,$(OVERLAY_INITRD_TAGS),--tag $(OVERLAY_INITRD_IMAGE):$(tag)) \
+		--push \
+		$(OUT_DIR)
 
 .PHONY: build-release-flintlockd
 build-release-flintlockd: $(BIN_DIR) ## Build flintlockd release binaries
@@ -117,7 +143,7 @@ test: ## Run unit tests
 
 .PHONY: test-with-cov
 test-with-cov: ## Run unit tests with coverage
-	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt -exec "sudo --preserve-env=CTR_SOCK_PATH" ./...
+	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt -exec "sudo --preserve-env=CTR_SOCK_PATH,CI" ./...
 
 .PHONY: test-e2e
 test-e2e: compile-e2e ## Run e2e tests locally

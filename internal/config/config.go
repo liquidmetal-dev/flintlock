@@ -3,6 +3,8 @@ package config
 import (
 	"time"
 
+	"github.com/liquidmetal-dev/flintlock/internal/version"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
@@ -28,6 +30,17 @@ type Config struct {
 	VirtioFSBin string
 	// CloudHypervisorDetatch indicates if the child cloud hypervisor processes should be detached from their parent.
 	CloudHypervisorDetatch bool
+	// MkfsErofsPath is the path of the pinned mkfs.erofs used to build overlay base images.
+	MkfsErofsPath string
+	// OverlayRWSizeMB is the size in megabytes of the writable disk of an overlay volume
+	// when the spec gives none.
+	OverlayRWSizeMB int32
+	// OverlayBaseRetention is how long an overlay base that no microvm uses is kept after
+	// its last use.
+	OverlayBaseRetention time.Duration
+	// OverlayInitrdImage is the OCI image of the initrd that boots an overlay root. An empty
+	// value selects the initrd published for the version of the daemon.
+	OverlayInitrdImage string
 	// StateRootDir is the directory to act as the root for the runtime state of flintlock.
 	StateRootDir string
 	// SocketDir is the directory to act as the root for the per-microvm unix sockets.
@@ -80,4 +93,21 @@ type TLSConfig struct {
 	ValidateClient bool
 	// ClientCAFile is the path to a CA certificate file to use when validating client certificates.
 	ClientCAFile string
+}
+
+// EffectiveOverlayInitrdImage returns the initrd image that boots an overlay
+// root when a spec names none: OverlayInitrdImage when it is set, else the
+// initrd published for buildVersion when that is a release version, else an
+// empty string. A build with no release version has no published initrd,
+// so it has no default until the flag is set.
+func (c *Config) EffectiveOverlayInitrdImage(buildVersion string) string {
+	if c.OverlayInitrdImage != "" {
+		return c.OverlayInitrdImage
+	}
+
+	if !version.IsRelease(buildVersion) {
+		return ""
+	}
+
+	return defaults.OverlayInitrdImage + ":" + buildVersion
 }

@@ -35,7 +35,9 @@ const sidebars = {
       type: 'category',
       label: 'Advanced Guides',
       items: [
+        'guides/provisioning',
         'guides/images',
+        'guides/volumes',
         'guides/metrics',
         'guides/service-opts',
         'guides/production',

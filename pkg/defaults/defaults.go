@@ -41,6 +41,33 @@ const (
 	// processes should be run detached.
 	CloudHypervisorDetach = true
 
+	// ErofsUtilsVersion is the erofs-utils version of the pinned mkfs.erofs.
+	// CI builds this version as a static binary and attaches it to each
+	// flintlock release. The overlay base profile erofs-v1 fixes it.
+	ErofsUtilsVersion = "1.9.4"
+
+	// MkfsErofsPath is the path flintlock-provision installs the pinned
+	// mkfs.erofs to. It is under flintlock's own directory so that it does
+	// not replace a system mkfs.erofs.
+	MkfsErofsPath = "/opt/flintlock/bin/mkfs.erofs"
+
+	// OverlayRWSizeMB is the default size in megabytes of the writable disk
+	// of an overlay volume. It is the base_image_size provisioning gives
+	// devmapper today, so a full and an overlay root have the same room.
+	OverlayRWSizeMB int32 = 10240
+
+	// OverlayBaseRetention is how long an overlay base that no microvm uses
+	// is kept after its last use.
+	OverlayBaseRetention = 24 * time.Hour
+
+	// OverlayInitrdImage is the OCI image repository of the initrd that boots
+	// an overlay root. Each release publishes it with the tag of the release,
+	// in the form GoReleaser gives the daemon (0.16.0) and with a v prefix.
+	OverlayInitrdImage = "ghcr.io/liquidmetal-dev/flintlock-overlay-init"
+
+	// OverlayInitrdFilename is the path of the initrd in OverlayInitrdImage.
+	OverlayInitrdFilename = "initrd.img"
+
 	// ConfigurationDir is the default configuration directory.
 	ConfigurationDir = "/etc/opt/flintlockd"
 

@@ -1,0 +1,106 @@
+---
+title: Volumes
+---
+
+A microVM has one root volume and any number of additional volumes. A volume
+comes from an OCI image (`container_source`) or from a directory on the host
+(`virtiofs_source`). This page covers the fields that select how a volume
+from an OCI image is provisioned.
+
+## Volume mode
+
+The `mode` field of a volume selects how `flintlockd` provisions it.
+
+| Mode      | What the host does                                                                                                                                 |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FULL`    | Unpacks the image into a containerd snapshot and attaches it as one block device. This is the default and the only mode before `mode` existed.   |
+| `OVERLAY` | Builds one read-only base per image and shares it between microVMs. Each microVM gets its own writable disk. The guest's init joins them with overlayfs. |
+
+A request that does not set `mode` gets `FULL`. Clients written before the
+field existed keep working.
+
+Only the root volume can use `OVERLAY`. Additional volumes from an OCI image
+are always `FULL`.
+
+### Size in overlay mode
+
+In `OVERLAY` mode `size_in_mb` is the size of the writable disk. The minimum is
+64 MB. Leave it unset to use the daemon default.
+
+### Rules
+
+`flintlockd` rejects a request when:
+
+- The root volume is `OVERLAY` and `is_read_only` is set. An overlay root needs
+  its writable disk.
+- An additional volume is `OVERLAY`.
+- The root volume is `OVERLAY` and `size_in_mb` is set below 64.
+- The root volume is `OVERLAY` and the kernel command line sets `rdinit`. The
+  overlay initramfs `/init` is the contract between flintlock and the guest,
+  and `rdinit` would replace it.
+
+## Overlay root
+
+To boot a microVM from a shared base, set `mode: OVERLAY` on its root volume:
+
+```yaml
+root_volume:
+  id: root
+  mode: OVERLAY
+  source:
+    container_source: ghcr.io/liquidmetal-dev/ubuntu:22.04
+```
+
+The guest boots from an initrd that joins the base and the writable disk
+with overlayfs. A request that names no `initrd` gets the default one, and
+the stored spec names it. The default is the image `--overlay-initrd-image`
+points at. When the flag is not set, a release build uses the initrd that is
+published for its own version. A build with no release version has no
+default and rejects the request until the flag is set. A request can also
+name its own `initrd`, and it is used as given.
+
+The host needs a state directory on a filesystem with reflinks, such as XFS
+or btrfs, and the pinned `mkfs.erofs`. `flintlock-provision state-dir` sets up
+the directory and `flintlock-provision erofs-utils` installs the binary. See
+[Provisioning](provisioning.md).
+
+`flintlockd` has these flags for overlay volumes:
+
+| Flag                       | Default                          | Description                                                               |
+| -------------------------- | -------------------------------- | ------------------------------------------------------------------------- |
+| `--overlay-initrd-image`   | The initrd of the daemon version | The OCI image of the initrd that boots an overlay root.                   |
+| `--overlay-rw-size-mb`     | `10240`                          | The size of the writable disk when the request does not set `size_in_mb`. |
+| `--overlay-base-retention` | `24h`                            | How long a base that no microVM uses is kept after its last use.          |
+| `--mkfs-erofs-path`        | `/opt/flintlock/bin/mkfs.erofs`  | The `mkfs.erofs` that builds bases.                                       |
+
+Deleting the microVM removes its writable disk and its link to the base.
+The base stays for other microVMs and is removed after the retention period
+once no microVM links to it.
+
+## Capabilities
+
+A provider advertises the volume modes its host can serve:
+
+| Capability       | Accepts        | Host needs                                                                    |
+| ---------------- | -------------- | ----------------------------------------------------------------------------- |
+| `volume-full`    | `FULL` volumes | The containerd devmapper snapshotter (a thin pool).                           |
+| `volume-overlay` | `OVERLAY` root | A state directory on a filesystem with reflinks, `mkfs.erofs` and `mkfs.ext4`. |
+
+A request for a mode the provider does not advertise fails with an error
+that names the missing capability. Probes at daemon start decide what the
+host has, and both providers advertise the result. A failed probe is logged
+with its reason. A host with no thin pool advertises only `volume-overlay`,
+and a host whose state directory has no reflinks advertises only `volume-full`.
+
+## Volume status
+
+The status of a volume has a mount for each file or device the host attaches.
+
+| Field         | `FULL`                     | `OVERLAY`                                        |
+| ------------- | -------------------------- | ------------------------------------------------ |
+| `mount`       | The block device (`DEV`).  | The writable disk (`FILE`).                      |
+| `base_mount`  | Unset.                     | The read-only base (`FILE`).                     |
+| `base_digest` | Empty.                     | The sha256 digest of the base.                   |
+
+A mount of type `HOSTPATH` is a directory on the host. It is used for kernel
+and initrd mounts and for virtiofs volumes.
