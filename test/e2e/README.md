@@ -170,8 +170,19 @@ hosted runners. It is available via `workflow_dispatch`.
 The workflow prepares the runner by installing the host packages required by the
 test harness, installing pinned releases of containerd, zot, Firecracker and
 Cloud Hypervisor, and checking that `/dev/kvm` exists. The versions of these can
-be changed with the workflow inputs. The
-tests are run with `sudo` because they create loop devices, devicemapper
+be changed with the workflow inputs.
+
+The workflow file is read from the branch the workflow is run on, and the code
+under test is checked out from the `ref` input, a branch, tag or SHA of this
+repository. Without the input, the branch the workflow is run on is tested. So a
+branch which does not have the workflow file can be tested by running the
+workflow on `main`:
+
+```bash
+gh workflow run hosted_e2e.yml --ref main -f ref=<branch>
+```
+
+The tests are run with `sudo` because they create loop devices, devicemapper
 thinpools and a `fl-e2e-br0` bridge for the microVM TAP interfaces, write
 containerd configuration under `/etc`, and manage runtime state under `/run`
 and `/var/lib`.
