@@ -3,6 +3,10 @@ name: hosted e2e
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: "Branch, tag or SHA of flintlock to check out and test (default: the ref the workflow is run on)"
+        required: false
+        default: ""
       firecracker_version:
         description: "Firecracker release tag to install"
         required: false
@@ -24,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: hosted-e2e-${{ github.ref }}
+  group: hosted-e2e-${{ github.event.inputs.ref || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -34,6 +38,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # An empty ref is the same as no ref, the action then checks out the
+          # ref which the workflow was run on.
+          ref: ${{ github.event.inputs.ref }}
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
