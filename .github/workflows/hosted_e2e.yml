@@ -43,7 +43,7 @@ jobs:
           # ref which the workflow was run on.
           ref: ${{ github.event.inputs.ref }}
 
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
 
       - name: Install host dependencies
         run: |
@@ -182,7 +182,7 @@ jobs:
 
       - name: Upload the state of the MicroVMs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-microvm-state-${{ github.run_attempt }}
           path: ${{ runner.temp }}/e2e-artefacts
