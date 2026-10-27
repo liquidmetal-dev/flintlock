@@ -398,6 +398,15 @@ and the E2E tests you can get to work :tada: .
     If you have added a completely new feature please ensure that it is documented
     thoroughly.
 
+1.  If your change touches the gRPC API under `api/` or the Go client under `client/`,
+    open an issue in each of the repositories that consume them, describing the change
+    and what they need to do to adopt it:
+    [`brigade`](https://github.com/liquidmetal-dev/brigade),
+    [`battery`](https://github.com/liquidmetal-dev/battery),
+    [`controller-pkg`](https://github.com/liquidmetal-dev/controller-pkg) and
+    [`fl`](https://github.com/liquidmetal-dev/fl).
+    Link those issues from your PR description.
+
 1.  Before you [open your PR](#pr-submission-guidelines), run all the unit and E2E tests and manually
     verify that your solution works.
 
@@ -458,6 +467,10 @@ PRs which adhere to our guidelines are more likely to be accepted
 
 1. **The change has been manually tested.** If you are supplying output above
    then that can be your manual test, with proof :clap: .
+
+1. **Downstream issues are linked for API and client changes.** If the PR touches
+   `api/` or `client/`, the description links the issues opened in `brigade`, `battery`,
+   `controller-pkg` and `fl` (see [Writing your solution](#writing-your-solution)).
 
 1. **The PR has a snappy title**. Your PR title will end up in the release notes,
    so make it a good one. Using the same rule as for the title of a [commit message](#commit-message-formatting)
