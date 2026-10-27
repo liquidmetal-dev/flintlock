@@ -54,7 +54,12 @@ jobs:
             lvm2 \
             skopeo \
             thin-provisioning-tools \
+            virtiofsd \
             wget
+
+          # flintlockd starts virtiofsd from its default path, the tests do
+          # not pass --virtiofs-bin.
+          /usr/libexec/virtiofsd --version
 
       - name: Install containerd
         env:
@@ -195,8 +200,9 @@ jobs:
         if: always()
         run: |
           # A VMM is not a child of flintlockd. If a test left one behind, it
-          # holds on to the devices of the thinpool until it has exited.
-          vmms='(firecracker|cloud-hypervisor-static) .*/var/lib/flintlock/vm/'
+          # holds on to the devices of the thinpool until it has exited. The
+          # same goes for virtiofsd, which holds on to the directory it shares.
+          vmms='(firecracker|cloud-hypervisor-static|virtiofsd) .*/(var/lib/flintlock/vm|run/flintlock)/'
 
           sudo pkill -f "${vmms}" || true
 

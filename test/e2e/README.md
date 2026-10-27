@@ -25,6 +25,11 @@ The test setup fails if one of them is not found. Use the `providers` flag to
 run the tests on a host which does not have both, see
 [Configuration](#configuration).
 
+The virtiofs test needs `virtiofsd` at `/usr/libexec/virtiofsd`, which is where
+flintlockd starts it from by default. On Ubuntu it is installed by
+`apt-get install virtiofsd`. The test fails, and is not skipped, when it is not
+there.
+
 The private registry test also needs these to be on the `PATH`:
 - [`zot`][zot]: this is the registry which the test starts. The `minimal` build
   is enough.
@@ -56,6 +61,15 @@ The private registry test also needs these to be on the `PATH`:
   The test does not look at the state of the MicroVM, which is `CREATED`
   ([#1263][issue-1263]). It is skipped when `cloudhypervisor` is not one of the
   providers.
+- `TestE2ECloudHypervisorVirtioFS`: creates a MicroVM with the cloudhypervisor
+  provider and a virtiofs volume with a mount point, which shares a directory
+  of the host under `/var/lib/flintlock-e2e/virtiofs` with the guest. The guest
+  mounts the share with cloud-init and writes a marker file into it when it
+  boots, and the test reads the file from the directory of the host. The test
+  also checks that virtiofsd runs and that its socket is under the socket
+  directory of the MicroVM, and that both are gone after the delete, which
+  leaves the shared directory as it was. It is skipped when `cloudhypervisor`
+  is not one of the providers.
 - `TestE2EGuestWithoutInit`: creates a MicroVM whose root volume has no init,
   with each of the providers. The kernel of the guest boots, mounts the root
   volume, panics and reboots, which the test reads from the console. The
@@ -275,6 +289,9 @@ and its uid:
     firecracker.stdout
     metadata.json
 ```
+
+A Cloud Hypervisor MicroVM with a virtiofs volume also has the `virtiofs.pid`,
+`virtiofs.stdout` and `virtiofs.stderr` of its virtiofsd.
 
 | What | Saved |
 |---|---|
