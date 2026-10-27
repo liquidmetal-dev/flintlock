@@ -73,3 +73,30 @@ func TestConvert_StatusVsockPath(t *testing.T) {
 	status := convertModelToMicroVMStatus(mvm)
 	g.Expect(status.VsockPath).To(g.Equal("/var/lib/flintlock/vm/guest-agent.vsock"))
 }
+
+func TestConvert_VolumeRoundTrip(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	mountPoint := "/mnt/share"
+	sharePath := "/srv/share"
+	spec := &types.MicroVMSpec{
+		Id:        "vm",
+		Namespace: "ns",
+		AdditionalVolumes: []*types.Volume{{
+			Id:         "share",
+			MountPoint: &mountPoint,
+			Source:     &types.VolumeSource{VirtiofsSource: &sharePath},
+		}},
+	}
+
+	model, err := convertMicroVMToModel(spec)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(model.Spec.AdditionalVolumes).To(g.HaveLen(1))
+	g.Expect(model.Spec.AdditionalVolumes[0].MountPoint).To(g.Equal(mountPoint))
+	g.Expect(model.Spec.AdditionalVolumes[0].Source.VirtioFS.Path).To(g.Equal(sharePath))
+
+	back := convertModelToMicroVMSpec(model)
+	g.Expect(back.AdditionalVolumes).To(g.HaveLen(1))
+	g.Expect(back.AdditionalVolumes[0].MountPoint).To(g.HaveValue(g.Equal(mountPoint)))
+	g.Expect(back.AdditionalVolumes[0].Source.VirtiofsSource).To(g.HaveValue(g.Equal(sharePath)))
+}

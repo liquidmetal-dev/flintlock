@@ -25,6 +25,12 @@ const (
 	bootMarkerFormat = "flintlock-e2e boot ok %s/%s uptime="
 	bootMarkerUptime = "$UPTIME"
 
+	// ShareMarkerFile is the file which the guest of a microvm with a virtiofs
+	// volume writes into the share when it boots, and shareMarkerFormat is
+	// its content, with the namespace and the name of the microvm.
+	ShareMarkerFile   = "flintlock-e2e-share"
+	shareMarkerFormat = "flintlock-e2e share ok %s/%s"
+
 	diagnosticLines = 40
 )
 
@@ -35,13 +41,39 @@ const (
 // is no pid, if the process is not running, or if the process is not the VMM
 // binary of the provider.
 func VerifyVMM(stateDir string, provider Provider) (int, error) {
-	pid, err := ReadPID(stateDir, provider)
+	binary, err := provider.BinaryPath()
+	if err != nil {
+		return 0, err
+	}
+
+	return verifyProcess(filepath.Join(stateDir, provider.PidFile), binary, "the VMM of the "+provider.Name+" provider")
+}
+
+// VerifyVirtioFSD returns the pid of the virtiofsd of a microvm, which the
+// VMM gets the virtiofs share from. The binary is the one which flintlockd
+// starts, VirtioFSDBin. It is an error if there is no pid, if the process is
+// not running, or if the process is not the binary.
+func VerifyVirtioFSD(stateDir, binary string) (int, error) {
+	resolved, err := binaryPath(binary, "virtiofsd")
+	if err != nil {
+		return 0, err
+	}
+
+	return verifyProcess(filepath.Join(stateDir, VirtioFSDPidFile), resolved, "virtiofsd")
+}
+
+// verifyProcess returns the pid in the pid file. It is an error if there is
+// no pid, if the process is not running, or if the process is not the binary,
+// which is the path that the kernel reports for it. The what is for the
+// error, it says whose process it is.
+func verifyProcess(pidFile, binary, what string) (int, error) {
+	pid, err := readPID(pidFile)
 	if err != nil {
 		return 0, err
 	}
 
 	if !PidRunning(pid) {
-		return 0, fmt.Errorf("the process with pid %d from %s is not running", pid, provider.PidFile)
+		return 0, fmt.Errorf("the process with pid %d from %s is not running", pid, filepath.Base(pidFile))
 	}
 
 	executable, err := VMMExecutable(pid)
@@ -49,14 +81,8 @@ func VerifyVMM(stateDir string, provider Provider) (int, error) {
 		return 0, err
 	}
 
-	binary, err := provider.BinaryPath()
-	if err != nil {
-		return 0, err
-	}
-
 	if executable != binary {
-		return 0, fmt.Errorf("the process with pid %d is %s, the VMM of the %s provider is %s",
-			pid, executable, provider.Name, binary)
+		return 0, fmt.Errorf("the process with pid %d is %s, %s is %s", pid, executable, what, binary)
 	}
 
 	return pid, nil
@@ -71,6 +97,47 @@ func VMMExecutable(pid int) (string, error) {
 	}
 
 	return executable, nil
+}
+
+// ShareMarkerContent returns what the guest of a microvm writes into the
+// file ShareMarkerFile of its virtiofs share when it boots.
+func ShareMarkerContent(namespace, name string) string {
+	return fmt.Sprintf(shareMarkerFormat, namespace, name) + "\n"
+}
+
+// shareMarkerCommand returns the command with which the guest of a microvm
+// writes the share marker. cloud-init runs it in its final stage, after it
+// has mounted the share, and before it writes the boot marker.
+func shareMarkerCommand(mountPoint, namespace, name string) string {
+	return fmt.Sprintf("printf '%%s\\n' '%s' > %s",
+		fmt.Sprintf(shareMarkerFormat, namespace, name), filepath.Join(mountPoint, ShareMarkerFile))
+}
+
+// mountStateCommand returns the command with which the guest of a microvm
+// writes what is mounted at the mount point to its console, so that the
+// console shows why the share marker is not in the share.
+func mountStateCommand(mountPoint string) string {
+	return fmt.Sprintf("findmnt -no SOURCE,FSTYPE,OPTIONS %s > /dev/console"+
+		" || echo 'flintlock-e2e nothing is mounted' > /dev/console", mountPoint)
+}
+
+// ShareMarker returns the content of the marker file in the directory which
+// the host shares with a microvm. It is an error if the file is not there,
+// or if it does not have the marker of the microvm.
+func ShareMarker(sharePath, name, namespace string) (string, error) {
+	file := filepath.Join(sharePath, ShareMarkerFile)
+
+	content, err := os.ReadFile(file)
+	if err != nil {
+		return "", fmt.Errorf("reading the marker of the share: %w", err)
+	}
+
+	expected := ShareMarkerContent(namespace, name)
+	if string(content) != expected {
+		return "", fmt.Errorf("%s has %q, the marker of %s/%s is %q", file, content, namespace, name, expected)
+	}
+
+	return string(content), nil
 }
 
 // ConsoleMarker returns the line of the console of a microvm which shows that

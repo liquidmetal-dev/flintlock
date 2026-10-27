@@ -44,6 +44,10 @@ const (
 	// HostsDir is the certs.d directory flintlockd reads registry hosts.toml
 	// files from during the tests.
 	HostsDir = e2eDataDir + "/certs.d"
+	// VirtioFSDir is the directory under which the tests make the directories
+	// which they share with a microvm. It goes with the other directories of
+	// the tests at the teardown.
+	VirtioFSDir = e2eDataDir + "/virtiofs"
 
 	minContainerdMajor = 2
 )
