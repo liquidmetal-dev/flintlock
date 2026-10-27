@@ -53,6 +53,20 @@ Run from the repo root:
 
 Every commit must be compilable with `make test` passing.
 
+## API and client changes
+
+The gRPC API under `api/` and the Go client under `client/` are consumed by
+other `liquidmetal-dev` repositories. Whenever a change touches either
+directory, open an issue in each of these repositories describing the change
+and what they need to do to adopt it:
+
+- [`brigade`](https://github.com/liquidmetal-dev/brigade) — microVM orchestrator
+- [`battery`](https://github.com/liquidmetal-dev/battery) — microVM warm pool manager
+- [`controller-pkg`](https://github.com/liquidmetal-dev/controller-pkg) — shared controller packages
+- [`fl`](https://github.com/liquidmetal-dev/fl) — CLI for flintlock
+
+Link the issues from the flintlock PR description.
+
 ## Commit & PR rules
 
 - **Keep changes small.** One focused concern per PR and per commit. Split
