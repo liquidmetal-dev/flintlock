@@ -299,8 +299,9 @@ contribute you will need:
    running `export PATH="$(go env GOPATH)/bin:$PATH"`
 
 3. (Optional, docs contributions only) [User documentation][user-docs] is built
-   and generated with [docusaurus](https://docusaurus.io/docs).
-   Please make sure you have node installed on your system.
+   with [Hugo](https://gohugo.io/) and the [Hextra](https://imfing.github.io/hextra/)
+   theme. `mise install` provisions the pinned Hugo version; run `hugo server`
+   from the `userdocs` directory to preview changes.
 
 ### Building flintlock
 

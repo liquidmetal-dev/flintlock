@@ -52,4 +52,4 @@ caller, and must not be set to `eth0` — see
 [Troubleshooting: network-interfaces error caused by eth0][ts-eth0] for why.
 
 [issue-90]: https://github.com/liquidmetal-dev/flintlock/issues/90
-[ts-eth0]: ../../userdocs/docs/troubleshooting/network-interface-eth0.md
+[ts-eth0]: ../../userdocs/content/docs/troubleshooting/network-interface-eth0.md

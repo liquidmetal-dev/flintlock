@@ -19,7 +19,7 @@ Key directories:
 - `api/` — protobuf/gRPC definitions
 - `client/` — generated/consumer client code
 - `test/` — e2e and integration tests
-- `userdocs/` — documentation site (npm)
+- `userdocs/` — documentation site (Hugo + Hextra; content in `userdocs/content/`)
 - `hack/` — scripts and build tooling
 
 ### Hypervisor providers
