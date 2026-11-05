@@ -52,4 +52,4 @@ out the [official Liquid Metal docs][lm].
 [proto]: https://buf.build/liquidmetal-dev/flintlock
 [lm]: https://www.liquidmetal.dev
 [firecracker]: https://firecracker-microvm.github.io/
-[liquid-metal]: https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal
+[liquid-metal]: https://web.archive.org/web/20221128021814/https://www.weave.works/blog/multi-cluster-kubernetes-on-microvms-for-bare-metal
