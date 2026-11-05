@@ -149,6 +149,27 @@ func TestWithMicroVM_InitrdPathTraversalRejected(t *testing.T) {
 	g.Expect(err).To(g.MatchError(errors.ErrInvalidImageFilePath))
 }
 
+func TestWithMicroVM_KernelNotMounted(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Status.KernelMount = nil
+
+	_, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).To(g.MatchError(errors.ErrNoMount))
+}
+
+func TestWithMicroVM_InitrdNotMounted(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.Initrd = &models.Initrd{Filename: "initrd.img"}
+	vm.Status.InitrdMount = nil
+
+	_, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).To(g.MatchError(errors.ErrNoMount))
+}
+
 func TestWithMicroVM_BlockDevicesInGuestOrder(t *testing.T) {
 	g.RegisterTestingT(t)
 
