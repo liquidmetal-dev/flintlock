@@ -14,8 +14,7 @@ plugins:
   - local: protoc-gen-openapiv2
     out: api
   - local: protoc-gen-doc
-    out: userdocs/docs/grpc/
+    out: userdocs/content/docs/grpc/
     opt:
-      - markdown
-      - proto.md
+      - hack/proto-doc.md.tmpl,proto.md
       - source_relative
