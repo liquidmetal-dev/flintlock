@@ -29,9 +29,56 @@ hammertime delete -a 192.168.1.66:9090 --all
 [fl][fl] aims to provide a fuller user experience, with formatted output and some
 extra features for handling your MicroVMs.
 
+`fl` connects without TLS and doesn't send an auth token, so use it with a
+`flintlockd` that was started with `--insecure`, as in this tutorial.
+
 ### Example
 
-_coming soon..._
+Create a microVM. The kernel and root volume are OCI images, and `fl` uses
+these images by default if you leave the flags out:
+
+```bash
+fl microvm create --host 192.168.1.66:9090 --name my-microvm \
+  --kernel-image ghcr.io/liquidmetal-dev/firecracker-kernel:6.1 \
+  --root-image ghcr.io/liquidmetal-dev/ubuntu:24.04
+```
+
+The output includes the `uid` of the new microVM. List the microVMs on the
+host, or get one by its `uid`:
+
+```bash
+fl microvm get --host 192.168.1.66:9090
+
+fl microvm get --host 192.168.1.66:9090 <uid>
+```
+
+Delete the microVM:
+
+```bash
+fl microvm delete --host 192.168.1.66:9090 <uid>
+```
+
+Run `fl microvm create --help` for the other options, including network
+interfaces, cloud-init metadata and extra volumes.
+
+### Running commands and SSH
+
+`fl` can also run a command in a microVM, or open an SSH session to it, using
+the guest agent. To do this:
+
+1. Start `flintlockd` with `--enable-exec-api` for exec, `--enable-ssh-proxy-api`
+   for SSH, or both.
+1. Create the microVM with `--allow-guest-agent`.
+1. Use a root image that runs the [guest agent][guest-agent]. For SSH, the
+   image must also run `sshd`.
+
+```bash
+fl microvm exec --host 192.168.1.66:9090 <uid> -- uname -a
+
+fl microvm ssh --host 192.168.1.66:9090 <uid> -- -l ubuntu
+```
+
+Arguments after `--` in `fl microvm ssh` are passed to `ssh`.
 
 ## grpc-client-cli
 
@@ -85,3 +132,4 @@ implemented at present.**
 [payload-example-delete]: https://github.com/liquidmetal-dev/flintlock/blob/main/hack/scripts/payload/DeleteMicroVM.json
 [ht]: https://github.com/warehouse-13/hammertime
 [fl]: https://github.com/liquidmetal-dev/fl
+[guest-agent]: https://github.com/liquidmetal-dev/guest-agent
