@@ -118,7 +118,7 @@ func TestE2EPrivateRegistry(t *testing.T) {
 	log.Printf("TEST INFO: MicroVM %s/%s is running with %s pid %d, it took %s",
 		mvmNS, mvmID, provider.Name, mvmPid, time.Since(createStart).Round(time.Millisecond))
 
-	waitForBoot(provider, microVMPath, mvmID, mvmNS, mvmPid)
+	waitForBoot(provider, microVMPath, mvmID, mvmNS, mvmPid, bootTimeout)
 
 	log.Println("TEST STEP: verifying that the images were pulled from the private registry")
 	for _, image := range []string{kernelImage, rootImage} {

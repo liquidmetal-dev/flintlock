@@ -202,7 +202,9 @@ func TestBuildArgs_DisksStayTogether(t *testing.T) {
 		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
 		"path=/data.img",
 	}))
-	g.Expect(optionValues(args, "--fs")).To(g.HaveLen(1))
+	// The guest mounts the share by the tag, so the cloud-init mount step
+	// relies on it.
+	g.Expect(optionValues(args, "--fs")).To(g.HaveExactElements(g.HavePrefix("tag=user,socket=")))
 	g.Expect(strings.Join(args, " ")).To(g.ContainSubstring("shared=on"))
 }
 

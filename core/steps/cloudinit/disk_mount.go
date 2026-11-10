@@ -31,14 +31,12 @@ type diskMountStep struct {
 	provider ports.MicroVMService
 }
 
-// mountableVolumes returns the additional volumes that are block devices and
-// have a mount point. A virtiofs volume is not a block device, so cloud-init
-// cannot mount it by device name.
+// mountableVolumes returns the additional volumes that have a mount point.
 func (s *diskMountStep) mountableVolumes() []models.Volume {
 	volumes := []models.Volume{}
 
 	for _, vol := range s.vm.Spec.AdditionalVolumes {
-		if vol.MountPoint == "" || vol.Source.VirtioFS != nil {
+		if vol.MountPoint == "" {
 			continue
 		}
 
@@ -105,24 +103,28 @@ func (s *diskMountStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 		vendorData = &userdata.UserData{}
 	}
 
-	drives, err := s.provider.Drives(s.vm)
-	if err != nil {
-		return nil, fmt.Errorf("getting drives from provider: %w", err)
+	volumes := s.mountableVolumes()
+
+	// A share has no drive, so the provider is only asked when a volume
+	// needs a device name.
+	var drives models.Drives
+	if hasBlockVolume(volumes) {
+		drives, err = s.provider.Drives(s.vm)
+		if err != nil {
+			return nil, fmt.Errorf("getting drives from provider: %w", err)
+		}
 	}
 
-	for _, vol := range s.mountableVolumes() {
-		device, found := drives.GuestDeviceForVolume(vol.ID)
-		if !found {
-			return nil, fmt.Errorf("volume %s: %w", vol.ID, errNoDriveForVolume)
+	for _, vol := range volumes {
+		mount, err := mountFor(vol, drives)
+		if err != nil {
+			return nil, err
 		}
 
 		// A mount point that is already there is left as it is, so that a
 		// microvm created with other device names is not changed.
 		if !vendorData.HasMountByMountPoint(vol.MountPoint) {
-			vendorData.Mounts = append(vendorData.Mounts, userdata.Mount{
-				device,
-				vol.MountPoint,
-			})
+			vendorData.Mounts = append(vendorData.Mounts, mount)
 		}
 	}
 	vendorData.MountDefaultFields = userdata.Mount{"None", "None", "auto", "defaults,nofail", "0", "2"}
@@ -143,6 +145,33 @@ func (s *diskMountStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 func (s *diskMountStep) Verify(_ context.Context) error {
 	return nil
+}
+
+func hasBlockVolume(volumes []models.Volume) bool {
+	for _, vol := range volumes {
+		if vol.Source.VirtioFS == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+// mountFor returns the cloud-init mount entry of a volume. A block device is
+// mounted by its guest device name, with the default fields. A virtiofs share
+// is mounted by its tag, and needs the filesystem type and no fsck pass, which
+// the default fields do not give.
+func mountFor(vol models.Volume, drives models.Drives) (userdata.Mount, error) {
+	if vol.Source.VirtioFS != nil {
+		return userdata.Mount{models.VirtioFSTag, vol.MountPoint, "virtiofs", "defaults,nofail", "0", "0"}, nil
+	}
+
+	device, found := drives.GuestDeviceForVolume(vol.ID)
+	if !found {
+		return nil, fmt.Errorf("volume %s: %w", vol.ID, errNoDriveForVolume)
+	}
+
+	return userdata.Mount{device, vol.MountPoint}, nil
 }
 
 func (s *diskMountStep) getVendorData() (*userdata.UserData, error) {

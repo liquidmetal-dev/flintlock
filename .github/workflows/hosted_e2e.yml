@@ -3,6 +3,10 @@ name: hosted e2e
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: "Branch, tag or SHA of flintlock to check out and test (default: the ref the workflow is run on)"
+        required: false
+        default: ""
       firecracker_version:
         description: "Firecracker release tag to install"
         required: false
@@ -24,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: hosted-e2e-${{ github.ref }}
+  group: hosted-e2e-${{ github.event.inputs.ref || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -34,8 +38,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # An empty ref is the same as no ref, the action then checks out the
+          # ref which the workflow was run on.
+          ref: ${{ github.event.inputs.ref }}
 
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
 
       - name: Install host dependencies
         run: |
@@ -52,8 +60,13 @@ jobs:
             lvm2 \
             skopeo \
             thin-provisioning-tools \
+            virtiofsd \
             wget \
             xfsprogs
+
+          # flintlockd starts virtiofsd from its default path, the tests do
+          # not pass --virtiofs-bin.
+          /usr/libexec/virtiofsd --version
 
       - name: Install containerd
         env:
@@ -289,7 +302,7 @@ jobs:
 
       - name: Upload the state of the MicroVMs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-microvm-state-${{ github.run_attempt }}
           path: ${{ runner.temp }}/e2e-artefacts
@@ -306,8 +319,9 @@ jobs:
           REGISTRY_DIR: ${{ runner.temp }}/initrd-registry
         run: |
           # A VMM is not a child of flintlockd. If a test left one behind, it
-          # holds on to the devices of the thinpool until it has exited.
-          vmms='(firecracker|cloud-hypervisor-static) .*/var/lib/flintlock/vm/'
+          # holds on to the devices of the thinpool until it has exited. The
+          # same goes for virtiofsd, which holds on to the directory it shares.
+          vmms='(firecracker|cloud-hypervisor-static|virtiofsd) .*/(var/lib/flintlock/vm|run/flintlock)/'
 
           sudo pkill -f "${vmms}" || true
 

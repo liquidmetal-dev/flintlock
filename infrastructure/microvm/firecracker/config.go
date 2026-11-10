@@ -153,6 +153,10 @@ func pathOnHost(drive models.Drive) string {
 // buildBootSource resolves the kernel (and optional initrd) paths within their image
 // mounts, so a spec can't point the VMM at files outside the images.
 func buildBootSource(vm *models.MicroVM, kernelArgs string) (*BootSourceConfig, error) {
+	if vm.Status.KernelMount == nil {
+		return nil, fmt.Errorf("resolving kernel path: %w", errors.ErrNoMount)
+	}
+
 	kernelPath, err := shared.ResolveImageFile(vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename)
 	if err != nil {
 		return nil, fmt.Errorf("resolving kernel path: %w", err)
@@ -164,6 +168,10 @@ func buildBootSource(vm *models.MicroVM, kernelArgs string) (*BootSourceConfig, 
 	}
 
 	if vm.Spec.Initrd != nil {
+		if vm.Status.InitrdMount == nil {
+			return nil, fmt.Errorf("resolving initrd path: %w", errors.ErrNoMount)
+		}
+
 		initrdPath, err := shared.ResolveImageFile(vm.Status.InitrdMount.Source, vm.Spec.Initrd.Filename)
 		if err != nil {
 			return nil, fmt.Errorf("resolving initrd path: %w", err)

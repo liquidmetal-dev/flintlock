@@ -247,6 +247,10 @@ func convertModelToVolumne(modelVolume *models.Volume) *types.Volume {
 		Mode:        convertModelToVolumeMode(modelVolume.Mode),
 	}
 
+	if modelVolume.MountPoint != "" {
+		convertedVol.MountPoint = &modelVolume.MountPoint
+	}
+
 	volumeSource := &types.VolumeSource{}
 
 	if modelVolume.Source.Container != nil {

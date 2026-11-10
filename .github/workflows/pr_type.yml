@@ -14,7 +14,10 @@ jobs:
     name: Check for PR kind
     runs-on: ubuntu-latest
     steps:
-      - uses: docker://index.docker.io/agilepathway/pull-request-label-checker:latest@sha256:50540ac95f572ef27f2181130edd273f9ed75304f602fb43a8dd7e8ebf65fcca # latest
+      # The organisation only allows the actions on its list, which has
+      # docker://agilepathway/pull-request-label-checker:* and not the form
+      # with index.docker.io that a pinning tool writes.
+      - uses: docker://agilepathway/pull-request-label-checker:latest@sha256:253c71fe97d6ae19fff21608f1e10493ec322e7c95d4fed4695b2b8d11f58fb2 # latest, 2026-09-20
         with:
-          one_of: kind/bug,kind/documentation,kind/feature,kind/regression,kind/refactor,kind/cleanup,kind/chore
+          one_of: kind/bug,kind/documentation,kind/feature,kind/regression,kind/refactor,kind/cleanup,kind/chore,kind/test
           repo_token: ${{ secrets.GITHUB_TOKEN }}

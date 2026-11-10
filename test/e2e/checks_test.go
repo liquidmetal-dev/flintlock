@@ -34,8 +34,12 @@ const (
 // show that the guest has booted: a VMM keeps running when its guest has no
 // kernel that it can boot, or when the kernel cannot find its root volume.
 //
-// The vmmPid is the pid of the VMM from when the microvm was CREATED.
-func waitForBoot(provider u.Provider, stateDir, name, namespace string, vmmPid int) {
+// The vmmPid is the pid of the VMM from when the microvm was CREATED. The
+// timeout is how long the guest gets, bootTimeout for a guest which boots.
+//
+// It fails the test when the guest has not booted, which the tests of a
+// guest that cannot boot rely on.
+func waitForBoot(provider u.Provider, stateDir, name, namespace string, vmmPid int, timeout string) {
 	log.Printf("TEST STEP: waiting for the guest of MicroVM %s/%s to boot", namespace, name)
 
 	start := time.Now()
@@ -53,7 +57,7 @@ func waitForBoot(provider u.Provider, stateDir, name, namespace string, vmmPid i
 		marker = line
 
 		return nil
-	}, bootTimeout, bootPolling).Should(Succeed())
+	}, timeout, bootPolling).Should(Succeed())
 
 	// The console is appended to when flintlockd starts the VMM again, so the
 	// marker could be from a VMM which has stopped since.

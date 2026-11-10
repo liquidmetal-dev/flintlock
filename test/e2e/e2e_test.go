@@ -124,7 +124,7 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 		return nil
 	}, "120s").Should(Succeed())
 
-	waitForBoot(provider, firstMicroVMPath, mvmID, mvmNS, mvmPid1)
+	waitForBoot(provider, firstMicroVMPath, mvmID, mvmNS, mvmPid1, bootTimeout)
 
 	log.Println("TEST STEP: creating a second MicroVM")
 	createdSecond := u.CreateMVM(flintlockClient, provider, secondMvmID, mvmNS)
@@ -160,7 +160,7 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 		return nil
 	}, "120s").Should(Succeed())
 
-	waitForBoot(provider, secondMicroVMPath, secondMvmID, mvmNS, mvmPid2)
+	waitForBoot(provider, secondMicroVMPath, secondMvmID, mvmNS, mvmPid2, bootTimeout)
 
 	log.Println("TEST STEP: creating a MicroVM with a long namespace and name and the guest agent enabled")
 	createdLong := u.CreateGuestAgentMVM(flintlockClient, provider, longMvmID, longMvmNS)
@@ -189,7 +189,7 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 		return nil
 	}, "120s").Should(Succeed())
 
-	waitForBoot(provider, longMicroVMPath, longMvmID, longMvmNS, mvmPid3)
+	waitForBoot(provider, longMicroVMPath, longMvmID, longMvmNS, mvmPid3, bootTimeout)
 
 	// flintlockd removes the state directory when the microvm is deleted.
 	saveArtefacts(t, firstMicroVMPath)

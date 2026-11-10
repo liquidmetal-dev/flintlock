@@ -34,7 +34,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Set up mise
-      uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
     # The pinned mkfs.erofs is attached to the release next to the Go
     # binaries. GoReleaser picks it up through release.extra_files in
     # .goreleaser.yaml. flintlock-provision erofs-utils downloads it from there.

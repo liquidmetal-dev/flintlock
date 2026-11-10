@@ -123,7 +123,7 @@ func runOverlayBoot(t *testing.T, flintlockClient v1alpha1.MicroVMClient, kernel
 
 	// The marker of cloud-init shows that cloud-init has run all of its stages
 	// on the overlay root.
-	waitForBoot(provider, firstMicroVMPath, mvmID, mvmNS, firstPid)
+	waitForBoot(provider, firstMicroVMPath, mvmID, mvmNS, firstPid, bootTimeout)
 	logResizefs(firstMicroVMPath, provider)
 
 	log.Println("TEST STEP: verifying that the root of the guest is the overlay")
@@ -153,7 +153,7 @@ func runOverlayBoot(t *testing.T, flintlockClient v1alpha1.MicroVMClient, kernel
 	secondPid := waitForVMM(flintlockClient, provider, secondMicroVMPath, secondMvmID, mvmNS,
 		*createdSecond.Microvm.Spec.Uid)
 
-	waitForBoot(provider, secondMicroVMPath, secondMvmID, mvmNS, secondPid)
+	waitForBoot(provider, secondMicroVMPath, secondMvmID, mvmNS, secondPid, bootTimeout)
 
 	log.Println("TEST STEP: verifying that the second MicroVM reuses the base and has its own writable disk")
 	verifyOverlayContract(secondMicroVMPath, provider)

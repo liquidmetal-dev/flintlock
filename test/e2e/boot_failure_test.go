@@ -123,6 +123,9 @@ func TestE2ECloudHypervisorKernelWithoutPVH(t *testing.T) {
 
 	log.Printf("TEST INFO: no VMM is running for MicroVM %s/%s and its guest has not booted", mvmNS, mvmID)
 
+	// The VMM has exited, so waitForBoot does not wait for the marker.
+	expectWaitForBootToFail(provider, microVMPath, mvmID, mvmNS, vmmPid, noBootDuration, vmmNotRunningReason)
+
 	// flintlockd removes the state directory when the microvm is deleted.
 	saveArtefacts(t, microVMPath)
 
@@ -283,6 +286,15 @@ func runGuestWithoutInit(t *testing.T, flintlockClient v1alpha1.MicroVMClient, p
 
 	log.Printf("TEST INFO: the guest of MicroVM %s/%s has not booted", mvmNS, mvmID)
 
+	// A VMM which keeps running makes waitForBoot wait for the marker until
+	// its timeout. This is the only guest for which it gets that far.
+	reason := vmmNotRunningReason
+	if provider.ResetsGuest {
+		reason = noMarkerReason
+	}
+
+	expectWaitForBootToFail(provider, microVMPath, mvmID, mvmNS, vmmPid, noBootDuration, reason)
+
 	// flintlockd removes the state directory when the microvm is deleted.
 	saveArtefacts(t, microVMPath)
 
@@ -310,6 +322,33 @@ func runGuestWithoutInit(t *testing.T, flintlockClient v1alpha1.MicroVMClient, p
 
 	log.Printf("TEST INFO: MicroVM %s/%s is deleted, it took %s",
 		mvmNS, mvmID, time.Since(deleteStart).Round(time.Millisecond))
+}
+
+const (
+	// vmmNotRunningReason is in the failure of waitForBoot for a VMM which has
+	// exited. It is the message of the StopTrying in waitForBoot.
+	vmmNotRunningReason = "did not keep running"
+	// noMarkerReason is in the failure of waitForBoot for a VMM which runs
+	// without a guest that has booted. It is from the error of ConsoleMarker.
+	noMarkerReason = "boot marker"
+)
+
+// expectWaitForBootToFail checks that waitForBoot, which the tests of a guest
+// that boots rely on, fails for this guest, and fails for the reason given.
+// Without this, a waitForBoot which passes for every guest would fail no test.
+func expectWaitForBootToFail(provider u.Provider, stateDir, name, namespace string, vmmPid int, timeout, reason string) {
+	log.Printf("TEST STEP: verifying that waitForBoot does not pass within %s", timeout)
+
+	// InterceptGomegaFailure stops waitForBoot at its first failed assertion
+	// and returns the failure, so the log lines of a guest which has booted
+	// are not printed.
+	err := InterceptGomegaFailure(func() {
+		waitForBoot(provider, stateDir, name, namespace, vmmPid, timeout)
+	})
+	Expect(err).To(HaveOccurred(), "waitForBoot passed for a guest which has not booted")
+	Expect(err).To(MatchError(ContainSubstring(reason)), "waitForBoot failed for another reason")
+
+	log.Printf("TEST INFO: waitForBoot did not pass: %s", err)
 }
 
 // selected returns true if the provider is one of the providers which the

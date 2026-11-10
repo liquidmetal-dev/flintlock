@@ -1,0 +1,93 @@
+baseURL = "https://flintlock.liquidmetal.dev/"
+title = "Flintlock"
+enableRobotsTXT = true
+enableGitInfo = true
+refLinksErrorLevel = "ERROR"
+
+[module]
+  [module.hugoVersion]
+    min = "0.146.0"
+  [[module.imports]]
+    path = "github.com/imfing/hextra"
+
+[markup.goldmark.renderer]
+  # protoc-gen-doc output contains raw <a name> anchors.
+  unsafe = true
+
+[markup.highlight]
+  noClasses = false
+
+[[menu.main]]
+  name = "Documentation"
+  pageRef = "/docs"
+  weight = 1
+[[menu.main]]
+  name = "gRPC Proto"
+  url = "https://buf.build/liquidmetal-dev/flintlock"
+  weight = 2
+[[menu.main]]
+  name = "HTTP API"
+  url = "https://github.com/liquidmetal-dev/flintlock/blob/main/api/services/microvm/v1alpha1/microvms.swagger.json"
+  weight = 3
+[[menu.main]]
+  name = "Search"
+  weight = 4
+  [menu.main.params]
+    type = "search"
+[[menu.main]]
+  name = "Slack"
+  url = "https://cloud-native.slack.com/archives/C07B5R5BLBZ"
+  weight = 5
+  [menu.main.params]
+    icon = "slack"
+[[menu.main]]
+  name = "GitHub"
+  url = "https://github.com/liquidmetal-dev/flintlock"
+  weight = 6
+  [menu.main.params]
+    icon = "github"
+
+[[menu.sidebar]]
+  identifier = "more"
+  name = "More"
+  weight = 1
+  [menu.sidebar.params]
+    type = "separator"
+[[menu.sidebar]]
+  name = "Liquid Metal ↗"
+  url = "https://www.liquidmetal.dev"
+  weight = 2
+
+[params]
+  description = "Lock, stock, and two smoking microVMs."
+  externalLinkDecoration = true
+
+  [params.navbar]
+    displayTitle = true
+    displayLogo = true
+    [params.navbar.logo]
+      path = "img/logo.svg"
+
+  [params.theme]
+    default = "system"
+    displayToggle = true
+
+  [params.footer]
+    enable = true
+    displayCopyright = true
+    displayPoweredBy = true
+
+  [params.search]
+    enable = true
+    type = "flexsearch"
+
+  [params.editURL]
+    enable = true
+    base = "https://github.com/liquidmetal-dev/flintlock/edit/main/userdocs/content"
+
+  [params.highlight.copy]
+    enable = true
+    display = "hover"
+
+  [params.page]
+    width = "normal"
