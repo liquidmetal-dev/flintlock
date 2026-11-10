@@ -254,17 +254,28 @@ func (c *client) PowerButton(ctx context.Context) error {
 		Fetch(ctx)
 }
 
+// withBody sets config as the JSON body of rb. A nil config leaves the body
+// empty, so callers that pass nil send the same request as before.
+func withBody[T any](rb *requests.Builder, config *T) *requests.Builder {
+	if config == nil {
+		return rb
+	}
+
+	return rb.BodyJSON(config)
+}
+
 // Resize will change the vpcus/ram/balloon (a.k.a resize).
-func (c *client) Resize(ctx context.Context, _ *VMResize) error {
-	return c.
+func (c *client) Resize(ctx context.Context, config *VMResize) error {
+	rb := c.
 		builder.
 		Clone().
 		Path(PathVMResize).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not be resized because it is not created",
 		})).
-		Put().
-		Fetch(ctx)
+		Put()
+
+	return withBody(rb, config).Fetch(ctx)
 }
 
 // ResizeZone will resize a memory zone.
@@ -312,16 +323,17 @@ func (c *client) RemoveDevice(ctx context.Context, _ *VMRemoveDevice) error {
 }
 
 // AddDisk will add a new disk to the VM.
-func (c *client) AddDisk(ctx context.Context, _ *DiskConfig) (*PciDeviceInfo, error) {
+func (c *client) AddDisk(ctx context.Context, config *DiskConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
-	if err := c.
+	rb := c.
 		builder.
 		Clone().
 		Path(PathVMAddDisk).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new disk could not be added to the VM instance",
 		})).
-		Put().Handle(ToJSONForCode(200, data)).
+		Put()
+	if err := withBody(rb, config).Handle(ToJSONForCode(200, data)).
 		Fetch(ctx); err != nil {
 		return nil, err
 	}
@@ -330,16 +342,17 @@ func (c *client) AddDisk(ctx context.Context, _ *DiskConfig) (*PciDeviceInfo, er
 }
 
 // AddFs will add a new virtio-fs device to the VM.
-func (c *client) AddFs(ctx context.Context, _ *FsConfig) (*PciDeviceInfo, error) {
+func (c *client) AddFs(ctx context.Context, config *FsConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
-	if err := c.
+	rb := c.
 		builder.
 		Clone().
 		Path(PathVMAddFs).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new virtio-fs device could not be added to the VM instance",
 		})).
-		Put().Handle(ToJSONForCode(200, data)).
+		Put()
+	if err := withBody(rb, config).Handle(ToJSONForCode(200, data)).
 		Fetch(ctx); err != nil {
 		return nil, err
 	}
@@ -366,16 +379,17 @@ func (c *client) AddPmemDevice(ctx context.Context, _ *PmemConfig) (*PciDeviceIn
 }
 
 // AddNetworkDevice will add a new network device to the VM.
-func (c *client) AddNetworkDevice(ctx context.Context, _ *NetConfig) (*PciDeviceInfo, error) {
+func (c *client) AddNetworkDevice(ctx context.Context, config *NetConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
-	if err := c.
+	rb := c.
 		builder.
 		Clone().
 		Path(PathAddNetworkDevice).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new network device could not be added to the VM instance",
 		})).
-		Put().Handle(ToJSONForCode(200, data)).
+		Put()
+	if err := withBody(rb, config).Handle(ToJSONForCode(200, data)).
 		Fetch(ctx); err != nil {
 		return nil, err
 	}
@@ -384,16 +398,17 @@ func (c *client) AddNetworkDevice(ctx context.Context, _ *NetConfig) (*PciDevice
 }
 
 // AddVsockDevice will add a new vsock device to the VM.
-func (c *client) AddVsockDevice(ctx context.Context, _ *VsockConfig) (*PciDeviceInfo, error) {
+func (c *client) AddVsockDevice(ctx context.Context, config *VsockConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
-	if err := c.
+	rb := c.
 		builder.
 		Clone().
 		Path(PathAddVsockDevice).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new vSock device could not be added to the VM instance",
 		})).
-		Put().Handle(ToJSONForCode(200, data)).
+		Put()
+	if err := withBody(rb, config).Handle(ToJSONForCode(200, data)).
 		Fetch(ctx); err != nil {
 		return nil, err
 	}
@@ -402,16 +417,17 @@ func (c *client) AddVsockDevice(ctx context.Context, _ *VsockConfig) (*PciDevice
 }
 
 // AddVdpaDevice will add a new vdpa device to the VM.
-func (c *client) AddVdpaDevice(ctx context.Context, _ *VdpaConfig) (*PciDeviceInfo, error) {
+func (c *client) AddVdpaDevice(ctx context.Context, config *VdpaConfig) (*PciDeviceInfo, error) {
 	data := &PciDeviceInfo{}
-	if err := c.
+	rb := c.
 		builder.
 		Clone().
 		Path(PathAddVdpaDevice).
 		AddValidator(CustomErrValidator(map[int]string{
 			500: "The new vDPA device could not be added to the VM instance",
 		})).
-		Put().Handle(ToJSONForCode(200, data)).
+		Put()
+	if err := withBody(rb, config).Handle(ToJSONForCode(200, data)).
 		Fetch(ctx); err != nil {
 		return nil, err
 	}
@@ -420,8 +436,8 @@ func (c *client) AddVdpaDevice(ctx context.Context, _ *VdpaConfig) (*PciDeviceIn
 }
 
 // Snapshot will create a snapshot of the VM.
-func (c *client) Snapshot(ctx context.Context, _ *VMSnapshotConfig) error {
-	return c.
+func (c *client) Snapshot(ctx context.Context, config *VMSnapshotConfig) error {
+	rb := c.
 		builder.
 		Clone().
 		Path(PathSnapshotCreate).
@@ -429,8 +445,9 @@ func (c *client) Snapshot(ctx context.Context, _ *VMSnapshotConfig) error {
 			404: "The VM instance could not be snapshotted because it is not created",
 			405: "The VM instance could not be snapshotted because it is not booted",
 		})).
-		Put().
-		Fetch(ctx)
+		Put()
+
+	return withBody(rb, config).Fetch(ctx)
 }
 
 // CoreDump will take a core dump of the VM.
@@ -448,16 +465,17 @@ func (c *client) CoreDump(ctx context.Context, _ *VMCoreDumpData) error {
 }
 
 // Restore will restore a VM from a snapshot.
-func (c *client) Restore(ctx context.Context, _ *RestoreConfig) error {
-	return c.
+func (c *client) Restore(ctx context.Context, config *RestoreConfig) error {
+	rb := c.
 		builder.
 		Clone().
 		Path(PathSnapshotRestore).
 		AddValidator(CustomErrValidator(map[int]string{
 			404: "The VM instance could not be restored because it is already created",
 		})).
-		Put().
-		Fetch(ctx)
+		Put()
+
+	return withBody(rb, config).Fetch(ctx)
 }
 
 // ReceiveMigration will receive a VM migration from a URL.
