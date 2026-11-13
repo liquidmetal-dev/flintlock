@@ -51,6 +51,9 @@ type MicroVMSpec struct {
 	// CPUConfig allows you to customise the CPU features presented to the guest. Support and
 	// semantics vary by provider.
 	CPUConfig *CPUConfig `json:"cpu_config,omitempty" validate:"omitempty"`
+	// SnapshotSource is the snapshot the microvm is restored from. It is only used when
+	// the microvm is first created.
+	SnapshotSource *SnapshotSource `json:"snapshot_source,omitempty"`
 	// CreatedAt indicates the time the microvm was created at.
 	CreatedAt int64 `json:"created_at" validate:"omitempty,datetimeInPast"`
 	// UpdatedAt indicates the time the microvm was last updated.

@@ -9,6 +9,7 @@ import "google/protobuf/field_mask.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "types/microvm.proto";
+import "types/snapshot.proto";
 
 option go_package = "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1";
 
@@ -28,6 +29,10 @@ service MicroVM {
     option (google.api.http) = {
       post: "/v1alpha1/microvm"
       body: "microvm"
+      additional_bindings {
+        post: "/v1alpha1/microvm/restore"
+        body: "snapshot_source"
+      }
     };
   }
   rpc DeleteMicroVM(DeleteMicroVMRequest) returns (google.protobuf.Empty) {
@@ -54,8 +59,13 @@ service MicroVM {
 }
 
 message CreateMicroVMRequest {
+  // Microvm is the specification of the microvm to create. Exactly one of microvm and
+  // snapshot_source must be set.
   flintlock.types.MicroVMSpec microvm = 1;
   map<string, google.protobuf.Any> metadata = 2;
+  // SnapshotSource restores the microvm from a snapshot. Exactly one of microvm and
+  // snapshot_source must be set.
+  flintlock.types.SnapshotSource snapshot_source = 3;
 }
 
 message CreateMicroVMResponse {

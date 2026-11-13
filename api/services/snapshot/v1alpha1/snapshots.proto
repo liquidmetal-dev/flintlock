@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package snapshot.services.api.v1alpha1;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "types/snapshot.proto";
+
+option go_package = "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+      title: "Flintlock Snapshot API"
+      version: "0.1"
+      description: "The Flintlock Snapshot API handles operations for creating and managing snapshots of microvms"
+    }
+    consumes: "application/json"
+    produces: "application/json"
+};
+
+// SnapshotService provides a service to create and manage snapshots of microvms.
+service SnapshotService {
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse) {
+    option (google.api.http) = {
+      post: "/v1alpha1/snapshot"
+      body: "*"
+    };
+  }
+  rpc GetSnapshot(GetSnapshotRequest) returns (GetSnapshotResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/snapshot/{ref.uid}"
+      additional_bindings {
+        get: "/v1alpha1/snapshot/{ref.named.namespace}/{ref.named.name}"
+      }
+    };
+  }
+  rpc ListSnapshots(ListSnapshotsRequest) returns (ListSnapshotsResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/snapshots/{namespace}"
+    };
+  }
+  rpc ListSnapshotsStream(ListSnapshotsRequest) returns (stream ListSnapshotsMessage);
+  rpc DeleteSnapshot(DeleteSnapshotRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1alpha1/snapshot/{ref.uid}"
+    };
+  }
+}
+
+// After selects what happens to the source microvm once the snapshot is taken.
+enum After {
+  // RESUME resumes the source microvm.
+  RESUME = 0;
+  // STOP stops the source microvm. It is not supported yet.
+  STOP = 1;
+}
+
+message CreateSnapshotRequest {
+  // SourceUID is the UID of the microvm to snapshot.
+  string source_uid = 1;
+  // Name is the optional name of the snapshot. It must be unique in the namespace of the
+  // source microvm.
+  optional string name = 2;
+  // Labels allows you to include extra data for the snapshot.
+  map<string, string> labels = 3;
+  // After selects what happens to the source microvm once the snapshot is taken. The
+  // default is RESUME.
+  After after = 4;
+}
+
+message CreateSnapshotResponse {
+  flintlock.types.Snapshot snapshot = 1;
+}
+
+message GetSnapshotRequest {
+  flintlock.types.SnapshotRef ref = 1;
+}
+
+message GetSnapshotResponse {
+  flintlock.types.Snapshot snapshot = 1;
+}
+
+message ListSnapshotsRequest {
+  // Namespace is the namespace of the snapshots to list.
+  string namespace = 1;
+  // SourceUID optionally limits the list to the snapshots of one microvm.
+  optional string source_uid = 2;
+  // Labels optionally limits the list to the snapshots that have all of these labels.
+  map<string, string> labels = 3;
+}
+
+message ListSnapshotsResponse {
+  repeated flintlock.types.Snapshot snapshots = 1;
+}
+
+message ListSnapshotsMessage {
+  flintlock.types.Snapshot snapshot = 1;
+}
+
+message DeleteSnapshotRequest {
+  flintlock.types.SnapshotRef ref = 1;
+}
