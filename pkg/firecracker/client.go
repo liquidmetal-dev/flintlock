@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/carlmjohnson/requests"
 )
@@ -13,6 +14,8 @@ const (
 
 	PathInstanceInfo = "/"
 	PathVM           = "/vm"
+
+	DefaultDescribeTimeout = 2 * time.Second
 )
 
 // Client represents a client for the Firecracker API.
@@ -26,11 +29,22 @@ type Client interface {
 }
 
 type client struct {
-	builder *requests.Builder
+	builder         *requests.Builder
+	describeTimeout time.Duration
+}
+
+// Option configures a Client.
+type Option func(*client)
+
+// WithDescribeTimeout sets how long Describe waits for Firecracker to answer.
+func WithDescribeTimeout(timeout time.Duration) Option {
+	return func(c *client) {
+		c.describeTimeout = timeout
+	}
 }
 
 // New creates a new Firecracker API client that talks to the API socket at socketPath.
-func New(socketPath string) Client {
+func New(socketPath string, opts ...Option) Client {
 	t := &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 			var d net.Dialer
@@ -40,13 +54,25 @@ func New(socketPath string) Client {
 		DisableKeepAlives: true,
 	}
 
-	return &client{
-		builder: requests.URL(DefaultServerEndpoint).Transport(t).AddValidator(faultValidator),
+	c := &client{
+		builder:         requests.URL(DefaultServerEndpoint).Transport(t).AddValidator(faultValidator),
+		describeTimeout: DefaultDescribeTimeout,
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
 }
 
-// Describe returns general information about the Firecracker instance.
+// Describe returns general information about the Firecracker instance. It gives
+// up after the describe timeout so that a socket which accepts but never answers
+// does not block a state check.
 func (c *client) Describe(ctx context.Context) (*InstanceInfo, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.describeTimeout)
+	defer cancel()
+
 	info := &InstanceInfo{}
 
 	if err := c.builder.Clone().Path(PathInstanceInfo).ToJSON(info).Fetch(ctx); err != nil {
