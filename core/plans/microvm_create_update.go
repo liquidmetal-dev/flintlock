@@ -121,6 +121,10 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		}
 	}
 
+	if err := p.addStep(ctx, microvm.NewVMMRunningStep(p.vm, provider, vmmWait)); err != nil {
+		return nil, fmt.Errorf("adding vmm running step: %w", err)
+	}
+
 	agentWait := microvm.WaitConfig{
 		Timeout:  p.guestAgentReadyTimeout,
 		Interval: defaults.ReadyPollInterval,

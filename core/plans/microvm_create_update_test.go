@@ -37,7 +37,7 @@ func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
 		DoAndReturn(func(_ context.Context, _ string) (ports.MicroVMState, error) {
 			return ports.MicroVMStatePending, nil
 		}).
-		Times(4)
+		Times(5)
 
 	mList.MicroVMService.
 		EXPECT().
@@ -167,6 +167,11 @@ func TestMicroVMCreateOrUpdatePlan_PausedMicroVMHasNoSteps(t *testing.T) {
 	}
 	testVM.Status.KernelMount = &models.Mount{Type: models.MountTypeHostPath, Source: "/kernel"}
 	testVM.Status.NetworkInterfaces["eth1"] = &models.NetworkInterfaceStatus{HostDeviceName: "fltap5675123"}
+	testVM.Status.Conditions.Set(models.Condition{
+		Type:   models.ConditionVMMRunning,
+		Status: models.ConditionTrue,
+		Reason: models.ReasonRunning,
+	}, testNowPlans)
 
 	mList, mockedPorts := fakePorts(mockCtrl)
 	Expect(mockedPorts.FileSystem.MkdirAll("/tmp/path/to/vm", defaults.DataDirPerm)).To(Succeed())
