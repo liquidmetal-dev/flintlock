@@ -2129,6 +2129,21 @@ func TestCloneFileErrors(t *testing.T) {
 	g.Expect(u.CloneFile(filepath.Join(dir, "source"), filepath.Join(dir, "no", "such", "dir"))).NotTo(Succeed())
 }
 
+func TestNewGuestAgentMicroVMSpecUsesTheGuestAgentImage(t *testing.T) {
+	for _, provider := range u.KnownProviders() {
+		t.Run(provider.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			spec, err := u.NewGuestAgentMicroVMSpec(provider, "mvm0", "ns0")
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(spec.AllowGuestAgent).To(BeTrue())
+			g.Expect(spec.RootVolume.Source.ContainerSource).To(HaveValue(Equal(u.GuestAgentRootImage)))
+			g.Expect(u.GuestAgentRootImage).To(Equal("ghcr.io/liquidmetal-dev/ubuntu:24.04"))
+		})
+	}
+}
+
 func runCommandsOfSpec(g Gomega, spec *types.MicroVMSpec) []string {
 	userData, err := base64.StdEncoding.DecodeString(spec.Metadata["user-data"])
 	g.Expect(err).NotTo(HaveOccurred())
@@ -2217,6 +2232,21 @@ func TestVendorDataTries(t *testing.T) {
 			g.Expect(ok).To(Equal(tc.ok))
 		})
 	}
+}
+
+func TestCondition(t *testing.T) {
+	g := NewWithT(t)
+
+	status := &types.MicroVMStatus{
+		Conditions: []*types.MicroVMCondition{
+			{Type: "VMMRunning", Status: types.MicroVMCondition_TRUE},
+			{Type: "GuestAgentReady", Status: types.MicroVMCondition_FALSE},
+		},
+	}
+
+	g.Expect(u.Condition(status, "GuestAgentReady")).To(HaveField("Status", types.MicroVMCondition_FALSE))
+	g.Expect(u.Condition(status, "Other")).To(BeNil())
+	g.Expect(u.Condition(nil, "VMMRunning")).To(BeNil())
 }
 
 func TestVendorDataTriesCommandRuns(t *testing.T) {
