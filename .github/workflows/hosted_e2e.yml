@@ -152,7 +152,7 @@ jobs:
       # which is where the action installs it. No release carries the binary
       # yet, so the action builds it or restores it from the cache.
       - name: Install the pinned mkfs.erofs
-        uses: ./.github/actions/erofs-utils
+        uses: ./.github/actions/erofs-utils # zizmor: ignore[self-repository] actionlint does not accept $/ yet
 
       - name: Build flintlock-provision and the overlay initrd
         run: |
