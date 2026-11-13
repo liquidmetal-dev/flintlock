@@ -7,6 +7,8 @@ updates:
       - "/client"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "kind/cleanup"
       - "area/dependency"
@@ -19,6 +21,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     labels:
       - "kind/cleanup"
@@ -32,6 +36,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "kind/cleanup"
       - "area/build-and-release"
@@ -44,6 +50,8 @@ updates:
     directory: "/userdocs"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "kind/cleanup"
       - "kind/documentation"
