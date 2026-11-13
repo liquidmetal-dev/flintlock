@@ -108,6 +108,11 @@ does this with `zot` on port 5000.
   it as paused and that its console does not grow, then resumes it, checks that
   the provider reports it as running, and waits for the guest to finish its
   boot. It is skipped when `firecracker` is not one of the providers.
+- `TestE2ECloudHypervisorPauseResume`: does the same steps as
+  `TestE2EFirecrackerPauseResume` with the cloudhypervisor provider. It checks
+  that Cloud Hypervisor listens on `cloudhypervisor.sock` in the socket
+  directory of the MicroVM. It is skipped when `cloudhypervisor` is not one of
+  the providers.
 - `TestE2EGuestWithoutInit`: creates a MicroVM whose root volume has no init,
   with each of the providers. The kernel of the guest boots, mounts the root
   volume, panics and reboots, which the test reads from the console. The
