@@ -41,8 +41,9 @@ editURL: https://github.com/liquidmetal-dev/flintlock/edit/main/api/services/mic
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| microvm | [flintlock.types.MicroVMSpec](#flintlock-types-MicroVMSpec) |  |  |
+| microvm | [flintlock.types.MicroVMSpec](#flintlock-types-MicroVMSpec) |  | Microvm is the specification of the microvm to create. Exactly one of microvm and snapshot_source must be set. |
 | metadata | [CreateMicroVMRequest.MetadataEntry](#microvm-services-api-v1alpha1-CreateMicroVMRequest-MetadataEntry) | repeated |  |
+| snapshot_source | [flintlock.types.SnapshotSource](#flintlock-types-SnapshotSource) |  | SnapshotSource restores the microvm from a snapshot. Exactly one of microvm and snapshot_source must be set. |
 
 
 

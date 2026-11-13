@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package flintlock.types;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/liquidmetal-dev/flintlock/api/types;types";
+
+// Snapshot represents a snapshot of a microvm.
+message Snapshot {
+  // UID is the server generated unique identifier of the snapshot.
+  string uid = 1;
+  // Name is the optional name of the snapshot. It is unique in its namespace.
+  string name = 2;
+  // Namespace is the namespace of the snapshot. It is the namespace of the source microvm.
+  string namespace = 3;
+  // Source is the microvm the snapshot was taken from.
+  SourceMicroVM source = 4;
+  // Labels allows you to include extra data for the snapshot.
+  map<string, string> labels = 5;
+  // Status is the status of the snapshot.
+  SnapshotStatus status = 6;
+  // CreatedAt indicates the time the snapshot was created at.
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// SourceMicroVM identifies the microvm a snapshot was taken from.
+message SourceMicroVM {
+  // UID is the unique identifier of the microvm.
+  string uid = 1;
+  // Name is the name of the microvm.
+  string name = 2;
+  // Namespace is the namespace of the microvm.
+  string namespace = 3;
+}
+
+// SnapshotStatus contains the status of a snapshot.
+message SnapshotStatus {
+  enum Phase {
+    // PENDING is a snapshot that has been accepted but not yet started.
+    PENDING = 0;
+    // QUIESCING is a snapshot whose source microvm is being quiesced.
+    QUIESCING = 1;
+    // CAPTURING is a snapshot whose memory, device and volume state is being captured.
+    CAPTURING = 2;
+    // PACKAGING is a snapshot whose captured state is being packaged.
+    PACKAGING = 3;
+    // PUSHING is a snapshot whose package is being pushed to a registry.
+    PUSHING = 4;
+    // READY is a snapshot that is complete and can be restored.
+    READY = 5;
+    // FAILED is a snapshot that has failed. Error contains the reason.
+    FAILED = 6;
+  }
+
+  // Phase is the phase of the snapshot.
+  Phase phase = 1;
+  // Error is the error message when the phase is FAILED.
+  string error = 2;
+  // LocalPath is the directory of the snapshot on the host when the phase is READY.
+  string local_path = 3;
+}
+
+// SnapshotRef references a snapshot by its UID, or by its name and namespace.
+message SnapshotRef {
+  oneof ref {
+    // UID is the unique identifier of the snapshot.
+    string uid = 1;
+    // Named references the snapshot by its name and namespace.
+    NamedRef named = 2;
+  }
+}
+
+// NamedRef references a resource by its name and namespace.
+message NamedRef {
+  // Name is the name of the resource.
+  string name = 1;
+  // Namespace is the namespace of the resource.
+  string namespace = 2;
+}
+
+// SnapshotSource is the source of a microvm that is restored from a snapshot.
+message SnapshotSource {
+  // Snapshot is the snapshot to restore from.
+  SnapshotRef snapshot = 1;
+  // Name is the name of the restored microvm. It is required.
+  string name = 2;
+  // Namespace is the namespace of the restored microvm. It defaults to the namespace of
+  // the source microvm.
+  optional string namespace = 3;
+  // UID is the unique identifier of the restored microvm. If it is not set, one is generated.
+  optional string uid = 4;
+  // Labels are the labels of the restored microvm. If empty, the labels of the source
+  // microvm are used.
+  map<string, string> labels = 5;
+  // Metadata is the metadata of the restored microvm. If empty, the metadata of the source
+  // microvm is used.
+  map<string, string> metadata = 6;
+  // NetworkOverrides replace the host devices of the restored microvm's network interfaces.
+  repeated HostNetworkOverride network_overrides = 7;
+  // MemoryMode selects how the guest memory is restored.
+  MemoryMode memory_mode = 8;
+  // Force skips the compatibility checks that can be skipped. The checks for the VMM type,
+  // CPU architecture and guest-visible CPU configuration are never skipped.
+  bool force = 9;
+}
+
+// HostNetworkOverride replaces the host device of a restored microvm's network interface.
+message HostNetworkOverride {
+  // GuestDeviceName is the name of the network interface in the guest.
+  string guest_device_name = 1;
+  // HostDeviceName is the name of the host device to use for the network interface.
+  string host_device_name = 2;
+}
+
+// MemoryMode selects how the guest memory of a microvm is restored from a snapshot.
+enum MemoryMode {
+  // MEMORY_MODE_UNSPECIFIED uses the default of the provider: FILE for Firecracker and
+  // COPY for Cloud Hypervisor.
+  MEMORY_MODE_UNSPECIFIED = 0;
+  // FILE maps the snapshot memory file into the guest.
+  FILE = 1;
+  // COPY copies the snapshot memory file into the guest memory.
+  COPY = 2;
+}
