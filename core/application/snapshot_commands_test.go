@@ -71,7 +71,12 @@ func snapshotSourceVM() *models.MicroVM {
 			},
 			AllowGuestAgent: true,
 		},
-		Status: models.MicroVMStatus{State: models.CreatedState},
+		Status: models.MicroVMStatus{
+			State: models.CreatedState,
+			Conditions: models.Conditions{
+				{Type: models.ConditionGuestAgentReady, Status: models.ConditionTrue},
+			},
+		},
 	}
 }
 
@@ -191,6 +196,24 @@ func TestApp_CreateSnapshot_Rejections(t *testing.T) {
 			req:          models.CreateSnapshotRequest{SourceUID: testUID},
 			vm:           func(vm *models.MicroVM) { vm.Spec.AllowGuestAgent = false },
 			expectErr:    "does not have allow_guest_agent set",
+			precondition: true,
+		},
+		{
+			name:         "guest agent not yet probed",
+			req:          models.CreateSnapshotRequest{SourceUID: testUID},
+			vm:           func(vm *models.MicroVM) { vm.Status.Conditions = nil },
+			expectErr:    "guest agent of microvm",
+			precondition: true,
+		},
+		{
+			name: "guest agent not answering",
+			req:  models.CreateSnapshotRequest{SourceUID: testUID},
+			vm: func(vm *models.MicroVM) {
+				vm.Status.Conditions = models.Conditions{
+					{Type: models.ConditionGuestAgentReady, Status: models.ConditionFalse, Reason: models.ReasonPingTimeout},
+				}
+			},
+			expectErr:    "guest agent of microvm",
 			precondition: true,
 		},
 		{

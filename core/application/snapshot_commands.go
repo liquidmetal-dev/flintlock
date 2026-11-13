@@ -197,7 +197,9 @@ func checkSnapshotVolumes(mvm *models.MicroVM) error {
 }
 
 func guestAgentReady(mvm *models.MicroVM) bool {
-	return mvm.Spec.AllowGuestAgent
+	cond, ok := mvm.Status.Conditions.Get(models.ConditionGuestAgentReady)
+
+	return ok && cond.Status == models.ConditionTrue
 }
 
 // checkNoSnapshotInProgress rejects a second snapshot of a microvm while one is being taken.
