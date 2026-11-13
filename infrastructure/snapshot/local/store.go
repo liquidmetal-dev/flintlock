@@ -354,45 +354,74 @@ func (s *Store) scan(ctx context.Context) (err error) {
 
 		dir := s.Dir(entry.Name())
 
-		remove, err := leftOver(dir)
+		action, err := recoveryFor(dir)
 		if err != nil {
 			return err
 		}
 
-		if !remove {
-			continue
-		}
+		switch action {
+		case recoveryNone:
+		case recoveryRemove:
+			if err := removePath(dir); err != nil {
+				return err
+			}
 
-		if err := removePath(dir); err != nil {
-			return err
+			logger.Infof("removed left over snapshot directory %s", dir)
+		case recoveryPrune:
+			if err := s.prune(ctx, dir); err != nil {
+				return err
+			}
 		}
-
-		logger.Infof("removed left over snapshot directory %s", dir)
 	}
 
 	return nil
 }
 
-func leftOver(dir string) (bool, error) {
+// prune finishes a Delete that stopped after it marked a referenced snapshot
+// deleted, which a retry of Delete cannot do as it no longer finds the snapshot.
+func (s *Store) prune(ctx context.Context, dir string) (err error) {
+	release, err := lockFile(ctx, filepath.Join(dir, lockName))
+	if err != nil {
+		return err
+	}
+
+	defer unlock(release, &err)
+
+	return removeUnretained(dir)
+}
+
+type recovery int
+
+const (
+	recoveryNone recovery = iota
+	recoveryRemove
+	recoveryPrune
+)
+
+func recoveryFor(dir string) (recovery, error) {
 	rec, err := readRecord(dir)
 	if errors.Is(err, os.ErrNotExist) {
-		return true, nil
+		return recoveryRemove, nil
 	}
 
 	if err != nil {
-		return false, err
+		return recoveryNone, err
 	}
 
 	if !rec.Deleted {
-		return false, nil
+		return recoveryNone, nil
 	}
 
 	count, err := countRefs(dir)
 	if err != nil {
-		return false, err
+		return recoveryNone, err
 	}
 
-	return count == 0, nil
+	if count == 0 {
+		return recoveryRemove, nil
+	}
+
+	return recoveryPrune, nil
 }
 
 // lock takes the lock of a snapshot that is not deleted and reads its record.
