@@ -346,3 +346,44 @@ func TestStartStep_Do_ResetsConditionsWhenStartFails(t *testing.T) {
 	vmm, _ := vm.Status.Conditions.Get(models.ConditionVMMRunning)
 	g.Expect(vmm.Status).To(g.Equal(models.ConditionUnknown))
 }
+
+func TestStartStep_Verify_PollsUntilRunning(t *testing.T) {
+	g.RegisterTestingT(t)
+	svc := mock.NewMockMicroVMService(gomock.NewController(t))
+	vm := testVMToStart()
+	ctx := context.Background()
+
+	gomock.InOrder(
+		svc.EXPECT().State(ctx, vm.ID.String()).Return(ports.MicroVMStateConfigured, nil),
+		svc.EXPECT().State(ctx, vm.ID.String()).Return(ports.MicroVMStateConfigured, nil),
+		svc.EXPECT().State(ctx, vm.ID.String()).Return(ports.MicroVMStateRunning, nil),
+	)
+
+	g.Expect(microvm.NewStartStep(vm, svc, testWait).Verify(ctx)).To(g.Succeed())
+
+	cond, ok := vm.Status.Conditions.Get(models.ConditionVMMRunning)
+	g.Expect(ok).To(g.BeTrue())
+	g.Expect(cond.Status).To(g.Equal(models.ConditionTrue))
+}
+
+func TestStartStep_Verify_ContextCancelled(t *testing.T) {
+	g.RegisterTestingT(t)
+	svc := mock.NewMockMicroVMService(gomock.NewController(t))
+	vm := testVMToStart()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	svc.EXPECT().State(ctx, vm.ID.String()).Return(ports.MicroVMStateConfigured, nil).AnyTimes()
+
+	step := microvm.NewStartStep(vm, svc, microvm.WaitConfig{
+		Timeout:  time.Hour,
+		Interval: 10 * time.Millisecond,
+		Clock:    testClock,
+	})
+
+	start := time.Now()
+	err := step.Verify(ctx)
+
+	g.Expect(err).To(g.MatchError(context.Canceled))
+	g.Expect(time.Since(start)).To(g.BeNumerically("<", time.Second))
+}
