@@ -1,0 +1,116 @@
+package microvm
+
+import (
+	"context"
+	goerrors "errors"
+	"fmt"
+	"time"
+
+	"github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+)
+
+// WaitConfig configures how a step waits for a microvm.
+type WaitConfig struct {
+	// Timeout is how long the step waits in total.
+	Timeout time.Duration
+	// Interval is the time between two checks.
+	Interval time.Duration
+	// Settle is how long the VMM must stay running before the wait ends.
+	Settle time.Duration
+	// Clock gives the time for the conditions.
+	Clock func() time.Time
+}
+
+func (c WaitConfig) now() time.Time {
+	if c.Clock == nil {
+		return time.Now()
+	}
+
+	return c.Clock()
+}
+
+// waitForRunning polls the provider state until the VMM has been running
+// without a break for cfg.Settle.
+func waitForRunning(
+	ctx context.Context,
+	vmSvc ports.MicroVMService,
+	vmid string,
+	cfg WaitConfig,
+) (ports.MicroVMState, error) {
+	deadline := time.Now().Add(cfg.Timeout)
+
+	var runningSince time.Time
+
+	for {
+		state, err := vmSvc.State(ctx, vmid)
+		if err != nil {
+			return state, fmt.Errorf("checking if microvm is running: %w", err)
+		}
+
+		if state == ports.MicroVMStateRunning {
+			if runningSince.IsZero() {
+				runningSince = time.Now()
+			}
+
+			if time.Since(runningSince) >= cfg.Settle {
+				return state, nil
+			}
+		} else {
+			runningSince = time.Time{}
+		}
+
+		if !time.Now().Before(deadline) {
+			return state, errors.ErrUnableToBoot
+		}
+
+		select {
+		case <-ctx.Done():
+			return state, ctx.Err() //nolint:wrapcheck // The caller checks for context errors.
+		case <-time.After(cfg.Interval):
+		}
+	}
+}
+
+// verifyRunning waits for the VMM of vm and records the result in the
+// VMMRunning condition.
+func verifyRunning(ctx context.Context, vm *models.MicroVM, vmSvc ports.MicroVMService, cfg WaitConfig) error {
+	state, err := waitForRunning(ctx, vmSvc, vm.ID.String(), cfg)
+
+	switch {
+	case err == nil:
+		vm.Status.Conditions.Set(models.Condition{
+			Type:   models.ConditionVMMRunning,
+			Status: models.ConditionTrue,
+			Reason: models.ReasonRunning,
+		}, cfg.now())
+
+		return nil
+	case goerrors.Is(err, errors.ErrUnableToBoot):
+		vm.Status.Conditions.Set(models.Condition{
+			Type:    models.ConditionVMMRunning,
+			Status:  models.ConditionFalse,
+			Reason:  models.ReasonStartTimeout,
+			Message: fmt.Sprintf("vmm not running after %s, last state %s", cfg.Timeout, state),
+		}, cfg.now())
+
+		return err
+	default:
+		return err
+	}
+}
+
+// resetGuestAgentReady marks the guest-agent of a VMM that starts again as
+// not known, so that the guest-agent ready step pings it again.
+func resetGuestAgentReady(vm *models.MicroVM, cfg WaitConfig) {
+	if !vm.Spec.AllowGuestAgent {
+		return
+	}
+
+	vm.Status.Conditions.Set(models.Condition{
+		Type:   models.ConditionGuestAgentReady,
+		Status: models.ConditionUnknown,
+		Reason: models.ReasonVMMStarting,
+	}, cfg.now())
+}

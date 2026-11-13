@@ -3,7 +3,6 @@ package microvm
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -14,22 +13,18 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
-func NewStartStep(
-	vm *models.MicroVM,
-	vmSvc ports.MicroVMService,
-	bootWaitTimeSeconds int,
-) planner.Procedure {
+func NewStartStep(vm *models.MicroVM, vmSvc ports.MicroVMService, wait WaitConfig) planner.Procedure {
 	return &startStep{
-		vm:                  vm,
-		vmSvc:               vmSvc,
-		bootWaitTimeSeconds: bootWaitTimeSeconds,
+		vm:    vm,
+		vmSvc: vmSvc,
+		wait:  wait,
 	}
 }
 
 type startStep struct {
-	vm                  *models.MicroVM
-	vmSvc               ports.MicroVMService
-	bootWaitTimeSeconds int
+	vm    *models.MicroVM
+	vmSvc ports.MicroVMService
+	wait  WaitConfig
 }
 
 // Name is the name of the procedure/operation.
@@ -68,28 +63,23 @@ func (s *startStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 		return nil, fmt.Errorf("starting microvm: %w", err)
 	}
 
+	resetGuestAgentReady(s.vm, s.wait)
+
 	return nil, nil
 }
 
 func (s *startStep) Verify(ctx context.Context) error {
+	if s.vm == nil {
+		return errors.ErrSpecRequired
+	}
+
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
 		"step": s.Name(),
 		"vmid": s.vm.ID,
 	})
 	logger.Debug("waiting for the microvm to start")
-	time.Sleep(time.Duration(s.bootWaitTimeSeconds) * time.Second)
-	logger.Debug("verify microvm is started")
 
-	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
-	if err != nil {
-		return fmt.Errorf("checking if microvm is running: %w", err)
-	}
-
-	if !isStarted(state) {
-		return errors.ErrUnableToBoot
-	}
-
-	return nil
+	return verifyRunning(ctx, s.vm, s.vmSvc, s.wait)
 }
 
 // isStarted reports whether a microvm has booted. A paused microvm has booted,
