@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/opencontainers/go-digest"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/reflink"
 )
 
 var (
@@ -94,7 +96,7 @@ var (
 	// cannot clone files with FICLONE. It is a configuration error: there is
 	// no fallback to a full copy, because that would hide a misprovisioned
 	// host.
-	ErrReflinkNotSupported = errors.New("filesystem does not support reflinks")
+	ErrReflinkNotSupported = reflink.ErrNotSupported
 	// ErrDiskTooSmall reports a writable disk size under the minimum.
 	ErrDiskTooSmall = errors.New("writable disk size is under the minimum")
 )
