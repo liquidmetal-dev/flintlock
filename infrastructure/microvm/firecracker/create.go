@@ -3,6 +3,7 @@ package firecracker
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +18,11 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
 )
+
+// socketDirPerm is the mode of the socket directory of a microvm.
+const socketDirPerm = 0o700
+
+var errSymlinkNotSupported = errors.New("file system does not support symlinks")
 
 // Create will create a new microvm.
 func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
@@ -127,6 +133,10 @@ func (p *fcProvider) ensureState(vmState State) error {
 		}
 	}
 
+	if err := p.ensureSocketLink(vmState); err != nil {
+		return err
+	}
+
 	// Remove any stale guest-agent vsock socket so the VMM can bind on (re)create. The VMM isn't
 	// running, so a socket left in the state dir by an older flintlock can go too.
 	if err := shared.RemoveStaleSockets(p.fs, vmState.VSockPath(), vmState.legacyVSockPath()); err != nil {
@@ -150,6 +160,44 @@ func (p *fcProvider) ensureState(vmState State) error {
 	}
 
 	metricsFile.Close()
+
+	return nil
+}
+
+// ensureSocketLink creates the socket directory of the microvm and a link to it
+// in the state directory. The vsock path in the Firecracker configuration goes
+// through this link. A link with another target is replaced.
+func (p *fcProvider) ensureSocketLink(vmState State) error {
+	socketRoot := vmState.SocketRoot()
+	link := vmState.SocketLinkPath()
+
+	if err := p.fs.MkdirAll(socketRoot, socketDirPerm); err != nil {
+		return fmt.Errorf("creating socket directory %s: %w", socketRoot, err)
+	}
+
+	// The create plan may have made the directory with a wider mode.
+	if err := p.fs.Chmod(socketRoot, socketDirPerm); err != nil {
+		return fmt.Errorf("setting mode of socket directory %s: %w", socketRoot, err)
+	}
+
+	linker, ok := p.fs.(afero.Linker)
+	if !ok {
+		return fmt.Errorf("creating socket link %s: %w", link, errSymlinkNotSupported)
+	}
+
+	if reader, ok := p.fs.(afero.LinkReader); ok {
+		if target, err := reader.ReadlinkIfPossible(link); err == nil && target == socketRoot {
+			return nil
+		}
+	}
+
+	if err := p.fs.Remove(link); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("removing stale socket link %s: %w", link, err)
+	}
+
+	if err := linker.SymlinkIfPossible(socketRoot, link); err != nil {
+		return fmt.Errorf("creating socket link %s: %w", link, err)
+	}
 
 	return nil
 }

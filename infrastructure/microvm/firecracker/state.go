@@ -29,6 +29,8 @@ type State interface {
 	StdoutPath() string
 	StderrPath() string
 	VSockPath() string
+	RelativeVSockPath() string
+	SocketLinkPath() string
 	legacyVSockPath() string
 	APISockPath() string
 
@@ -89,6 +91,25 @@ func (s *fsState) StderrPath() string {
 
 func (s *fsState) VSockPath() string {
 	return s.socketRoot + "/" + defaults.GuestAgentVsockName
+}
+
+// socketLinkName is the name of the link in the state directory that points to
+// the socket directory of the microvm.
+const socketLinkName = "sock"
+
+// SocketLinkPath returns the path of the link in the state directory that
+// points to the socket directory of the microvm.
+func (s *fsState) SocketLinkPath() string {
+	return s.stateRoot + "/" + socketLinkName
+}
+
+// RelativeVSockPath returns the vsock socket path for the Firecracker
+// configuration. It is relative to the working directory of the process (the
+// state directory) and goes through the link at SocketLinkPath, so the socket
+// file is still at VSockPath. Firecracker keeps this path in a snapshot, so a
+// microvm restored in another state directory binds its own socket.
+func (s *fsState) RelativeVSockPath() string {
+	return socketLinkName + "/" + defaults.GuestAgentVsockName
 }
 
 // legacyVSockPath is where the vsock socket lived before sockets moved out of the state dir.
