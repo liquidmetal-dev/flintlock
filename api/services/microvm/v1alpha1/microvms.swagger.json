@@ -37,11 +37,341 @@
         "parameters": [
           {
             "name": "microvm",
+            "description": "Microvm is the specification of the microvm to create. Exactly one of microvm and\nsnapshot_source must be set.",
             "in": "body",
             "required": true,
             "schema": {
               "$ref": "#/definitions/typesMicroVMSpec"
             }
+          },
+          {
+            "name": "metadata",
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "snapshotSource.snapshot.uid",
+            "description": "UID is the unique identifier of the snapshot.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.snapshot.named.name",
+            "description": "Name is the name of the resource.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.snapshot.named.namespace",
+            "description": "Namespace is the namespace of the resource.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.name",
+            "description": "Name is the name of the restored microvm. It is required.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.namespace",
+            "description": "Namespace is the namespace of the restored microvm. It defaults to the namespace of\nthe source microvm.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.uid",
+            "description": "UID is the unique identifier of the restored microvm. If it is not set, one is generated.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.labels",
+            "description": "Labels are the labels of the restored microvm. If empty, the labels of the source\nmicrovm are used.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.metadata",
+            "description": "Metadata is the metadata of the restored microvm. If empty, the metadata of the source\nmicrovm is used.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "snapshotSource.memoryMode",
+            "description": "MemoryMode selects how the guest memory is restored.\n\n - MEMORY_MODE_UNSPECIFIED: MEMORY_MODE_UNSPECIFIED uses the default of the provider: FILE for Firecracker and\nCOPY for Cloud Hypervisor.\n - FILE: FILE maps the snapshot memory file into the guest.\n - COPY: COPY copies the snapshot memory file into the guest memory.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "MEMORY_MODE_UNSPECIFIED",
+              "FILE",
+              "COPY"
+            ],
+            "default": "MEMORY_MODE_UNSPECIFIED"
+          },
+          {
+            "name": "snapshotSource.force",
+            "description": "Force skips the compatibility checks that can be skipped. The checks for the VMM type,\nCPU architecture and guest-visible CPU configuration are never skipped.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
+    },
+    "/v1alpha1/microvm/restore": {
+      "post": {
+        "operationId": "MicroVM_CreateMicroVM2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1CreateMicroVMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "snapshotSource",
+            "description": "SnapshotSource restores the microvm from a snapshot. Exactly one of microvm and\nsnapshot_source must be set.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/typesSnapshotSource"
+            }
+          },
+          {
+            "name": "microvm.id",
+            "description": "ID is the identifier of the microvm.\nIf this empty at creation time a ID will be automatically generated.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.namespace",
+            "description": "Namespace is the name of the namespace the microvm belongs to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.labels",
+            "description": "Labels allows you to include extra data for the microvms.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.vcpu",
+            "description": "VCPU specifies how many vcpu the machine will be allocated.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "microvm.memoryInMb",
+            "description": "MemoryInMb is the amount of memory in megabytes that the machine will be allocated.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "microvm.kernel.image",
+            "description": "Image is the container image to use.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.kernel.cmdline",
+            "description": "Cmdline is the additional kernel command line args. Each provider has its\nown recommended list, they will be used automatically. This field is for\nadditional values.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.kernel.filename",
+            "description": "Filename is used to specify the name of the kernel file\nin the Image.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.kernel.addNetworkConfig",
+            "description": "AddNetworkConfig if set to true indicates that the network-config kernel argument should be generated.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "microvm.initrd.image",
+            "description": "Image is the container image to use.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.initrd.filename",
+            "description": "Filename is used to specify the name of the kernel file\nin the Image. Defaults to initrd",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.rootVolume.id",
+            "description": "ID is the uinique identifier of the volume.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.rootVolume.isReadOnly",
+            "description": "IsReadOnly specifies that the volume is to be mounted readonly. It is not supported\nfor a virtiofs volume, and a spec that sets it for one is rejected.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "microvm.rootVolume.mountPoint",
+            "description": "MountPoint allows you to optionally specify a mount point for the volume. This only\napplies to additional volumes and it will use cloud-init to mount the volumes. A\nvirtiofs volume is mounted by its tag with the virtiofs filesystem type, which the\nguest kernel has to support.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.rootVolume.source.containerSource",
+            "description": "Container is used to specify a source of a volume as a OCI container.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.rootVolume.source.virtiofsSource",
+            "description": "Used for the virtiofs source path",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.rootVolume.partitionId",
+            "description": "PartitionID is the uuid of the boot partition.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.rootVolume.sizeInMb",
+            "description": "Size is the size to resize this volume to. In overlay mode it is the size of the\nwritable disk, and the minimum is 64 MB.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "microvm.rootVolume.mode",
+            "description": "Mode selects how the volume is provisioned. The default is FULL. Only the root\nvolume can use OVERLAY, and a read-only root cannot use it.\n\nTODO: add rate limiting\n\n - FULL: FULL provisions the volume as a full copy of the image in a containerd snapshot.\n - OVERLAY: OVERLAY provisions the volume as a shared read-only base built from the image, plus\na writable disk for the microvm. The guest's init joins them with overlayfs.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "FULL",
+              "OVERLAY"
+            ],
+            "default": "FULL"
+          },
+          {
+            "name": "microvm.metadata",
+            "description": "Metadata allows you to specify data to be added to the metadata service. The key is the name\nof the metadata item and the value is the base64 encoded contents of the metadata.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.createdAt",
+            "description": "CreatedAt indicates the time the microvm was created at.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "microvm.updatedAt",
+            "description": "UpdatedAt indicates the time the microvm was last updated.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "microvm.deletedAt",
+            "description": "DeletedAt indicates the time the microvm was marked as deleted.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "microvm.uid",
+            "description": "UID is a globally unique identifier of the microvm.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.provider",
+            "description": "Provider allows you to specify the name of the microvm provider to use. If this isn't supplied\nthen the default provider will be used.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "microvm.allowGuestAgent",
+            "description": "AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest\nguest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "microvm.cpuConfig.featuresToEnable",
+            "description": "FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,\nbut the accepted values are provider specific (e.g. named features such as \"amx\" for\nCloud Hypervisor, or numeric KVM capability IDs for Firecracker). The \"!\" prefix is\nreserved for KVMCapabilitiesToDisable and is not allowed here.",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "microvm.cpuConfig.kvmCapabilitiesToDisable",
+            "description": "KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by\nproviders that declare the KVMCapabilitiesDisable capability (currently Firecracker only).",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
           },
           {
             "name": "metadata",
@@ -252,6 +582,20 @@
       },
       "description": "CPUConfig represents CPU feature configuration for a microvm."
     },
+    "typesHostNetworkOverride": {
+      "type": "object",
+      "properties": {
+        "guestDeviceName": {
+          "type": "string",
+          "description": "GuestDeviceName is the name of the network interface in the guest."
+        },
+        "hostDeviceName": {
+          "type": "string",
+          "description": "HostDeviceName is the name of the host device to use for the network interface."
+        }
+      },
+      "description": "HostNetworkOverride replaces the host device of a restored microvm's network interface."
+    },
     "typesInitrd": {
       "type": "object",
       "properties": {
@@ -290,6 +634,16 @@
         }
       },
       "description": "Kernel represents the configuration for a kernel."
+    },
+    "typesMemoryMode": {
+      "type": "string",
+      "enum": [
+        "MEMORY_MODE_UNSPECIFIED",
+        "FILE",
+        "COPY"
+      ],
+      "default": "MEMORY_MODE_UNSPECIFIED",
+      "description": "MemoryMode selects how the guest memory of a microvm is restored from a snapshot.\n\n - MEMORY_MODE_UNSPECIFIED: MEMORY_MODE_UNSPECIFIED uses the default of the provider: FILE for Firecracker and\nCOPY for Cloud Hypervisor.\n - FILE: FILE maps the snapshot memory file into the guest.\n - COPY: COPY copies the snapshot memory file into the guest memory."
     },
     "typesMicroVM": {
       "type": "object",
@@ -461,6 +815,20 @@
       },
       "description": "Mount represents a volume mount point."
     },
+    "typesNamedRef": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name is the name of the resource."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Namespace is the namespace of the resource."
+        }
+      },
+      "description": "NamedRef references a resource by its name and namespace."
+    },
     "typesNetworkInterface": {
       "type": "object",
       "properties": {
@@ -513,6 +881,72 @@
         }
       },
       "description": "NetworkOverrides represents override values for a network interface."
+    },
+    "typesSnapshotRef": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "UID is the unique identifier of the snapshot."
+        },
+        "named": {
+          "$ref": "#/definitions/typesNamedRef",
+          "description": "Named references the snapshot by its name and namespace."
+        }
+      },
+      "description": "SnapshotRef references a snapshot by its UID, or by its name and namespace."
+    },
+    "typesSnapshotSource": {
+      "type": "object",
+      "properties": {
+        "snapshot": {
+          "$ref": "#/definitions/typesSnapshotRef",
+          "description": "Snapshot is the snapshot to restore from."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name is the name of the restored microvm. It is required."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Namespace is the namespace of the restored microvm. It defaults to the namespace of\nthe source microvm."
+        },
+        "uid": {
+          "type": "string",
+          "description": "UID is the unique identifier of the restored microvm. If it is not set, one is generated."
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Labels are the labels of the restored microvm. If empty, the labels of the source\nmicrovm are used."
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Metadata is the metadata of the restored microvm. If empty, the metadata of the source\nmicrovm is used."
+        },
+        "networkOverrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/typesHostNetworkOverride"
+          },
+          "description": "NetworkOverrides replace the host devices of the restored microvm's network interfaces."
+        },
+        "memoryMode": {
+          "$ref": "#/definitions/typesMemoryMode",
+          "description": "MemoryMode selects how the guest memory is restored."
+        },
+        "force": {
+          "type": "boolean",
+          "description": "Force skips the compatibility checks that can be skipped. The checks for the VMM type,\nCPU architecture and guest-visible CPU configuration are never skipped."
+        }
+      },
+      "description": "SnapshotSource is the source of a microvm that is restored from a snapshot."
     },
     "typesStaticAddress": {
       "type": "object",
