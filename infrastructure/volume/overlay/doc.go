@@ -23,6 +23,7 @@
 //	scratch/                                           build temp
 //	vm/<ns>/<name>/<uid>/volumes/root.base -> ../../../../../bases/<sha256>.img
 //	vm/<ns>/<name>/<uid>/volumes/root.rw               reflink of a template
+//	vm/<ns>/<name>/<uid>/volumes/.lock                 flock for a restore
 //	snapshots/<uuid>/root.base -> ../../bases/<sha256>.img
 //	snapshots/<uuid>/root.rw                           reflink of a microvm's root.rw
 //

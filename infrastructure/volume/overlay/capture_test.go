@@ -282,6 +282,36 @@ func TestService_SweepKeepsOrphanBaseOfSnapshot(t *testing.T) {
 	g.Expect(base).NotTo(BeAnExistingFile())
 }
 
+func TestService_RestoreRejectsDiskOverAnotherBase(t *testing.T) {
+	g := NewWithT(t)
+	env := newTestService(t, t.TempDir())
+	ctx := context.Background()
+
+	_, _, dir1 := createAndCapture(t, env)
+
+	_, err := env.svc.Create(ctx, createInput("x", "img:2"))
+	g.Expect(err).NotTo(HaveOccurred())
+
+	dir2 := snapshotDir(env, "snap2")
+	other, err := env.svc.Capture(ctx, vmRef("x"), dir2)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	b, err := env.svc.Restore(ctx, restoreInput("b", dir1))
+	g.Expect(err).NotTo(HaveOccurred())
+
+	target, err := os.Readlink(b.BaseMount.Source)
+	g.Expect(err).NotTo(HaveOccurred())
+	disk := sha256File(t, b.RWMount.Source)
+
+	_, err = env.svc.Restore(ctx, restoreInput("b", dir2))
+	g.Expect(err).To(MatchError(ContainSubstring("not " + other.BaseDigest)))
+
+	after, err := os.Readlink(b.BaseMount.Source)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(after).To(Equal(target), "the link is not changed under the disk")
+	g.Expect(sha256File(t, b.RWMount.Source)).To(Equal(disk))
+}
+
 func TestService_CloneDiskNeverReplacesAPublishedDisk(t *testing.T) {
 	g := NewWithT(t)
 	env := newTestService(t, t.TempDir())

@@ -88,8 +88,9 @@ func (s *Service) Capture(ctx context.Context, ref ports.VolumeRef, destDir stri
 // Restore reflinks root.rw of the snapshot directory to the writable disk
 // of the microvm and links the microvm's root.base to the base that the
 // snapshot's root.base names, as Create does. A root.rw that exists is
-// kept. The last use of the base is refreshed. The snapshot directory is
-// not changed.
+// kept when its root.base names the same base, and is an error otherwise.
+// The last use of the base is refreshed. The snapshot directory is not
+// changed.
 func (s *Service) Restore(ctx context.Context, in ports.VolumeRestoreInput) (*ports.VolumeMounts, error) {
 	logger := s.logger(ctx, in.VolumeRef)
 
@@ -118,13 +119,23 @@ func (s *Service) Restore(ctx context.Context, in ports.VolumeRestoreInput) (*po
 		return nil, fmt.Errorf("creating %s: %w", dir, err)
 	}
 
+	release, err := lockFile(ctx, filepath.Join(dir, volumesLockName))
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() { _ = release() }()
+
 	linkPath := filepath.Join(dir, baseLinkName)
+	rwPath := filepath.Join(dir, rwDiskName)
+
+	if err := s.checkExistingDisk(rwPath, linkPath, sum); err != nil {
+		return nil, err
+	}
 
 	if err := linkBase(linkPath, basePath); err != nil {
 		return nil, err
 	}
-
-	rwPath := filepath.Join(dir, rwDiskName)
 
 	made, err := s.cloneDisk(filepath.Join(in.SnapshotDir, rwDiskName), rwPath)
 	if err != nil {
@@ -142,6 +153,27 @@ func (s *Service) Restore(ctx context.Context, in ports.VolumeRestoreInput) (*po
 		RWMount:    models.Mount{Type: models.MountTypeFile, Source: rwPath},
 		BaseDigest: sum,
 	}, nil
+}
+
+// checkExistingDisk returns an error when a writable disk exists at rwPath
+// and the root.base at linkPath does not name the base with the digest: a
+// writable disk is only valid over the base it was written on.
+func (s *Service) checkExistingDisk(rwPath, linkPath, sum string) error {
+	found, err := exists(rwPath)
+	if err != nil || !found {
+		return err
+	}
+
+	current, err := s.linkedBase(linkPath)
+	if err != nil {
+		return fmt.Errorf("writable disk %s exists: %w", rwPath, err)
+	}
+
+	if current != sum {
+		return fmt.Errorf("writable disk %s exists over base %s, not %s", rwPath, current, sum)
+	}
+
+	return nil
 }
 
 // linkedBase returns the digest of the base that the root.base link names.
