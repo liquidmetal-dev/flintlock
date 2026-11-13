@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	snapv1 "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
 )
 
@@ -15,6 +16,10 @@ var (
 	ErrSnapshotRefInvalid          = errors.New("snapshot reference needs a uid, or a name and a namespace")
 	ErrSnapshotMemoryModeUnknown   = errors.New("snapshot_source.memory_mode is not a known memory mode")
 	ErrSnapshotNetworkOverrideName = errors.New("snapshot_source.network_overrides need a guest and a host device name")
+	ErrCreateSnapshotRequired      = errors.New("create snapshot request is required")
+	ErrSnapshotSourceUIDRequired   = errors.New("source_uid is required")
+	ErrSnapshotNameEmpty           = errors.New("name must not be empty when it is set")
+	ErrSnapshotAfterUnknown        = errors.New("after is not a known value")
 )
 
 // ValidateCreateMicroVMRequest checks that a create request has either a microvm spec or a
@@ -79,4 +84,27 @@ func ValidateSnapshotRef(ref *types.SnapshotRef) error {
 	}
 
 	return ErrSnapshotRefInvalid
+}
+
+// ValidateCreateSnapshotRequest checks that a create snapshot request names its source
+// microvm. The name is optional as the name of a microvm is required: when set, it must
+// not be empty. Labels are free form, as the labels of a microvm are.
+func ValidateCreateSnapshotRequest(req *snapv1.CreateSnapshotRequest) error {
+	if req == nil {
+		return ErrCreateSnapshotRequired
+	}
+
+	if req.GetSourceUid() == "" {
+		return ErrSnapshotSourceUIDRequired
+	}
+
+	if req.Name != nil && req.GetName() == "" {
+		return ErrSnapshotNameEmpty
+	}
+
+	if _, ok := snapv1.After_name[int32(req.GetAfter())]; !ok {
+		return ErrSnapshotAfterUnknown
+	}
+
+	return nil
 }

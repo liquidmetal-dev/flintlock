@@ -7,6 +7,7 @@ import (
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	mvmexecv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmexec/v1alpha1"
 	mvmsshproxyv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmsshproxy/v1alpha1"
+	snapv1 "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
@@ -65,6 +66,11 @@ type MicroVMExecGRPCService interface {
 // MicroVMSSHProxyGRPCService is a port for the microvm ssh-proxy-over-guest-agent grpc service.
 type MicroVMSSHProxyGRPCService interface {
 	mvmsshproxyv1.MicroVMSSHProxyServer
+}
+
+// SnapshotGRPCService is a port for the snapshot grpc service.
+type SnapshotGRPCService interface {
+	snapv1.SnapshotServiceServer
 }
 
 // IDService is a port for a service for working with identifiers.
