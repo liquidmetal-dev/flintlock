@@ -154,6 +154,12 @@ func testPauseResume(
 	time.Sleep(pauseSettle)
 	consoleSize := fileSize(microVMPath, provider.ConsoleFile)
 
+	// The guest runs while the test retries Pause, so it can finish its boot
+	// before Pause succeeds. Check again now that it is paused: a marker
+	// written before Pause cannot show that the guest runs after Resume.
+	_, err = u.ConsoleMarker(microVMPath, provider, mvmID, mvmNS)
+	Expect(err).To(HaveOccurred(), "the guest finished its boot before Pause succeeded, its boot cannot show that it runs again")
+
 	log.Printf("TEST STEP: checking that the console of the paused guest stays at %d bytes for %s", consoleSize, pausedFor)
 	Consistently(func() int64 {
 		return fileSize(microVMPath, provider.ConsoleFile)
@@ -166,6 +172,11 @@ func testPauseResume(
 	log.Println("TEST STEP: resuming the MicroVM")
 	Expect(vmm.Resume(ctx, vm)).To(Succeed())
 	Expect(vmm.State(ctx, vmid.String())).To(Equal(ports.MicroVMStateRunning))
+
+	log.Printf("TEST STEP: checking that the console of the resumed guest grows past %d bytes", consoleSize)
+	Eventually(func() int64 {
+		return fileSize(microVMPath, provider.ConsoleFile)
+	}, bootTimeout, time.Second).Should(BeNumerically(">", consoleSize))
 
 	waitForBoot(provider, microVMPath, mvmID, mvmNS, vmmPid, bootTimeout)
 
