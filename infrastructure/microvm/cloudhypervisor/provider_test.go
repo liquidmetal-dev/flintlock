@@ -81,14 +81,23 @@ func deadPID(t *testing.T) int {
 
 // serveFakeCH stands up a cloud-hypervisor-like API server on the state's socket
 // path. If chState is empty the /vm.info endpoint returns 500 to simulate a
-// transient error while the process is still coming up.
-func serveFakeCH(t *testing.T, sockPath string, chState cloudhypervisor.VMState) {
+// transient error while the process is still coming up. Every request to
+// /vm.pause and /vm.resume is sent on the returned channel as "METHOD path".
+func serveFakeCH(t *testing.T, sockPath string, chState cloudhypervisor.VMState) <-chan string {
 	t.Helper()
 
 	listener, err := net.Listen("unix", sockPath)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
+	requests := make(chan string, 1)
+	record := func(w http.ResponseWriter, r *http.Request) {
+		requests <- r.Method + " " + r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	}
+
 	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/vm.pause", record)
+	mux.HandleFunc("/api/v1/vm.resume", record)
 	mux.HandleFunc("/api/v1/vm.info", func(w http.ResponseWriter, _ *http.Request) {
 		if chState == "" {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -104,6 +113,8 @@ func serveFakeCH(t *testing.T, sockPath string, chState cloudhypervisor.VMState)
 	go func() { _ = srv.Serve(listener) }()
 
 	t.Cleanup(func() { _ = srv.Close() })
+
+	return requests
 }
 
 func TestProviderState(t *testing.T) {
@@ -172,6 +183,17 @@ func TestProviderState(t *testing.T) {
 		g.Expect(state).To(g.Equal(ports.MicroVMStateRunning))
 	})
 
+	t.Run("info paused returns paused", func(t *testing.T) {
+		g.RegisterTestingT(t)
+		p, id, vmState := newTestProvider(t)
+		g.Expect(vmState.SetPid(startLiveProcess(t))).To(g.Succeed())
+		serveFakeCH(t, vmState.SockPath(), cloudhypervisor.VMStatePaused)
+
+		state, err := p.State(ctx, id)
+		g.Expect(err).NotTo(g.HaveOccurred())
+		g.Expect(state).To(g.Equal(ports.MicroVMStatePaused))
+	})
+
 	t.Run("info shutdown returns unknown with error", func(t *testing.T) {
 		g.RegisterTestingT(t)
 		p, id, vmState := newTestProvider(t)
@@ -182,4 +204,49 @@ func TestProviderState(t *testing.T) {
 		g.Expect(err).To(g.HaveOccurred())
 		g.Expect(state).To(g.Equal(ports.MicroVMStateUnknown))
 	})
+}
+
+func TestProviderPauseResume(t *testing.T) {
+	ctx := context.Background()
+
+	cases := []struct {
+		name    string
+		call    func(p *provider, vm *models.MicroVM) error
+		request string
+	}{
+		{
+			name:    "pause",
+			call:    func(p *provider, vm *models.MicroVM) error { return p.Pause(ctx, vm) },
+			request: http.MethodPut + " /api/v1/" + cloudhypervisor.PathVMPause,
+		},
+		{
+			name:    "resume",
+			call:    func(p *provider, vm *models.MicroVM) error { return p.Resume(ctx, vm) },
+			request: http.MethodPut + " /api/v1/" + cloudhypervisor.PathVMResume,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			g.RegisterTestingT(t)
+			p, id, vmState := newTestProvider(t)
+			requests := serveFakeCH(t, vmState.SockPath(), cloudhypervisor.VMStateRunning)
+
+			vmid, err := models.NewVMIDFromString(id)
+			g.Expect(err).NotTo(g.HaveOccurred())
+
+			g.Expect(tc.call(p, &models.MicroVM{ID: *vmid})).To(g.Succeed())
+			g.Expect(<-requests).To(g.Equal(tc.request))
+		})
+
+		t.Run(tc.name+" without api socket fails", func(t *testing.T) {
+			g.RegisterTestingT(t)
+			p, id, _ := newTestProvider(t)
+
+			vmid, err := models.NewVMIDFromString(id)
+			g.Expect(err).NotTo(g.HaveOccurred())
+
+			g.Expect(tc.call(p, &models.MicroVM{ID: *vmid})).NotTo(g.Succeed())
+		})
+	}
 }
