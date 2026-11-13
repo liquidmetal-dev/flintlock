@@ -108,10 +108,6 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		Interval: defaults.ReadyPollInterval,
 		Clock:    ports.Clock,
 	}
-	if !p.vm.Spec.AllowGuestAgent {
-		// The guest-agent ready step watches the VMM until the ping answers.
-		vmmWait.Settle = defaults.VMMSettleWindow
-	}
 
 	// MicroVM provider create
 	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, provider, vmmWait)); err != nil {
