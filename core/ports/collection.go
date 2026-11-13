@@ -19,4 +19,5 @@ type Collection struct {
 	VirtioFSService   VirtioFSService
 	VolumeService     VolumeService
 	HostInfoService   HostInfoService
+	GuestAgent        GuestAgentService
 }

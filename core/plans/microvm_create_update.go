@@ -125,6 +125,15 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		}
 	}
 
+	agentWait := microvm.WaitConfig{
+		Timeout:  p.guestAgentReadyTimeout,
+		Interval: defaults.ReadyPollInterval,
+		Clock:    ports.Clock,
+	}
+	if err := p.addStep(ctx, microvm.NewGuestAgentReadyStep(p.vm, provider, ports.GuestAgent, agentWait)); err != nil {
+		return nil, fmt.Errorf("adding guest-agent ready step: %w", err)
+	}
+
 	return p.steps, nil
 }
 

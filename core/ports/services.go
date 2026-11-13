@@ -294,3 +294,10 @@ type HostInfoService interface {
 	// Facts returns the host facts for the named microvm provider.
 	Facts(ctx context.Context, provider string) (*models.HostFacts, error)
 }
+
+// GuestAgentService is the port definition for the guest-agent of a microvm.
+type GuestAgentService interface {
+	// Ping sends one ping to the guest-agent behind the vsock socket at
+	// vsockPath. It returns nil only when the guest-agent answers with exit code 0.
+	Ping(ctx context.Context, vsockPath string) error
+}
