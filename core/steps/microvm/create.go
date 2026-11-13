@@ -13,16 +13,18 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
-func NewCreateStep(vm *models.MicroVM, vmSvc ports.MicroVMService) planner.Procedure {
+func NewCreateStep(vm *models.MicroVM, vmSvc ports.MicroVMService, wait WaitConfig) planner.Procedure {
 	return &createStep{
 		vm:    vm,
 		vmSvc: vmSvc,
+		wait:  wait,
 	}
 }
 
 type createStep struct {
 	vm    *models.MicroVM
 	vmSvc ports.MicroVMService
+	wait  WaitConfig
 }
 
 // Name is the name of the procedure/operation.
@@ -57,6 +59,8 @@ func (s *createStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	})
 	logger.Debug("creating microvm")
 
+	resetConditions(s.vm, s.wait)
+
 	if err := s.vmSvc.Create(ctx, s.vm); err != nil {
 		return nil, fmt.Errorf("creating microvm: %w", err)
 	}
@@ -64,6 +68,11 @@ func (s *createStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	return nil, nil
 }
 
-func (s *createStep) Verify(_ context.Context) error {
-	return nil
+// Verify waits for the VMM, because both providers start it in Create.
+func (s *createStep) Verify(ctx context.Context) error {
+	if s.vm == nil {
+		return errors.ErrSpecRequired
+	}
+
+	return verifyRunning(ctx, s.vm, s.vmSvc, s.wait)
 }

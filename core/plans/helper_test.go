@@ -22,6 +22,7 @@ type mockList struct {
 	NetworkService    *mock.MockNetworkService
 	ImageService      *mock.MockImageService
 	VolumeService     *mock.MockVolumeService
+	GuestAgent        *mock.MockGuestAgentService
 }
 
 func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
@@ -33,6 +34,7 @@ func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
 		NetworkService:    mock.NewMockNetworkService(mockCtrl),
 		ImageService:      mock.NewMockImageService(mockCtrl),
 		VolumeService:     mock.NewMockVolumeService(mockCtrl),
+		GuestAgent:        mock.NewMockGuestAgentService(mockCtrl),
 	}
 
 	return mList, &ports.Collection{
@@ -45,6 +47,7 @@ func fakePorts(mockCtrl *gomock.Controller) (*mockList, *ports.Collection) {
 		NetworkService: mList.NetworkService,
 		ImageService:   mList.ImageService,
 		VolumeService:  mList.VolumeService,
+		GuestAgent:     mList.GuestAgent,
 		FileSystem:     afero.NewMemMapFs(),
 		Clock:          time.Now,
 	}
@@ -107,3 +110,5 @@ func createTestSpec(name, ns string) *models.MicroVM {
 		},
 	}
 }
+
+var testNowPlans = time.Date(2026, 11, 13, 10, 0, 0, 0, time.UTC)

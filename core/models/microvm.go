@@ -93,6 +93,8 @@ type MicroVMStatus struct {
 	// VSockPath is the host unix-domain socket path for the guest-agent vsock device.
 	// Empty unless the spec has AllowGuestAgent set.
 	VSockPath string `json:"vsock_path"`
+	// Conditions are observed facts about the microvm.
+	Conditions Conditions `json:"conditions"`
 }
 
 type Initrd struct {

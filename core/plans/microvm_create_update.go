@@ -3,6 +3,7 @@ package plans
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/liquidmetal-dev/flintlock/core/steps/cloudinit"
 
@@ -18,24 +19,30 @@ import (
 )
 
 type CreateOrUpdatePlanInput struct {
-	StateDirectory  string
-	SocketDirectory string
-	VM              *models.MicroVM
+	StateDirectory         string
+	SocketDirectory        string
+	VM                     *models.MicroVM
+	VMMStartTimeout        time.Duration
+	GuestAgentReadyTimeout time.Duration
 }
 
 func MicroVMCreateOrUpdatePlan(input *CreateOrUpdatePlanInput) planner.Plan {
 	return &microvmCreateOrUpdatePlan{
-		vm:         input.VM,
-		stateDir:   input.StateDirectory,
-		socketRoot: models.SocketRoot(input.SocketDirectory, input.VM.ID),
-		steps:      []planner.Procedure{},
+		vm:                     input.VM,
+		stateDir:               input.StateDirectory,
+		socketRoot:             models.SocketRoot(input.SocketDirectory, input.VM.ID),
+		vmmStartTimeout:        input.VMMStartTimeout,
+		guestAgentReadyTimeout: input.GuestAgentReadyTimeout,
+		steps:                  []planner.Procedure{},
 	}
 }
 
 type microvmCreateOrUpdatePlan struct {
-	vm         *models.MicroVM
-	stateDir   string
-	socketRoot string
+	vm                     *models.MicroVM
+	stateDir               string
+	socketRoot             string
+	vmmStartTimeout        time.Duration
+	guestAgentReadyTimeout time.Duration
 
 	steps []planner.Procedure
 }
@@ -96,16 +103,35 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding network steps: %w", err)
 	}
 
+	vmmWait := microvm.WaitConfig{
+		Timeout:  p.vmmStartTimeout,
+		Interval: defaults.ReadyPollInterval,
+		Clock:    ports.Clock,
+	}
+
 	// MicroVM provider create
-	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, provider)); err != nil {
+	if err := p.addStep(ctx, microvm.NewCreateStep(p.vm, provider, vmmWait)); err != nil {
 		return nil, fmt.Errorf("adding microvm create step: %w", err)
 	}
 
 	// MicroVM provider doesn't auto-start
 	if !provider.Capabilities().Has(models.AutoStartCapability) {
-		if err := p.addStep(ctx, microvm.NewStartStep(p.vm, provider, microVMBootTime)); err != nil {
+		if err := p.addStep(ctx, microvm.NewStartStep(p.vm, provider, vmmWait)); err != nil {
 			return nil, fmt.Errorf("adding microvm start step: %w", err)
 		}
+	}
+
+	if err := p.addStep(ctx, microvm.NewVMMRunningStep(p.vm, provider, vmmWait)); err != nil {
+		return nil, fmt.Errorf("adding vmm running step: %w", err)
+	}
+
+	agentWait := microvm.WaitConfig{
+		Timeout:  p.guestAgentReadyTimeout,
+		Interval: defaults.ReadyPollInterval,
+		Clock:    ports.Clock,
+	}
+	if err := p.addStep(ctx, microvm.NewGuestAgentReadyStep(p.vm, provider, ports.GuestAgent, agentWait)); err != nil {
+		return nil, fmt.Errorf("adding guest-agent ready step: %w", err)
 	}
 
 	return p.steps, nil
