@@ -174,10 +174,10 @@ func TestBuildArgs_DisksInGuestOrder(t *testing.T) {
 
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
-		"path=/root.img",
-		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
-		"path=/data.img",
-		"path=/logs.img",
+		"path=/root.img,image_type=raw",
+		fmt.Sprintf("path=%s,image_type=raw,readonly=on", state.CloudInitImage()),
+		"path=/data.img,image_type=raw",
+		"path=/logs.img,image_type=raw",
 	}))
 }
 
@@ -198,9 +198,9 @@ func TestBuildArgs_DisksStayTogether(t *testing.T) {
 
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
-		"path=/root.img",
-		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
-		"path=/data.img",
+		"path=/root.img,image_type=raw",
+		fmt.Sprintf("path=%s,image_type=raw,readonly=on", state.CloudInitImage()),
+		"path=/data.img,image_type=raw",
 	}))
 	// The guest mounts the share by the tag, so the cloud-init mount step
 	// relies on it.
@@ -312,10 +312,10 @@ func TestBuildArgs_ReadOnlyVolumes(t *testing.T) {
 
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
-		"path=/root.img,readonly=on",
-		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
-		"path=/data.img",
-		"path=/logs.img,readonly=on",
+		"path=/root.img,image_type=raw,readonly=on",
+		fmt.Sprintf("path=%s,image_type=raw,readonly=on", state.CloudInitImage()),
+		"path=/data.img,image_type=raw",
+		"path=/logs.img,image_type=raw,readonly=on",
 	}))
 }
 
