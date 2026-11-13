@@ -269,3 +269,10 @@ type VolumeMounts struct {
 	// BaseDigest is the sha256 of the base file in hex.
 	BaseDigest string
 }
+
+// HostInfoService is the port definition for the service that collects the
+// facts of the host that decide if it can restore a snapshot.
+type HostInfoService interface {
+	// Facts returns the host facts for the named microvm provider.
+	Facts(ctx context.Context, provider string) (*models.HostFacts, error)
+}
