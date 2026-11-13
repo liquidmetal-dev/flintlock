@@ -96,6 +96,16 @@ func (p *provider) Start(_ context.Context, _ *models.MicroVM) error {
 	return cerrs.NewNotSupported("start")
 }
 
+// Pause will pause a running microvm.
+func (p *provider) Pause(_ context.Context, _ *models.MicroVM) error {
+	return cerrs.NewNotSupported("pause")
+}
+
+// Resume will resume a paused microvm.
+func (p *provider) Resume(_ context.Context, _ *models.MicroVM) error {
+	return cerrs.NewNotSupported("resume")
+}
+
 // State returns the state of a microvm.
 func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{

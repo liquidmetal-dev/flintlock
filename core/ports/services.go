@@ -25,6 +25,10 @@ type MicroVMService interface {
 	Delete(ctx context.Context, id string) error
 	// Start will start a created microvm.
 	Start(ctx context.Context, vm *models.MicroVM) error
+	// Pause will pause a running microvm.
+	Pause(ctx context.Context, vm *models.MicroVM) error
+	// Resume will resume a paused microvm.
+	Resume(ctx context.Context, vm *models.MicroVM) error
 	// State returns the state of a microvm.
 	State(ctx context.Context, id string) (MicroVMState, error)
 	// Metrics returns with the metrics of a microvm.
@@ -45,6 +49,7 @@ const (
 	MicroVMStatePending    MicroVMState = "pending"
 	MicroVMStateConfigured MicroVMState = "configured"
 	MicroVMStateRunning    MicroVMState = "running"
+	MicroVMStatePaused     MicroVMState = "paused"
 )
 
 // MicroVMGRPCService is a port for a microvm grpc service.
