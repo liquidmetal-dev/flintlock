@@ -34,6 +34,21 @@ editURL: https://github.com/liquidmetal-dev/flintlock/edit/main/api/types/microv
     - [NetworkInterface.IfaceType](#flintlock-types-NetworkInterface-IfaceType)
     - [VolumeMode](#flintlock-types-VolumeMode)
   
+- [types/snapshot.proto](#types_snapshot-proto)
+    - [HostNetworkOverride](#flintlock-types-HostNetworkOverride)
+    - [NamedRef](#flintlock-types-NamedRef)
+    - [Snapshot](#flintlock-types-Snapshot)
+    - [Snapshot.LabelsEntry](#flintlock-types-Snapshot-LabelsEntry)
+    - [SnapshotRef](#flintlock-types-SnapshotRef)
+    - [SnapshotSource](#flintlock-types-SnapshotSource)
+    - [SnapshotSource.LabelsEntry](#flintlock-types-SnapshotSource-LabelsEntry)
+    - [SnapshotSource.MetadataEntry](#flintlock-types-SnapshotSource-MetadataEntry)
+    - [SnapshotStatus](#flintlock-types-SnapshotStatus)
+    - [SourceMicroVM](#flintlock-types-SourceMicroVM)
+  
+    - [MemoryMode](#flintlock-types-MemoryMode)
+    - [SnapshotStatus.Phase](#flintlock-types-SnapshotStatus-Phase)
+  
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -466,6 +481,226 @@ VolumeMode selects how a volume is provisioned.
 | ---- | ------ | ----------- |
 | FULL | 0 | FULL provisions the volume as a full copy of the image in a containerd snapshot. |
 | OVERLAY | 1 | OVERLAY provisions the volume as a shared read-only base built from the image, plus a writable disk for the microvm. The guest's init joins them with overlayfs. |
+
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="types_snapshot-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## types/snapshot.proto
+
+
+
+<a name="flintlock-types-HostNetworkOverride"></a>
+
+### HostNetworkOverride
+HostNetworkOverride replaces the host device of a restored microvm's network interface.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| guest_device_name | [string](#string) |  | GuestDeviceName is the name of the network interface in the guest. |
+| host_device_name | [string](#string) |  | HostDeviceName is the name of the host device to use for the network interface. |
+
+
+
+
+
+
+<a name="flintlock-types-NamedRef"></a>
+
+### NamedRef
+NamedRef references a resource by its name and namespace.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | Name is the name of the resource. |
+| namespace | [string](#string) |  | Namespace is the namespace of the resource. |
+
+
+
+
+
+
+<a name="flintlock-types-Snapshot"></a>
+
+### Snapshot
+Snapshot represents a snapshot of a microvm.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [string](#string) |  | UID is the server generated unique identifier of the snapshot. |
+| name | [string](#string) |  | Name is the optional name of the snapshot. It is unique in its namespace. |
+| namespace | [string](#string) |  | Namespace is the namespace of the snapshot. It is the namespace of the source microvm. |
+| source | [SourceMicroVM](#flintlock-types-SourceMicroVM) |  | Source is the microvm the snapshot was taken from. |
+| labels | [Snapshot.LabelsEntry](#flintlock-types-Snapshot-LabelsEntry) | repeated | Labels allows you to include extra data for the snapshot. |
+| status | [SnapshotStatus](#flintlock-types-SnapshotStatus) |  | Status is the status of the snapshot. |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | CreatedAt indicates the time the snapshot was created at. |
+
+
+
+
+
+
+<a name="flintlock-types-Snapshot-LabelsEntry"></a>
+
+### Snapshot.LabelsEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="flintlock-types-SnapshotRef"></a>
+
+### SnapshotRef
+SnapshotRef references a snapshot by its UID, or by its name and namespace.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [string](#string) |  | UID is the unique identifier of the snapshot. |
+| named | [NamedRef](#flintlock-types-NamedRef) |  | Named references the snapshot by its name and namespace. |
+
+
+
+
+
+
+<a name="flintlock-types-SnapshotSource"></a>
+
+### SnapshotSource
+SnapshotSource is the source of a microvm that is restored from a snapshot.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| snapshot | [SnapshotRef](#flintlock-types-SnapshotRef) |  | Snapshot is the snapshot to restore from. |
+| name | [string](#string) |  | Name is the name of the restored microvm. It is required. |
+| namespace | [string](#string) | optional | Namespace is the namespace of the restored microvm. It defaults to the namespace of the source microvm. |
+| uid | [string](#string) | optional | UID is the unique identifier of the restored microvm. If it is not set, one is generated. |
+| labels | [SnapshotSource.LabelsEntry](#flintlock-types-SnapshotSource-LabelsEntry) | repeated | Labels are the labels of the restored microvm. If empty, the labels of the source microvm are used. |
+| metadata | [SnapshotSource.MetadataEntry](#flintlock-types-SnapshotSource-MetadataEntry) | repeated | Metadata is the metadata of the restored microvm. If empty, the metadata of the source microvm is used. |
+| network_overrides | [HostNetworkOverride](#flintlock-types-HostNetworkOverride) | repeated | NetworkOverrides replace the host devices of the restored microvm's network interfaces. |
+| memory_mode | [MemoryMode](#flintlock-types-MemoryMode) |  | MemoryMode selects how the guest memory is restored. |
+| force | [bool](#bool) |  | Force skips the compatibility checks that can be skipped. The checks for the VMM type, CPU architecture and guest-visible CPU configuration are never skipped. |
+
+
+
+
+
+
+<a name="flintlock-types-SnapshotSource-LabelsEntry"></a>
+
+### SnapshotSource.LabelsEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="flintlock-types-SnapshotSource-MetadataEntry"></a>
+
+### SnapshotSource.MetadataEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="flintlock-types-SnapshotStatus"></a>
+
+### SnapshotStatus
+SnapshotStatus contains the status of a snapshot.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| phase | [SnapshotStatus.Phase](#flintlock-types-SnapshotStatus-Phase) |  | Phase is the phase of the snapshot. |
+| error | [string](#string) |  | Error is the error message when the phase is FAILED. |
+| local_path | [string](#string) |  | LocalPath is the directory of the snapshot on the host when the phase is READY. |
+
+
+
+
+
+
+<a name="flintlock-types-SourceMicroVM"></a>
+
+### SourceMicroVM
+SourceMicroVM identifies the microvm a snapshot was taken from.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [string](#string) |  | UID is the unique identifier of the microvm. |
+| name | [string](#string) |  | Name is the name of the microvm. |
+| namespace | [string](#string) |  | Namespace is the namespace of the microvm. |
+
+
+
+
+
+ <!-- end messages -->
+
+
+<a name="flintlock-types-MemoryMode"></a>
+
+### MemoryMode
+MemoryMode selects how the guest memory of a microvm is restored from a snapshot.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| MEMORY_MODE_UNSPECIFIED | 0 | MEMORY_MODE_UNSPECIFIED uses the default of the provider: FILE for Firecracker and COPY for Cloud Hypervisor. |
+| FILE | 1 | FILE maps the snapshot memory file into the guest. |
+| COPY | 2 | COPY copies the snapshot memory file into the guest memory. |
+
+
+
+<a name="flintlock-types-SnapshotStatus-Phase"></a>
+
+### SnapshotStatus.Phase
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| PENDING | 0 | PENDING is a snapshot that has been accepted but not yet started. |
+| QUIESCING | 1 | QUIESCING is a snapshot whose source microvm is being quiesced. |
+| CAPTURING | 2 | CAPTURING is a snapshot whose memory, device and volume state is being captured. |
+| PACKAGING | 3 | PACKAGING is a snapshot whose captured state is being packaged. |
+| PUSHING | 4 | PUSHING is a snapshot whose package is being pushed to a registry. |
+| READY | 5 | READY is a snapshot that is complete and can be restored. |
+| FAILED | 6 | FAILED is a snapshot that has failed. Error contains the reason. |
 
 
  <!-- end enums -->

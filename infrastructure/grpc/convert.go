@@ -2,6 +2,9 @@ package grpc
 
 import (
 	"fmt"
+	"maps"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	"github.com/liquidmetal-dev/flintlock/client/cloudinit/instance"
@@ -373,4 +376,210 @@ func convertModelToNetworkInterfaceStatus(netStatus *models.NetworkInterfaceStat
 	}
 
 	return converted
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertSnapshotToModel(snapshot *types.Snapshot) *models.Snapshot {
+	converted := &models.Snapshot{
+		UID:       snapshot.GetUid(),
+		Name:      snapshot.GetName(),
+		Namespace: snapshot.GetNamespace(),
+		Labels:    maps.Clone(snapshot.GetLabels()),
+		Status:    convertSnapshotStatusToModel(snapshot.GetStatus()),
+	}
+
+	if source := snapshot.GetSource(); source != nil {
+		converted.Source = *models.NewVMIDForce(source.GetName(), source.GetNamespace(), source.GetUid())
+	}
+
+	if snapshot.GetCreatedAt() != nil {
+		converted.CreatedAt = snapshot.GetCreatedAt().AsTime()
+	}
+
+	return converted
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertModelToSnapshot(snapshot *models.Snapshot) *types.Snapshot {
+	converted := &types.Snapshot{
+		Uid:       snapshot.UID,
+		Name:      snapshot.Name,
+		Namespace: snapshot.Namespace,
+		Source: &types.SourceMicroVM{
+			Uid:       snapshot.Source.UID(),
+			Name:      snapshot.Source.Name(),
+			Namespace: snapshot.Source.Namespace(),
+		},
+		Labels: maps.Clone(snapshot.Labels),
+		Status: convertModelToSnapshotStatus(&snapshot.Status),
+	}
+
+	if !snapshot.CreatedAt.IsZero() {
+		converted.CreatedAt = timestamppb.New(snapshot.CreatedAt)
+	}
+
+	return converted
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertSnapshotStatusToModel(status *types.SnapshotStatus) models.SnapshotStatus {
+	return models.SnapshotStatus{
+		Phase:     convertSnapshotPhaseToModel(status.GetPhase()),
+		Error:     status.GetError(),
+		LocalPath: status.GetLocalPath(),
+	}
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertModelToSnapshotStatus(status *models.SnapshotStatus) *types.SnapshotStatus {
+	return &types.SnapshotStatus{
+		Phase:     convertModelToSnapshotPhase(status.Phase),
+		Error:     status.Error,
+		LocalPath: status.LocalPath,
+	}
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertSnapshotPhaseToModel(phase types.SnapshotStatus_Phase) models.SnapshotPhase {
+	switch phase {
+	case types.SnapshotStatus_QUIESCING:
+		return models.SnapshotPhaseQuiescing
+	case types.SnapshotStatus_CAPTURING:
+		return models.SnapshotPhaseCapturing
+	case types.SnapshotStatus_PACKAGING:
+		return models.SnapshotPhasePackaging
+	case types.SnapshotStatus_PUSHING:
+		return models.SnapshotPhasePushing
+	case types.SnapshotStatus_READY:
+		return models.SnapshotPhaseReady
+	case types.SnapshotStatus_FAILED:
+		return models.SnapshotPhaseFailed
+	case types.SnapshotStatus_PENDING:
+	}
+
+	return models.SnapshotPhasePending
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertModelToSnapshotPhase(phase models.SnapshotPhase) types.SnapshotStatus_Phase {
+	switch phase {
+	case models.SnapshotPhaseQuiescing:
+		return types.SnapshotStatus_QUIESCING
+	case models.SnapshotPhaseCapturing:
+		return types.SnapshotStatus_CAPTURING
+	case models.SnapshotPhasePackaging:
+		return types.SnapshotStatus_PACKAGING
+	case models.SnapshotPhasePushing:
+		return types.SnapshotStatus_PUSHING
+	case models.SnapshotPhaseReady:
+		return types.SnapshotStatus_READY
+	case models.SnapshotPhaseFailed:
+		return types.SnapshotStatus_FAILED
+	case models.SnapshotPhasePending:
+	}
+
+	return types.SnapshotStatus_PENDING
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertSnapshotRefToModel(ref *types.SnapshotRef) models.SnapshotRef {
+	converted := models.SnapshotRef{
+		UID: ref.GetUid(),
+	}
+
+	if named := ref.GetNamed(); named != nil {
+		converted.Name = named.GetName()
+		converted.Namespace = named.GetNamespace()
+	}
+
+	return converted
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertModelToSnapshotRef(ref *models.SnapshotRef) *types.SnapshotRef {
+	if ref.UID != "" {
+		return &types.SnapshotRef{Ref: &types.SnapshotRef_Uid{Uid: ref.UID}}
+	}
+
+	return &types.SnapshotRef{
+		Ref: &types.SnapshotRef_Named{Named: &types.NamedRef{Name: ref.Name, Namespace: ref.Namespace}},
+	}
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertSnapshotSourceToModel(source *types.SnapshotSource) *models.SnapshotSource {
+	converted := &models.SnapshotSource{
+		Snapshot:   convertSnapshotRefToModel(source.GetSnapshot()),
+		Name:       source.GetName(),
+		Namespace:  source.GetNamespace(),
+		UID:        source.GetUid(),
+		Labels:     maps.Clone(source.GetLabels()),
+		Metadata:   maps.Clone(source.GetMetadata()),
+		MemoryMode: convertMemoryModeToModel(source.GetMemoryMode()),
+		Force:      source.GetForce(),
+	}
+
+	for _, override := range source.GetNetworkOverrides() {
+		converted.NetworkOverrides = append(converted.NetworkOverrides, models.HostNetworkOverride{
+			GuestDeviceName: override.GetGuestDeviceName(),
+			HostDeviceName:  override.GetHostDeviceName(),
+		})
+	}
+
+	return converted
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertModelToSnapshotSource(source *models.SnapshotSource) *types.SnapshotSource {
+	converted := &types.SnapshotSource{
+		Snapshot:   convertModelToSnapshotRef(&source.Snapshot),
+		Name:       source.Name,
+		Labels:     maps.Clone(source.Labels),
+		Metadata:   maps.Clone(source.Metadata),
+		MemoryMode: convertModelToMemoryMode(source.MemoryMode),
+		Force:      source.Force,
+	}
+
+	if source.Namespace != "" {
+		converted.Namespace = ptr.String(source.Namespace)
+	}
+
+	if source.UID != "" {
+		converted.Uid = ptr.String(source.UID)
+	}
+
+	for _, override := range source.NetworkOverrides {
+		converted.NetworkOverrides = append(converted.NetworkOverrides, &types.HostNetworkOverride{
+			GuestDeviceName: override.GuestDeviceName,
+			HostDeviceName:  override.HostDeviceName,
+		})
+	}
+
+	return converted
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertMemoryModeToModel(mode types.MemoryMode) models.MemoryMode {
+	switch mode {
+	case types.MemoryMode_FILE:
+		return models.MemoryModeFile
+	case types.MemoryMode_COPY:
+		return models.MemoryModeCopy
+	case types.MemoryMode_MEMORY_MODE_UNSPECIFIED:
+	}
+
+	return models.MemoryModeDefault
+}
+
+//nolint:unused // the snapshot API is not served yet
+func convertModelToMemoryMode(mode models.MemoryMode) types.MemoryMode {
+	switch mode {
+	case models.MemoryModeFile:
+		return types.MemoryMode_FILE
+	case models.MemoryModeCopy:
+		return types.MemoryMode_COPY
+	case models.MemoryModeDefault:
+	}
+
+	return types.MemoryMode_MEMORY_MODE_UNSPECIFIED
 }

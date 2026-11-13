@@ -34,6 +34,10 @@ const (
 	// VolumeOverlayCapability indicates the microvm provider can provision a volume
 	// in VolumeModeOverlay. It needs a reflink state directory, mkfs.erofs and mkfs.ext4.
 	VolumeOverlayCapability Capability = "volume-overlay"
+
+	// SnapshotCapability indicates the microvm provider can snapshot a microvm and
+	// restore a microvm from a snapshot.
+	SnapshotCapability Capability = "snapshot"
 )
 
 // Capabilities represents a list of capabilities.
