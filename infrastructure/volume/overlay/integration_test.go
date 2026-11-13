@@ -17,11 +17,14 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/containerd/containerd/v2/pkg/archive"
 	. "github.com/onsi/gomega"
 	"golang.org/x/sys/unix"
 
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
@@ -496,4 +499,139 @@ func diffTrees(got, want map[string]node) []string {
 	sort.Strings(diffs)
 
 	return diffs
+}
+
+// reflinkStateRoot returns a state root on a filesystem that supports
+// FICLONE: the temporary directory of the test, or a directory in the
+// package, which is on the checkout's filesystem. The test is skipped, in
+// CI too, when neither supports it: the filesystem of the runner is outside
+// this repository's control.
+func reflinkStateRoot(t *testing.T) string {
+	t.Helper()
+
+	if dir := t.TempDir(); overlay.ProbeReflink(dir) == nil {
+		return dir
+	}
+
+	dir, err := os.MkdirTemp(".", ".reflink-test-")
+	if err != nil {
+		t.Skipf("no reflink filesystem: %v", err)
+	}
+
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+
+	if err := overlay.ProbeReflink(dir); err != nil {
+		t.Skipf("no reflink filesystem for the state root; the capture and restore test did not run: %v", err)
+	}
+
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return abs
+}
+
+func realMkfsExt4(t *testing.T) string {
+	t.Helper()
+
+	path, err := exec.LookPath(overlay.MkfsExt4)
+	if err != nil {
+		missingPrecondition(t, "%s is not on PATH: %v", overlay.MkfsExt4, err)
+	}
+
+	return path
+}
+
+func fileInode(t *testing.T, path string) uint64 {
+	t.Helper()
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		t.Fatal("no stat_t")
+	}
+
+	return stat.Ino
+}
+
+func writeFileAt(t *testing.T, path string, offset int64, data string) {
+	t.Helper()
+
+	f, err := os.OpenFile(path, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer f.Close()
+
+	if _, err := f.WriteAt([]byte(data), offset); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestIntegration_CaptureAndRestore(t *testing.T) {
+	g := NewWithT(t)
+	root := reflinkStateRoot(t)
+	mkfsPath := realMkfs(t)
+	ctx := context.Background()
+
+	source := newMemSource(tarBytes(t, dir("etc", 0o755), file("etc/hostname", 0o644, "source\n")))
+
+	svc, err := overlay.NewService(overlay.Config{
+		StateRoot:       root,
+		MkfsErofsPath:   mkfsPath,
+		MkfsExt4Path:    realMkfsExt4(t),
+		DefaultRWSizeMB: 64,
+		BaseRetention:   time.Hour,
+	}, source)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	ref := func(name string) ports.VolumeRef {
+		return ports.VolumeRef{VMID: *models.NewVMIDForce(name, "ns", "uid-"+name), VolumeID: "root"}
+	}
+
+	src, err := svc.Create(ctx, ports.VolumeCreateInput{VolumeRef: ref("source"), ImageRef: "fixture", Owner: "test"})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	writeFileAt(t, src.RWMount.Source, 1<<20, "guest writes before the capture")
+	before := fileSum(t, src.RWMount.Source)
+
+	snapshot := filepath.Join(root, "snapshots", "snap1")
+
+	captured, err := svc.Capture(ctx, ref("source"), snapshot)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(captured.BaseDigest).To(Equal(src.BaseDigest))
+	g.Expect(captured.BaseKey).To(Equal(source.chainID().String() + "/" + overlay.ProfileNameErofsV1))
+	g.Expect(captured.SizeBytes).To(Equal(int64(64 << 20)))
+	g.Expect(captured.BlockSize).To(BeNumerically(">", 0))
+
+	rw := filepath.Join(snapshot, "root.rw")
+	g.Expect(fileSum(t, rw)).To(Equal(before))
+
+	writeFileAt(t, src.RWMount.Source, 1<<20, "guest writes after the capture")
+	g.Expect(fileSum(t, src.RWMount.Source)).NotTo(Equal(before))
+	g.Expect(fileSum(t, rw)).To(Equal(before), "the source writes without changing the capture")
+
+	first, err := svc.Restore(ctx, ports.VolumeRestoreInput{VolumeRef: ref("first"), SnapshotDir: snapshot, Owner: "test"})
+	g.Expect(err).NotTo(HaveOccurred())
+	second, err := svc.Restore(ctx, ports.VolumeRestoreInput{VolumeRef: ref("second"), SnapshotDir: snapshot, Owner: "test"})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(fileSum(t, first.RWMount.Source)).To(Equal(before))
+	g.Expect(fileSum(t, second.RWMount.Source)).To(Equal(before))
+	g.Expect(first.RWMount.Source).NotTo(Equal(second.RWMount.Source))
+	g.Expect(fileInode(t, first.RWMount.Source)).NotTo(Equal(fileInode(t, second.RWMount.Source)))
+	g.Expect(fileInode(t, first.BaseMount.Source)).To(Equal(fileInode(t, second.BaseMount.Source)))
+	g.Expect(fileInode(t, first.BaseMount.Source)).To(Equal(fileInode(t, src.BaseMount.Source)))
+
+	for _, name := range []string{"source", "first", "second"} {
+		g.Expect(svc.Release(ctx, ref(name))).To(Succeed())
+	}
+
+	g.Expect(fileSum(t, rw)).To(Equal(before), "release leaves the snapshot")
 }

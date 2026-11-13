@@ -154,11 +154,16 @@ func TestFSIndex_References(t *testing.T) {
 	g.Expect(os.Symlink("../../../../../bases/"+testSum+".img", filepath.Join(vol2, "root.base"))).To(Succeed())
 	g.Expect(os.WriteFile(filepath.Join(vol2, "root.rw"), nil, 0o644)).To(Succeed())
 
+	snap := filepath.Join(idx.root, "snapshots", "snap1")
+	g.Expect(os.MkdirAll(snap, 0o755)).To(Succeed())
+	g.Expect(os.Symlink("../../bases/"+testSum+".img", filepath.Join(snap, "root.base"))).To(Succeed())
+
 	refs, err = idx.References()
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(ConsistOf(
 		Reference{Digest: testSum, Link: filepath.Join(vol1, "root.base")},
 		Reference{Digest: testSum, Link: filepath.Join(vol2, "root.base")},
+		Reference{Digest: testSum, Link: filepath.Join(snap, "root.base")},
 	))
 
 	g.Expect(os.Remove(filepath.Join(vol1, "root.base"))).To(Succeed())

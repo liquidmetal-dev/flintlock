@@ -11,8 +11,8 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
 
-// Sweep removes every base that no microvm links to and whose last use is
-// older than the retention period. It takes the per-key lock before it
+// Sweep removes every base that no microvm or snapshot links to and whose
+// last use is older than the retention period. It takes the per-key lock before it
 // removes a base and rechecks the references and the last use under the
 // lock, so a Create that is linking the base wins. A base file with no
 // by-source link is removed when it is older than the retention period
@@ -66,7 +66,8 @@ func (s *Service) Sweep(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-// referenced returns the digest of every base a microvm links to.
+// referenced returns the digest of every base a microvm or a snapshot
+// links to.
 func (s *Service) referenced() (map[string]bool, error) {
 	refs, err := s.index.References()
 	if err != nil {
@@ -83,8 +84,8 @@ func (s *Service) referenced() (map[string]bool, error) {
 }
 
 // sweepEntry removes the base of entry and its by-source link under the
-// per-key lock. It keeps the base when, under the lock, a microvm links to
-// it or its last use is after cutoff.
+// per-key lock. It keeps the base when, under the lock, a microvm or a
+// snapshot links to it or its last use is after cutoff.
 func (s *Service) sweepEntry(ctx context.Context, entry Entry, cutoff time.Time) (bool, error) {
 	release, err := s.index.Lock(ctx, entry.Key)
 	if err != nil {
@@ -122,8 +123,8 @@ func (s *Service) sweepEntry(ctx context.Context, entry Entry, cutoff time.Time)
 	return true, s.index.Remove(entry.Key)
 }
 
-// sweepOrphans removes base files that no index entry and no microvm link
-// name, when they are older than cutoff. It returns the digests removed.
+// sweepOrphans removes base files that no index entry and no microvm or
+// snapshot link name, when they are older than cutoff. It returns the digests removed.
 func (s *Service) sweepOrphans(referenced, linked map[string]bool, cutoff time.Time) ([]string, error) {
 	pattern := filepath.Join(s.root, basesDir, "*"+baseExt)
 
