@@ -36,7 +36,8 @@ func TestWithVsock_Enabled(t *testing.T) {
 
 	g.Expect(cfg.VsockDevice).NotTo(g.BeNil())
 	g.Expect(cfg.VsockDevice.GuestCID).To(g.Equal(int64(defaults.GuestAgentVsockCID)))
-	g.Expect(cfg.VsockDevice.UDSPath).To(g.Equal(state.VSockPath()))
+	g.Expect(cfg.VsockDevice.UDSPath).To(g.Equal("sock/guest-agent.vsock"))
+	g.Expect(cfg.VsockDevice.UDSPath).To(g.Equal(state.RelativeVSockPath()))
 	g.Expect(strings.HasSuffix(cfg.VsockDevice.UDSPath, defaults.GuestAgentVsockName)).To(g.BeTrue())
 }
 
