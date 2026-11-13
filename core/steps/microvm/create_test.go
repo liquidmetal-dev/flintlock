@@ -275,3 +275,26 @@ func TestCreateStep_Do_NoGuestAgentNoCondition(t *testing.T) {
 	_, ok := vm.Status.Conditions.Get(models.ConditionGuestAgentReady)
 	g.Expect(ok).To(g.BeFalse())
 }
+
+func TestCreateStep_Do_ResetsConditionsWhenCreateFails(t *testing.T) {
+	g.RegisterTestingT(t)
+	svc := mock.NewMockMicroVMService(gomock.NewController(t))
+	ctx := context.Background()
+
+	vm := testVMToCreate()
+	vm.Spec.AllowGuestAgent = true
+	vm.Status.Conditions.Set(models.Condition{Type: models.ConditionVMMRunning, Status: models.ConditionTrue}, testNow)
+	vm.Status.Conditions.Set(models.Condition{Type: models.ConditionGuestAgentReady, Status: models.ConditionTrue}, testNow)
+
+	svc.EXPECT().Create(ctx, vm).Return(errors.New("spawn failed"))
+
+	_, err := microvm.NewCreateStep(vm, svc, testWait).Do(ctx)
+	g.Expect(err).To(g.HaveOccurred())
+
+	ready, _ := vm.Status.Conditions.Get(models.ConditionGuestAgentReady)
+	g.Expect(ready.Status).To(g.Equal(models.ConditionUnknown))
+
+	vmm, _ := vm.Status.Conditions.Get(models.ConditionVMMRunning)
+	g.Expect(vmm.Status).To(g.Equal(models.ConditionUnknown))
+	g.Expect(vmm.Reason).To(g.Equal(models.ReasonVMMStarting))
+}
