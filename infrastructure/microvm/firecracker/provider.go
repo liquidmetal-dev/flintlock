@@ -196,7 +196,9 @@ func toMicroVMState(state firecracker.InstanceState) (ports.MicroVMState, error)
 	case firecracker.InstanceStatePaused:
 		return ports.MicroVMStatePaused, nil
 	case firecracker.InstanceStateNotStarted:
-		return ports.MicroVMStatePending, nil
+		// The process is alive and builds the VM from its config file. Pending
+		// would make the create step launch a second VMM over this one's socket.
+		return ports.MicroVMStateRunning, nil
 	default:
 		return ports.MicroVMStateUnknown, fmt.Errorf("firecracker in an unsupported state: %s", state)
 	}

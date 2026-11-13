@@ -120,7 +120,7 @@ func TestProviderState(t *testing.T) {
 	}{
 		{fcState: firecracker.InstanceStateRunning, want: ports.MicroVMStateRunning},
 		{fcState: firecracker.InstanceStatePaused, want: ports.MicroVMStatePaused},
-		{fcState: firecracker.InstanceStateNotStarted, want: ports.MicroVMStatePending},
+		{fcState: firecracker.InstanceStateNotStarted, want: ports.MicroVMStateRunning},
 	}
 
 	for _, tc := range mapped {
