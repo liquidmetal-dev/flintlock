@@ -182,9 +182,14 @@ func (p *fcProvider) loadSnapshot(
 
 	// Firecracker keeps the MMDS config in a snapshot but not the data. The
 	// put comes before the resume, so the guest never sees the data of the
-	// source.
-	if err := client.PutMMDS(ctx, decodeMetadata(vm.Spec.Metadata)); err != nil {
-		return fmt.Errorf("putting firecracker metadata: %w", err)
+	// source. A snapshot has an MMDS data store only when an interface
+	// allows metadata requests. Without one, Firecracker refuses the put,
+	// because the data store does not exist, and the guest cannot read
+	// MMDS anyway.
+	if allowsMetadataRequests(vm) {
+		if err := client.PutMMDS(ctx, decodeMetadata(vm.Spec.Metadata)); err != nil {
+			return fmt.Errorf("putting firecracker metadata: %w", err)
+		}
 	}
 
 	if err := client.Resume(ctx); err != nil {
@@ -278,4 +283,16 @@ func (p *fcProvider) syncPath(path string) error {
 	}
 
 	return nil
+}
+
+// allowsMetadataRequests reports whether an interface of the microvm allows
+// metadata requests, so that its guest can read MMDS.
+func allowsMetadataRequests(vm *models.MicroVM) bool {
+	for i := range vm.Spec.NetworkInterfaces {
+		if vm.Spec.NetworkInterfaces[i].AllowMetadataRequests {
+			return true
+		}
+	}
+
+	return false
 }
