@@ -35,8 +35,8 @@ const (
 	recordFile   = "record.json"
 	refsDir      = "refs"
 	lockName     = ".lock"
-	vmstateFile  = "vmstate"
-	memoryFile   = "memory"
+	vmstateFile  = models.SnapshotVMStateFile
+	memoryFile   = models.SnapshotMemoryFile
 
 	dirPerm  = 0o700
 	filePerm = 0o600
