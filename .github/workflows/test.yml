@@ -20,7 +20,7 @@ jobs:
           persist-credentials: false
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
       - name: Install pinned mkfs.erofs
-        uses: ./.github/actions/erofs-utils
+        uses: ./.github/actions/erofs-utils # zizmor: ignore[self-repository] actionlint does not accept $/ yet
       - name: Build
         run: make build
       - name: Build e2e

@@ -35,9 +35,11 @@ runs:
   steps:
     - id: paths
       shell: bash
+      env:
+        INSTALL_DIR: ${{ inputs.install-dir }}
       run: |
-        echo "asset-dir=${{ runner.temp }}/erofs-utils/assets" >> "$GITHUB_OUTPUT"
-        echo "mkfs-erofs=${{ inputs.install-dir }}/mkfs.erofs" >> "$GITHUB_OUTPUT"
+        echo "asset-dir=${RUNNER_TEMP}/erofs-utils/assets" >> "$GITHUB_OUTPUT"
+        echo "mkfs-erofs=${INSTALL_DIR}/mkfs.erofs" >> "$GITHUB_OUTPUT"
 
     - id: cache
       if: inputs.cache == 'true'
@@ -57,15 +59,24 @@ runs:
     - name: Build mkfs.erofs
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: hack/scripts/build_erofs_utils.sh "${{ inputs.version }}" "${{ steps.paths.outputs.asset-dir }}"
+      env:
+        VERSION: ${{ inputs.version }}
+        ASSET_DIR: ${{ steps.paths.outputs.asset-dir }}
+      run: hack/scripts/build_erofs_utils.sh "$VERSION" "$ASSET_DIR"
 
     - name: Install mkfs.erofs
       shell: bash
-      run: |
-        asset_dir="${{ steps.paths.outputs.asset-dir }}"
-        asset="mkfs.erofs-${{ inputs.version }}-linux-amd64"
-        (cd "$asset_dir" && sha256sum -c "$asset.sha256")
-        sudo install -d -m 0755 "${{ inputs.install-dir }}"
-        sudo install -m 0755 "$asset_dir/$asset" "${{ steps.paths.outputs.mkfs-erofs }}"
-        echo "${{ inputs.install-dir }}" >> "$GITHUB_PATH"
-        "${{ steps.paths.outputs.mkfs-erofs }}" -V
+      env:
+        VERSION: ${{ inputs.version }}
+        INSTALL_DIR: ${{ inputs.install-dir }}
+        ASSET_DIR: ${{ steps.paths.outputs.asset-dir }}
+        MKFS_EROFS: ${{ steps.paths.outputs.mkfs-erofs }}
+      # The PATH entry is the caller's install-dir, and no caller of this
+      # action runs on pull_request_target or workflow_run.
+      run: | # zizmor: ignore[github-env]
+        asset="mkfs.erofs-${VERSION}-linux-amd64"
+        (cd "$ASSET_DIR" && sha256sum -c "$asset.sha256")
+        sudo install -d -m 0755 "$INSTALL_DIR"
+        sudo install -m 0755 "$ASSET_DIR/$asset" "$MKFS_EROFS"
+        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+        "$MKFS_EROFS" -V
