@@ -60,7 +60,7 @@ make_vm() {
 # start_fc <name>: start firecracker with cwd = $W/<name>; prints the pid.
 start_fc() {
 	rm -f "$RUN/$1.api"
-	(cd "$W/$1" && exec firecracker --api-sock "$RUN/$1.api" --id "$1" \
+	(cd "$W/$1" && exec firecracker --api-sock "$RUN/$1.api" --id "$1" "${@:2}" \
 		>"$W/$1.out" 2>&1 </dev/null) &
 	local pid=$!
 	for _ in $(seq 50); do [[ -S $RUN/$1.api ]] && break; sleep 0.1; done
@@ -129,10 +129,20 @@ strings "$W/snap/vmstate" | grep -qx 'volumes/root.img' || die "the snapshot doe
 log "spike A: restore Y from a different working directory, X still running"
 make_vm Y
 cp --reflink=auto "$W/snap/root.img" "$W/Y/volumes/root.img"
-YPID=$(start_fc Y)
-api $RUN/Y.api PUT /snapshot/load "{\"snapshot_path\":\"$W/snap/vmstate\",\"mem_backend\":{\"backend_type\":\"File\",\"backend_path\":\"$W/snap/mem\"},\"resume_vm\":true}"
+# Y starts as the flintlock provider restores (#1362): the log and metrics
+# flags on the command line, load without resume, MMDS put, then resume.
+touch "$W/Y.log" "$W/Y.metrics"
+YPID=$(start_fc Y --boot-timer --log-path "$W/Y.log" --level Debug --show-level --show-log-origin --metrics-path "$W/Y.metrics")
+api $RUN/Y.api PUT /snapshot/load "{\"snapshot_path\":\"$W/snap/vmstate\",\"mem_backend\":{\"backend_type\":\"File\",\"backend_path\":\"$W/snap/mem\"},\"resume_vm\":false}"
+if api $RUN/Y.api PUT /mmds '{"restore":{"generation":"1"}}'; then echo "result: PUT /mmds accepted"; else echo "result: PUT /mmds refused (the source has no MMDS config)"; fi
+api $RUN/Y.api PATCH /vm '{"state":"Resumed"}'
 sleep 3
 running $RUN/Y.api
+[[ -s $W/Y.log ]] || die "firecracker wrote no log for Y"
+for _ in $(seq 70); do [[ -s $W/Y.metrics ]] && break; sleep 1; done
+[[ -s $W/Y.metrics ]] || die "firecracker wrote no metrics for Y in 70s"
+echo "check: the restore flags give a log and metrics for Y"
+echo "--- head of Y.log:"; head -n 5 "$W/Y.log" | sed "s/^/    /"
 show_vm Y "$YPID"
 own_files Y "$YPID"
 running $X
