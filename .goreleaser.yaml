@@ -131,6 +131,11 @@ checksum:
 release:
   draft: true
   prerelease: false
+  # The pinned static mkfs.erofs and its sha256, built by
+  # .github/actions/erofs-utils and staged by the release workflow.
+  # flintlock-provision erofs-utils downloads them by name.
+  extra_files:
+    - glob: ./bin/erofs-utils/mkfs.erofs-*
 
 changelog:
   use: github-native
