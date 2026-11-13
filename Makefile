@@ -114,6 +114,37 @@ lint-actions: ## Lint and security-check the GitHub Actions workflows
 	actionlint
 	zizmor .github
 
+##@ Verification
+
+GO_MODULES := . api client
+GENERATED_PATHS := api infrastructure/mock internal/inject userdocs/content/docs/grpc
+
+.PHONY: check-generated
+check-generated: ## Check that the generated code is up to date
+	$(MAKE) generate-go
+# Not generate-proto: buf dep update needs the network and can change buf.lock.
+	buf generate
+	$(MAKE) generate-di
+	@if [ -n "$$(git status --porcelain -- $(GENERATED_PATHS))" ]; then \
+		git status --porcelain -- $(GENERATED_PATHS); \
+		git --no-pager diff -- $(GENERATED_PATHS); \
+		echo "The generated code is out of date, run 'make generate' and commit the result."; \
+		exit 1; \
+	fi
+
+.PHONY: check-tidy
+check-tidy: ## Check that go.mod and go.sum are tidy in every module
+	@for m in $(GO_MODULES); do (cd $$m && go mod tidy) || exit 1; done
+	@if [ -n "$$(git status --porcelain -- '*go.mod' '*go.sum')" ]; then \
+		git --no-pager diff -- '*go.mod' '*go.sum'; \
+		echo "A module is not tidy, run 'go mod tidy' in it and commit the result."; \
+		exit 1; \
+	fi
+
+.PHONY: vulncheck
+vulncheck: ## Check every module for known vulnerabilities
+	@for m in $(GO_MODULES); do echo "govulncheck $$m"; (cd $$m && govulncheck ./...) || exit 1; done
+
 ##@ Testing
 
 .PHONY: test
