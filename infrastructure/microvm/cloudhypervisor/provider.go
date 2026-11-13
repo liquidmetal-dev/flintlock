@@ -97,13 +97,35 @@ func (p *provider) Start(_ context.Context, _ *models.MicroVM) error {
 }
 
 // Pause will pause a running microvm.
-func (p *provider) Pause(_ context.Context, _ *models.MicroVM) error {
-	return cerrs.NewNotSupported("pause")
+func (p *provider) Pause(ctx context.Context, vm *models.MicroVM) error {
+	log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "cloudhypervisor_microvm",
+		"vmid":    vm.ID.String(),
+	}).Info("pausing microvm")
+
+	vmState := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+
+	if err := cloudhypervisor.New(vmState.ResolveSockPath()).Pause(ctx); err != nil {
+		return fmt.Errorf("pausing cloud-hypervisor microvm: %w", err)
+	}
+
+	return nil
 }
 
 // Resume will resume a paused microvm.
-func (p *provider) Resume(_ context.Context, _ *models.MicroVM) error {
-	return cerrs.NewNotSupported("resume")
+func (p *provider) Resume(ctx context.Context, vm *models.MicroVM) error {
+	log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "cloudhypervisor_microvm",
+		"vmid":    vm.ID.String(),
+	}).Info("resuming microvm")
+
+	vmState := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+
+	if err := cloudhypervisor.New(vmState.ResolveSockPath()).Resume(ctx); err != nil {
+		return fmt.Errorf("resuming cloud-hypervisor microvm: %w", err)
+	}
+
+	return nil
 }
 
 // State returns the state of a microvm.
@@ -173,10 +195,11 @@ func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, er
 		return ports.MicroVMStateRunning, nil
 	}
 
-	// NOTE: we can support paused/unpause in the future
 	switch vmInfo.State {
 	case cloudhypervisor.VMStateRunning, cloudhypervisor.VMStateCreated:
 		return ports.MicroVMStateRunning, nil
+	case cloudhypervisor.VMStatePaused:
+		return ports.MicroVMStatePaused, nil
 	default:
 		return ports.MicroVMStateUnknown, fmt.Errorf("cloud-hypervisor in an unsupported state: %s", vmInfo.State)
 	}
