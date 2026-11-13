@@ -44,7 +44,7 @@ func waitForRunning(
 			return state, fmt.Errorf("checking if microvm is running: %w", err)
 		}
 
-		if state == ports.MicroVMStateRunning {
+		if isStarted(state) {
 			return state, nil
 		}
 

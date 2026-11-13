@@ -17,7 +17,8 @@ One observed fact about a microVM, with a type, a status of `true`, `false` or
 _Avoid_: health, readiness flag
 
 **VMMRunning**:
-The condition that the VMM process of a microVM runs.
+The condition that the VMM process of a microVM runs. The VMM process of a
+paused microVM runs.
 _Avoid_: started, booted
 
 **GuestAgentReady**:

@@ -124,7 +124,7 @@ func (s *guestAgentReadyStep) checkVMM(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
 
-	if state != ports.MicroVMStateRunning {
+	if !isStarted(state) {
 		msg := fmt.Sprintf("vmm stopped, state %s", state)
 		setVMMRunning(s.vm, models.ConditionFalse, models.ReasonVMMExited, msg, s.wait)
 		s.setReady(models.ConditionFalse, models.ReasonVMMExited, msg)
