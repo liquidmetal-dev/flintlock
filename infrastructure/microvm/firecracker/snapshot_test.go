@@ -152,7 +152,7 @@ func restoreVM(vm *models.MicroVM) *models.MicroVM {
 			"restore":   "marker",
 		},
 		NetworkInterfaces: []models.NetworkInterface{
-			{GuestDeviceName: "eth0", Type: models.IfaceTypeTap},
+			{GuestDeviceName: "eth0", Type: models.IfaceTypeTap, AllowMetadataRequests: true},
 			{GuestDeviceName: "eth1", Type: models.IfaceTypeMacvtap},
 		},
 	}
@@ -184,7 +184,7 @@ func TestSnapshot(t *testing.T) {
 
 		params := map[string]string{}
 		_ = json.Unmarshal([]byte(call.body), &params)
-		_ = os.WriteFile(params["snapshot_path"], []byte("state"), 0o644) //nolint:gosec // test
+		_ = os.WriteFile(params["snapshot_path"], []byte("state"), 0o644)  //nolint:gosec // test
 		_ = os.WriteFile(params["mem_file_path"], []byte("memory"), 0o644) //nolint:gosec // test
 	}}
 	api.serve(t, vmState.APISockPath())
@@ -312,6 +312,29 @@ func TestRestore_DefaultMemoryMode(t *testing.T) {
 	p.startVMM = fakeStart(t, vmState, api, &startedVMM{})
 
 	g.Expect(p.Restore(context.Background(), vm, t.TempDir(), ports.RestoreInput{})).To(g.Succeed())
+
+	_, resumed := api.call(http.MethodPatch, "/vm")
+	g.Expect(resumed).To(g.BeTrue())
+}
+
+func TestRestore_NoMetadataInterface(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, vm, vmState := newTestProvider(t)
+	vm = restoreVM(vm)
+
+	for i := range vm.Spec.NetworkInterfaces {
+		vm.Spec.NetworkInterfaces[i].AllowMetadataRequests = false
+	}
+
+	api := &fakeAPI{}
+	p.startVMM = fakeStart(t, vmState, api, &startedVMM{})
+
+	g.Expect(p.Restore(context.Background(), vm, t.TempDir(), ports.RestoreInput{})).To(g.Succeed())
+
+	// The snapshot has no MMDS data store, so there is no put.
+	_, put := api.call(http.MethodPut, "/mmds")
+	g.Expect(put).To(g.BeFalse())
 
 	_, resumed := api.call(http.MethodPatch, "/vm")
 	g.Expect(resumed).To(g.BeTrue())
