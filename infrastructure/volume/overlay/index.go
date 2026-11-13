@@ -20,7 +20,10 @@ const (
 	locksDir    = ".locks"
 	scratchDir  = "scratch"
 	vmDir       = "vm"
-	baseExt     = ".img"
+	// snapshotsDir holds one directory per snapshot. The snapshot store
+	// owns it. The sweep reads the root.base links in it.
+	snapshotsDir = "snapshots"
+	baseExt      = ".img"
 
 	dirPerm  = 0o755
 	basePerm = 0o400
@@ -59,11 +62,11 @@ type Base struct {
 	Profile string
 }
 
-// Reference is a VM's link to a base.
+// Reference is a VM's or a snapshot's link to a base.
 type Reference struct {
 	// Digest is the sha256 of the base the link resolves to.
 	Digest string
-	// Link is the path of the VM's root.base symlink.
+	// Link is the path of the root.base symlink.
 	Link string
 }
 
@@ -88,7 +91,8 @@ type baseIndex interface {
 	Entries() ([]Entry, error)
 	// Remove deletes the by-source link of key. A missing link is a success.
 	Remove(key baseKey) error
-	// References lists every VM link to a base under the state root.
+	// References lists every VM and snapshot link to a base under the state
+	// root.
 	References() ([]Reference, error)
 }
 
@@ -301,31 +305,34 @@ func (i *fsIndex) Remove(key baseKey) error {
 	return nil
 }
 
-// References scans vm/*/*/*/volumes/root.base and returns one entry per
-// link. A link whose target name is not a base digest is reported with an
-// error.
+// References scans vm/*/*/*/volumes/root.base and snapshots/*/root.base
+// and returns one entry per link. A link whose target name is not a base
+// digest is reported with an error.
 func (i *fsIndex) References() ([]Reference, error) {
-	pattern := filepath.Join(i.root, vmDir, "*", "*", "*", "volumes", "root.base")
+	refs := make([]Reference, 0)
 
-	links, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, fmt.Errorf("listing %s: %w", pattern, err)
-	}
-
-	refs := make([]Reference, 0, len(links))
-
-	for _, link := range links {
-		target, err := os.Readlink(link)
+	for _, pattern := range []string{
+		filepath.Join(i.root, vmDir, "*", "*", "*", volumesDir, baseLinkName),
+		filepath.Join(i.root, snapshotsDir, "*", baseLinkName),
+	} {
+		links, err := filepath.Glob(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("reading link %s: %w", link, err)
+			return nil, fmt.Errorf("listing %s: %w", pattern, err)
 		}
 
-		sum, err := digestFromPath(target)
-		if err != nil {
-			return nil, fmt.Errorf("link %s: %w", link, err)
-		}
+		for _, link := range links {
+			target, err := os.Readlink(link)
+			if err != nil {
+				return nil, fmt.Errorf("reading link %s: %w", link, err)
+			}
 
-		refs = append(refs, Reference{Digest: sum, Link: link})
+			sum, err := digestFromPath(target)
+			if err != nil {
+				return nil, fmt.Errorf("link %s: %w", link, err)
+			}
+
+			refs = append(refs, Reference{Digest: sum, Link: link})
+		}
 	}
 
 	return refs, nil

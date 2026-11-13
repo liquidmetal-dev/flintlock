@@ -59,6 +59,22 @@ const (
 // that a volume in VolumeModeOverlay accepts.
 const OverlayMinWritableDiskMB int32 = 64
 
+// CapturedVolume describes the writable disk of a volume in
+// VolumeModeOverlay that was captured for a snapshot.
+type CapturedVolume struct {
+	// BaseKey is the key of the base the disk was written over,
+	// "<chain-id>/<profile>". It is empty when the host no longer records
+	// the image the base was built from.
+	BaseKey string `json:"base_key,omitempty"`
+	// BaseDigest is the sha256 of the base file in hex.
+	BaseDigest string `json:"base_digest"`
+	// SizeBytes is the size of the captured disk in bytes.
+	SizeBytes int64 `json:"size_bytes"`
+	// BlockSize is the block size, in bytes, of the filesystem that holds
+	// the captured disk.
+	BlockSize int64 `json:"block_size"`
+}
+
 // Volumes represents a collection of volumes.
 type Volumes []Volume
 
