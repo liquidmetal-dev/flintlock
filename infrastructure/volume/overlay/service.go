@@ -13,6 +13,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/reflink"
 )
 
 const (
@@ -86,7 +87,7 @@ func NewService(cfg Config, source LayerSource) (*Service, error) {
 		builder:       builder,
 		index:         builder.index,
 		templates:     tmpl,
-		clone:         cloneFile,
+		clone:         reflink.Clone,
 		defaultSizeMB: cfg.DefaultRWSizeMB,
 		retention:     cfg.BaseRetention,
 	}, nil
