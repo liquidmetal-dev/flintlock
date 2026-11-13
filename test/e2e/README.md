@@ -101,6 +101,13 @@ does this with `zot` on port 5000.
   directory of the MicroVM, and that both are gone after the delete, which
   leaves the shared directory as it was. It is skipped when `cloudhypervisor`
   is not one of the providers.
+- `TestE2EFirecrackerPauseResume`: creates a MicroVM with the firecracker
+  provider and checks that Firecracker listens on `firecracker.sock` in the
+  socket directory of the MicroVM. While the guest boots, the test pauses the
+  MicroVM through the provider of flintlockd, checks that the provider reports
+  it as paused and that its console does not grow, then resumes it, checks that
+  the provider reports it as running, and waits for the guest to finish its
+  boot. It is skipped when `firecracker` is not one of the providers.
 - `TestE2EGuestWithoutInit`: creates a MicroVM whose root volume has no init,
   with each of the providers. The kernel of the guest boots, mounts the root
   volume, panics and reboots, which the test reads from the console. The

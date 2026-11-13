@@ -14,6 +14,8 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
+const apiSocketFileName = "firecracker.sock"
+
 type State interface {
 	Root() string
 	SocketRoot() string
@@ -28,6 +30,7 @@ type State interface {
 	StderrPath() string
 	VSockPath() string
 	legacyVSockPath() string
+	APISockPath() string
 
 	ConfigPath() string
 	Config() (VmmConfig, error)
@@ -92,6 +95,11 @@ func (s *fsState) VSockPath() string {
 // Legacy fallback for #1226, to be removed in the next minor release.
 func (s *fsState) legacyVSockPath() string {
 	return s.stateRoot + "/" + defaults.GuestAgentVsockName
+}
+
+// APISockPath is the path of the Firecracker API socket.
+func (s *fsState) APISockPath() string {
+	return s.socketRoot + "/" + apiSocketFileName
 }
 
 func (s *fsState) SetPid(pid int) error {

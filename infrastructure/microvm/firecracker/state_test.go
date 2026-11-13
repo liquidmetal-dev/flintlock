@@ -24,3 +24,16 @@ func TestStateVSockPathIndependentOfName(t *testing.T) {
 	g.Expect(state.VSockPath()).To(g.Equal(defaults.SocketRootDir + "/" + uid + "/" + defaults.GuestAgentVsockName))
 	g.Expect(len(state.VSockPath()) + models.SocketSuffixReserve).To(g.BeNumerically("<=", models.MaxUnixSocketPathLength))
 }
+
+func TestStateAPISockPath(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	uid := "01J9Z3V7C8X4K2M5N6P7Q8R9ST"
+	vmid, err := models.NewVMID(strings.Repeat("n", 63), strings.Repeat("s", 63), uid)
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	state := firecracker.NewState(*vmid, defaults.StateRootDir+"/vm", defaults.SocketRootDir, afero.NewMemMapFs())
+
+	g.Expect(state.APISockPath()).To(g.Equal(defaults.SocketRootDir + "/" + uid + "/firecracker.sock"))
+	g.Expect(len(state.APISockPath())).To(g.BeNumerically("<=", models.MaxUnixSocketPathLength))
+}

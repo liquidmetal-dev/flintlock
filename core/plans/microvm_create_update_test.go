@@ -11,6 +11,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/plans"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	portsctx "github.com/liquidmetal-dev/flintlock/core/ports/context"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 )
 
 func TestMicroVMCreateOrUpdatePlan(t *testing.T) {
@@ -153,4 +154,42 @@ func TestMicroVMPlanFinalise(t *testing.T) {
 
 		Expect(vm.Status.State).To(Equal(models.MicroVMState(tc.state)))
 	}
+}
+
+func TestMicroVMCreateOrUpdatePlan_PausedMicroVMHasNoSteps(t *testing.T) {
+	RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testVM := createTestSpec("vmid", "namespace")
+	testVM.Status.Volumes = models.VolumeStatuses{
+		"root": &models.VolumeStatus{Mount: models.Mount{Type: models.MountTypeHostPath, Source: "/root"}},
+	}
+	testVM.Status.KernelMount = &models.Mount{Type: models.MountTypeHostPath, Source: "/kernel"}
+	testVM.Status.NetworkInterfaces["eth1"] = &models.NetworkInterfaceStatus{HostDeviceName: "fltap5675123"}
+
+	mList, mockedPorts := fakePorts(mockCtrl)
+	Expect(mockedPorts.FileSystem.MkdirAll("/tmp/path/to/vm", defaults.DataDirPerm)).To(Succeed())
+	Expect(mockedPorts.FileSystem.MkdirAll(models.SocketRoot("/tmp/run", testVM.ID), defaults.DataDirPerm)).To(Succeed())
+
+	ctx := portsctx.WithPorts(context.Background(), mockedPorts)
+	plan := plans.MicroVMCreateOrUpdatePlan(&plans.CreateOrUpdatePlanInput{
+		VM:              testVM,
+		StateDirectory:  "/tmp/path/to/vm",
+		SocketDirectory: "/tmp/run",
+	})
+
+	mList.MicroVMService.EXPECT().Capabilities().Return(models.Capabilities{}).Times(2)
+	mList.MicroVMService.
+		EXPECT().
+		State(gomock.Any(), gomock.Eq(testVM.ID.String())).
+		Return(ports.MicroVMStatePaused, nil).
+		Times(2)
+	mList.ImageService.EXPECT().IsMounted(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+	mList.NetworkService.EXPECT().IfaceExists(gomock.Any(), gomock.Any()).Return(true, nil).Times(2)
+
+	steps, err := plan.Create(ctx)
+
+	Expect(err).NotTo(HaveOccurred())
+	Expect(steps).To(BeEmpty())
 }
