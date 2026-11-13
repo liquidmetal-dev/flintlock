@@ -85,6 +85,10 @@ func (s *guestAgentReadyStep) Do(ctx context.Context) ([]planner.Procedure, erro
 			return nil, nil
 		}
 
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("waiting for the guest-agent: %w", ctx.Err())
+		}
+
 		if !time.Now().Before(deadline) {
 			// The VMM can stop during the last ping; that is a failed boot, not a ping timeout.
 			running, err := s.checkVMM(ctx)

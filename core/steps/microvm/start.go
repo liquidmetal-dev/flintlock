@@ -59,11 +59,12 @@ func (s *startStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	})
 	logger.Debug("starting microvm")
 
+	resetConditions(s.vm, s.wait)
+
 	if err := s.vmSvc.Start(ctx, s.vm); err != nil {
 		return nil, fmt.Errorf("starting microvm: %w", err)
 	}
 
-	resetGuestAgentReady(s.vm, s.wait)
 
 	return nil, nil
 }

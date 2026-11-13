@@ -206,3 +206,28 @@ func TestGuestAgentReadyStep_Do_VMMExitedDuringLastPing(t *testing.T) {
 	ready, _ := vm.Status.Conditions.Get(models.ConditionGuestAgentReady)
 	g.Expect(ready.Reason).To(g.Equal(models.ReasonVMMExited))
 }
+
+func TestGuestAgentReadyStep_Do_CancelAtDeadlineKeepsUnknown(t *testing.T) {
+	g.RegisterTestingT(t)
+	ctrl := gomock.NewController(t)
+	svc := mock.NewMockMicroVMService(ctrl)
+	agent := mock.NewMockGuestAgentService(ctrl)
+	ctx, cancel := context.WithCancel(context.Background())
+	vm := testGuestAgentVM()
+
+	svc.EXPECT().State(gomock.Any(), vm.ID.String()).Return(ports.MicroVMStateRunning, nil).AnyTimes()
+	agent.EXPECT().Ping(gomock.Any(), testVSockPath).DoAndReturn(func(_ context.Context, _ string) error {
+		cancel()
+
+		return context.Canceled
+	})
+
+	wait := testWait
+	wait.Timeout = 0
+
+	_, err := microvm.NewGuestAgentReadyStep(vm, svc, agent, wait).Do(ctx)
+	g.Expect(err).To(g.MatchError(context.Canceled))
+
+	_, ok := vm.Status.Conditions.Get(models.ConditionGuestAgentReady)
+	g.Expect(ok).To(g.BeFalse())
+}

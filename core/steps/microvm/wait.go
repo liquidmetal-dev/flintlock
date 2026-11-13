@@ -101,9 +101,16 @@ func verifyRunning(ctx context.Context, vm *models.MicroVM, vmSvc ports.MicroVMS
 	}
 }
 
-// resetGuestAgentReady marks the guest-agent of a VMM that starts again as
-// not known, so that the guest-agent ready step pings it again.
-func resetGuestAgentReady(vm *models.MicroVM, cfg WaitConfig) {
+// resetConditions marks the VMM and the guest-agent of a VMM that starts
+// (again) as not known. It runs before the provider call, so that a failed
+// start does not keep the conditions of the previous VMM.
+func resetConditions(vm *models.MicroVM, cfg WaitConfig) {
+	vm.Status.Conditions.Set(models.Condition{
+		Type:   models.ConditionVMMRunning,
+		Status: models.ConditionUnknown,
+		Reason: models.ReasonVMMStarting,
+	}, cfg.now())
+
 	if !vm.Spec.AllowGuestAgent {
 		return
 	}
