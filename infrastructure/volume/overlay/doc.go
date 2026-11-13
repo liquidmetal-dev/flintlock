@@ -1,6 +1,8 @@
 // Package overlay provisions the drives of an overlay volume: a read-only
 // EROFS base shared by every microvm of one image, and a writable ext4
-// disk per microvm. Service implements ports.VolumeService over them.
+// disk per microvm. Service implements ports.VolumeService over them: it
+// also captures a writable disk into a snapshot directory and restores a
+// microvm's disk from one.
 //
 // A base is one EROFS file built from the layers of an OCI image. The
 // build never unpacks the image. Each layer is converted to an EROFS file
@@ -21,11 +23,14 @@
 //	scratch/                                           build temp
 //	vm/<ns>/<name>/<uid>/volumes/root.base -> ../../../../../bases/<sha256>.img
 //	vm/<ns>/<name>/<uid>/volumes/root.rw               reflink of a template
+//	vm/<ns>/<name>/<uid>/volumes/.lock                 flock for a restore
+//	snapshots/<uuid>/root.base -> ../../bases/<sha256>.img
+//	snapshots/<uuid>/root.rw                           reflink of a microvm's root.rw
 //
 // The modification time of a by-source link is the last use of its base.
-// The sweep removes a base that no microvm links to once that time is
-// older than the retention period. Every lock is a flock, not a mutex,
-// because the daemon runs more than one set of ports.
+// The sweep removes a base that no microvm and no snapshot links to once
+// that time is older than the retention period. Every lock is a flock, not
+// a mutex, because the daemon runs more than one set of ports.
 //
 // The package imports no containerd code. The layers come from a
 // LayerSource, which infrastructure/containerd implements.

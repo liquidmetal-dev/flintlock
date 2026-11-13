@@ -13,12 +13,15 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/reflink"
 )
 
 const (
 	volumesDir   = "volumes"
 	baseLinkName = "root.base"
 	rwDiskName   = "root.rw"
+
+	volumesLockName = ".lock"
 
 	// MkfsExt4 is the default mkfs.ext4, found on PATH.
 	MkfsExt4 = "mkfs.ext4"
@@ -86,7 +89,7 @@ func NewService(cfg Config, source LayerSource) (*Service, error) {
 		builder:       builder,
 		index:         builder.index,
 		templates:     tmpl,
-		clone:         cloneFile,
+		clone:         reflink.Clone,
 		defaultSizeMB: cfg.DefaultRWSizeMB,
 		retention:     cfg.BaseRetention,
 	}, nil
@@ -230,18 +233,26 @@ func linkBase(link, target string) error {
 }
 
 // makeWritable reflinks the template of sizeMB to path unless path exists.
-// It clones to a temporary name and renames, so a crash never leaves a
-// half-made disk that a later Create would keep. It reports whether it
-// made the disk.
+// It reports whether it made the disk.
 func (s *Service) makeWritable(ctx context.Context, path string, sizeMB int32) (bool, error) {
-	if _, err := os.Lstat(path); err == nil {
-		return false, nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return false, fmt.Errorf("stat %s: %w", path, err)
+	if found, err := exists(path); err != nil || found {
+		return false, err
 	}
 
 	template, err := s.templates.get(ctx, sizeMB)
 	if err != nil {
+		return false, err
+	}
+
+	return s.cloneDisk(template, path)
+}
+
+// cloneDisk reflinks the disk at src to path unless path exists. It clones
+// to a temporary name and then publishes it, so a crash never leaves a
+// half-made disk that a later call would keep. It reports whether it made
+// the disk.
+func (s *Service) cloneDisk(src, path string) (bool, error) {
+	if found, err := exists(path); err != nil || found {
 		return false, err
 	}
 
@@ -256,14 +267,21 @@ func (s *Service) makeWritable(ctx context.Context, path string, sizeMB int32) (
 	_ = tmp.Close()
 	_ = os.Remove(tmpName)
 
-	if err := s.clone(template, tmpName, diskPerm); err != nil {
+	if err := s.clone(src, tmpName, diskPerm); err != nil {
 		return false, err
 	}
 
-	if err := os.Rename(tmpName, path); err != nil {
-		_ = os.Remove(tmpName)
+	// A link, unlike a rename, fails when path exists, so a disk that another
+	// call published, and that a guest may already write to, is never replaced.
+	err = os.Link(tmpName, path)
+	_ = os.Remove(tmpName)
 
-		return false, fmt.Errorf("renaming disk to %s: %w", path, err)
+	if errors.Is(err, os.ErrExist) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, fmt.Errorf("linking disk to %s: %w", path, err)
 	}
 
 	return true, syncDir(dir)

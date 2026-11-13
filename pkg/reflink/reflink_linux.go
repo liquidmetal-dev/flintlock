@@ -43,6 +43,37 @@ func Probe(dir string) error {
 	return nil
 }
 
+// Clone makes dst a reflink of src with FICLONE: a new inode that shares
+// the data blocks of src. The mode of dst is perm, and dst must not exist.
+// A filesystem that cannot clone fails with an error that wraps
+// ErrNotSupported, and dst is removed.
+func Clone(src, dst string, perm os.FileMode) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("opening %s: %w", src, err)
+	}
+
+	defer in.Close()
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_EXCL, perm)
+	if err != nil {
+		return fmt.Errorf("creating %s: %w", dst, err)
+	}
+
+	if err := unix.IoctlFileClone(int(out.Fd()), int(in.Fd())); err != nil {
+		_ = out.Close()
+		_ = os.Remove(dst)
+
+		if isNotSupported(err) {
+			return fmt.Errorf("cloning %s to %s: %w: %w", src, dst, ErrNotSupported, err)
+		}
+
+		return fmt.Errorf("cloning %s to %s: %w", src, dst, err)
+	}
+
+	return out.Close()
+}
+
 // isNotSupported reports whether err is one of the errno values the kernel
 // returns when FICLONE is not available on the filesystem.
 func isNotSupported(err error) bool {

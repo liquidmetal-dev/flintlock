@@ -2,13 +2,14 @@ package overlay
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/sys/unix"
+
+	"github.com/liquidmetal-dev/flintlock/pkg/reflink"
 )
 
 func lutimes(path string, tv unix.Timeval) error {
@@ -44,64 +45,10 @@ func reflinkDir(t *testing.T) string {
 	return abs
 }
 
-func TestCloneFile(t *testing.T) {
-	g := NewWithT(t)
-	dir := reflinkDir(t)
-
-	src := filepath.Join(dir, "src")
-	g.Expect(os.WriteFile(src, []byte("shared blocks"), 0o644)).To(Succeed())
-
-	dst := filepath.Join(dir, "dst")
-	g.Expect(cloneFile(src, dst, 0o600)).To(Succeed())
-
-	content, err := os.ReadFile(dst)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(string(content)).To(Equal("shared blocks"))
-
-	info, err := os.Stat(dst)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(info.Mode().Perm()).To(Equal(os.FileMode(0o600)))
-	g.Expect(inode(t, dst)).NotTo(Equal(inode(t, src)))
-
-	// A write to the clone does not reach the source.
-	g.Expect(os.WriteFile(dst, []byte("changed"), 0o600)).To(Succeed())
-	content, err = os.ReadFile(src)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(string(content)).To(Equal("shared blocks"))
-
-	// The destination must not exist.
-	err = cloneFile(src, dst, 0o600)
-	g.Expect(errors.Is(err, os.ErrExist)).To(BeTrue(), "got %v", err)
-}
-
-func TestCloneFile_Unsupported(t *testing.T) {
-	g := NewWithT(t)
-	dir := t.TempDir()
-
-	if ProbeReflink(dir) == nil {
-		t.Skipf("%s supports reflinks", dir)
-	}
-
-	src := filepath.Join(dir, "src")
-	g.Expect(os.WriteFile(src, []byte("x"), 0o644)).To(Succeed())
-
-	dst := filepath.Join(dir, "dst")
-	err := cloneFile(src, dst, 0o600)
-	g.Expect(errors.Is(err, ErrReflinkNotSupported)).To(BeTrue(), "got %v", err)
-	g.Expect(dst).NotTo(BeAnExistingFile())
-
-	err = ProbeReflink(dir)
-	g.Expect(errors.Is(err, ErrReflinkNotSupported)).To(BeTrue(), "got %v", err)
-
-	entries, err := os.ReadDir(dir)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(entries).To(HaveLen(1), "the probe cleans up")
-}
-
 func TestService_CreateWithReflink(t *testing.T) {
 	g := NewWithT(t)
 	env := newTestService(t, reflinkDir(t))
-	env.svc.clone = cloneFile
+	env.svc.clone = reflink.Clone
 	ctx := context.Background()
 
 	in := createInput("a", "img:1")
@@ -125,4 +72,48 @@ func TestService_CreateWithReflink(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(inode(t, second.RWMount.Source)).NotTo(Equal(inode(t, mounts.RWMount.Source)))
 	g.Expect(env.mkfsRuns(t)).To(HaveLen(1))
+}
+
+func TestService_CaptureAndRestoreWithReflink(t *testing.T) {
+	g := NewWithT(t)
+	env := newTestService(t, reflinkDir(t))
+	env.svc.clone = reflink.Clone
+	ctx := context.Background()
+
+	mounts, err := env.svc.Create(ctx, createInput("a", "img:1"))
+	g.Expect(err).NotTo(HaveOccurred())
+	writeAt(t, mounts.RWMount.Source, 4096, "guest writes before the capture")
+
+	before := sha256File(t, mounts.RWMount.Source)
+	dir := snapshotDir(env, "snap1")
+
+	_, err = env.svc.Capture(ctx, vmRef("a"), dir)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	captured := filepath.Join(dir, "root.rw")
+	g.Expect(sha256File(t, captured)).To(Equal(before))
+	g.Expect(inode(t, captured)).NotTo(Equal(inode(t, mounts.RWMount.Source)))
+
+	// The source writes after the capture without changing it.
+	writeAt(t, mounts.RWMount.Source, 4096, "guest writes after the capture")
+	g.Expect(sha256File(t, mounts.RWMount.Source)).NotTo(Equal(before))
+	g.Expect(sha256File(t, captured)).To(Equal(before))
+
+	b, err := env.svc.Restore(ctx, restoreInput("b", dir))
+	g.Expect(err).NotTo(HaveOccurred())
+	c, err := env.svc.Restore(ctx, restoreInput("c", dir))
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(sha256File(t, b.RWMount.Source)).To(Equal(before))
+	g.Expect(sha256File(t, c.RWMount.Source)).To(Equal(before))
+	g.Expect(b.RWMount.Source).NotTo(Equal(c.RWMount.Source))
+	g.Expect(inode(t, b.RWMount.Source)).NotTo(Equal(inode(t, c.RWMount.Source)))
+	g.Expect(inode(t, b.RWMount.Source)).NotTo(Equal(inode(t, captured)))
+	g.Expect(inode(t, b.BaseMount.Source)).To(Equal(inode(t, c.BaseMount.Source)))
+	g.Expect(inode(t, b.BaseMount.Source)).To(Equal(inode(t, mounts.BaseMount.Source)))
+
+	// A write to one restored disk reaches neither the other nor the capture.
+	writeAt(t, b.RWMount.Source, 4096, "guest writes of b")
+	g.Expect(sha256File(t, c.RWMount.Source)).To(Equal(before))
+	g.Expect(sha256File(t, captured)).To(Equal(before))
 }

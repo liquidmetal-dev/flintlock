@@ -725,6 +725,21 @@ func (m *MockVolumeService) EXPECT() *MockVolumeServiceMockRecorder {
 	return m.recorder
 }
 
+// Capture mocks base method.
+func (m *MockVolumeService) Capture(arg0 context.Context, arg1 ports.VolumeRef, arg2 string) (*models.CapturedVolume, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Capture", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*models.CapturedVolume)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Capture indicates an expected call of Capture.
+func (mr *MockVolumeServiceMockRecorder) Capture(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Capture", reflect.TypeOf((*MockVolumeService)(nil).Capture), arg0, arg1, arg2)
+}
+
 // Create mocks base method.
 func (m *MockVolumeService) Create(arg0 context.Context, arg1 ports.VolumeCreateInput) (*ports.VolumeMounts, error) {
 	m.ctrl.T.Helper()
@@ -752,6 +767,21 @@ func (m *MockVolumeService) Release(arg0 context.Context, arg1 ports.VolumeRef) 
 func (mr *MockVolumeServiceMockRecorder) Release(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Release", reflect.TypeOf((*MockVolumeService)(nil).Release), arg0, arg1)
+}
+
+// Restore mocks base method.
+func (m *MockVolumeService) Restore(arg0 context.Context, arg1 ports.VolumeRestoreInput) (*ports.VolumeMounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Restore", arg0, arg1)
+	ret0, _ := ret[0].(*ports.VolumeMounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Restore indicates an expected call of Restore.
+func (mr *MockVolumeServiceMockRecorder) Restore(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Restore", reflect.TypeOf((*MockVolumeService)(nil).Restore), arg0, arg1)
 }
 
 // MockHostInfoService is a mock of HostInfoService interface.
