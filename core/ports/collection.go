@@ -18,4 +18,5 @@ type Collection struct {
 	Clock             func() time.Time
 	VirtioFSService   VirtioFSService
 	VolumeService     VolumeService
+	HostInfoService   HostInfoService
 }

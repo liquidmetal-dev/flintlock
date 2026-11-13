@@ -15,6 +15,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/controllers"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/godisk"
 	microvmgrpc "github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/hostinfo"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
@@ -41,7 +42,9 @@ func InitializePorts(cfg *config.Config, volumeCaps microvm.VolumeCapabilities) 
 		containerd.NewClient,
 		containerd.NewLayerSource,
 		overlayConfig,
-		volumeService)
+		volumeService,
+		hostInfoConfig,
+		hostinfo.New)
 
 	return nil, nil
 }
@@ -126,7 +129,7 @@ func appConfig(cfg *config.Config) *application.Config {
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService, vs ports.VolumeService) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService, vs ports.VolumeService, his ports.HostInfoService) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
 		MicrovmProviders:  providers,
@@ -139,6 +142,7 @@ func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMSe
 		DiskService:       ds,
 		VirtioFSService:   vfs,
 		VolumeService:     vs,
+		HostInfoService:   his,
 	}
 }
 
@@ -156,4 +160,12 @@ func queryUCFromApp(app application.App) ports.MicroVMQueryUseCases {
 
 func commandUCFromApp(app application.App) ports.MicroVMCommandUseCases {
 	return app
+}
+
+func hostInfoConfig(cfg *config.Config) hostinfo.Config {
+	return hostinfo.Config{
+		FirecrackerBin:     cfg.FirecrackerBin,
+		CloudHypervisorBin: cfg.CloudHypervisorBin,
+		CPUInfoPath:        hostinfo.DefaultCPUInfoPath,
+	}
 }
