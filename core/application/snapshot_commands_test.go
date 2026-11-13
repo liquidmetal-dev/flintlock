@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -429,4 +430,58 @@ func TestApp_GetAllSnapshots_Empty(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(snapshots).NotTo(BeNil())
 	Expect(snapshots).To(BeEmpty())
+}
+
+func TestApp_CreateSnapshot_PublishFailureMarksRecordFailed(t *testing.T) {
+	RegisterTestingT(t)
+
+	app, mocks := newSnapshotTestApp(t)
+	vm := snapshotSourceVM()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	mocks.repo.EXPECT().Get(gomock.Any(), ports.RepositoryGetOptions{UID: testUID}).Return(vm, nil)
+	mocks.provider.EXPECT().Capabilities().Return(snapshotCapabilities).AnyTimes()
+	mocks.snapshots.EXPECT().
+		List(gomock.Any(), ports.SnapshotListOptions{Namespace: "ns1", SourceUID: testUID}).
+		Return(nil, nil)
+	mocks.snapshots.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, snapshot *models.Snapshot) error {
+			snapshot.UID = testSnapshotUID
+			snapshot.Status = models.SnapshotStatus{Phase: models.SnapshotPhasePending}
+
+			return nil
+		})
+
+	publishErr := errors.New("context canceled")
+	mocks.events.EXPECT().
+		Publish(gomock.Any(), defaults.TopicSnapshotEvents, gomock.Any()).
+		DoAndReturn(func(context.Context, string, interface{}) error {
+			cancel()
+
+			return publishErr
+		})
+
+	var updated *models.Snapshot
+
+	mocks.snapshots.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(updateCtx context.Context, snapshot *models.Snapshot) error {
+			Expect(updateCtx.Err()).NotTo(HaveOccurred(), "the update outlives the canceled request")
+
+			updated = snapshot
+
+			return nil
+		}).
+		Times(1)
+
+	snapshot, err := app.CreateSnapshot(ctx, models.CreateSnapshotRequest{SourceUID: testUID, Name: "snap1"})
+
+	Expect(snapshot).To(BeNil())
+	Expect(err).To(MatchError(publishErr))
+	Expect(err.Error()).To(ContainSubstring(testSnapshotUID))
+	Expect(updated).NotTo(BeNil())
+	Expect(updated.UID).To(Equal(testSnapshotUID))
+	Expect(updated.Status.Phase).To(Equal(models.SnapshotPhaseFailed))
+	Expect(updated.Status.Error).To(ContainSubstring("context canceled"))
 }
