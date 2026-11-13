@@ -250,9 +250,11 @@ one empty file `refs/<vm-uid>` in the snapshot directory (#1372). The restore
 plan calls `AddRef` and `DeleteMicroVM` calls `ReleaseRef`.
 
 `DeleteSnapshot` of a snapshot with no refs removes its directory. With refs,
-it sets `deleted`, keeps `record.json`, `vmstate`, `memory` and `refs/`, and
-removes the rest. A deleted record is not returned by `Get` or `List`. The
-last `ReleaseRef` of a deleted record removes the directory.
+it sets `deleted`, keeps `.lock`, `record.json`, `vmstate`, `memory` and
+`refs/`, and removes the rest. `.lock` stays because every later `ReleaseRef`
+changes `refs/` under its flock (section 4.3). A deleted record is not
+returned by `Get` or `List`. The last `ReleaseRef` of a deleted record removes
+the directory, `.lock` last.
 
 The reasons:
 
@@ -891,10 +893,11 @@ KVM (host kernel `7.0.0-1017-azure`), Firecracker v1.16.1 (snapshot format
 `v10.0.0`), the guest kernel `ghcr.io/liquidmetal-dev/firecracker-kernel:5.10-20260929-1349`
 and a rootfs from `ghcr.io/liquidmetal-dev/ubuntu:24.04`. The working
 directories were on XFS with reflink. Run:
-<https://github.com/liquidmetal-dev/flintlock/actions/runs/43436483600>.
+<https://github.com/liquidmetal-dev/flintlock/actions/runs/43442598765>.
 The script is
 [`0204-snapshot-restore-spikes.sh`](0204-snapshot-restore-spikes.sh); the
-commands below are the parts that matter.
+commands below are the parts that matter. The script stops at the first
+failed step or check, and the run ends with `PASS`.
 
 Each microVM had a working directory `/srv/spike/<name>` with its own
 `volumes/root.img` and a link `sock` to `/run/spike/<name>`. Each process
@@ -942,21 +945,20 @@ is not needed.
 - A second process Z loaded the same `vmstate` and `mem` with the `File`
   backend while Y ran. Both report `"state":"Running"`. Each opens `mem`
   read-only (`/proc/<pid>/fd`) and has its own disk and socket.
-- `/proc/<pid>/smaps` of the 256 MiB mapping of `mem`, the same in both
-  processes within a few pages:
+- `/proc/<pid>/smaps` of the 256 MiB mapping of `mem` in both processes:
 
   | Field | Y | Z |
   | ----- | - | - |
-  | Rss | 43348 kB | 43348 kB |
-  | Pss | 22328 kB | 22328 kB |
-  | Shared_Clean | 42040 kB | 42040 kB |
-  | Private_Dirty | 1304 kB | 1308 kB |
+  | Rss | 45516 kB | 43472 kB |
+  | Pss | 24450 kB | 22406 kB |
+  | Shared_Clean | 42132 kB | 42132 kB |
+  | Private_Dirty | 1340 kB | 1096 kB |
 
   Pss is about half of Rss, and almost all of Rss is `Shared_Clean`: the two
   processes share the page cache of the file. Each process only holds the
   pages that its guest wrote since the load (`Private_Dirty`, copy on write
-  of the `MAP_PRIVATE` mapping). `fincore` is not installed on the runner,
-  so the check rests on `smaps`.
+  of the `MAP_PRIVATE` mapping). `fincore` shows all 256 MiB of `mem` in the
+  page cache, because the capture has just written the file.
 
 Clones of one snapshot on one host (#1366) can therefore share one memory
 file, which is what the `refs/<vm-uid>` files of #1372 count.
