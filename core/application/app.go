@@ -1,6 +1,7 @@
 package application
 
 import (
+	"sync"
 	"time"
 
 	"github.com/liquidmetal-dev/flintlock/core/ports"
@@ -12,6 +13,8 @@ type App interface {
 	ports.MicroVMCommandUseCases
 	ports.MicroVMQueryUseCases
 	ports.ReconcileMicroVMsUseCase
+	ports.SnapshotCommandUseCases
+	ports.SnapshotQueryUseCases
 }
 
 func New(cfg *Config, ports *ports.Collection) App {
@@ -24,6 +27,10 @@ func New(cfg *Config, ports *ports.Collection) App {
 type app struct {
 	cfg   *Config
 	ports *ports.Collection
+
+	// snapshotMu makes the in-progress check and the create of a snapshot one step,
+	// so two requests for the same microvm cannot both pass the check.
+	snapshotMu sync.Mutex
 }
 
 type Config struct {

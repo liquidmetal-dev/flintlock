@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	coreerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 )
 
@@ -20,6 +21,9 @@ var (
 	)
 	errVolumeOverlayNotSupported = errors.New(
 		"volume mode overlay not supported by the microvm provider: it needs the volume-overlay capability",
+	)
+	errSnapshotNotSupported = coreerrs.NewFailedPrecondition(
+		"snapshot not supported by the microvm provider: it needs the snapshot capability",
 	)
 	errOverlayInitrdImageRequired = errors.New(
 		"volume mode overlay needs an initrd: this build has no default, " +
