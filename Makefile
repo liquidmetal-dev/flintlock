@@ -109,6 +109,11 @@ proto-lint: ## Lint protobuf/grpc
 proto-breaking: ## Check protobuf/grpc for breaking changes against the published BSR schema
 	buf breaking --against buf.build/liquidmetal-dev/flintlock:main
 
+.PHONY: lint-actions
+lint-actions: ## Lint and security-check the GitHub Actions workflows
+	actionlint
+	zizmor .github
+
 ##@ Testing
 
 .PHONY: test

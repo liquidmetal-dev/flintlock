@@ -5,6 +5,9 @@ on:
 #  schedule:
 #    - cron: 0 0 * * 1
 
+permissions:
+  contents: read
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
@@ -14,6 +17,8 @@ jobs:
     name: e2e tests
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Get branch name
         id: branch-name
@@ -22,14 +27,16 @@ jobs:
       - name: Run tests
         env:
           METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
+          EQUINIX_ORG_ID: ${{ secrets.EQUINIX_ORG_ID }}
+          BRANCH: ${{ steps.branch-name.outputs.current_branch }}
         run: |
           pip3 install -r test/tools/requirements.txt
-          cat <<'EOF' >> e2e-config.yaml
+          cat <<EOF >> e2e-config.yaml
           ---
-          org_id: ${{ secrets.EQUINIX_ORG_ID }}
-          project_name: ${{ env.PROJECT_NAME }}
+          org_id: ${EQUINIX_ORG_ID}
+          project_name: ${PROJECT_NAME}
           repo:
-            branch: ${{ steps.branch-name.outputs.current_branch }}
+            branch: ${BRANCH}
           EOF
           test/tools/run.py run-e2e -c e2e-config.yaml
 

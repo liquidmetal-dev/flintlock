@@ -9,6 +9,13 @@ on:
       - labeled
       - unlabeled
 
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check_pull_request_type:
     name: Check for PR kind

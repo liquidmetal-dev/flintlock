@@ -1,0 +1,34 @@
+name: lint actions
+
+on:
+  pull_request:
+    paths:
+      - ".github/**"
+      - "mise.toml"
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint-actions:
+    name: lint actions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          install_args: actionlint zizmor
+      - name: Lint workflows
+        # zizmor uses the token for its online audits, such as the check for
+        # actions which have known vulnerabilities.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make lint-actions

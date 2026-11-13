@@ -2,6 +2,13 @@ name: lint
 
 on: [pull_request]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lint:
     name: lint
@@ -10,6 +17,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-tags: true
+          persist-credentials: false
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
       - name: Lint
         run: make lint
@@ -22,7 +30,9 @@ jobs:
       # dependabot.
       - name: Log in to Buf Schema Registry
         if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
-        run: echo "${{ secrets.BUF_TOKEN }}" | buf registry login --token-stdin
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+        run: echo "${BUF_TOKEN}" | buf registry login --token-stdin
       - name: Check for breaking protobuf/grpc changes
         if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
         run: make proto-breaking
