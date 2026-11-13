@@ -2,6 +2,7 @@ package local_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"sync"
@@ -424,4 +425,48 @@ func TestRestart_RemovesLeftOvers(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(snapshots).To(HaveLen(1))
 	g.Expect(snapshots[0].UID).To(Equal(kept.UID))
+}
+
+func TestRestart_FinishesInterruptedDelete(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	root := t.TempDir()
+	store := newStore(t, root)
+
+	snapshot := newSnapshot("snap")
+	g.Expect(store.Create(ctx, snapshot)).To(Succeed())
+
+	dir := store.Dir(snapshot.UID)
+	for _, name := range []string{"vmstate", "memory", "descriptor.json", "spec.json", "root.rw"} {
+		g.Expect(os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o600)).To(Succeed())
+	}
+
+	g.Expect(os.Symlink("../../bases/abc.img", filepath.Join(dir, "root.base"))).To(Succeed())
+	g.Expect(store.AddRef(ctx, snapshot.UID, restoredVMUID)).To(Succeed())
+
+	recordPath := filepath.Join(dir, "record.json")
+	data, err := os.ReadFile(recordPath)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	rec := map[string]any{}
+	g.Expect(json.Unmarshal(data, &rec)).To(Succeed())
+	rec["deleted"] = true
+	data, err = json.Marshal(rec)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(os.WriteFile(recordPath, data, 0o600)).To(Succeed())
+
+	restarted := newStore(t, root)
+
+	entries, err := os.ReadDir(dir)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	kept := []string{}
+	for _, entry := range entries {
+		kept = append(kept, entry.Name())
+	}
+
+	g.Expect(kept).To(ConsistOf(".lock", "memory", "record.json", "refs", "vmstate"))
+
+	g.Expect(restarted.ReleaseRef(ctx, snapshot.UID, restoredVMUID)).To(Succeed())
+	g.Expect(dir).NotTo(BeADirectory())
 }
