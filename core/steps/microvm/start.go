@@ -49,7 +49,7 @@ func (s *startStep) ShouldDo(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
 
-	return state != ports.MicroVMStateRunning, nil
+	return !isStarted(state), nil
 }
 
 // Do will perform the operation/procedure.
@@ -85,9 +85,15 @@ func (s *startStep) Verify(ctx context.Context) error {
 		return fmt.Errorf("checking if microvm is running: %w", err)
 	}
 
-	if state != ports.MicroVMStateRunning {
+	if !isStarted(state) {
 		return errors.ErrUnableToBoot
 	}
 
 	return nil
+}
+
+// isStarted reports whether a microvm has booted. A paused microvm has booted,
+// so it needs no start.
+func isStarted(state ports.MicroVMState) bool {
+	return state == ports.MicroVMStateRunning || state == ports.MicroVMStatePaused
 }
