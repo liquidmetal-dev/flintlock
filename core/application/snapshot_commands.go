@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/liquidmetal-dev/flintlock/api/events"
@@ -64,10 +65,27 @@ func (a *app) CreateSnapshot(ctx context.Context, req models.CreateSnapshotReque
 		Namespace: snapshot.Namespace,
 		SourceUID: snapshot.Source.UID(),
 	}); err != nil {
-		return nil, fmt.Errorf("publishing snapshot created event: %w", err)
+		return nil, a.failUndispatchedSnapshot(ctx, snapshot, err)
 	}
 
 	return snapshot, nil
+}
+
+// failUndispatchedSnapshot marks a snapshot failed when its created event was
+// not published. Nothing would capture the pending record, and it would refuse
+// every later snapshot of the source. It runs without the request's
+// cancellation, which may be the reason the publish failed.
+func (a *app) failUndispatchedSnapshot(ctx context.Context, snapshot *models.Snapshot, publishErr error) error {
+	err := fmt.Errorf("publishing snapshot created event for %s: %w", snapshot.UID, publishErr)
+
+	snapshot.Status.Phase = models.SnapshotPhaseFailed
+	snapshot.Status.Error = err.Error()
+
+	if updateErr := a.ports.SnapshotRepo.Update(context.WithoutCancel(ctx), snapshot); updateErr != nil {
+		return errors.Join(err, fmt.Errorf("marking snapshot %s failed: %w", snapshot.UID, updateErr))
+	}
+
+	return err
 }
 
 func (a *app) DeleteSnapshot(ctx context.Context, ref models.SnapshotRef) error {
