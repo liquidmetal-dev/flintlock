@@ -70,8 +70,8 @@ func InializeController(app application.App, ports2 *ports.Collection) *controll
 func InitializeGRPCServer(cfg *config.Config, app application.App, startTime time.Time) ports.MicroVMGRPCService {
 	microVMCommandUseCases := commandUCFromApp(app)
 	microVMQueryUseCases := queryUCFromApp(app)
-	infoConfig2 := infoConfig(cfg, startTime)
-	microVMGRPCService := grpc.NewServer(microVMCommandUseCases, microVMQueryUseCases, infoConfig2)
+	grpcInfoConfig := infoConfig(cfg, startTime)
+	microVMGRPCService := grpc.NewServer(microVMCommandUseCases, microVMQueryUseCases, grpcInfoConfig)
 	return microVMGRPCService
 }
 
