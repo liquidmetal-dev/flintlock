@@ -2128,3 +2128,33 @@ func TestCloneFileErrors(t *testing.T) {
 	g.Expect(os.WriteFile(filepath.Join(dir, "source"), []byte("template"), 0o600)).To(Succeed())
 	g.Expect(u.CloneFile(filepath.Join(dir, "source"), filepath.Join(dir, "no", "such", "dir"))).NotTo(Succeed())
 }
+
+func TestNewGuestAgentMicroVMSpecUsesTheGuestAgentImage(t *testing.T) {
+	for _, provider := range u.KnownProviders() {
+		t.Run(provider.Name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			spec, err := u.NewGuestAgentMicroVMSpec(provider, "mvm0", "ns0")
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(spec.AllowGuestAgent).To(BeTrue())
+			g.Expect(spec.RootVolume.Source.ContainerSource).To(HaveValue(Equal(u.GuestAgentRootImage)))
+			g.Expect(u.GuestAgentRootImage).To(Equal("ghcr.io/liquidmetal-dev/ubuntu:24.04"))
+		})
+	}
+}
+
+func TestCondition(t *testing.T) {
+	g := NewWithT(t)
+
+	status := &types.MicroVMStatus{
+		Conditions: []*types.MicroVMCondition{
+			{Type: "VMMRunning", Status: types.MicroVMCondition_TRUE},
+			{Type: "GuestAgentReady", Status: types.MicroVMCondition_FALSE},
+		},
+	}
+
+	g.Expect(u.Condition(status, "GuestAgentReady")).To(HaveField("Status", types.MicroVMCondition_FALSE))
+	g.Expect(u.Condition(status, "Other")).To(BeNil())
+	g.Expect(u.Condition(nil, "VMMRunning")).To(BeNil())
+}
