@@ -50,7 +50,7 @@ func TestSnapshotDescriptor_MarshalsWithoutSourceMetadata(t *testing.T) {
 			{DriveID: "root", Order: 0, SizeBytes: 1 << 30, BlockSize: 4096, Filesystem: "ext4", BaseDigest: "sha256:bbbb"},
 		},
 		CreatedAt: time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC),
-		Source:    models.SnapshotSource{UID: "01J", Name: "vm1", Namespace: "ns1"},
+		Source:    models.SnapshotOrigin{UID: "01J", Name: "vm1", Namespace: "ns1"},
 		Labels:    map[string]string{"team": "a"},
 	}
 
