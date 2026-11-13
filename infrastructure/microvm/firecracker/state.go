@@ -178,7 +178,7 @@ func (s *fsState) SetMetadata(meta *Metadata) error {
 func (s *fsState) Metadata() (Metadata, error) {
 	meta := Metadata{}
 
-	err := s.readJSONFile(&meta, s.ConfigPath())
+	err := s.readJSONFile(&meta, s.MetadataPath())
 	if err != nil {
 		return Metadata{}, fmt.Errorf("firecracker metadata: %w", err)
 	}
@@ -195,6 +195,8 @@ func (s *fsState) readJSONFile(cfg interface{}, inputFile string) error {
 	if err != nil {
 		return fmt.Errorf("opening file %s: %w", inputFile, err)
 	}
+
+	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
