@@ -121,11 +121,13 @@ func volumeService(cfg overlay.Config, source overlay.LayerSource) (ports.Volume
 
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
-		RootStateDir:       cfg.StateRootDir,
-		SocketDir:          cfg.SocketDir,
-		MaximumRetry:       cfg.MaximumRetry,
-		DefaultProvider:    cfg.DefaultVMProvider,
-		OverlayInitrdImage: cfg.EffectiveOverlayInitrdImage(version.Version),
+		RootStateDir:           cfg.StateRootDir,
+		SocketDir:              cfg.SocketDir,
+		MaximumRetry:           cfg.MaximumRetry,
+		DefaultProvider:        cfg.DefaultVMProvider,
+		OverlayInitrdImage:     cfg.EffectiveOverlayInitrdImage(version.Version),
+		VMMStartTimeout:        cfg.VMMStartTimeout,
+		GuestAgentReadyTimeout: cfg.GuestAgentReadyTimeout,
 	}
 }
 

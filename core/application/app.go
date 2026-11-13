@@ -1,6 +1,8 @@
 package application
 
 import (
+	"time"
+
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 )
 
@@ -33,4 +35,8 @@ type Config struct {
 	// root when the spec names none. An empty value means the daemon has no
 	// default, and a spec that needs one is rejected.
 	OverlayInitrdImage string
+	// VMMStartTimeout is how long the create plan waits for the VMM to run.
+	VMMStartTimeout time.Duration
+	// GuestAgentReadyTimeout is how long the create plan waits for the guest-agent to answer a ping.
+	GuestAgentReadyTimeout time.Duration
 }

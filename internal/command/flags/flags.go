@@ -65,6 +65,16 @@ func AddGRPCServerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		defaults.ResyncPeriod,
 		"Reconcile the specs to resynchronise them based on this period.")
 
+	cmd.Flags().DurationVar(&cfg.VMMStartTimeout,
+		"vmm-start-timeout",
+		defaults.VMMStartTimeout,
+		"How long to wait for the VMM of a microvm to run.")
+
+	cmd.Flags().DurationVar(&cfg.GuestAgentReadyTimeout,
+		"guest-agent-ready-timeout",
+		defaults.GuestAgentReadyTimeout,
+		"How long to wait for the guest-agent of a microvm to answer a ping.")
+
 	cmd.Flags().DurationVar(&cfg.DeleteVMTimeout,
 		"deleteMicroVM-timeout",
 		defaults.DeleteVMTimeout,
