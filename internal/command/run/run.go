@@ -26,6 +26,7 @@ import (
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	mvmexecv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmexec/v1alpha1"
 	mvmsshproxyv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmsshproxy/v1alpha1"
+	snapv1 "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
@@ -237,6 +238,7 @@ func serveAPI(ctx context.Context, cfg *config.Config, volumeCaps microvm.Volume
 	grpcServer := grpc.NewServer(serverOpts...)
 
 	mvmv1.RegisterMicroVMServer(grpcServer, server)
+	snapv1.RegisterSnapshotServiceServer(grpcServer, inject.InitializeSnapshotGRPCServer(app))
 
 	if cfg.EnableExecAPI {
 		execServer := inject.InitializeExecGRPCServer(app)
@@ -384,6 +386,10 @@ func serveHTTP(ctx context.Context, cfg *config.Config) error {
 
 	if err := mvmv1.RegisterMicroVMHandlerFromEndpoint(ctx, mux, cfg.GRPCAPIEndpoint, opts); err != nil {
 		return fmt.Errorf("could not register microvm server: %w", err)
+	}
+
+	if err := snapv1.RegisterSnapshotServiceHandlerFromEndpoint(ctx, mux, cfg.GRPCAPIEndpoint, opts); err != nil {
+		return fmt.Errorf("could not register snapshot server: %w", err)
 	}
 
 	server := &http.Server{
