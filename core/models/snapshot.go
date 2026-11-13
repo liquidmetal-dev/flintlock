@@ -15,6 +15,36 @@ const (
 	SnapshotPhaseFailed    SnapshotPhase = "failed"
 )
 
+// InProgress reports whether a snapshot in the phase is still being taken: every
+// phase but ready and failed.
+func (p SnapshotPhase) InProgress() bool {
+	return p != SnapshotPhaseReady && p != SnapshotPhaseFailed
+}
+
+// SnapshotAfter selects what happens to the source microvm once the snapshot is taken.
+type SnapshotAfter string
+
+const (
+	// SnapshotAfterResume resumes the source microvm.
+	SnapshotAfterResume SnapshotAfter = "resume"
+	// SnapshotAfterStop stops the source microvm.
+	SnapshotAfterStop SnapshotAfter = "stop"
+)
+
+// CreateSnapshotRequest is a request to take a snapshot of a microvm.
+type CreateSnapshotRequest struct {
+	// SourceUID is the uid of the microvm to snapshot.
+	SourceUID string
+	// Name is the optional name of the snapshot. When empty, the store makes one from the
+	// name of the source microvm.
+	Name string
+	// Labels are the labels of the snapshot.
+	Labels map[string]string
+	// After selects what happens to the source microvm once the snapshot is taken. An
+	// empty value means SnapshotAfterResume.
+	After SnapshotAfter
+}
+
 // MemoryMode selects how the guest memory of a microvm is restored from a snapshot.
 type MemoryMode string
 
