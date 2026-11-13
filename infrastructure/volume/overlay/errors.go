@@ -124,3 +124,17 @@ func (e *Ext4Error) Error() string {
 func (e *Ext4Error) Unwrap() error {
 	return e.Err
 }
+
+// BaseMissingError reports a restore from a snapshot whose base is not on
+// the host. The base is not rebuilt: the snapshot's link keeps it from the
+// sweep, so a missing base means it was removed by other means.
+type BaseMissingError struct {
+	// Digest is the sha256 of the base in hex.
+	Digest string
+	// Snapshot is the UID of the snapshot, the name of its directory.
+	Snapshot string
+}
+
+func (e *BaseMissingError) Error() string {
+	return fmt.Sprintf("base %s of snapshot %s is missing", e.Digest, e.Snapshot)
+}

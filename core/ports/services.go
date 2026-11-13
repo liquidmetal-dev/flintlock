@@ -235,9 +235,27 @@ type VolumeService interface {
 	Create(ctx context.Context, input VolumeCreateInput) (*VolumeMounts, error)
 	// Release removes the writable disk and the base link of a microvm. It is
 	// idempotent: files that are already gone are a success. It also removes
-	// bases that no microvm links to and whose last use is older than the
-	// retention period.
+	// bases that no microvm or snapshot links to and whose last use is older
+	// than the retention period.
 	Release(ctx context.Context, ref VolumeRef) error
+	// Capture copies the writable disk of a microvm to root.rw in destDir
+	// and links root.base in destDir to the base of the microvm. The VMM
+	// must be paused, so that the copy is of one point in time. It is
+	// idempotent: a root.rw that exists in destDir is kept.
+	Capture(ctx context.Context, ref VolumeRef, destDir string) (*models.CapturedVolume, error)
+	// Restore gives a microvm a writable disk copied from a captured one
+	// and links it to the base the capture names. It is idempotent like
+	// Create. A base that is not on the host is an error.
+	Restore(ctx context.Context, input VolumeRestoreInput) (*VolumeMounts, error)
+}
+
+// VolumeRestoreInput is the input of VolumeService.Restore.
+type VolumeRestoreInput struct {
+	VolumeRef
+	// SnapshotDir is the directory that Capture wrote the volume to.
+	SnapshotDir string
+	// Owner is the owner of the restored microvm's volume.
+	Owner string
 }
 
 // VolumeRef names one volume of one microvm.

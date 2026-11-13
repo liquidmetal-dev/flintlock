@@ -231,18 +231,25 @@ func linkBase(link, target string) error {
 }
 
 // makeWritable reflinks the template of sizeMB to path unless path exists.
-// It clones to a temporary name and renames, so a crash never leaves a
-// half-made disk that a later Create would keep. It reports whether it
-// made the disk.
+// It reports whether it made the disk.
 func (s *Service) makeWritable(ctx context.Context, path string, sizeMB int32) (bool, error) {
-	if _, err := os.Lstat(path); err == nil {
-		return false, nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return false, fmt.Errorf("stat %s: %w", path, err)
+	if found, err := exists(path); err != nil || found {
+		return false, err
 	}
 
 	template, err := s.templates.get(ctx, sizeMB)
 	if err != nil {
+		return false, err
+	}
+
+	return s.cloneDisk(template, path)
+}
+
+// cloneDisk reflinks the disk at src to path unless path exists. It clones
+// to a temporary name and renames, so a crash never leaves a half-made disk
+// that a later call would keep. It reports whether it made the disk.
+func (s *Service) cloneDisk(src, path string) (bool, error) {
+	if found, err := exists(path); err != nil || found {
 		return false, err
 	}
 
@@ -257,7 +264,7 @@ func (s *Service) makeWritable(ctx context.Context, path string, sizeMB int32) (
 	_ = tmp.Close()
 	_ = os.Remove(tmpName)
 
-	if err := s.clone(template, tmpName, diskPerm); err != nil {
+	if err := s.clone(src, tmpName, diskPerm); err != nil {
 		return false, err
 	}
 

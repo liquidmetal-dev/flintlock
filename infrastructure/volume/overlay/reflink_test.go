@@ -73,3 +73,47 @@ func TestService_CreateWithReflink(t *testing.T) {
 	g.Expect(inode(t, second.RWMount.Source)).NotTo(Equal(inode(t, mounts.RWMount.Source)))
 	g.Expect(env.mkfsRuns(t)).To(HaveLen(1))
 }
+
+func TestService_CaptureAndRestoreWithReflink(t *testing.T) {
+	g := NewWithT(t)
+	env := newTestService(t, reflinkDir(t))
+	env.svc.clone = reflink.Clone
+	ctx := context.Background()
+
+	mounts, err := env.svc.Create(ctx, createInput("a", "img:1"))
+	g.Expect(err).NotTo(HaveOccurred())
+	writeAt(t, mounts.RWMount.Source, 4096, "guest writes before the capture")
+
+	before := sha256File(t, mounts.RWMount.Source)
+	dir := snapshotDir(env, "snap1")
+
+	_, err = env.svc.Capture(ctx, vmRef("a"), dir)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	captured := filepath.Join(dir, "root.rw")
+	g.Expect(sha256File(t, captured)).To(Equal(before))
+	g.Expect(inode(t, captured)).NotTo(Equal(inode(t, mounts.RWMount.Source)))
+
+	// The source writes after the capture without changing it.
+	writeAt(t, mounts.RWMount.Source, 4096, "guest writes after the capture")
+	g.Expect(sha256File(t, mounts.RWMount.Source)).NotTo(Equal(before))
+	g.Expect(sha256File(t, captured)).To(Equal(before))
+
+	b, err := env.svc.Restore(ctx, restoreInput("b", dir))
+	g.Expect(err).NotTo(HaveOccurred())
+	c, err := env.svc.Restore(ctx, restoreInput("c", dir))
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(sha256File(t, b.RWMount.Source)).To(Equal(before))
+	g.Expect(sha256File(t, c.RWMount.Source)).To(Equal(before))
+	g.Expect(b.RWMount.Source).NotTo(Equal(c.RWMount.Source))
+	g.Expect(inode(t, b.RWMount.Source)).NotTo(Equal(inode(t, c.RWMount.Source)))
+	g.Expect(inode(t, b.RWMount.Source)).NotTo(Equal(inode(t, captured)))
+	g.Expect(inode(t, b.BaseMount.Source)).To(Equal(inode(t, c.BaseMount.Source)))
+	g.Expect(inode(t, b.BaseMount.Source)).To(Equal(inode(t, mounts.BaseMount.Source)))
+
+	// A write to one restored disk reaches neither the other nor the capture.
+	writeAt(t, b.RWMount.Source, 4096, "guest writes of b")
+	g.Expect(sha256File(t, c.RWMount.Source)).To(Equal(before))
+	g.Expect(sha256File(t, captured)).To(Equal(before))
+}
