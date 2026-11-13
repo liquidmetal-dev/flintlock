@@ -238,6 +238,29 @@ message MicroVMStatus {
   // VsockPath is the host unix-domain socket path for the guest-agent vsock device.
   // Empty unless allow_guest_agent is set on the spec. Use with the vsock-connect host helper.
   string vsock_path = 7;
+  // Conditions are observed facts about the microvm, for example VMMRunning
+  // and GuestAgentReady.
+  repeated MicroVMCondition conditions = 8;
+}
+
+// MicroVMCondition is one observed fact about a microvm.
+message MicroVMCondition {
+  enum Status {
+    UNKNOWN = 0;
+    TRUE = 1;
+    FALSE = 2;
+  }
+
+  // Type is the condition type, for example VMMRunning or GuestAgentReady.
+  string type = 1;
+  // Status is the status of the condition.
+  Status status = 2;
+  // Reason is a machine-readable reason for the status.
+  string reason = 3;
+  // Message is a human-readable detail.
+  string message = 4;
+  // LastTransition is when the status last changed.
+  google.protobuf.Timestamp last_transition = 5;
 }
 
 message VolumeStatus {
