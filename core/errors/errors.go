@@ -146,3 +146,45 @@ func IsNotSupported(err error) bool {
 
 	return errors.As(err, e)
 }
+
+// NewSnapshotNotFound returns the error for a snapshot that does not exist or is deleted.
+func NewSnapshotNotFound(ref string) error {
+	return snapshotNotFoundError{ref: ref}
+}
+
+type snapshotNotFoundError struct {
+	ref string
+}
+
+// Error returns the error message.
+func (e snapshotNotFoundError) Error() string {
+	return fmt.Sprintf("snapshot %s not found", e.ref)
+}
+
+// IsSnapshotNotFound tests an error to see if its a snapshot not found error.
+func IsSnapshotNotFound(err error) bool {
+	e := &snapshotNotFoundError{}
+
+	return errors.As(err, e)
+}
+
+// NewSnapshotAlreadyExists returns the error for a snapshot whose name or uid is taken.
+func NewSnapshotAlreadyExists(ref string) error {
+	return snapshotAlreadyExistsError{ref: ref}
+}
+
+type snapshotAlreadyExistsError struct {
+	ref string
+}
+
+// Error returns the error message.
+func (e snapshotAlreadyExistsError) Error() string {
+	return fmt.Sprintf("snapshot %s already exists", e.ref)
+}
+
+// IsSnapshotAlreadyExists tests an error to see if its a snapshot already exists error.
+func IsSnapshotAlreadyExists(err error) bool {
+	e := &snapshotAlreadyExistsError{}
+
+	return errors.As(err, e)
+}
