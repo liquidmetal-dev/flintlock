@@ -64,7 +64,7 @@ type SnapshotDescriptor struct {
 	// CreatedAt is the time the snapshot was taken.
 	CreatedAt time.Time `json:"created_at"`
 	// Source identifies the source microvm.
-	Source SnapshotSource `json:"source"`
+	Source SnapshotOrigin `json:"source"`
 	// Labels are the labels the client attached to the snapshot.
 	Labels map[string]string `json:"labels,omitempty"`
 }
@@ -93,8 +93,8 @@ type SnapshotVolume struct {
 	BaseDigest string `json:"base_digest,omitempty"`
 }
 
-// SnapshotSource identifies the source microvm of a snapshot.
-type SnapshotSource struct {
+// SnapshotOrigin identifies the source microvm of a snapshot.
+type SnapshotOrigin struct {
 	// UID is the unique identifier of the source microvm.
 	UID string `json:"uid"`
 	// Name is the name of the source microvm.
