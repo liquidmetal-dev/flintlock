@@ -33,38 +33,6 @@ func TestWaitForRunning_ReturnsWhenRunning(t *testing.T) {
 	g.Expect(state).To(g.Equal(ports.MicroVMStateRunning))
 }
 
-func TestWaitForRunning_SettleCatchesExit(t *testing.T) {
-	g.RegisterTestingT(t)
-	svc := mock.NewMockMicroVMService(gomock.NewController(t))
-	ctx := context.Background()
-
-	gomock.InOrder(
-		svc.EXPECT().State(ctx, waitTestVMID).Return(ports.MicroVMStateRunning, nil),
-		svc.EXPECT().State(ctx, waitTestVMID).Return(ports.MicroVMStatePending, nil).AnyTimes(),
-	)
-
-	cfg := WaitConfig{Timeout: 50 * time.Millisecond, Interval: time.Millisecond, Settle: 20 * time.Millisecond}
-	state, err := waitForRunning(ctx, svc, waitTestVMID, cfg)
-
-	g.Expect(err).To(g.MatchError(internalerr.ErrUnableToBoot))
-	g.Expect(state).To(g.Equal(ports.MicroVMStatePending))
-}
-
-func TestWaitForRunning_SettleWaitsWindow(t *testing.T) {
-	g.RegisterTestingT(t)
-	svc := mock.NewMockMicroVMService(gomock.NewController(t))
-	ctx := context.Background()
-
-	svc.EXPECT().State(ctx, waitTestVMID).Return(ports.MicroVMStateRunning, nil).AnyTimes()
-
-	start := time.Now()
-	cfg := WaitConfig{Timeout: time.Second, Interval: time.Millisecond, Settle: 20 * time.Millisecond}
-	_, err := waitForRunning(ctx, svc, waitTestVMID, cfg)
-
-	g.Expect(err).NotTo(g.HaveOccurred())
-	g.Expect(time.Since(start)).To(g.BeNumerically(">=", 20*time.Millisecond))
-}
-
 func TestWaitForRunning_TimesOut(t *testing.T) {
 	g.RegisterTestingT(t)
 	svc := mock.NewMockMicroVMService(gomock.NewController(t))

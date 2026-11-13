@@ -17,8 +17,6 @@ type WaitConfig struct {
 	Timeout time.Duration
 	// Interval is the time between two checks.
 	Interval time.Duration
-	// Settle is how long the VMM must stay running before the wait ends.
-	Settle time.Duration
 	// Clock gives the time for the conditions.
 	Clock func() time.Time
 }
@@ -31,8 +29,7 @@ func (c WaitConfig) now() time.Time {
 	return c.Clock()
 }
 
-// waitForRunning polls the provider state until the VMM has been running
-// without a break for cfg.Settle.
+// waitForRunning polls the provider state until the VMM runs.
 func waitForRunning(
 	ctx context.Context,
 	vmSvc ports.MicroVMService,
@@ -41,8 +38,6 @@ func waitForRunning(
 ) (ports.MicroVMState, error) {
 	deadline := time.Now().Add(cfg.Timeout)
 
-	var runningSince time.Time
-
 	for {
 		state, err := vmSvc.State(ctx, vmid)
 		if err != nil {
@@ -50,15 +45,7 @@ func waitForRunning(
 		}
 
 		if state == ports.MicroVMStateRunning {
-			if runningSince.IsZero() {
-				runningSince = time.Now()
-			}
-
-			if time.Since(runningSince) >= cfg.Settle {
-				return state, nil
-			}
-		} else {
-			runningSince = time.Time{}
+			return state, nil
 		}
 
 		if !time.Now().Before(deadline) {

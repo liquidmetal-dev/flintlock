@@ -102,11 +102,6 @@ const (
 	// GuestAgentPingAttemptTimeout bounds one ping to the guest-agent.
 	GuestAgentPingAttemptTimeout time.Duration = 2 * time.Second
 
-	// VMMSettleWindow is how long the VMM of a microvm without the guest-agent
-	// must stay running before the create plan reports it as running. Without it,
-	// a VMM that exits just after its pid appears is reported as running.
-	VMMSettleWindow time.Duration = 1 * time.Second
-
 	// ResyncPeriod is the default resync period duration.
 	ResyncPeriod time.Duration = 10 * time.Minute
 

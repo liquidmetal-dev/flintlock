@@ -65,7 +65,6 @@ func (s *createStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 		return nil, fmt.Errorf("creating microvm: %w", err)
 	}
 
-
 	return nil, nil
 }
 
