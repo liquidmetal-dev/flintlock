@@ -126,23 +126,14 @@ func (s *guestAgentReadyStep) checkVMM(ctx context.Context) (bool, error) {
 
 	if state != ports.MicroVMStateRunning {
 		msg := fmt.Sprintf("vmm stopped, state %s", state)
-		s.vm.Status.Conditions.Set(models.Condition{
-			Type:    models.ConditionVMMRunning,
-			Status:  models.ConditionFalse,
-			Reason:  models.ReasonVMMExited,
-			Message: msg,
-		}, s.wait.now())
+		setVMMRunning(s.vm, models.ConditionFalse, models.ReasonVMMExited, msg, s.wait)
 		s.setReady(models.ConditionFalse, models.ReasonVMMExited, msg)
 
 		return false, nil
 	}
 
 	if _, ok := s.vm.Status.Conditions.Get(models.ConditionVMMRunning); !ok {
-		s.vm.Status.Conditions.Set(models.Condition{
-			Type:   models.ConditionVMMRunning,
-			Status: models.ConditionTrue,
-			Reason: models.ReasonRunning,
-		}, s.wait.now())
+		setVMMRunning(s.vm, models.ConditionTrue, models.ReasonRunning, "", s.wait)
 	}
 
 	return true, nil

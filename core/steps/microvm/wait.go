@@ -67,20 +67,12 @@ func verifyRunning(ctx context.Context, vm *models.MicroVM, vmSvc ports.MicroVMS
 
 	switch {
 	case err == nil:
-		vm.Status.Conditions.Set(models.Condition{
-			Type:   models.ConditionVMMRunning,
-			Status: models.ConditionTrue,
-			Reason: models.ReasonRunning,
-		}, cfg.now())
+		setVMMRunning(vm, models.ConditionTrue, models.ReasonRunning, "", cfg)
 
 		return nil
 	case goerrors.Is(err, errors.ErrUnableToBoot):
-		vm.Status.Conditions.Set(models.Condition{
-			Type:    models.ConditionVMMRunning,
-			Status:  models.ConditionFalse,
-			Reason:  models.ReasonStartTimeout,
-			Message: fmt.Sprintf("vmm not running after %s, last state %s", cfg.Timeout, state),
-		}, cfg.now())
+		setVMMRunning(vm, models.ConditionFalse, models.ReasonStartTimeout,
+			fmt.Sprintf("vmm not running after %s, last state %s", cfg.Timeout, state), cfg)
 
 		return err
 	default:
@@ -92,11 +84,7 @@ func verifyRunning(ctx context.Context, vm *models.MicroVM, vmSvc ports.MicroVMS
 // (again) as not known. It runs before the provider call, so that a failed
 // start does not keep the conditions of the previous VMM.
 func resetConditions(vm *models.MicroVM, cfg WaitConfig) {
-	vm.Status.Conditions.Set(models.Condition{
-		Type:   models.ConditionVMMRunning,
-		Status: models.ConditionUnknown,
-		Reason: models.ReasonVMMStarting,
-	}, cfg.now())
+	setVMMRunning(vm, models.ConditionUnknown, models.ReasonVMMStarting, "", cfg)
 
 	if !vm.Spec.AllowGuestAgent {
 		return
@@ -106,5 +94,14 @@ func resetConditions(vm *models.MicroVM, cfg WaitConfig) {
 		Type:   models.ConditionGuestAgentReady,
 		Status: models.ConditionUnknown,
 		Reason: models.ReasonVMMStarting,
+	}, cfg.now())
+}
+
+func setVMMRunning(vm *models.MicroVM, status models.ConditionStatus, reason, message string, cfg WaitConfig) {
+	vm.Status.Conditions.Set(models.Condition{
+		Type:    models.ConditionVMMRunning,
+		Status:  status,
+		Reason:  reason,
+		Message: message,
 	}, cfg.now())
 }
