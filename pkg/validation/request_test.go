@@ -6,7 +6,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	snapv1 "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
+	"github.com/liquidmetal-dev/flintlock/pkg/ptr"
 )
 
 func validSnapshotSource() *types.SnapshotSource {
@@ -156,6 +158,50 @@ func TestValidateSnapshotRef(t *testing.T) {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
 				Expect(err).To(MatchError(ErrSnapshotRefInvalid))
+			}
+		})
+	}
+}
+
+func TestValidateCreateSnapshotRequest(t *testing.T) {
+	tt := []struct {
+		name    string
+		req     *snapv1.CreateSnapshotRequest
+		wantErr error
+	}{
+		{name: "nil request", wantErr: ErrCreateSnapshotRequired},
+		{name: "no source uid", req: &snapv1.CreateSnapshotRequest{}, wantErr: ErrSnapshotSourceUIDRequired},
+		{
+			name:    "empty name",
+			req:     &snapv1.CreateSnapshotRequest{SourceUid: "vm-uid", Name: ptr.String("")},
+			wantErr: ErrSnapshotNameEmpty,
+		},
+		{
+			name:    "unknown after",
+			req:     &snapv1.CreateSnapshotRequest{SourceUid: "vm-uid", After: snapv1.After(7)},
+			wantErr: ErrSnapshotAfterUnknown,
+		},
+		{name: "source uid only", req: &snapv1.CreateSnapshotRequest{SourceUid: "vm-uid"}},
+		{
+			name: "name, labels and stop",
+			req: &snapv1.CreateSnapshotRequest{
+				SourceUid: "vm-uid",
+				Name:      ptr.String("snap1"),
+				Labels:    map[string]string{"env": "test"},
+				After:     snapv1.After_STOP,
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			err := ValidateCreateSnapshotRequest(tc.req)
+			if tc.wantErr == nil {
+				Expect(err).NotTo(HaveOccurred())
+			} else {
+				Expect(err).To(MatchError(tc.wantErr))
 			}
 		})
 	}

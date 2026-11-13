@@ -423,7 +423,6 @@ func convertSnapshotToModel(snapshot *types.Snapshot) *models.Snapshot {
 	return converted
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertModelToSnapshot(snapshot *models.Snapshot) *types.Snapshot {
 	converted := &types.Snapshot{
 		Uid:       snapshot.UID,
@@ -454,7 +453,6 @@ func convertSnapshotStatusToModel(status *types.SnapshotStatus) models.SnapshotS
 	}
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertModelToSnapshotStatus(status *models.SnapshotStatus) *types.SnapshotStatus {
 	return &types.SnapshotStatus{
 		Phase:     convertModelToSnapshotPhase(status.Phase),
@@ -484,7 +482,6 @@ func convertSnapshotPhaseToModel(phase types.SnapshotStatus_Phase) models.Snapsh
 	return models.SnapshotPhasePending
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertModelToSnapshotPhase(phase models.SnapshotPhase) types.SnapshotStatus_Phase {
 	switch phase {
 	case models.SnapshotPhaseQuiescing:
@@ -505,7 +502,6 @@ func convertModelToSnapshotPhase(phase models.SnapshotPhase) types.SnapshotStatu
 	return types.SnapshotStatus_PENDING
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertSnapshotRefToModel(ref *types.SnapshotRef) models.SnapshotRef {
 	converted := models.SnapshotRef{
 		UID: ref.GetUid(),

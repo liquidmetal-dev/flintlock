@@ -7,6 +7,7 @@
 package inject
 
 import (
+	"context"
 	"github.com/liquidmetal-dev/flintlock/core/application"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
@@ -16,6 +17,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/hostinfo"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/snapshot/local"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
@@ -65,7 +67,11 @@ func InitializePorts(cfg *config.Config, volumeCaps microvm.VolumeCapabilities) 
 	}
 	hostinfoConfig := hostInfoConfig(cfg)
 	hostInfoService := hostinfo.New(hostinfoConfig)
-	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs, diskService, virtioFSService, portsVolumeService, hostInfoService)
+	portsSnapshotRepository, err := snapshotRepository(cfg)
+	if err != nil {
+		return nil, err
+	}
+	collection := appPorts(microVMRepository, v, eventService, idService, networkService, imageService, fs, diskService, virtioFSService, portsVolumeService, hostInfoService, portsSnapshotRepository)
 	return collection, nil
 }
 
@@ -89,6 +95,13 @@ func InitializeGRPCServer(cfg *config.Config, app application.App, startTime tim
 	grpcInfoConfig := infoConfig(cfg, startTime)
 	microVMGRPCService := grpc.NewServer(microVMCommandUseCases, microVMQueryUseCases, grpcInfoConfig)
 	return microVMGRPCService
+}
+
+func InitializeSnapshotGRPCServer(app application.App) ports.SnapshotGRPCService {
+	snapshotCommandUseCases := snapshotCommandUCFromApp(app)
+	snapshotQueryUseCases := snapshotQueryUCFromApp(app)
+	snapshotGRPCService := grpc.NewSnapshotServer(snapshotCommandUseCases, snapshotQueryUseCases)
+	return snapshotGRPCService
 }
 
 func InitializeExecGRPCServer(app application.App) ports.MicroVMExecGRPCService {
@@ -141,6 +154,10 @@ func overlayConfig(cfg *config.Config) overlay.Config {
 	}
 }
 
+func snapshotRepository(cfg *config.Config) (ports.SnapshotRepository, error) {
+	return local.New(context.Background(), cfg.StateRootDir)
+}
+
 func volumeService(cfg overlay.Config, source overlay.LayerSource) (ports.VolumeService, error) {
 	return overlay.NewService(cfg, source)
 }
@@ -157,9 +174,10 @@ func appConfig(cfg *config.Config) *application.Config {
 	}
 }
 
-func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService, vs ports.VolumeService, his ports.HostInfoService) *ports.Collection {
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService, vs ports.VolumeService, his ports.HostInfoService, sr ports.SnapshotRepository) *ports.Collection {
 	return &ports.Collection{
 		Repo:              repo,
+		SnapshotRepo:      sr,
 		MicrovmProviders:  providers,
 		EventService:      es,
 		IdentifierService: is,
@@ -188,6 +206,14 @@ func queryUCFromApp(app application.App) ports.MicroVMQueryUseCases {
 }
 
 func commandUCFromApp(app application.App) ports.MicroVMCommandUseCases {
+	return app
+}
+
+func snapshotQueryUCFromApp(app application.App) ports.SnapshotQueryUseCases {
+	return app
+}
+
+func snapshotCommandUCFromApp(app application.App) ports.SnapshotCommandUseCases {
 	return app
 }
 
