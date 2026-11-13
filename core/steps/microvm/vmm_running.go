@@ -41,7 +41,7 @@ func (s *vmmRunningStep) ShouldDo(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("checking if microvm is running: %w", err)
 	}
 
-	return state == ports.MicroVMStateRunning, nil
+	return isStarted(state), nil
 }
 
 func (s *vmmRunningStep) Do(_ context.Context) ([]planner.Procedure, error) {

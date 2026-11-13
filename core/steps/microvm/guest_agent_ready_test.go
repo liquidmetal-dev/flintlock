@@ -231,3 +231,26 @@ func TestGuestAgentReadyStep_Do_CancelAtDeadlineKeepsUnknown(t *testing.T) {
 	_, ok := vm.Status.Conditions.Get(models.ConditionGuestAgentReady)
 	g.Expect(ok).To(g.BeFalse())
 }
+
+func TestGuestAgentReadyStep_Do_PausedVMMIsNotExited(t *testing.T) {
+	g.RegisterTestingT(t)
+	ctrl := gomock.NewController(t)
+	svc := mock.NewMockMicroVMService(ctrl)
+	agent := mock.NewMockGuestAgentService(ctrl)
+	ctx := context.Background()
+	vm := testGuestAgentVM()
+
+	svc.EXPECT().State(ctx, vm.ID.String()).Return(ports.MicroVMStatePaused, nil).AnyTimes()
+	agent.EXPECT().Ping(ctx, testVSockPath).Return(errors.New("eof")).AnyTimes()
+
+	_, err := microvm.NewGuestAgentReadyStep(vm, svc, agent, testWait).Do(ctx)
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	vmm, ok := vm.Status.Conditions.Get(models.ConditionVMMRunning)
+	g.Expect(ok).To(g.BeTrue())
+	g.Expect(vmm.Status).To(g.Equal(models.ConditionTrue))
+
+	ready, ok := vm.Status.Conditions.Get(models.ConditionGuestAgentReady)
+	g.Expect(ok).To(g.BeTrue())
+	g.Expect(ready.Reason).To(g.Equal(models.ReasonPingTimeout))
+}

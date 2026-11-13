@@ -22,6 +22,7 @@ func TestVMMRunningStep_ShouldDo(t *testing.T) {
 	}{
 		{name: "running vmm without the condition", state: ports.MicroVMStateRunning, expected: true},
 		{name: "running vmm with the condition", state: ports.MicroVMStateRunning, existing: true, expected: false},
+		{name: "paused vmm without the condition", state: ports.MicroVMStatePaused, expected: true},
 		{name: "vmm that does not run", state: ports.MicroVMStateConfigured, expected: false},
 	}
 

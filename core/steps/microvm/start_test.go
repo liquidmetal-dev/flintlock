@@ -387,3 +387,18 @@ func TestStartStep_Verify_ContextCancelled(t *testing.T) {
 	g.Expect(err).To(g.MatchError(context.Canceled))
 	g.Expect(time.Since(start)).To(g.BeNumerically("<", time.Second))
 }
+
+func TestStartStep_Verify_PausedIsRunning(t *testing.T) {
+	g.RegisterTestingT(t)
+	svc := mock.NewMockMicroVMService(gomock.NewController(t))
+	vm := testVMToStart()
+	ctx := context.Background()
+
+	svc.EXPECT().State(ctx, vm.ID.String()).Return(ports.MicroVMStatePaused, nil)
+
+	g.Expect(microvm.NewStartStep(vm, svc, testWait).Verify(ctx)).To(g.Succeed())
+
+	cond, ok := vm.Status.Conditions.Get(models.ConditionVMMRunning)
+	g.Expect(ok).To(g.BeTrue())
+	g.Expect(cond.Status).To(g.Equal(models.ConditionTrue))
+}
