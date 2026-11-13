@@ -68,6 +68,7 @@ func pingOnce(ctx context.Context, vsockPath string) error {
 			return fmt.Errorf("reading ping reply: %w", err)
 		}
 
+		//nolint:exhaustive // A ping reply ends with an exit frame; stdout, stderr and heartbeat frames are ignored.
 		switch frame.Type {
 		case vsockclient.FrameError:
 			var msg vsockclient.ErrorMessage
