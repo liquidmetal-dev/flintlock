@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -279,4 +280,58 @@ func TestService_SweepKeepsOrphanBaseOfSnapshot(t *testing.T) {
 
 	g.Expect(env.svc.Sweep(ctx)).To(Succeed())
 	g.Expect(base).NotTo(BeAnExistingFile())
+}
+
+func TestService_CloneDiskNeverReplacesAPublishedDisk(t *testing.T) {
+	g := NewWithT(t)
+	env := newTestService(t, t.TempDir())
+	dir := t.TempDir()
+	path := filepath.Join(dir, "root.rw")
+
+	const callers = 16
+
+	srcs := make([]string, callers)
+	for i := range srcs {
+		srcs[i] = filepath.Join(dir, fmt.Sprintf("src-%d", i))
+		g.Expect(os.WriteFile(srcs[i], []byte(fmt.Sprintf("disk %d", i)), 0o600)).To(Succeed())
+	}
+
+	var (
+		wg    sync.WaitGroup
+		start = make(chan struct{})
+		made  = make([]bool, callers)
+		errs  = make([]error, callers)
+	)
+
+	for i := range srcs {
+		wg.Add(1)
+
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			made[i], errs[i] = env.svc.cloneDisk(srcs[i], path)
+		}(i)
+	}
+
+	close(start)
+	wg.Wait()
+
+	winners := []int{}
+	for i := range srcs {
+		g.Expect(errs[i]).NotTo(HaveOccurred())
+
+		if made[i] {
+			winners = append(winners, i)
+		}
+	}
+
+	g.Expect(winners).To(HaveLen(1))
+
+	data, err := os.ReadFile(path)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(string(data)).To(Equal(fmt.Sprintf("disk %d", winners[0])))
+
+	tmps, err := filepath.Glob(filepath.Join(dir, ".root.rw.tmp-*"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(tmps).To(BeEmpty())
 }

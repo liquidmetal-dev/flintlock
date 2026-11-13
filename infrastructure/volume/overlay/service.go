@@ -21,6 +21,8 @@ const (
 	baseLinkName = "root.base"
 	rwDiskName   = "root.rw"
 
+	volumesLockName = ".lock"
+
 	// MkfsExt4 is the default mkfs.ext4, found on PATH.
 	MkfsExt4 = "mkfs.ext4"
 )
@@ -246,8 +248,9 @@ func (s *Service) makeWritable(ctx context.Context, path string, sizeMB int32) (
 }
 
 // cloneDisk reflinks the disk at src to path unless path exists. It clones
-// to a temporary name and renames, so a crash never leaves a half-made disk
-// that a later call would keep. It reports whether it made the disk.
+// to a temporary name and then publishes it, so a crash never leaves a
+// half-made disk that a later call would keep. It reports whether it made
+// the disk.
 func (s *Service) cloneDisk(src, path string) (bool, error) {
 	if found, err := exists(path); err != nil || found {
 		return false, err
@@ -268,10 +271,17 @@ func (s *Service) cloneDisk(src, path string) (bool, error) {
 		return false, err
 	}
 
-	if err := os.Rename(tmpName, path); err != nil {
-		_ = os.Remove(tmpName)
+	// A link, unlike a rename, fails when path exists, so a disk that another
+	// call published, and that a guest may already write to, is never replaced.
+	err = os.Link(tmpName, path)
+	_ = os.Remove(tmpName)
 
-		return false, fmt.Errorf("renaming disk to %s: %w", path, err)
+	if errors.Is(err, os.ErrExist) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, fmt.Errorf("linking disk to %s: %w", path, err)
 	}
 
 	return true, syncDir(dir)
