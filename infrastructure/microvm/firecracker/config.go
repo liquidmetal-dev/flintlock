@@ -321,7 +321,7 @@ func WithVsock(vm *models.MicroVM, vmState State) ConfigOption {
 			cfg.VsockDevice = &VsockDeviceConfig{
 				ID:       "guest-agent",
 				GuestCID: defaults.GuestAgentVsockCID,
-				UDSPath:  vmState.VSockPath(),
+				UDSPath:  vmState.RelativeVSockPath(),
 			}
 		}
 
