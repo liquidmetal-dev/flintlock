@@ -5,6 +5,9 @@ on:
     tags:
     - "v*.*.*"
 
+permissions:
+  contents: write
+
 jobs:
   # test:
   #   runs-on: ubuntu-latest
@@ -25,20 +28,25 @@ jobs:
   #       project_names: ${{ env.PROJECT_NAME }}
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
     - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
+        persist-credentials: false
     - name: Set up mise
       uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      with:
+        cache: false
     - name: Run GoReleaser
       run: goreleaser release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Log in to Buf Schema Registry
-      run: echo "${{ secrets.BUF_TOKEN }}" | buf registry login --token-stdin
+      env:
+        BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+      run: echo "${BUF_TOKEN}" | buf registry login --token-stdin
     - name: Push schema to Buf Schema Registry
-      run: buf push --tag "${{ github.ref_name }}"
+      env:
+        TAG: ${{ github.ref_name }}
+      run: buf push --tag "${TAG}"
