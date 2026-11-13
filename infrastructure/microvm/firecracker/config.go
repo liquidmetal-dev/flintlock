@@ -68,7 +68,12 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 			cfg.Mmds.NetworkInterfaces = mmdsNetDevices
 		}
 
-		blockDevices, err := buildBlockDevices(vm)
+		drives, err := shared.BuildDrives(vm, shared.DriveOptions{})
+		if err != nil {
+			return fmt.Errorf("building drives: %w", err)
+		}
+
+		blockDevices, err := buildBlockDevices(vm, drives)
 		if err != nil {
 			return err
 		}
@@ -80,6 +85,9 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		for key, value := range vm.Spec.Kernel.CmdLine {
 			kernelCmdLine.Set(key, value)
 		}
+
+		// After the spec, so that the init sees the devices this config emits.
+		shared.SetOverlayKernelParams(kernelCmdLine, drives)
 
 		if vm.Spec.Kernel.AddNetworkConfig {
 			networkConfig, err := shared.GenerateNetworkConfig(vm)
@@ -103,16 +111,17 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 
 // buildBlockDevices returns one block device per drive, in the order the
 // guest sees the drives.
-func buildBlockDevices(vm *models.MicroVM) ([]BlockDeviceConfig, error) {
-	drives, err := shared.BuildDrives(vm, shared.DriveOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("building drives: %w", err)
-	}
-
+//
+// The drives of an overlay root get paths relative to the state directory of
+// the microvm, which Create makes the working directory of the process.
+// Firecracker stores the path string in a snapshot, so a relative path lets
+// a restored process resolve it to its own disk. Full mode keeps absolute
+// paths.
+func buildBlockDevices(vm *models.MicroVM, drives models.Drives) ([]BlockDeviceConfig, error) {
 	blockDevices := []BlockDeviceConfig{}
 
 	for _, drive := range drives {
-		if _, ok := vm.Status.Volumes[drive.VolumeID]; !ok {
+		if !shared.IsDriveMounted(vm, drive) {
 			return nil, errors.NewVolumeNotMounted(drive.VolumeID)
 		}
 
@@ -120,12 +129,25 @@ func buildBlockDevices(vm *models.MicroVM) ([]BlockDeviceConfig, error) {
 			ID:           drive.ID,
 			IsReadOnly:   drive.ReadOnly,
 			IsRootDevice: drive.Role == models.DriveRoleRoot,
-			PathOnHost:   drive.Path,
+			PathOnHost:   pathOnHost(drive),
 			CacheType:    CacheTypeUnsafe,
 		})
 	}
 
 	return blockDevices, nil
+}
+
+func pathOnHost(drive models.Drive) string {
+	switch drive.Role {
+	case models.DriveRoleRootBase:
+		return shared.OverlayBasePath
+	case models.DriveRoleRootRW:
+		return shared.OverlayRWPath
+	case models.DriveRoleRoot, models.DriveRoleCloudInit, models.DriveRoleVolume:
+		return drive.Path
+	}
+
+	return drive.Path
 }
 
 // buildBootSource resolves the kernel (and optional initrd) paths within their image

@@ -44,3 +44,20 @@ func TestDrives_GuestDeviceForVolume_IgnoresRoot(t *testing.T) {
 	_, found := drives.GuestDeviceForVolume("root")
 	g.Expect(found).To(g.BeFalse())
 }
+
+func TestDrives_ByRole(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	drives := models.Drives{
+		{ID: "root_base", Role: models.DriveRoleRootBase, VolumeID: "root", GuestDevice: "vda", ReadOnly: true},
+		{ID: "root_rw", Role: models.DriveRoleRootRW, VolumeID: "root", GuestDevice: "vdb"},
+		{ID: "data", Role: models.DriveRoleVolume, VolumeID: "data", GuestDevice: "vdc"},
+	}
+
+	drive, found := drives.ByRole(models.DriveRoleRootRW)
+	g.Expect(found).To(g.BeTrue())
+	g.Expect(drive.GuestDevice).To(g.Equal("vdb"))
+
+	_, found = drives.ByRole(models.DriveRoleRoot)
+	g.Expect(found).To(g.BeFalse())
+}
