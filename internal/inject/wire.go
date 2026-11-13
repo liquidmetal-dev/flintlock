@@ -21,6 +21,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/vsockexec"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/internal/version"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
@@ -145,6 +146,7 @@ func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMSe
 		VirtioFSService:   vfs,
 		VolumeService:     vs,
 		HostInfoService:   his,
+		GuestAgent:        vsockexec.NewPinger(),
 	}
 }
 
