@@ -86,6 +86,16 @@ func (s *guestAgentReadyStep) Do(ctx context.Context) ([]planner.Procedure, erro
 		}
 
 		if !time.Now().Before(deadline) {
+			// The VMM can stop during the last ping; that is a failed boot, not a ping timeout.
+			running, err := s.checkVMM(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			if !running {
+				return nil, errors.ErrUnableToBoot
+			}
+
 			logger.WithError(pingErr).Warn("guest-agent did not answer a ping before the timeout")
 			s.setReady(models.ConditionFalse, models.ReasonPingTimeout, pingErr.Error())
 
