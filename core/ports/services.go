@@ -29,10 +29,23 @@ type MicroVMService interface {
 	Pause(ctx context.Context, vm *models.MicroVM) error
 	// Resume will resume a paused microvm.
 	Resume(ctx context.Context, vm *models.MicroVM) error
+	// Snapshot writes the state and the memory of a microvm to dest/vmstate
+	// and dest/memory. The caller has paused the microvm.
+	Snapshot(ctx context.Context, vm *models.MicroVM, dest string) error
+	// Restore starts the VMM of a microvm from the snapshot in src and leaves
+	// it running. The caller has created the network interfaces and the
+	// volumes of the microvm.
+	Restore(ctx context.Context, vm *models.MicroVM, src string, in RestoreInput) error
 	// State returns the state of a microvm.
 	State(ctx context.Context, id string) (MicroVMState, error)
 	// Metrics returns with the metrics of a microvm.
 	Metrics(ctx context.Context, id models.VMID) (MachineMetrics, error)
+}
+
+// RestoreInput holds the options of a restore from a snapshot.
+type RestoreInput struct {
+	// MemoryMode selects how the guest memory is restored.
+	MemoryMode models.MemoryMode
 }
 
 // This state represents the state of the Firecracker MVM process itself
