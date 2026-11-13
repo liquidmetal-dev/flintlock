@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"testing"
+	"time"
 
 	g "github.com/onsi/gomega"
 
@@ -181,4 +182,38 @@ func TestConvert_VolumeRoundTrip(t *testing.T) {
 	g.Expect(back.AdditionalVolumes).To(g.HaveLen(1))
 	g.Expect(back.AdditionalVolumes[0].MountPoint).To(g.HaveValue(g.Equal(mountPoint)))
 	g.Expect(back.AdditionalVolumes[0].Source.VirtiofsSource).To(g.HaveValue(g.Equal(sharePath)))
+}
+
+func TestConvertModelToMicroVMStatus_Conditions(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	t1 := time.Date(2026, 11, 13, 10, 0, 0, 0, time.UTC)
+	t2 := t1.Add(time.Minute)
+	t3 := t2.Add(time.Minute)
+
+	mvm := &models.MicroVM{
+		Status: models.MicroVMStatus{
+			Conditions: models.Conditions{
+				{Type: models.ConditionVMMRunning, Status: models.ConditionTrue, Reason: models.ReasonRunning, Message: "msg", LastTransition: t1},
+				{Type: models.ConditionGuestAgentReady, Status: models.ConditionFalse, Reason: models.ReasonPingTimeout, LastTransition: t2},
+				{Type: "Other", Status: models.ConditionUnknown, LastTransition: t3},
+			},
+		},
+	}
+
+	conds := convertModelToMicroVMStatus(mvm).Conditions
+	g.Expect(conds).To(g.HaveLen(3))
+
+	g.Expect(conds[0].Type).To(g.Equal("VMMRunning"))
+	g.Expect(conds[0].Status).To(g.Equal(types.MicroVMCondition_TRUE))
+	g.Expect(conds[0].Reason).To(g.Equal("Running"))
+	g.Expect(conds[0].Message).To(g.Equal("msg"))
+	g.Expect(conds[0].LastTransition.AsTime().Equal(t1)).To(g.BeTrue())
+
+	g.Expect(conds[1].Type).To(g.Equal("GuestAgentReady"))
+	g.Expect(conds[1].Status).To(g.Equal(types.MicroVMCondition_FALSE))
+	g.Expect(conds[1].Reason).To(g.Equal("PingTimeout"))
+	g.Expect(conds[1].LastTransition.AsTime().Equal(t2)).To(g.BeTrue())
+
+	g.Expect(conds[2].Status).To(g.Equal(types.MicroVMCondition_UNKNOWN))
 }

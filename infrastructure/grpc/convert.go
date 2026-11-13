@@ -335,6 +335,30 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 		converted.NetworkInterfaces[netIfaceName] = convertModelToNetworkInterfaceStatus(netIfaceStatus)
 	}
 
+	for _, cond := range mvm.Status.Conditions {
+		converted.Conditions = append(converted.Conditions, convertModelToCondition(cond))
+	}
+
+	return converted
+}
+
+func convertModelToCondition(cond models.Condition) *types.MicroVMCondition {
+	converted := &types.MicroVMCondition{
+		Type:           string(cond.Type),
+		Reason:         cond.Reason,
+		Message:        cond.Message,
+		LastTransition: timestamppb.New(cond.LastTransition),
+	}
+
+	switch cond.Status {
+	case models.ConditionTrue:
+		converted.Status = types.MicroVMCondition_TRUE
+	case models.ConditionFalse:
+		converted.Status = types.MicroVMCondition_FALSE
+	case models.ConditionUnknown:
+		converted.Status = types.MicroVMCondition_UNKNOWN
+	}
+
 	return converted
 }
 

@@ -13,6 +13,7 @@ editURL: https://github.com/liquidmetal-dev/flintlock/edit/main/api/types/microv
     - [Kernel](#flintlock-types-Kernel)
     - [Kernel.CmdlineEntry](#flintlock-types-Kernel-CmdlineEntry)
     - [MicroVM](#flintlock-types-MicroVM)
+    - [MicroVMCondition](#flintlock-types-MicroVMCondition)
     - [MicroVMSpec](#flintlock-types-MicroVMSpec)
     - [MicroVMSpec.LabelsEntry](#flintlock-types-MicroVMSpec-LabelsEntry)
     - [MicroVMSpec.MetadataEntry](#flintlock-types-MicroVMSpec-MetadataEntry)
@@ -29,6 +30,7 @@ editURL: https://github.com/liquidmetal-dev/flintlock/edit/main/api/types/microv
     - [VolumeSource](#flintlock-types-VolumeSource)
     - [VolumeStatus](#flintlock-types-VolumeStatus)
   
+    - [MicroVMCondition.Status](#flintlock-types-MicroVMCondition-Status)
     - [MicroVMStatus.MicroVMState](#flintlock-types-MicroVMStatus-MicroVMState)
     - [Mount.MountType](#flintlock-types-Mount-MountType)
     - [NetworkInterface.IfaceType](#flintlock-types-NetworkInterface-IfaceType)
@@ -158,6 +160,25 @@ MicroVM represents a microvm machine that is created via a provider.
 
 
 
+<a name="flintlock-types-MicroVMCondition"></a>
+
+### MicroVMCondition
+MicroVMCondition is one observed fact about a microvm.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| type | [string](#string) |  | Type is the condition type, for example VMMRunning or GuestAgentReady. |
+| status | [MicroVMCondition.Status](#flintlock-types-MicroVMCondition-Status) |  | Status is the status of the condition. |
+| reason | [string](#string) |  | Reason is a machine-readable reason for the status. |
+| message | [string](#string) |  | Message is a human-readable detail. |
+| last_transition | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | LastTransition is when the status last changed. |
+
+
+
+
+
+
 <a name="flintlock-types-MicroVMSpec"></a>
 
 ### MicroVMSpec
@@ -237,6 +258,7 @@ MicroVMStatus contains the runtime status of the microvm.
 | network_interfaces | [MicroVMStatus.NetworkInterfacesEntry](#flintlock-types-MicroVMStatus-NetworkInterfacesEntry) | repeated | NetworkInterfaces holds the status of the network interfaces. |
 | retry | [int32](#int32) |  | Retry is a counter about how many times we retried to reconcile. |
 | vsock_path | [string](#string) |  | VsockPath is the host unix-domain socket path for the guest-agent vsock device. Empty unless allow_guest_agent is set on the spec. Use with the vsock-connect host helper. |
+| conditions | [MicroVMCondition](#flintlock-types-MicroVMCondition) | repeated | Conditions are observed facts about the microvm, for example VMMRunning and GuestAgentReady. |
 
 
 
@@ -431,6 +453,19 @@ VolumeSource is the source of a volume. Based loosely on the volumes in Kubernet
 
 
  <!-- end messages -->
+
+
+<a name="flintlock-types-MicroVMCondition-Status"></a>
+
+### MicroVMCondition.Status
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| UNKNOWN | 0 |  |
+| TRUE | 1 |  |
+| FALSE | 2 |  |
+
 
 
 <a name="flintlock-types-MicroVMStatus-MicroVMState"></a>
