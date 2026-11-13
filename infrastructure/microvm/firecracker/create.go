@@ -71,7 +71,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 // working directory of the process is the state directory of the microvm, so
 // that the relative drive paths of an overlay root resolve to its own disks.
 func (p *fcProvider) command(vm *models.MicroVM, vmState State) *exec.Cmd {
-	args := []string{"--id", vm.ID.UID(), "--boot-timer", "--no-api"}
+	args := []string{"--id", vm.ID.UID(), "--boot-timer", "--api-sock", vmState.APISockPath()}
 	args = append(args, "--config-file", vmState.ConfigPath())
 	args = append(args, "--metadata", vmState.MetadataPath())
 
@@ -131,6 +131,10 @@ func (p *fcProvider) ensureState(vmState State) error {
 	// running, so a socket left in the state dir by an older flintlock can go too.
 	if err := shared.RemoveStaleSockets(p.fs, vmState.VSockPath(), vmState.legacyVSockPath()); err != nil {
 		return fmt.Errorf("removing stale vsock socket: %w", err)
+	}
+
+	if err := shared.RemoveStaleSockets(p.fs, vmState.APISockPath()); err != nil {
+		return fmt.Errorf("removing stale api socket: %w", err)
 	}
 
 	logFile, err := p.fs.OpenFile(vmState.LogPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)

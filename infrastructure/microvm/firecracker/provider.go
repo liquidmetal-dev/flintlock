@@ -16,6 +16,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
+	"github.com/liquidmetal-dev/flintlock/pkg/firecracker"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
 )
@@ -178,7 +179,61 @@ func (p *fcProvider) State(ctx context.Context, id string) (ports.MicroVMState, 
 		return ports.MicroVMStatePending, nil
 	}
 
-	return ports.MicroVMStateRunning, nil
+	info, err := firecracker.New(vmState.APISockPath()).Describe(ctx)
+	if err != nil {
+		logger.WithError(err).Debug("querying firecracker api, assuming running as process is alive")
+
+		return ports.MicroVMStateRunning, nil
+	}
+
+	return toMicroVMState(info.State)
+}
+
+func toMicroVMState(state firecracker.InstanceState) (ports.MicroVMState, error) {
+	switch state {
+	case firecracker.InstanceStateRunning:
+		return ports.MicroVMStateRunning, nil
+	case firecracker.InstanceStatePaused:
+		return ports.MicroVMStatePaused, nil
+	case firecracker.InstanceStateNotStarted:
+		// The process is alive and builds the VM from its config file. Pending
+		// would make the create step launch a second VMM over this one's socket.
+		return ports.MicroVMStateRunning, nil
+	default:
+		return ports.MicroVMStateUnknown, fmt.Errorf("firecracker in an unsupported state: %s", state)
+	}
+}
+
+// Pause will pause a running microvm.
+func (p *fcProvider) Pause(ctx context.Context, vm *models.MicroVM) error {
+	log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "firecracker_microvm",
+		"vmid":    vm.ID.String(),
+	}).Info("pausing microvm")
+
+	vmState := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+
+	if err := firecracker.New(vmState.APISockPath()).Pause(ctx); err != nil {
+		return fmt.Errorf("pausing firecracker microvm: %w", err)
+	}
+
+	return nil
+}
+
+// Resume will resume a paused microvm.
+func (p *fcProvider) Resume(ctx context.Context, vm *models.MicroVM) error {
+	log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "firecracker_microvm",
+		"vmid":    vm.ID.String(),
+	}).Info("resuming microvm")
+
+	vmState := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+
+	if err := firecracker.New(vmState.APISockPath()).Resume(ctx); err != nil {
+		return fmt.Errorf("resuming firecracker microvm: %w", err)
+	}
+
+	return nil
 }
 
 func (p *fcProvider) Metrics(_ context.Context, vmid models.VMID) (ports.MachineMetrics, error) {
