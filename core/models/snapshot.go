@@ -27,6 +27,15 @@ const (
 	MemoryModeCopy MemoryMode = "copy"
 )
 
+const (
+	// SnapshotVMStateFile is the name of the file with the VMM state in a
+	// snapshot directory.
+	SnapshotVMStateFile = "vmstate"
+	// SnapshotMemoryFile is the name of the file with the guest memory in a
+	// snapshot directory.
+	SnapshotMemoryFile = "memory"
+)
+
 // Snapshot represents a snapshot of a microvm.
 type Snapshot struct {
 	// UID is the unique identifier of the snapshot.

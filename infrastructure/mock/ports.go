@@ -122,6 +122,20 @@ func (mr *MockMicroVMServiceMockRecorder) Pause(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pause", reflect.TypeOf((*MockMicroVMService)(nil).Pause), arg0, arg1)
 }
 
+// Restore mocks base method.
+func (m *MockMicroVMService) Restore(arg0 context.Context, arg1 *models.MicroVM, arg2 string, arg3 ports.RestoreInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Restore", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Restore indicates an expected call of Restore.
+func (mr *MockMicroVMServiceMockRecorder) Restore(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Restore", reflect.TypeOf((*MockMicroVMService)(nil).Restore), arg0, arg1, arg2, arg3)
+}
+
 // Resume mocks base method.
 func (m *MockMicroVMService) Resume(arg0 context.Context, arg1 *models.MicroVM) error {
 	m.ctrl.T.Helper()
@@ -134,6 +148,20 @@ func (m *MockMicroVMService) Resume(arg0 context.Context, arg1 *models.MicroVM) 
 func (mr *MockMicroVMServiceMockRecorder) Resume(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Resume", reflect.TypeOf((*MockMicroVMService)(nil).Resume), arg0, arg1)
+}
+
+// Snapshot mocks base method.
+func (m *MockMicroVMService) Snapshot(arg0 context.Context, arg1 *models.MicroVM, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Snapshot", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Snapshot indicates an expected call of Snapshot.
+func (mr *MockMicroVMServiceMockRecorder) Snapshot(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Snapshot", reflect.TypeOf((*MockMicroVMService)(nil).Snapshot), arg0, arg1, arg2)
 }
 
 // Start mocks base method.

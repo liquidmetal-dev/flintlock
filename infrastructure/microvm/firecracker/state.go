@@ -152,13 +152,23 @@ func (s *fsState) SetConfig(cfg *VmmConfig) error {
 }
 
 func (s *fsState) SetMetadata(meta *Metadata) error {
+	err := s.writeToFileAsJSON(decodeMetadata(meta.Latest), s.MetadataPath())
+	if err != nil {
+		return fmt.Errorf("firecracker metadata: %w", err)
+	}
+
+	return nil
+}
+
+// decodeMetadata returns the MMDS data for the metadata of a microvm spec. It
+// base64 decodes each value. A value that does not decode is kept as it is,
+// in case it came without base64 encoding.
+func decodeMetadata(latest map[string]string) *Metadata {
 	decoded := &Metadata{
 		Latest: map[string]string{},
 	}
 
-	// Try to base64 decode values, if we can't decode, use them at they are,
-	// in case we got them without base64 encoding.
-	for key, value := range meta.Latest {
+	for key, value := range latest {
 		decodedValue, err := base64.StdEncoding.DecodeString(value)
 		if err != nil {
 			decoded.Latest[key] = value
@@ -167,18 +177,13 @@ func (s *fsState) SetMetadata(meta *Metadata) error {
 		}
 	}
 
-	err := s.writeToFileAsJSON(decoded, s.MetadataPath())
-	if err != nil {
-		return fmt.Errorf("firecracker metadata: %w", err)
-	}
-
-	return nil
+	return decoded
 }
 
 func (s *fsState) Metadata() (Metadata, error) {
 	meta := Metadata{}
 
-	err := s.readJSONFile(&meta, s.ConfigPath())
+	err := s.readJSONFile(&meta, s.MetadataPath())
 	if err != nil {
 		return Metadata{}, fmt.Errorf("firecracker metadata: %w", err)
 	}
@@ -195,6 +200,8 @@ func (s *fsState) readJSONFile(cfg interface{}, inputFile string) error {
 	if err != nil {
 		return fmt.Errorf("opening file %s: %w", inputFile, err)
 	}
+
+	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {

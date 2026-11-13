@@ -12,8 +12,11 @@ import (
 const (
 	DefaultServerEndpoint = "http://localhost/"
 
-	PathInstanceInfo = "/"
-	PathVM           = "/vm"
+	PathInstanceInfo   = "/"
+	PathVM             = "/vm"
+	PathSnapshotCreate = "/snapshot/create"
+	PathSnapshotLoad   = "/snapshot/load"
+	PathMMDS           = "/mmds"
 
 	DefaultDescribeTimeout = 2 * time.Second
 )
@@ -26,6 +29,12 @@ type Client interface {
 	Pause(ctx context.Context) error
 	// Resume resumes a paused microvm.
 	Resume(ctx context.Context) error
+	// CreateSnapshot writes a snapshot of a paused microvm.
+	CreateSnapshot(ctx context.Context, params SnapshotCreateParams) error
+	// LoadSnapshot loads a snapshot into a Firecracker process that has no microvm yet.
+	LoadSnapshot(ctx context.Context, params SnapshotLoadParams) error
+	// PutMMDS replaces the data store of the metadata service with data.
+	PutMMDS(ctx context.Context, data any) error
 }
 
 type client struct {
@@ -94,4 +103,19 @@ func (c *client) Resume(ctx context.Context) error {
 
 func (c *client) setVMState(ctx context.Context, state VMState) error {
 	return c.builder.Clone().Path(PathVM).Patch().BodyJSON(&VM{State: state}).Fetch(ctx)
+}
+
+// CreateSnapshot writes a snapshot of a paused microvm.
+func (c *client) CreateSnapshot(ctx context.Context, params SnapshotCreateParams) error {
+	return c.builder.Clone().Path(PathSnapshotCreate).Put().BodyJSON(&params).Fetch(ctx)
+}
+
+// LoadSnapshot loads a snapshot into a Firecracker process that has no microvm yet.
+func (c *client) LoadSnapshot(ctx context.Context, params SnapshotLoadParams) error {
+	return c.builder.Clone().Path(PathSnapshotLoad).Put().BodyJSON(&params).Fetch(ctx)
+}
+
+// PutMMDS replaces the data store of the metadata service with data.
+func (c *client) PutMMDS(ctx context.Context, data any) error {
+	return c.builder.Clone().Path(PathMMDS).Put().BodyJSON(data).Fetch(ctx)
 }
