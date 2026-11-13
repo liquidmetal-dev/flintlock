@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -130,4 +131,34 @@ func TestClientSocketNotAnswering(t *testing.T) {
 
 	_, err := firecracker.New(filepath.Join(t.TempDir(), "missing.sock")).Describe(context.Background())
 	g.Expect(err).To(HaveOccurred())
+}
+
+func TestClientDescribeTimesOutWhenSocketHangs(t *testing.T) {
+	g := NewWithT(t)
+
+	dir, err := os.MkdirTemp("", "fc")
+	g.Expect(err).NotTo(HaveOccurred())
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+
+	sockPath := filepath.Join(dir, "firecracker.sock")
+
+	listener, err := net.Listen("unix", sockPath)
+	g.Expect(err).NotTo(HaveOccurred())
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			t.Cleanup(func() { _ = conn.Close() })
+		}
+	}()
+
+	start := time.Now()
+	_, err = firecracker.New(sockPath, firecracker.WithDescribeTimeout(100*time.Millisecond)).
+		Describe(context.Background())
+	g.Expect(err).To(MatchError(context.DeadlineExceeded))
+	g.Expect(time.Since(start)).To(BeNumerically("<", 5*time.Second))
 }
