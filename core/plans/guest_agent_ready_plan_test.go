@@ -105,3 +105,32 @@ func TestCreatePlan_RestartPingsAgain(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(stepNames(steps)).To(ContainElement(guestAgentReadyStepName))
 }
+
+func TestCreatePlan_RunningVMWithoutConditionGetsVMMRunning(t *testing.T) {
+	RegisterTestingT(t)
+
+	vm := minimalTestSpec(false)
+	vm.Status.State = models.CreatedState
+
+	plan, ctx, _ := newPlanWithPorts(t, vm, ports.MicroVMStateRunning)
+
+	steps, err := plan.Create(ctx)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(stepNames(steps)).To(ContainElement("microvm_vmm_running"))
+	Expect(stepNames(steps)).NotTo(ContainElement("microvm_create"))
+
+	for _, step := range steps {
+		if step.Name() == "microvm_vmm_running" {
+			_, err := step.Do(ctx)
+			Expect(err).NotTo(HaveOccurred())
+		}
+	}
+
+	cond, ok := vm.Status.Conditions.Get(models.ConditionVMMRunning)
+	Expect(ok).To(BeTrue())
+	Expect(cond.Status).To(Equal(models.ConditionTrue))
+
+	steps, err = plan.Create(ctx)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(stepNames(steps)).NotTo(ContainElement("microvm_vmm_running"))
+}
