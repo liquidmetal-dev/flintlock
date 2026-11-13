@@ -52,9 +52,11 @@ func (a *app) plan(spec *models.MicroVM, logger *logrus.Entry) planner.Plan {
 	}
 
 	input := &plans.CreateOrUpdatePlanInput{
-		StateDirectory:  a.cfg.RootStateDir,
-		SocketDirectory: a.cfg.SocketDir,
-		VM:              spec,
+		StateDirectory:         a.cfg.RootStateDir,
+		SocketDirectory:        a.cfg.SocketDir,
+		VM:                     spec,
+		VMMStartTimeout:        a.cfg.VMMStartTimeout,
+		GuestAgentReadyTimeout: a.cfg.GuestAgentReadyTimeout,
 	}
 
 	return plans.MicroVMCreateOrUpdatePlan(input)

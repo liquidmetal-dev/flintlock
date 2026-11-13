@@ -339,6 +339,51 @@ func TestServer_GetMicroVM(t *testing.T) {
 	}
 }
 
+func TestServer_GetMicroVM_Conditions(t *testing.T) {
+	RegisterTestingT(t)
+
+	t1 := time.Date(2026, 11, 13, 10, 0, 0, 0, time.UTC)
+	t2 := t1.Add(time.Minute)
+	t3 := t2.Add(time.Minute)
+	vmid, _ := models.NewVMID("mvm1", "default", "testuid")
+
+	mockCtrl := gomock.NewController(t)
+	cm := mock.NewMockMicroVMCommandUseCases(mockCtrl)
+	qm := mock.NewMockMicroVMQueryUseCases(mockCtrl)
+
+	qm.EXPECT().GetMicroVM(gomock.Any(), "testuid").Return(&models.MicroVM{
+		ID: *vmid,
+		Status: models.MicroVMStatus{
+			State: models.CreatedState,
+			Conditions: models.Conditions{
+				{Type: models.ConditionVMMRunning, Status: models.ConditionTrue, Reason: models.ReasonRunning, Message: "msg", LastTransition: t1},
+				{Type: models.ConditionGuestAgentReady, Status: models.ConditionFalse, Reason: models.ReasonPingTimeout, LastTransition: t2},
+				{Type: "Other", Status: models.ConditionUnknown, LastTransition: t3},
+			},
+		},
+	}, nil)
+
+	svr := grpc.NewServer(cm, qm, grpc.InfoConfig{})
+	resp, err := svr.GetMicroVM(context.Background(), &mvm1.GetMicroVMRequest{Uid: "testuid"})
+	Expect(err).NotTo(HaveOccurred())
+
+	conds := resp.Microvm.Status.Conditions
+	Expect(conds).To(HaveLen(3))
+
+	Expect(conds[0].Type).To(Equal("VMMRunning"))
+	Expect(conds[0].Status).To(Equal(types.MicroVMCondition_TRUE))
+	Expect(conds[0].Reason).To(Equal("Running"))
+	Expect(conds[0].Message).To(Equal("msg"))
+	Expect(conds[0].LastTransition.AsTime().Equal(t1)).To(BeTrue())
+
+	Expect(conds[1].Type).To(Equal("GuestAgentReady"))
+	Expect(conds[1].Status).To(Equal(types.MicroVMCondition_FALSE))
+	Expect(conds[1].Reason).To(Equal("PingTimeout"))
+	Expect(conds[1].LastTransition.AsTime().Equal(t2)).To(BeTrue())
+
+	Expect(conds[2].Status).To(Equal(types.MicroVMCondition_UNKNOWN))
+}
+
 func TestServer_ListMicroVMs(t *testing.T) {
 	tt := []struct {
 		name        string

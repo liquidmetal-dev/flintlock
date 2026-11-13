@@ -90,6 +90,18 @@ const (
 	// MicroVMNamespace is the default namespace to use for microvms.
 	MicroVMNamespace = "default"
 
+	// VMMStartTimeout is how long the create plan waits for the VMM to run.
+	VMMStartTimeout time.Duration = 30 * time.Second
+
+	// GuestAgentReadyTimeout is how long the create plan waits for the guest-agent to answer a ping.
+	GuestAgentReadyTimeout time.Duration = 60 * time.Second
+
+	// ReadyPollInterval is the time between two checks of the VMM or the guest-agent.
+	ReadyPollInterval time.Duration = 250 * time.Millisecond
+
+	// GuestAgentPingAttemptTimeout bounds one ping to the guest-agent.
+	GuestAgentPingAttemptTimeout time.Duration = 2 * time.Second
+
 	// ResyncPeriod is the default resync period duration.
 	ResyncPeriod time.Duration = 10 * time.Minute
 

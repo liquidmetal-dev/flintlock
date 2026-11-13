@@ -65,6 +65,10 @@ type Config struct {
 	ResyncPeriod time.Duration
 	// MaximumRetry defined how many times we retry if reconciliation failed.
 	MaximumRetry int
+	// VMMStartTimeout is how long the create plan waits for the VMM to run.
+	VMMStartTimeout time.Duration
+	// GuestAgentReadyTimeout is how long the create plan waits for the guest-agent to answer a ping.
+	GuestAgentReadyTimeout time.Duration
 	// DeleteVMTimeout defines the timeout for the delete vm operation.
 	DeleteVMTimeout time.Duration
 	// BasicAuthToken is the static token to use for very basic authentication.

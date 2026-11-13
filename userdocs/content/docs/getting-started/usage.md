@@ -78,6 +78,16 @@ fl microvm exec --host 192.168.1.66:9090 <uid> -- uname -a
 fl microvm ssh --host 192.168.1.66:9090 <uid> -- -l ubuntu
 ```
 
+Before you run a command, wait until the status of the microVM has the
+`GuestAgentReady` condition with the status `TRUE`. flintlock pings the guest
+agent after it starts the VMM, until the agent answers or
+`--guest-agent-ready-timeout` (default `60s`) expires. When the agent does not
+answer in time, the condition is `FALSE` with the reason `PingTimeout`, and it
+stays `FALSE` until the VMM starts again.
+
+The `VMMRunning` condition shows that the VMM process runs. flintlockd waits up
+to `--vmm-start-timeout` (default `30s`) for it.
+
 Arguments after `--` in `fl microvm ssh` are passed to `ssh`.
 
 ## grpc-client-cli

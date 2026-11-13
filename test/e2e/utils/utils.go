@@ -30,6 +30,10 @@ const (
 	// DefaultRootImage is the image which the test microvms use for their root volume.
 	DefaultRootImage = "ghcr.io/liquidmetal-dev/capmvm-k8s-os:1.23.5"
 
+	// GuestAgentRootImage is the root image of the test microvms with the
+	// guest-agent. It runs the guest-agent as a systemd service.
+	GuestAgentRootImage = "ghcr.io/liquidmetal-dev/ubuntu:24.04"
+
 	// VirtioFSVolumeID is the id of the virtiofs volume of a test microvm.
 	VirtioFSVolumeID = "share"
 
@@ -69,8 +73,8 @@ func CreateGuestAgentMVM(
 	provider Provider,
 	name, ns string,
 ) *v1alpha1.CreateMicroVMResponse {
-	spec := newMicroVMSpec(provider, name, ns)
-	spec.AllowGuestAgent = true
+	spec, err := NewGuestAgentMicroVMSpec(provider, name, ns)
+	g.Expect(err).NotTo(g.HaveOccurred())
 
 	ctx, cancel := requestContext()
 	defer cancel()
@@ -268,6 +272,31 @@ func NewMicroVMSpec(provider Provider, name, namespace string) (*types.MicroVMSp
 		},
 		Metadata: metadata,
 	}, nil
+}
+
+// NewGuestAgentMicroVMSpec returns the spec of a test microvm with the
+// guest-agent vsock device and a root image which runs the guest-agent.
+func NewGuestAgentMicroVMSpec(provider Provider, name, namespace string) (*types.MicroVMSpec, error) {
+	spec, err := NewMicroVMSpec(provider, name, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	spec.AllowGuestAgent = true
+	spec.RootVolume.Source.ContainerSource = pointyString(GuestAgentRootImage)
+
+	return spec, nil
+}
+
+// Condition returns the condition of the type conditionType, or nil.
+func Condition(status *types.MicroVMStatus, conditionType string) *types.MicroVMCondition {
+	for _, cond := range status.GetConditions() {
+		if cond.GetType() == conditionType {
+			return cond
+		}
+	}
+
+	return nil
 }
 
 // NewVirtioFSMicroVMSpec returns the spec of a test microvm with a virtiofs

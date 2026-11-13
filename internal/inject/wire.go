@@ -21,6 +21,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/vsockexec"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
 	"github.com/liquidmetal-dev/flintlock/internal/version"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
@@ -121,11 +122,13 @@ func volumeService(cfg overlay.Config, source overlay.LayerSource) (ports.Volume
 
 func appConfig(cfg *config.Config) *application.Config {
 	return &application.Config{
-		RootStateDir:       cfg.StateRootDir,
-		SocketDir:          cfg.SocketDir,
-		MaximumRetry:       cfg.MaximumRetry,
-		DefaultProvider:    cfg.DefaultVMProvider,
-		OverlayInitrdImage: cfg.EffectiveOverlayInitrdImage(version.Version),
+		RootStateDir:           cfg.StateRootDir,
+		SocketDir:              cfg.SocketDir,
+		MaximumRetry:           cfg.MaximumRetry,
+		DefaultProvider:        cfg.DefaultVMProvider,
+		OverlayInitrdImage:     cfg.EffectiveOverlayInitrdImage(version.Version),
+		VMMStartTimeout:        cfg.VMMStartTimeout,
+		GuestAgentReadyTimeout: cfg.GuestAgentReadyTimeout,
 	}
 }
 
@@ -143,6 +146,7 @@ func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMSe
 		VirtioFSService:   vfs,
 		VolumeService:     vs,
 		HostInfoService:   his,
+		GuestAgent:        vsockexec.NewPinger(),
 	}
 }
 

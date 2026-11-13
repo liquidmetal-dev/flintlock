@@ -121,6 +121,7 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 		res := u.GetMVM(flintlockClient, *created.Microvm.Spec.Uid)
 		g.Expect(res.Microvm.Spec.Id).To(Equal(mvmID))
 		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		expectVMMRunningWithoutGuestAgent(g, res.Microvm.Status)
 		return nil
 	}, "120s").Should(Succeed())
 
@@ -156,6 +157,7 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 		g.Expect(res.Microvm).To(HaveLen(1))
 		g.Expect(res.Microvm[0].Spec.Id).To(Equal(secondMvmID))
 		g.Expect(res.Microvm[0].Status.State).To(Equal(types.MicroVMStatus_CREATED))
+		expectVMMRunningWithoutGuestAgent(g, res.Microvm[0].Status)
 
 		return nil
 	}, "120s").Should(Succeed())
@@ -181,6 +183,17 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 		res := u.GetMVM(flintlockClient, *createdLong.Microvm.Spec.Uid)
 		g.Expect(res.Microvm.Status.State).To(Equal(types.MicroVMStatus_CREATED))
 		g.Expect(res.Microvm.Status.VsockPath).To(HavePrefix(longSocketRoot + "/"))
+
+		// The create plan ends only after the ping step, so a CREATED
+		// microvm has its final GuestAgentReady condition.
+		vmmRunning := u.Condition(res.Microvm.Status, "VMMRunning")
+		g.Expect(vmmRunning).NotTo(BeNil())
+		g.Expect(vmmRunning.Status).To(Equal(types.MicroVMCondition_TRUE))
+
+		ready := u.Condition(res.Microvm.Status, "GuestAgentReady")
+		g.Expect(ready).NotTo(BeNil())
+		g.Expect(ready.Status).To(Equal(types.MicroVMCondition_TRUE), "GuestAgentReady: %s %s", ready.Reason, ready.Message)
+		g.Expect(ready.Reason).To(Equal("PingSucceeded"))
 
 		info, err := os.Stat(res.Microvm.Status.VsockPath)
 		g.Expect(err).NotTo(HaveOccurred())
@@ -227,4 +240,11 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 		g.Expect(res.Microvm).To(HaveLen(0))
 		return nil
 	}, "120s").Should(Succeed())
+}
+
+func expectVMMRunningWithoutGuestAgent(g Gomega, status *types.MicroVMStatus) {
+	vmmRunning := u.Condition(status, "VMMRunning")
+	g.Expect(vmmRunning).NotTo(BeNil())
+	g.Expect(vmmRunning.Status).To(Equal(types.MicroVMCondition_TRUE))
+	g.Expect(u.Condition(status, "GuestAgentReady")).To(BeNil())
 }
