@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends skopeo jq e2fsprogs xfsprogs util-linux binutils curl
+          sudo apt-get install -y --no-install-recommends skopeo jq e2fsprogs xfsprogs util-linux util-linux-extra binutils curl
       - name: Install Firecracker
         env:
           FIRECRACKER: v1.16.1
