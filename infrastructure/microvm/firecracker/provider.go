@@ -36,6 +36,9 @@ type Config struct {
 	RunDetached bool
 	// DeleteVMTimeout is the timeout to wait for the microvm to be deleted.
 	DeleteVMTimeout time.Duration
+	// VolumeCapabilities are the volume modes the host accepts, from the
+	// startup probes. The provider advertises them with its own capabilities.
+	VolumeCapabilities models.Capabilities
 }
 
 // New creates a new instance of the firecracker microvm provider.
@@ -58,11 +61,13 @@ type fcProvider struct {
 
 // Capabilities returns a list of the capabilities the Firecracker provider supports.
 func (p *fcProvider) Capabilities() models.Capabilities {
-	return models.Capabilities{
+	caps := models.Capabilities{
 		models.MetadataServiceCapability,
 		models.VSockCapability,
 		models.KVMCapabilitiesDisableCapability,
 	}
+
+	return append(caps, p.config.VolumeCapabilities...)
 }
 
 // Drives returns the drives the Firecracker provider presents to a microvm,

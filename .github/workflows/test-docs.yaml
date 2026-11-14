@@ -5,23 +5,26 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
-    name: Build docusaurus
+    name: Build docs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+          persist-credentials: false
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
-          node-version: 22
-          cache: yarn
-          cache-dependency-path: 'userdocs/yarn.lock'
-      - name: Install dependencies
-        working-directory: ./userdocs
-        run: yarn install --frozen-lockfile
+          install_args: go hugo
       - name: Build website
         working-directory: ./userdocs
-        run: yarn build
+        run: hugo --gc --minify --panicOnWarning

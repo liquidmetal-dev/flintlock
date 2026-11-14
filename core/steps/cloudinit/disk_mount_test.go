@@ -119,7 +119,7 @@ func TestDiskMount_UsesDeviceNamesFromProvider(t *testing.T) {
 	g.Expect(should).To(g.BeFalse())
 }
 
-func TestDiskMount_SkipsVirtioFS(t *testing.T) {
+func TestDiskMount_MountsVirtioFSByTag(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	mockCtrl := gomock.NewController(t)
@@ -138,10 +138,15 @@ func TestDiskMount_SkipsVirtioFS(t *testing.T) {
 
 	_, err := step.Do(ctx)
 	g.Expect(err).NotTo(g.HaveOccurred())
-	g.Expect(mounts(t, vm)).To(g.Equal([]userdata.Mount{{"vdb", "/data"}}))
 
-	// The virtiofs volume has a mount point and no entry. The step must not
-	// ask to run again because of it, or the plan never finishes.
+	// A share has no block device. The guest mounts it by the tag which the
+	// VMM gives it, "user", and needs the filesystem type and no fsck pass,
+	// which the default fields do not give.
+	g.Expect(mounts(t, vm)).To(g.Equal([]userdata.Mount{
+		{"user", "/shared", "virtiofs", "defaults,nofail", "0", "0"},
+		{"vdb", "/data"},
+	}))
+
 	should, err := step.ShouldDo(ctx)
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(should).To(g.BeFalse())
@@ -153,12 +158,24 @@ func TestDiskMount_OnlyVirtioFS(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	ctx := context.Background()
 	vm := testVM(virtioFSVolume("shared", "/shared"))
 
-	// No call is expected on the provider: gomock fails the test if one is made.
+	// No call is expected on the provider, a share has no drive: gomock fails
+	// the test if one is made.
 	step := cloudinitstep.NewDiskMountStep(vm, mock.NewMockMicroVMService(mockCtrl))
 
-	should, err := step.ShouldDo(context.Background())
+	should, err := step.ShouldDo(ctx)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(should).To(g.BeTrue())
+
+	_, err = step.Do(ctx)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(mounts(t, vm)).To(g.Equal([]userdata.Mount{
+		{"user", "/shared", "virtiofs", "defaults,nofail", "0", "0"},
+	}))
+
+	should, err = step.ShouldDo(ctx)
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(should).To(g.BeFalse())
 }
@@ -200,7 +217,7 @@ func TestDiskMount_VolumeWithoutMountPoint(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	ctx := context.Background()
-	vm := testVM(containerVolume("scratch", ""), containerVolume("data", "/data"))
+	vm := testVM(containerVolume("scratch", ""), virtioFSVolume("shared", ""), containerVolume("data", "/data"))
 
 	provider := mock.NewMockMicroVMService(mockCtrl)
 	provider.EXPECT().Drives(vm).Return(models.Drives{

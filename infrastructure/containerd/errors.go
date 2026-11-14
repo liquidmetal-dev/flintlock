@@ -5,8 +5,13 @@ import (
 	"fmt"
 )
 
-// ErrReadingContent is used when there is an error reading from the content store.
-var ErrReadingContent = errors.New("failed reading from content store")
+var (
+	// ErrReadingContent is used when there is an error reading from the content store.
+	ErrReadingContent = errors.New("failed reading from content store")
+
+	errLayerCount = errors.New("layer count does not match the image config")
+	errNotALayer  = errors.New("manifest entry is not a layer")
+)
 
 type unsupportedSnapshotterError struct {
 	name string

@@ -1,5 +1,9 @@
 package models
 
+// VirtioFSTag is the tag which the VMM gives the virtiofs share. The guest
+// mounts the share by it: mount -t virtiofs <tag> <mount_point>.
+const VirtioFSTag = "user"
+
 // Volume represents a volume to be attached to a microvm machine.
 type Volume struct {
 	// ID is the uinique identifier of the volume.
@@ -14,9 +18,46 @@ type Volume struct {
 	// Size is the size to resize this volume to.
 	Size int32 `json:"size,omitempty"`
 	// MountPoint allows you to optionally specify a mount point for the volume. This only
-	// applied to additional volumes and it will use cloud-init to mount the volumes.
+	// applies to additional volumes and it will use cloud-init to mount the volumes. A
+	// virtiofs volume is mounted by its tag with the virtiofs filesystem type, which the
+	// guest kernel has to support.
 	MountPoint string `json:"mount_point,omitempty"`
+	// Mode selects how the volume is provisioned. An empty value means VolumeModeFull.
+	// Only the root volume can use VolumeModeOverlay.
+	Mode VolumeMode `json:"mode,omitempty" validate:"omitempty,oneof=full overlay"`
 }
+
+// EffectiveMode returns the volume mode, with VolumeModeFull for an unset mode.
+func (v Volume) EffectiveMode() VolumeMode {
+	if v.Mode == "" {
+		return VolumeModeFull
+	}
+
+	return v.Mode
+}
+
+// IsOverlay reports whether the volume comes from a container image and is
+// provisioned in VolumeModeOverlay.
+func (v Volume) IsOverlay() bool {
+	return v.Source.Container != nil && v.EffectiveMode() == VolumeModeOverlay
+}
+
+// VolumeMode is a type representing how a volume is provisioned.
+type VolumeMode string
+
+const (
+	// VolumeModeFull provisions the volume as a full copy of the image in a
+	// containerd snapshot. It is the default.
+	VolumeModeFull VolumeMode = "full"
+	// VolumeModeOverlay provisions the volume as a shared read-only base built
+	// from the image, plus a writable disk for the microvm. The guest's init
+	// joins them with overlayfs.
+	VolumeModeOverlay VolumeMode = "overlay"
+)
+
+// OverlayMinWritableDiskMB is the smallest writable disk size, in megabytes,
+// that a volume in VolumeModeOverlay accepts.
+const OverlayMinWritableDiskMB int32 = 64
 
 // Volumes represents a collection of volumes.
 type Volumes []Volume
@@ -59,9 +100,10 @@ type ContainerVolumeSource struct {
 	Image ContainerImage `json:"image"`
 }
 
-// VirtioFSSource represents the details of the VirtioFS volume.
+// VirtioFSVolumeSource represents the details of a volume which is a directory of the
+// host, shared with virtiofs.
 type VirtioFSVolumeSource struct {
-	// Image is the OCI image to use.
+	// Path on the host machine to pass through.
 	Path string `json:"path"`
 }
 
@@ -81,6 +123,9 @@ const (
 	MountTypeDev MountType = "dev"
 	// MountTypeHostPath represents a mount point that is a directory on the host.
 	MountTypeHostPath MountType = "hostpath"
+	// MountTypeFile represents a mount point that is a file on the host, such as
+	// a disk image.
+	MountTypeFile MountType = "file"
 )
 
 // ImageUse is a type representing the how an image will be used.
@@ -97,8 +142,15 @@ const (
 
 // VolumeStatus holds status information about the volumes.
 type VolumeStatus struct {
-	// Mount is the mount point information for the volume.
+	// Mount is the mount point information for the volume. In overlay mode it is
+	// the writable disk.
 	Mount Mount `json:"mount"`
+	// BaseMount is the mount point information for the read-only base in overlay
+	// mode. It is nil in full mode.
+	BaseMount *Mount `json:"base_mount,omitempty"`
+	// BaseDigest is the sha256 digest of the base in overlay mode. It is empty in
+	// full mode.
+	BaseDigest string `json:"base_digest,omitempty"`
 }
 
 // VolumeStatuses represents a collection of volume status.

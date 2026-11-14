@@ -2,6 +2,13 @@ name: run tests
 
 on: [pull_request, workflow_dispatch, push]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     name: test
@@ -9,7 +16,11 @@ jobs:
     steps:
       - uses: yitsushi/devmapper-containerd-action@bfb86f4fe3121aeb8a1b06601b3f07d064665204 # v1.0.1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - name: Install pinned mkfs.erofs
+        uses: ./.github/actions/erofs-utils # zizmor: ignore[self-repository] actionlint does not accept $/ yet
       - name: Build
         run: make build
       - name: Build e2e
