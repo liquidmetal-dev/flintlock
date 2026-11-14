@@ -34,7 +34,8 @@ type MicroVMSpec struct {
 	// VCPU specifies how many vcpu the machine will be allocated.
 	VCPU int64 `json:"vcpu" validate:"required,gte=1,lte=64"`
 	// MemoryInMb is the amount of memory in megabytes that the machine will be allocated.
-	MemoryInMb int64 `json:"memory_inmb" validate:"required,gte=1024,lte=32768"`
+	// The minimum is 128 MB and the maximum is 32768 MB.
+	MemoryInMb int64 `json:"memory_inmb" validate:"required,gte=128,lte=32768"`
 	// NetworkInterfaces specifies the network interfaces attached to the machine.
 	NetworkInterfaces []NetworkInterface `json:"network_interfaces" validate:"required,dive,required"`
 	// RootVolume specified the root volume to be attached to the machine.

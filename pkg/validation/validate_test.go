@@ -19,6 +19,25 @@ func TestValidation_Valid(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func TestValidation_MemoryMinimum(t *testing.T) {
+	RegisterTestingT(t)
+	val := NewValidator()
+
+	vm := basicMicroVM
+	vm.Spec.MemoryInMb = 128
+	Expect(val.ValidateStruct(vm)).To(Succeed())
+
+	vm.Spec.MemoryInMb = 127
+	err := val.ValidateStruct(vm)
+	Expect(err).To(HaveOccurred())
+
+	var valErrors validator.ValidationErrors
+	Expect(errors.As(err, &valErrors)).To(BeTrue())
+	Expect(valErrors).To(HaveLen(1))
+	Expect(valErrors[0].Tag()).To(Equal("gte"))
+	Expect(valErrors[0].Field()).To(Equal("MemoryInMb"))
+}
+
 func TestValidation_Valid_CPUConfig(t *testing.T) {
 	RegisterTestingT(t)
 	val := NewValidator()
