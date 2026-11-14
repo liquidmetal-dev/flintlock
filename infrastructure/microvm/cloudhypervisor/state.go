@@ -17,6 +17,7 @@ const (
 	stdErrFileName    = "cloudhypervisor.stderr"
 	socketFileName    = "cloudhypervisor.sock"
 	cloudInitFileName = "cloud-init.img"
+	restoreDirName    = "restore"
 )
 
 type State interface {
@@ -37,6 +38,7 @@ type State interface {
 	legacyVSockPath() string
 
 	CloudInitImage() string
+	RestoreDir() string
 }
 
 func NewState(vmid models.VMID, stateDir, socketDir string, fs afero.Fs) State {
@@ -109,6 +111,11 @@ func (s *fsState) legacyVSockPath() string {
 
 func (s *fsState) CloudInitImage() string {
 	return fmt.Sprintf("%s/%s", s.stateRoot, cloudInitFileName)
+}
+
+// RestoreDir is the directory cloud-hypervisor restores a snapshot from.
+func (s *fsState) RestoreDir() string {
+	return fmt.Sprintf("%s/%s", s.stateRoot, restoreDirName)
 }
 
 func (s *fsState) SetPid(pid int) error {
