@@ -92,6 +92,9 @@ const (
 	// TopicMicroVMEvents is the topic name to use for microvm events.
 	TopicMicroVMEvents = "/microvm"
 
+	// TopicSnapshotEvents is the topic name to use for snapshot events.
+	TopicSnapshotEvents = "/snapshot"
+
 	// MicroVMNamespace is the default namespace to use for microvms.
 	MicroVMNamespace = "default"
 

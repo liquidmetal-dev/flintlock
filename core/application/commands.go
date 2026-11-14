@@ -158,6 +158,15 @@ func checkProviderCapabilities(mvm *models.MicroVM, provider ports.MicroVMServic
 	return checkVolumeModeCapabilities(mvm, caps)
 }
 
+// checkSnapshotCapability rejects a snapshot of a microvm whose provider cannot take one.
+func checkSnapshotCapability(provider ports.MicroVMService) error {
+	if !provider.Capabilities().Has(models.SnapshotCapability) {
+		return errSnapshotNotSupported
+	}
+
+	return nil
+}
+
 // checkVolumeModeCapabilities rejects a spec whose volumes use a mode the provider
 // does not support. Only a volume backed by a container image is provisioned, so a
 // volume with no container source needs no mode capability.
