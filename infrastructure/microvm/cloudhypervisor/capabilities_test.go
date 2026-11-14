@@ -21,4 +21,5 @@ func TestProviderCapabilities(t *testing.T) {
 	}, nil, nil, afero.NewMemMapFs())
 	g.Expect(p.Capabilities()).To(g.ContainElements(models.VolumeFullCapability, models.VolumeOverlayCapability))
 	g.Expect(p.Capabilities()).To(g.ContainElement(models.VirtioFSCapability))
+	g.Expect(p.Capabilities()).To(g.ContainElement(models.SnapshotCapability))
 }
