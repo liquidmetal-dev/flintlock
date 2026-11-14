@@ -188,3 +188,25 @@ func IsSnapshotAlreadyExists(err error) bool {
 
 	return errors.As(err, e)
 }
+
+// NewFailedPrecondition returns the error for a request that the current state of the
+// system refuses. The reason names what is not as the request needs it.
+func NewFailedPrecondition(reason string) error {
+	return failedPreconditionError{reason: reason}
+}
+
+type failedPreconditionError struct {
+	reason string
+}
+
+// Error returns the error message.
+func (e failedPreconditionError) Error() string {
+	return e.reason
+}
+
+// IsFailedPrecondition tests an error to see if its a failed precondition error.
+func IsFailedPrecondition(err error) bool {
+	e := &failedPreconditionError{}
+
+	return errors.As(err, e)
+}
