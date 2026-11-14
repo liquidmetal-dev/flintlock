@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/liquidmetal-dev/flintlock/api/events"
+	coreerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/plans"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
@@ -226,4 +227,100 @@ func TestMicroVMCreateOrUpdatePlan_restoredMicroVMColdBoots(t *testing.T) {
 	Expect(names).NotTo(ContainElements(
 		"runtime_volume_restore", "snapshot_add_ref", "microvm_restore", "microvm_restored",
 	))
+}
+
+func TestMicroVMDeletePlan_releasesTheSnapshotRef(t *testing.T) {
+	testCases := []struct {
+		name       string
+		mode       models.MemoryMode
+		releaseErr error
+		expectStep bool
+	}{
+		{name: "file", mode: models.MemoryModeFile, expectStep: true},
+		{
+			name:       "file, snapshot gone",
+			mode:       models.MemoryModeFile,
+			releaseErr: coreerrs.NewSnapshotNotFound(testSnapshotUID),
+			expectStep: true,
+		},
+		{name: "copy", mode: models.MemoryModeCopy},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			vm := restoreTestSpec(tc.mode)
+			vm.Spec.SnapshotSource.Restored = true
+			vm.Spec.DeletedAt = 1
+
+			names, mList, run := newDeletePlanSteps(t, vm, plans.MicroVMDeletePlan)
+
+			if !tc.expectStep {
+				Expect(names).NotTo(ContainElement("snapshot_release_ref"))
+				Expect(run()).To(Succeed())
+
+				return
+			}
+
+			Expect(names).To(ContainElement("snapshot_release_ref"))
+			Expect(indexOf(names, "snapshot_release_ref")).To(BeNumerically("<", indexOf(names, "io_delete_dir")))
+
+			mList.SnapshotRepo.EXPECT().ReleaseRef(gomock.Any(), testSnapshotUID, testUID).Return(tc.releaseErr)
+
+			Expect(run()).To(Succeed())
+		})
+	}
+}
+
+// newDeletePlanSteps creates the steps of a delete plan of vm, whose VMM runs
+// and whose state and socket directories exist. It returns the step names and
+// a function that runs the steps.
+func newDeletePlanSteps(
+	t *testing.T,
+	vm *models.MicroVM,
+	newPlan func(*plans.DeletePlanInput) planner.Plan,
+) ([]string, *mockList, func() error) {
+	t.Helper()
+
+	vm.Status.NetworkInterfaces = models.NetworkInterfaceStatuses{
+		"eth0": &models.NetworkInterfaceStatus{HostDeviceName: "fltap5675122"},
+	}
+
+	mList, mockedPorts := fakePorts(gomock.NewController(t))
+	ctx := portsctx.WithPorts(context.Background(), mockedPorts)
+
+	Expect(mockedPorts.FileSystem.MkdirAll(testVMDir, 0o755)).To(Succeed())
+	Expect(mockedPorts.FileSystem.MkdirAll("/tmp/run/"+testUID, 0o755)).To(Succeed())
+
+	mList.MicroVMService.EXPECT().Capabilities().Return(models.Capabilities{}).AnyTimes()
+	mList.MicroVMService.EXPECT().State(gomock.Any(), testVMIDString).Return(ports.MicroVMStateRunning, nil).AnyTimes()
+	mList.MicroVMService.EXPECT().Delete(gomock.Any(), testVMIDString).Return(nil).AnyTimes()
+	mList.NetworkService.EXPECT().IfaceExists(gomock.Any(), "fltap5675122").Return(true, nil).AnyTimes()
+	mList.NetworkService.EXPECT().IfaceDelete(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mList.VolumeService.EXPECT().Release(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mList.MicroVMRepository.EXPECT().ReleaseLease(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mList.MicroVMRepository.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	mList.EventService.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	plan := newPlan(&plans.DeletePlanInput{
+		VM:              vm,
+		StateDirectory:  testStateDir,
+		SocketDirectory: "/tmp/run",
+	})
+
+	steps, err := plan.Create(ctx)
+	Expect(err).NotTo(HaveOccurred())
+
+	return stepNames(steps), mList, func() error { return runSteps(ctx, steps) }
+}
+
+func indexOf(names []string, name string) int {
+	for i, n := range names {
+		if n == name {
+			return i
+		}
+	}
+
+	return -1
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/steps/microvm"
 	"github.com/liquidmetal-dev/flintlock/core/steps/network"
 	"github.com/liquidmetal-dev/flintlock/core/steps/runtime"
+	"github.com/liquidmetal-dev/flintlock/core/steps/snapshot"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
@@ -89,6 +90,19 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 	// base sweep sees the link go.
 	if err := p.addVolumeReleaseStep(ctx, p.vm, ports); err != nil {
 		return nil, fmt.Errorf("adding volume release step: %w", err)
+	}
+
+	// The reference is released while the state directory exists, which is
+	// how the step knows it has not run.
+	if p.vm.Spec.SnapshotSource != nil {
+		if ports.SnapshotRepo == nil {
+			return nil, errSnapshotRepoMissing
+		}
+
+		step := snapshot.NewReleaseRef(p.vm, ports.SnapshotRepo, p.stateDir, ports.FileSystem)
+		if err := p.addStep(ctx, step); err != nil {
+			return nil, fmt.Errorf("adding release snapshot reference step: %w", err)
+		}
 	}
 
 	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.stateDir, ports.FileSystem)); err != nil {
