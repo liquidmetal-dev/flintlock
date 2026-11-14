@@ -3,6 +3,7 @@ package firecracker
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,12 +12,17 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/process"
 )
+
+// defaultVendorData is served when the spec has no vendor-data. Without it
+// MMDS returns 404 and cloud-init retries the URL for about 10 seconds.
+const defaultVendorData = "#cloud-config\n{}\n"
 
 // Create will create a new microvm.
 func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
@@ -47,12 +53,8 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("saving firecracker config: %w", err)
 	}
 
-	meta := &Metadata{
-		Latest: vm.Spec.Metadata,
-	}
-
-	if err = vmState.SetMetadata(meta); err != nil {
-		return fmt.Errorf("saving firecracker metadata: %w", err)
+	if err = writeMetadata(vm, vmState); err != nil {
+		return err
 	}
 
 	proc, err := p.startFirecracker(p.command(vm, vmState), vmState, p.config.RunDetached)
@@ -148,4 +150,25 @@ func (p *fcProvider) ensureState(vmState State) error {
 	metricsFile.Close()
 
 	return nil
+}
+
+func writeMetadata(vm *models.MicroVM, vmState State) error {
+	if err := vmState.SetMetadata(&Metadata{Latest: mmdsMetadata(vm.Spec.Metadata)}); err != nil {
+		return fmt.Errorf("saving firecracker metadata: %w", err)
+	}
+
+	return nil
+}
+
+func mmdsMetadata(specMetadata map[string]string) map[string]string {
+	latest := make(map[string]string, len(specMetadata)+1)
+	for key, value := range specMetadata {
+		latest[key] = value
+	}
+
+	if _, ok := latest[cloudinit.VendorDataKey]; !ok {
+		latest[cloudinit.VendorDataKey] = base64.StdEncoding.EncodeToString([]byte(defaultVendorData))
+	}
+
+	return latest
 }
