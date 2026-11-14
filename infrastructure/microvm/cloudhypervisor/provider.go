@@ -128,6 +128,16 @@ func (p *provider) Resume(ctx context.Context, vm *models.MicroVM) error {
 	return nil
 }
 
+// Snapshot is not supported by the Cloud Hypervisor provider yet.
+func (p *provider) Snapshot(_ context.Context, _ *models.MicroVM, _ string) error {
+	return cerrs.NewNotSupported("snapshot")
+}
+
+// Restore is not supported by the Cloud Hypervisor provider yet.
+func (p *provider) Restore(_ context.Context, _ *models.MicroVM, _ string, _ ports.RestoreInput) error {
+	return cerrs.NewNotSupported("restore")
+}
+
 // State returns the state of a microvm.
 func (p *provider) State(ctx context.Context, id string) (ports.MicroVMState, error) {
 	logger := log.GetLogger(ctx).WithFields(logrus.Fields{

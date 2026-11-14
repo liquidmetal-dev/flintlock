@@ -162,3 +162,89 @@ func TestClientDescribeTimesOutWhenSocketHangs(t *testing.T) {
 	g.Expect(err).To(MatchError(context.DeadlineExceeded))
 	g.Expect(time.Since(start)).To(BeNumerically("<", 5*time.Second))
 }
+
+func TestClientPutRequests(t *testing.T) {
+	cases := []struct {
+		name string
+		call func(ctx context.Context, c firecracker.Client) error
+		path string
+		body string
+	}{
+		{
+			name: "CreateSnapshot",
+			call: func(ctx context.Context, c firecracker.Client) error {
+				return c.CreateSnapshot(ctx, firecracker.SnapshotCreateParams{
+					SnapshotType: firecracker.SnapshotTypeFull,
+					SnapshotPath: "/snap/vmstate",
+					MemFilePath:  "/snap/memory",
+				})
+			},
+			path: "/snapshot/create",
+			body: `{"snapshot_type":"Full","snapshot_path":"/snap/vmstate","mem_file_path":"/snap/memory"}`,
+		},
+		{
+			name: "LoadSnapshot",
+			call: func(ctx context.Context, c firecracker.Client) error {
+				return c.LoadSnapshot(ctx, firecracker.SnapshotLoadParams{
+					SnapshotPath: "/snap/vmstate",
+					MemBackend: firecracker.MemoryBackend{
+						BackendType: firecracker.MemoryBackendTypeFile,
+						BackendPath: "/snap/memory",
+					},
+					NetworkOverrides: []firecracker.NetworkOverride{
+						{IfaceID: "eth0", HostDevName: "fltap123"},
+					},
+				})
+			},
+			path: "/snapshot/load",
+			body: `{
+				"snapshot_path":"/snap/vmstate",
+				"mem_backend":{"backend_type":"File","backend_path":"/snap/memory"},
+				"network_overrides":[{"iface_id":"eth0","host_dev_name":"fltap123"}],
+				"resume_vm":false
+			}`,
+		},
+		{
+			name: "LoadSnapshot without network overrides",
+			call: func(ctx context.Context, c firecracker.Client) error {
+				return c.LoadSnapshot(ctx, firecracker.SnapshotLoadParams{
+					SnapshotPath: "/snap/vmstate",
+					MemBackend: firecracker.MemoryBackend{
+						BackendType: firecracker.MemoryBackendTypeFile,
+						BackendPath: "/snap/memory",
+					},
+				})
+			},
+			path: "/snapshot/load",
+			body: `{
+				"snapshot_path":"/snap/vmstate",
+				"mem_backend":{"backend_type":"File","backend_path":"/snap/memory"},
+				"resume_vm":false
+			}`,
+		},
+		{
+			name: "PutMMDS",
+			call: func(ctx context.Context, c firecracker.Client) error {
+				return c.PutMMDS(ctx, map[string]any{"latest": map[string]string{"user-data": "hello"}})
+			},
+			path: "/mmds",
+			body: `{"latest":{"user-data":"hello"}}`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			sockPath, requests := newUnixServer(t, http.StatusNoContent, "")
+
+			err := tc.call(context.Background(), firecracker.New(sockPath))
+			g.Expect(err).NotTo(HaveOccurred())
+
+			got := <-requests
+			g.Expect(got.method).To(Equal(http.MethodPut))
+			g.Expect(got.path).To(Equal(tc.path))
+			g.Expect(got.body).To(MatchJSON(tc.body))
+		})
+	}
+}

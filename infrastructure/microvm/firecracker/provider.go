@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"syscall"
 	"time"
 
@@ -58,6 +59,13 @@ type fcProvider struct {
 	networkSvc      ports.NetworkService
 	fs              afero.Fs
 	deleteVMTimeout time.Duration
+
+	// startVMM starts the firecracker process of a command. It is nil except
+	// in tests, which run something other than firecracker.
+	startVMM func(cmd *exec.Cmd, detached bool) error
+	// apiReadyTimeout is how long Restore waits for the API socket to answer.
+	// Zero means defaultAPIReadyTimeout.
+	apiReadyTimeout time.Duration
 }
 
 // Capabilities returns a list of the capabilities the Firecracker provider supports.
@@ -66,6 +74,7 @@ func (p *fcProvider) Capabilities() models.Capabilities {
 		models.MetadataServiceCapability,
 		models.VSockCapability,
 		models.KVMCapabilitiesDisableCapability,
+		models.SnapshotCapability,
 	}
 
 	return append(caps, p.config.VolumeCapabilities...)

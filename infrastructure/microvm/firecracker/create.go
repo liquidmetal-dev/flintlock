@@ -73,17 +73,26 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	return nil
 }
 
-// command returns the command that starts firecracker for a microvm. The
-// working directory of the process is the state directory of the microvm, so
-// that the relative drive paths of an overlay root resolve to its own disks.
+// command returns the command that starts firecracker for a microvm from its
+// config file.
 func (p *fcProvider) command(vm *models.MicroVM, vmState State) *exec.Cmd {
-	args := []string{"--id", vm.ID.UID(), "--boot-timer", "--api-sock", vmState.APISockPath()}
-	args = append(args, "--config-file", vmState.ConfigPath())
-	args = append(args, "--metadata", vmState.MetadataPath())
+	return p.vmmCommand(vm, vmState,
+		"--config-file", vmState.ConfigPath(),
+		"--metadata", vmState.MetadataPath(),
+	)
+}
+
+// vmmCommand returns the command that starts firecracker for a microvm, with
+// the arguments every microvm has and then args. The working directory of the
+// process is the state directory of the microvm, so that the relative drive
+// paths of an overlay root resolve to its own disks.
+func (p *fcProvider) vmmCommand(vm *models.MicroVM, vmState State, args ...string) *exec.Cmd {
+	allArgs := []string{"--id", vm.ID.UID(), "--boot-timer", "--api-sock", vmState.APISockPath()}
+	allArgs = append(allArgs, args...)
 
 	cmd := firecracker.VMCommandBuilder{}.
 		WithBin(p.config.FirecrackerBin).
-		WithArgs(args).
+		WithArgs(allArgs).
 		Build(context.TODO()) //nolint: contextcheck // Intentional.
 
 	cmd.Dir = vmState.Root()
@@ -106,19 +115,25 @@ func (p *fcProvider) startFirecracker(cmd *exec.Cmd, vmState State, detached boo
 	cmd.Stdout = stdOutFile
 	cmd.Stdin = &bytes.Buffer{}
 
-	var startErr error
-
-	if detached {
-		startErr = process.DetachedStart(cmd)
-	} else {
-		startErr = cmd.Start()
-	}
-
-	if startErr != nil {
-		return nil, fmt.Errorf("starting firecracker process: %w", startErr)
+	if err := p.startProcess(cmd, detached); err != nil {
+		return nil, fmt.Errorf("starting firecracker process: %w", err)
 	}
 
 	return cmd.Process, nil
+}
+
+// startProcess starts the firecracker process of cmd. Tests set startVMM to
+// run something else.
+func (p *fcProvider) startProcess(cmd *exec.Cmd, detached bool) error {
+	if p.startVMM != nil {
+		return p.startVMM(cmd, detached)
+	}
+
+	if detached {
+		return process.DetachedStart(cmd)
+	}
+
+	return cmd.Start()
 }
 
 func (p *fcProvider) ensureState(vmState State) error {

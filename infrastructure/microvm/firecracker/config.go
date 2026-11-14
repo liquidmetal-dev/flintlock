@@ -271,17 +271,28 @@ func WithVsock(vm *models.MicroVM, vmState State) ConfigOption {
 
 func WithState(vmState State) ConfigOption {
 	return func(cfg *VmmConfig) error {
-		cfg.Logger = &LoggerConfig{
-			LogPath:       vmState.LogPath(),
-			Level:         LogLevelDebug,
-			ShowLevel:     true,
-			ShowLogOrigin: true,
-		}
-		cfg.Metrics = &MetricsConfig{
-			Path: vmState.MetricsPath(),
-		}
+		cfg.Logger = loggerConfig(vmState)
+		cfg.Metrics = metricsConfig(vmState)
 
 		return nil
+	}
+}
+
+// loggerConfig returns the logger configuration of a microvm. A restored
+// microvm has no config file and gets the same settings on its command line.
+func loggerConfig(vmState State) *LoggerConfig {
+	return &LoggerConfig{
+		LogPath:       vmState.LogPath(),
+		Level:         LogLevelDebug,
+		ShowLevel:     true,
+		ShowLogOrigin: true,
+	}
+}
+
+// metricsConfig returns the metrics configuration of a microvm.
+func metricsConfig(vmState State) *MetricsConfig {
+	return &MetricsConfig{
+		Path: vmState.MetricsPath(),
 	}
 }
 
