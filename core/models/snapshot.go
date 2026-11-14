@@ -64,6 +64,22 @@ const (
 	// SnapshotMemoryFile is the name of the file with the guest memory in a
 	// snapshot directory.
 	SnapshotMemoryFile = "memory"
+	// SnapshotSpecFilename is the name of the file with the spec of the source
+	// microvm, its metadata included, in a snapshot directory. It holds the
+	// JSON of MicroVMSpec.
+	SnapshotSpecFilename = "spec.json"
+)
+
+const (
+	// MetadataSnapshotUID is the metadata key of a restored microvm with the
+	// uid of the snapshot it was restored from.
+	MetadataSnapshotUID = "flintlock.snapshot.uid"
+	// MetadataRestoreUID is the metadata key of a restored microvm with its
+	// own uid.
+	MetadataRestoreUID = "flintlock.restore.uid"
+	// MetadataRestoreGeneration is the metadata key of a restored microvm with
+	// the restore generation of the snapshot.
+	MetadataRestoreGeneration = "flintlock.restore.generation"
 )
 
 // Snapshot represents a snapshot of a microvm.
@@ -127,6 +143,23 @@ type SnapshotSource struct {
 	MemoryMode MemoryMode `json:"memory_mode,omitempty"`
 	// Force skips the compatibility checks that can be skipped.
 	Force bool `json:"force,omitempty"`
+	// Generation is the restore generation of the snapshot for this restore.
+	Generation int `json:"generation,omitempty"`
+	// Restored is true once the microvm has been restored. A restored microvm
+	// is started again from its own disk, not from the snapshot.
+	Restored bool `json:"restored,omitempty"`
+}
+
+// RestorePending reports whether the microvm is still to be restored from its
+// snapshot.
+func (s *SnapshotSource) RestorePending() bool {
+	return s != nil && !s.Restored
+}
+
+// UsesSnapshotFiles reports whether the restored microvm reads the files of its
+// snapshot after it has started, and so holds a reference to the snapshot.
+func (s *SnapshotSource) UsesSnapshotFiles() bool {
+	return s != nil && s.MemoryMode == MemoryModeFile
 }
 
 // HostNetworkOverride replaces the host device of a restored microvm's network interface.
