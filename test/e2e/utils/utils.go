@@ -221,6 +221,22 @@ func MicroVMMetadata(name, namespace string, runCommands ...string) (map[string]
 	}, nil
 }
 
+// vendorDataTriesCommand returns a command which writes to the console how
+// many times cloud-init tried to read the vendor-data of the metadata
+// service, and how many of the tries succeeded. The counts come from the
+// lines which readurl of cloudinit/url_helper.py logs at debug level:
+// "[%s/%s] open '%s' with %s configuration" before each try, and
+// "Read from %s (%s, %sb) after %s attempts" when a try succeeds.
+func vendorDataTriesCommand() string {
+	const (
+		vendorDataURL = "http://169.254.169.254/latest/vendor-data"
+		cloudInitLog  = "/var/log/cloud-init.log"
+	)
+
+	return fmt.Sprintf(`echo "%s tries=$(grep -cF "open '%s'" %s) ok=$(grep -cF "Read from %s (200" %s)" > /dev/console`,
+		VendorDataTriesMarker, vendorDataURL, cloudInitLog, vendorDataURL, cloudInitLog)
+}
+
 func newMicroVMSpec(provider Provider, name, namespace string) *types.MicroVMSpec {
 	spec, err := NewMicroVMSpec(provider, name, namespace)
 	g.Expect(err).NotTo(g.HaveOccurred())
@@ -231,7 +247,12 @@ func newMicroVMSpec(provider Provider, name, namespace string) *types.MicroVMSpe
 // NewMicroVMSpec returns the spec of a test microvm which is created with the
 // provider.
 func NewMicroVMSpec(provider Provider, name, namespace string) (*types.MicroVMSpec, error) {
-	metadata, err := MicroVMMetadata(name, namespace)
+	var runCommands []string
+	if provider.ReadsMetadataService {
+		runCommands = append(runCommands, vendorDataTriesCommand())
+	}
+
+	metadata, err := MicroVMMetadata(name, namespace, runCommands...)
 	if err != nil {
 		return nil, err
 	}

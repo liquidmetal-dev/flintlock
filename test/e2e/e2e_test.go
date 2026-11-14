@@ -126,6 +126,14 @@ func runLifecycle(t *testing.T, flintlockClient v1alpha1.MicroVMClient, provider
 
 	waitForBoot(provider, firstMicroVMPath, mvmID, mvmNS, mvmPid1, bootTimeout)
 
+	if provider.ReadsMetadataService {
+		log.Println("TEST STEP: verifying that each try to read the vendor-data succeeded")
+		tries, ok, err := u.VendorDataTries(firstMicroVMPath, provider)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ok).To(BeNumerically(">=", 1), "the guest has not read its vendor-data")
+		Expect(tries).To(Equal(ok), "the guest tried to read its vendor-data %d times, %d succeeded", tries, ok)
+	}
+
 	log.Println("TEST STEP: creating a second MicroVM")
 	createdSecond := u.CreateMVM(flintlockClient, provider, secondMvmID, mvmNS)
 

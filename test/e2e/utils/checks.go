@@ -31,6 +31,11 @@ const (
 	ShareMarkerFile   = "flintlock-e2e-share"
 	shareMarkerFormat = "flintlock-e2e share ok %s/%s"
 
+	// VendorDataTriesMarker starts the line which the guest of a microvm that
+	// reads the metadata service writes to its console, see
+	// vendorDataTriesCommand.
+	VendorDataTriesMarker = "flintlock-e2e vendor-data"
+
 	diagnosticLines = 40
 )
 
@@ -183,6 +188,25 @@ func MissingPVHErrorLine(stateDir string, provider Provider) (string, error) {
 // has all of the texts, in any case. It is an error if there is no such line.
 func ConsoleLine(stateDir string, provider Provider, texts ...string) (string, error) {
 	return lineWith(filepath.Join(stateDir, provider.ConsoleFile), "the console of the guest", texts)
+}
+
+// VendorDataTries returns how many times the guest of a microvm tried to read
+// its vendor-data from the metadata service, and how many of the tries
+// succeeded, from the line which vendorDataTriesCommand writes to the console.
+func VendorDataTries(stateDir string, provider Provider) (int, int, error) {
+	line, err := ConsoleLine(stateDir, provider, VendorDataTriesMarker+" tries=")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	var tries, ok int
+
+	text := line[strings.Index(strings.ToLower(line), VendorDataTriesMarker):]
+	if _, err := fmt.Sscanf(text, VendorDataTriesMarker+" tries=%d ok=%d", &tries, &ok); err != nil {
+		return 0, 0, fmt.Errorf("parsing the vendor-data line %q: %w", line, err)
+	}
+
+	return tries, ok, nil
 }
 
 // VMMErrorLine returns the line of the stderr of the VMM of a microvm which

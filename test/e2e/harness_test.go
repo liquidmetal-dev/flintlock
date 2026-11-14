@@ -2128,3 +2128,99 @@ func TestCloneFileErrors(t *testing.T) {
 	g.Expect(os.WriteFile(filepath.Join(dir, "source"), []byte("template"), 0o600)).To(Succeed())
 	g.Expect(u.CloneFile(filepath.Join(dir, "source"), filepath.Join(dir, "no", "such", "dir"))).NotTo(Succeed())
 }
+
+func runCommandsOfSpec(g Gomega, spec *types.MicroVMSpec) []string {
+	userData, err := base64.StdEncoding.DecodeString(spec.Metadata["user-data"])
+	g.Expect(err).NotTo(HaveOccurred())
+
+	cloudConfig := struct {
+		RunCommands []string `yaml:"runcmd"`
+	}{}
+	g.Expect(yaml.Unmarshal(userData, &cloudConfig)).To(Succeed())
+
+	return cloudConfig.RunCommands
+}
+
+func TestNewMicroVMSpecChecksVendorDataForMetadataService(t *testing.T) {
+	g := NewWithT(t)
+
+	spec, err := u.NewMicroVMSpec(u.Firecracker(), "mvm0", "ns0")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	commands := runCommandsOfSpec(g, spec)
+	g.Expect(commands).To(HaveLen(1))
+	g.Expect(commands[0]).To(And(
+		ContainSubstring(u.VendorDataTriesMarker),
+		ContainSubstring("open 'http://169.254.169.254/latest/vendor-data'"),
+		ContainSubstring("Read from http://169.254.169.254/latest/vendor-data (200"),
+		ContainSubstring("/var/log/cloud-init.log"),
+		ContainSubstring("> /dev/console"),
+	))
+
+	spec, err = u.NewMicroVMSpec(u.CloudHypervisor(), "mvm0", "ns0")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(runCommandsOfSpec(g, spec)).To(BeEmpty())
+}
+
+func TestReadsMetadataService(t *testing.T) {
+	g := NewWithT(t)
+
+	g.Expect(u.Firecracker().ReadsMetadataService).To(BeTrue())
+	g.Expect(u.CloudHypervisor().ReadsMetadataService).To(BeFalse())
+}
+
+func TestVendorDataTries(t *testing.T) {
+	tt := []struct {
+		name      string
+		console   *string
+		tries     int
+		ok        int
+		expectErr bool
+	}{
+		{
+			name:    "every try succeeded",
+			console: ptr.String("[    0.000000] Linux version 6.1\r\nflintlock-e2e vendor-data tries=1 ok=1\r\n"),
+			tries:   1,
+			ok:      1,
+		},
+		{
+			name:    "tries failed",
+			console: ptr.String("flintlock-e2e vendor-data tries=11 ok=0\n"),
+			tries:   11,
+			ok:      0,
+		},
+		{
+			name:      "no line",
+			console:   ptr.String("[    0.000000] Linux version 6.1\n"),
+			expectErr: true,
+		},
+		{
+			name:      "no console",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			provider := u.Firecracker()
+			stateDir := t.TempDir()
+
+			if tc.console != nil {
+				g.Expect(os.WriteFile(filepath.Join(stateDir, provider.ConsoleFile), []byte(*tc.console), 0o600)).To(Succeed())
+			}
+
+			tries, ok, err := u.VendorDataTries(stateDir, provider)
+			if tc.expectErr {
+				g.Expect(err).To(HaveOccurred())
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(tries).To(Equal(tc.tries))
+			g.Expect(ok).To(Equal(tc.ok))
+		})
+	}
+}
