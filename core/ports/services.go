@@ -30,8 +30,10 @@ type MicroVMService interface {
 	Pause(ctx context.Context, vm *models.MicroVM) error
 	// Resume will resume a paused microvm.
 	Resume(ctx context.Context, vm *models.MicroVM) error
-	// Snapshot writes the state and the memory of a microvm to dest/vmstate
-	// and dest/memory. The caller has paused the microvm.
+	// Snapshot writes the state and the memory of a microvm under dest. The
+	// layout under dest depends on the provider: Firecracker writes the files
+	// vmstate and memory, Cloud Hypervisor writes the directory vmstate. The
+	// caller has paused the microvm.
 	Snapshot(ctx context.Context, vm *models.MicroVM, dest string) error
 	// Restore starts the VMM of a microvm from the snapshot in src and leaves
 	// it running. The caller has created the network interfaces and the

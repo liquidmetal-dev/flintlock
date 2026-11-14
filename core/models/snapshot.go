@@ -58,11 +58,12 @@ const (
 )
 
 const (
-	// SnapshotVMStateFile is the name of the file with the VMM state in a
-	// snapshot directory.
+	// SnapshotVMStateFile is the name of the VMM state in a snapshot
+	// directory. It is a file on Firecracker and a directory on Cloud
+	// Hypervisor.
 	SnapshotVMStateFile = "vmstate"
 	// SnapshotMemoryFile is the name of the file with the guest memory in a
-	// snapshot directory.
+	// snapshot directory. Only Firecracker writes it.
 	SnapshotMemoryFile = "memory"
 )
 
