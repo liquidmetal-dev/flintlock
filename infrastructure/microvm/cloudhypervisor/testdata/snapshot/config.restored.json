@@ -1,0 +1,190 @@
+{
+  "cpus": {
+    "boot_vcpus": 2,
+    "max_vcpus": 2,
+    "topology": null,
+    "kvm_hyperv": false,
+    "max_phys_bits": 46,
+    "affinity": null,
+    "features": {},
+    "nested": true,
+    "core_scheduling": "Vm",
+    "profile": "Host"
+  },
+  "memory": {
+    "size": 2147483648,
+    "mergeable": false,
+    "hotplug_method": "Acpi",
+    "hotplug_size": null,
+    "hotplugged_size": null,
+    "shared": true,
+    "hugepages": false,
+    "hugepage_size": null,
+    "prefault": false,
+    "zones": null,
+    "thp": true
+  },
+  "payload": {
+    "firmware": null,
+    "kernel": "/var/lib/containerd-snapshotter/old/mount/boot/vmlinux",
+    "cmdline": "console=hvc0 panic=1 reboot=k root=/dev/vda rw",
+    "initramfs": null
+  },
+  "rate_limit_groups": null,
+  "disks": [
+    {
+      "id": "_disk0",
+      "pci_segment": 0,
+      "path": "/dev/mapper/flintlock-new-root",
+      "readonly": false,
+      "direct": false,
+      "num_queues": 1,
+      "queue_size": 128,
+      "vhost_user": false,
+      "vhost_socket": null,
+      "rate_limit_group": null,
+      "rate_limiter_config": null,
+      "disable_io_uring": false,
+      "disable_aio": false,
+      "serial": null,
+      "queue_affinity": null,
+      "backing_files": false,
+      "sparse": true,
+      "image_type": "Unknown",
+      "lock_granularity": "ByteRange"
+    },
+    {
+      "id": "_disk1",
+      "pci_segment": 0,
+      "path": "/var/lib/flintlock/vm/new/cloud-init.img",
+      "readonly": true,
+      "direct": false,
+      "num_queues": 1,
+      "queue_size": 128,
+      "vhost_user": false,
+      "vhost_socket": null,
+      "rate_limit_group": null,
+      "rate_limiter_config": null,
+      "disable_io_uring": false,
+      "disable_aio": false,
+      "serial": null,
+      "queue_affinity": null,
+      "backing_files": false,
+      "sparse": true,
+      "image_type": "Unknown",
+      "lock_granularity": "ByteRange"
+    },
+    {
+      "id": "_disk2",
+      "pci_segment": 0,
+      "path": "/dev/mapper/flintlock-new-data",
+      "readonly": false,
+      "direct": false,
+      "num_queues": 1,
+      "queue_size": 128,
+      "vhost_user": false,
+      "vhost_socket": null,
+      "rate_limit_group": null,
+      "rate_limiter_config": null,
+      "disable_io_uring": false,
+      "disable_aio": false,
+      "serial": null,
+      "queue_affinity": null,
+      "backing_files": false,
+      "sparse": true,
+      "image_type": "Unknown",
+      "lock_granularity": "ByteRange"
+    }
+  ],
+  "net": [
+    {
+      "id": "_net3",
+      "pci_segment": 0,
+      "tap": "fltapnew0",
+      "ip": "192.168.249.1",
+      "mask": "255.255.255.0",
+      "mac": "aa:ff:00:00:00:01",
+      "host_mac": "8a:6e:3c:1f:04:a2",
+      "mtu": 1500,
+      "num_queues": 2,
+      "queue_size": 256,
+      "vhost_user": false,
+      "vhost_socket": null,
+      "vhost_mode": "Client",
+      "fds": null,
+      "rate_limiter_config": null,
+      "offload_tso": true,
+      "offload_ufo": true,
+      "offload_csum": true
+    },
+    {
+      "id": "_net4",
+      "pci_segment": 0,
+      "tap": "fltapnew1",
+      "ip": "192.168.249.1",
+      "mask": "255.255.255.0",
+      "mac": "aa:ff:00:00:00:02",
+      "host_mac": "8a:6e:3c:1f:04:a3",
+      "mtu": 1500,
+      "num_queues": 2,
+      "queue_size": 256,
+      "vhost_user": false,
+      "vhost_socket": null,
+      "vhost_mode": "Client",
+      "fds": null,
+      "rate_limiter_config": null,
+      "offload_tso": true,
+      "offload_ufo": true,
+      "offload_csum": true
+    }
+  ],
+  "rng": {
+    "src": "/dev/urandom",
+    "iommu": false
+  },
+  "balloon": null,
+  "fs": [
+    {
+      "id": "_fs5",
+      "pci_segment": 0,
+      "tag": "user",
+      "socket": "/run/flintlock/new/virtiofs.sock",
+      "num_queues": 1,
+      "queue_size": 1024
+    }
+  ],
+  "pmem": null,
+  "serial": {
+    "file": "/var/lib/flintlock/vm/new/serial.log",
+    "mode": "File",
+    "socket": null
+  },
+  "console": {
+    "file": null,
+    "mode": "Tty",
+    "socket": null
+  },
+  "debug_console": {
+    "file": null,
+    "mode": "Off",
+    "iobase": 233
+  },
+  "devices": null,
+  "user_devices": null,
+  "vdpa": null,
+  "vsock": {
+    "id": "_vsock6",
+    "pci_segment": 0,
+    "cid": 3,
+    "socket": "/run/flintlock/new/flintlock-agent.vsock"
+  },
+  "pvpanic": false,
+  "iommu": false,
+  "numa": null,
+  "watchdog": false,
+  "pci_segments": null,
+  "platform": null,
+  "tpm": null,
+  "landlock_enable": false,
+  "landlock_rules": null
+}

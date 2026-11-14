@@ -72,7 +72,12 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 		vm.Status.VSockPath = ""
 	}
 
-	proc, err := p.startCloudHypervisor(ctx, vm, vmState, p.config.RunDetached, logger)
+	args, err := p.buildArgs(vm, vmState, logger)
+	if err != nil {
+		return fmt.Errorf("building cloudhypervisor args: %w", err)
+	}
+
+	proc, err := p.startCloudHypervisor(args, vmState, p.config.RunDetached)
 	if err != nil {
 		return fmt.Errorf("starting cloudhypervisor process: %w", err)
 	}
@@ -84,18 +89,7 @@ func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
 	return nil
 }
 
-func (p *provider) startCloudHypervisor(_ context.Context,
-	vm *models.MicroVM,
-	state State,
-	detached bool,
-	logger *logrus.Entry,
-) (*os.Process, error) {
-	var startErr error
-
-	args, err := p.buildArgs(vm, state, logger)
-	if err != nil {
-		return nil, err
-	}
+func (p *provider) startCloudHypervisor(args []string, state State, detached bool) (*os.Process, error) {
 	// #nosec
 	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
 
@@ -112,27 +106,42 @@ func (p *provider) startCloudHypervisor(_ context.Context,
 	cmd.Stderr = stdErrFile
 	cmd.Stdout = stdOutFile
 	cmd.Stdin = &bytes.Buffer{}
-	if detached {
-		startErr = process.DetachedStart(cmd)
-	} else {
-		startErr = cmd.Start()
-	}
 
-	if startErr != nil {
-		return nil, fmt.Errorf("starting cloud hypervisor process: %w", startErr)
+	if err := p.startProcess(cmd, detached); err != nil {
+		return nil, fmt.Errorf("starting cloud hypervisor process: %w", err)
 	}
 
 	return cmd.Process, nil
 }
 
-func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) ([]string, error) {
-	args := []string{
+// startProcess starts the cloud-hypervisor process of cmd. Tests set startVMM
+// to run something else.
+func (p *provider) startProcess(cmd *exec.Cmd, detached bool) error {
+	if p.startVMM != nil {
+		return p.startVMM(cmd, detached)
+	}
+
+	if detached {
+		return process.DetachedStart(cmd)
+	}
+
+	return cmd.Start()
+}
+
+// apiArgs returns the arguments every cloud-hypervisor process of a microvm
+// starts with.
+func apiArgs(state State) []string {
+	return []string{
 		"--api-socket",
 		state.SockPath(),
 		"--log-file",
 		state.LogPath(),
 		"-v",
 	}
+}
+
+func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) ([]string, error) {
+	args := apiArgs(state)
 
 	drives, err := shared.BuildDrives(vm, shared.DriveOptions{CloudInitImage: state.CloudInitImage()})
 	if err != nil {
