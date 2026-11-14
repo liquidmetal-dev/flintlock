@@ -27,7 +27,7 @@ func TestCommand_RunsInStateDirectory(t *testing.T) {
 }
 
 func encodedDefaultVendorData() string {
-	return base64.StdEncoding.EncodeToString([]byte("#cloud-config\n{}\n"))
+	return base64.StdEncoding.EncodeToString([]byte(defaultVendorData))
 }
 
 func TestMMDSMetadata_AddsDefaultVendorData(t *testing.T) {
@@ -94,7 +94,7 @@ func TestWriteMetadata_MMDSFileHasDefaultVendorData(t *testing.T) {
 
 	written := Metadata{}
 	g.Expect(json.Unmarshal(data, &written)).To(g.Succeed())
-	g.Expect(written.Latest).To(g.HaveKeyWithValue("vendor-data", "#cloud-config\n{}\n"))
+	g.Expect(written.Latest).To(g.HaveKeyWithValue("vendor-data", defaultVendorData))
 	g.Expect(written.Latest).To(g.HaveKeyWithValue("user-data", "ud"))
 	g.Expect(vm.Spec.Metadata).To(g.HaveLen(2))
 }

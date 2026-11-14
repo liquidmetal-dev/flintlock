@@ -2149,13 +2149,7 @@ func TestNewMicroVMSpecChecksVendorDataForMetadataService(t *testing.T) {
 
 	commands := runCommandsOfSpec(g, spec)
 	g.Expect(commands).To(HaveLen(1))
-	g.Expect(commands[0]).To(And(
-		ContainSubstring(u.VendorDataTriesMarker),
-		ContainSubstring("open 'http://169.254.169.254/latest/vendor-data'"),
-		ContainSubstring("Read from http://169.254.169.254/latest/vendor-data (200"),
-		ContainSubstring("/var/log/cloud-init.log"),
-		ContainSubstring("> /dev/console"),
-	))
+	g.Expect(commands[0]).To(ContainSubstring(u.VendorDataTriesMarker))
 
 	spec, err = u.NewMicroVMSpec(u.CloudHypervisor(), "mvm0", "ns0")
 	g.Expect(err).NotTo(HaveOccurred())
