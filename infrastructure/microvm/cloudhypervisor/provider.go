@@ -64,6 +64,9 @@ type provider struct {
 	// startVMM starts the cloud-hypervisor process of a command. It is nil
 	// except in tests, which run something other than cloud-hypervisor.
 	startVMM func(cmd *exec.Cmd, detached bool) error
+	// apiReadyTimeout is how long Restore waits for the API socket to answer.
+	// Zero means defaultAPIReadyTimeout.
+	apiReadyTimeout time.Duration
 }
 
 // Capabilities returns a list of the capabilities the provider supports.
@@ -73,6 +76,7 @@ func (p *provider) Capabilities() models.Capabilities {
 		models.MacvtapCapability,
 		models.VirtioFSCapability,
 		models.VSockCapability,
+		models.SnapshotCapability,
 	}
 
 	return append(caps, p.config.VolumeCapabilities...)
@@ -131,16 +135,6 @@ func (p *provider) Resume(ctx context.Context, vm *models.MicroVM) error {
 	}
 
 	return nil
-}
-
-// Snapshot is not supported by the Cloud Hypervisor provider yet.
-func (p *provider) Snapshot(_ context.Context, _ *models.MicroVM, _ string) error {
-	return cerrs.NewNotSupported("snapshot")
-}
-
-// Restore is not supported by the Cloud Hypervisor provider yet.
-func (p *provider) Restore(_ context.Context, _ *models.MicroVM, _ string, _ ports.RestoreInput) error {
-	return cerrs.NewNotSupported("restore")
 }
 
 // State returns the state of a microvm.
