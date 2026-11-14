@@ -58,6 +58,9 @@ type SnapshotRepository interface {
 	// Delete removes the snapshot. When restored microvms reference it, the files they
 	// need stay until the last reference is released.
 	Delete(ctx context.Context, uid string) error
+	// RemoveFiles removes every file of the snapshot that a capture wrote and
+	// keeps its record. It is idempotent.
+	RemoveFiles(ctx context.Context, uid string) error
 	// Dir returns the directory of the snapshot on the host.
 	Dir(uid string) string
 	// NextGeneration increments the restore generation of the snapshot and returns

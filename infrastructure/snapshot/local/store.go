@@ -60,6 +60,13 @@ var retainedFiles = map[string]bool{
 	memoryFile:  true,
 }
 
+// storeFiles are the files of a snapshot directory that the store writes.
+var storeFiles = map[string]bool{
+	recordFile: true,
+	refsDir:    true,
+	lockName:   true,
+}
+
 // Store is the snapshot store in the snapshots directory of a state root.
 type Store struct {
 	root string
@@ -296,6 +303,19 @@ func (s *Store) ReleaseRef(ctx context.Context, uid, vmUID string) (err error) {
 	}
 
 	return removePath(dir)
+}
+
+// RemoveFiles removes every file of the snapshot that a capture wrote, and
+// keeps the record, the references and the lock.
+func (s *Store) RemoveFiles(ctx context.Context, uid string) (err error) {
+	_, release, err := s.lock(ctx, uid)
+	if err != nil {
+		return err
+	}
+
+	defer unlock(release, &err)
+
+	return removeExcept(s.Dir(uid), storeFiles)
 }
 
 // Delete marks the snapshot deleted. With no reference it removes the
@@ -619,13 +639,17 @@ func countRefs(dir string) (int, error) {
 }
 
 func removeUnretained(dir string) error {
+	return removeExcept(dir, retainedFiles)
+}
+
+func removeExcept(dir string, keep map[string]bool) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", dir, err)
 	}
 
 	for _, entry := range entries {
-		if retainedFiles[entry.Name()] {
+		if keep[entry.Name()] {
 			continue
 		}
 
