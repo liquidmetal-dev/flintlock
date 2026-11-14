@@ -427,10 +427,10 @@ func TestBuildArgs_OverlayDisksInGuestOrder(t *testing.T) {
 
 	g.Expect(err).NotTo(g.HaveOccurred())
 	g.Expect(optionValues(args, "--disk")).To(g.Equal([]string{
-		"path=/state/bases/abc.img,readonly=on",
-		"path=/state/volumes/root.rw",
-		fmt.Sprintf("path=%s,readonly=on", state.CloudInitImage()),
-		"path=/data.img",
+		"path=/state/bases/abc.img,image_type=raw,readonly=on",
+		"path=/state/volumes/root.rw,image_type=raw",
+		fmt.Sprintf("path=%s,image_type=raw,readonly=on", state.CloudInitImage()),
+		"path=/data.img,image_type=raw",
 	}))
 }
 
