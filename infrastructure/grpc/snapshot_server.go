@@ -182,6 +182,8 @@ func snapshotError(action string, err error) error {
 		code = codes.AlreadyExists
 	case coreerrs.IsFailedPrecondition(err):
 		code = codes.FailedPrecondition
+	case coreerrs.IsInvalidArgument(err):
+		code = codes.InvalidArgument
 	default:
 		return fmt.Errorf("%s: %w", action, err)
 	}
