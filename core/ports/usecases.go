@@ -32,6 +32,13 @@ type SnapshotCommandUseCases interface {
 	DeleteSnapshot(ctx context.Context, ref models.SnapshotRef) error
 }
 
+// SnapshotCaptureUseCase is the interface for the use case that captures a snapshot.
+type SnapshotCaptureUseCase interface {
+	// CaptureSnapshot captures the snapshot of the record from its source microvm.
+	// It does not change the phase of the record.
+	CaptureSnapshot(ctx context.Context, snapshot *models.Snapshot) error
+}
+
 // SnapshotQueryUseCases is the interface for uses cases that are queries for snapshots.
 type SnapshotQueryUseCases interface {
 	// GetSnapshot is a use case for getting details of a specific snapshot.

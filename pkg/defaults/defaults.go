@@ -110,6 +110,10 @@ const (
 	// GuestAgentPingAttemptTimeout bounds one ping to the guest-agent.
 	GuestAgentPingAttemptTimeout time.Duration = 2 * time.Second
 
+	// SnapshotMaxPause is the longest time a snapshot capture keeps the source
+	// microvm paused.
+	SnapshotMaxPause time.Duration = 10 * time.Second
+
 	// ResyncPeriod is the default resync period duration.
 	ResyncPeriod time.Duration = 10 * time.Minute
 

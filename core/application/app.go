@@ -15,12 +15,14 @@ type App interface {
 	ports.ReconcileMicroVMsUseCase
 	ports.SnapshotCommandUseCases
 	ports.SnapshotQueryUseCases
+	ports.SnapshotCaptureUseCase
 }
 
 func New(cfg *Config, ports *ports.Collection) App {
 	return &app{
-		cfg:   cfg,
-		ports: ports,
+		cfg:     cfg,
+		ports:   ports,
+		vmLocks: NewVMLocks(),
 	}
 }
 
@@ -31,6 +33,9 @@ type app struct {
 	// snapshotMu makes the in-progress check and the create of a snapshot one step,
 	// so two requests for the same microvm cannot both pass the check.
 	snapshotMu sync.Mutex
+
+	// vmLocks keeps a snapshot capture and other work on the same microvm apart.
+	vmLocks *VMLocks
 }
 
 type Config struct {
@@ -46,4 +51,7 @@ type Config struct {
 	VMMStartTimeout time.Duration
 	// GuestAgentReadyTimeout is how long the create plan waits for the guest-agent to answer a ping.
 	GuestAgentReadyTimeout time.Duration
+	// SnapshotMaxPause is the longest time a snapshot capture keeps the source
+	// microvm paused. Zero selects defaults.SnapshotMaxPause.
+	SnapshotMaxPause time.Duration
 }
