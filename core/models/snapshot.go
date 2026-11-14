@@ -64,6 +64,10 @@ const (
 	// SnapshotMemoryFile is the name of the file with the guest memory in a
 	// snapshot directory.
 	SnapshotMemoryFile = "memory"
+	// SnapshotSpecFilename is the name of the file with the spec of the source
+	// microvm, its metadata included, in a snapshot directory. It holds the
+	// JSON of MicroVMSpec.
+	SnapshotSpecFilename = "spec.json"
 )
 
 // Snapshot represents a snapshot of a microvm.
