@@ -102,6 +102,12 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	localLogger := logger.WithField("vmid", spec.ID.String())
 	localLogger.Info("Starting reconciliation")
 
+	if restoreFailed(spec) {
+		localLogger.Info("The restore of the microvm failed, it is not retried")
+
+		return nil
+	}
+
 	plan := a.plan(spec, localLogger)
 
 	if spec.Status.Retry > a.cfg.MaximumRetry {
@@ -129,6 +135,10 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 
 	stepCount, err := actuator.Execute(execCtx, plan, executionID)
 	if err != nil {
+		if restorePending(spec) {
+			return a.failRestore(execCtx, spec, plan, executionID, err, localLogger)
+		}
+
 		if scheduleErr := a.reschedule(ctx, localLogger, spec); scheduleErr != nil {
 			return fmt.Errorf("rescheduling failed: %w", scheduleErr)
 		}
@@ -158,4 +168,40 @@ func (a *app) saveState(ctx context.Context, spec *models.MicroVM, plan planner.
 	}
 
 	return nil
+}
+
+// restorePending reports whether the microvm is still to be restored from its snapshot.
+func restorePending(spec *models.MicroVM) bool {
+	return spec.Spec.DeletedAt == 0 && spec.Spec.SnapshotSource.RestorePending()
+}
+
+// restoreFailed reports whether the restore of the microvm failed. A failed
+// restore is not retried: the microvm stays failed until it is deleted.
+func restoreFailed(spec *models.MicroVM) bool {
+	return restorePending(spec) && spec.Status.State == models.FailedState
+}
+
+// failRestore removes what a failed restore made and reports the microvm failed.
+// A clean-up that fails is logged, and the delete of the microvm removes the rest.
+func (a *app) failRestore(
+	ctx context.Context,
+	spec *models.MicroVM,
+	plan planner.Plan,
+	executionID string,
+	restoreErr error,
+	logger *logrus.Entry,
+) error {
+	logger.WithError(restoreErr).Error("Restore failed, removing what it made")
+
+	cleanup := plans.MicroVMRestoreCleanupPlan(&plans.DeletePlanInput{
+		StateDirectory:  a.cfg.RootStateDir,
+		SocketDirectory: a.cfg.SocketDir,
+		VM:              spec,
+	})
+
+	if _, err := planner.NewActuator().Execute(ctx, cleanup, executionID); err != nil {
+		logger.WithError(err).Error("Cleaning up the failed restore")
+	}
+
+	return a.saveState(ctx, spec, plan, models.FailedState)
 }

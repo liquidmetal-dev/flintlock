@@ -26,6 +26,10 @@ type DeletePlanInput struct {
 }
 
 func MicroVMDeletePlan(input *DeletePlanInput) planner.Plan {
+	return newDeletePlan(input)
+}
+
+func newDeletePlan(input *DeletePlanInput) *microvmDeletePlan {
 	return &microvmDeletePlan{
 		vm:         input.VM,
 		stateDir:   path.Join(input.StateDirectory, "vm", input.VM.ID.String()),
@@ -34,15 +38,31 @@ func MicroVMDeletePlan(input *DeletePlanInput) planner.Plan {
 	}
 }
 
+// MicroVMRestoreCleanupPlan removes what a failed restore made: the VMM, the
+// network interfaces, the volumes, the reference to the snapshot and the
+// directories. Unlike the delete plan, it keeps the spec and its lease, so that
+// the microvm is reported failed until it is deleted.
+func MicroVMRestoreCleanupPlan(input *DeletePlanInput) planner.Plan {
+	plan := newDeletePlan(input)
+	plan.restoreCleanup = true
+
+	return plan
+}
+
 type microvmDeletePlan struct {
-	vm         *models.MicroVM
-	stateDir   string
-	socketRoot string
+	vm             *models.MicroVM
+	stateDir       string
+	socketRoot     string
+	restoreCleanup bool
 
 	steps []planner.Procedure
 }
 
 func (p *microvmDeletePlan) Name() string {
+	if p.restoreCleanup {
+		return MicroVMRestoreCleanupPlanName
+	}
+
 	return MicroVMDeletePlanName
 }
 
@@ -61,7 +81,7 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, fmt.Errorf("microvm provider %s isn't available", p.vm.Spec.Provider)
 	}
 
-	if p.vm.Spec.DeletedAt == 0 {
+	if p.vm.Spec.DeletedAt == 0 && !p.restoreCleanup {
 		return []planner.Procedure{}, nil
 	}
 
@@ -77,8 +97,10 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		}
 	}
 
-	if err := p.addStep(ctx, runtime.NewRepoRelease(p.vm, ports.Repo)); err != nil {
-		return nil, fmt.Errorf("adding release lease step: %w", err)
+	if !p.restoreCleanup {
+		if err := p.addStep(ctx, runtime.NewRepoRelease(p.vm, ports.Repo)); err != nil {
+			return nil, fmt.Errorf("adding release lease step: %w", err)
+		}
 	}
 
 	// Network interfaces
@@ -113,7 +135,7 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, fmt.Errorf("adding socket dir step: %w", err)
 	}
 
-	if len(p.steps) != 0 {
+	if len(p.steps) != 0 && !p.restoreCleanup {
 		publishStep := event.NewPublish(
 			defaults.TopicMicroVMEvents,
 			&events.MicroVMSpecDeleted{

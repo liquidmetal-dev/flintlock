@@ -3,4 +3,5 @@ package plans
 const (
 	MicroVMDeletePlanName         = "microvm_delete"
 	MicroVMCreateOrUpdatePlanName = "microvm_create_update"
+	MicroVMRestoreCleanupPlanName = "microvm_restore_cleanup"
 )

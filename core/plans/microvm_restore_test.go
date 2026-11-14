@@ -273,6 +273,27 @@ func TestMicroVMDeletePlan_releasesTheSnapshotRef(t *testing.T) {
 	}
 }
 
+func TestMicroVMRestoreCleanupPlan(t *testing.T) {
+	RegisterTestingT(t)
+
+	vm := restoreTestSpec(models.MemoryModeFile)
+
+	names, mList, run := newDeletePlanSteps(t, vm, plans.MicroVMRestoreCleanupPlan)
+
+	Expect(names).To(Equal([]string{
+		"microvm_delete",
+		"network_iface_delete",
+		"runtime_volume_release",
+		"snapshot_release_ref",
+		"io_delete_dir",
+		"io_delete_dir",
+	}))
+
+	mList.SnapshotRepo.EXPECT().ReleaseRef(gomock.Any(), testSnapshotUID, testUID).Return(nil)
+
+	Expect(run()).To(Succeed())
+}
+
 // newDeletePlanSteps creates the steps of a delete plan of vm, whose VMM runs
 // and whose state and socket directories exist. It returns the step names and
 // a function that runs the steps.
