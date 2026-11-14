@@ -3,10 +3,12 @@ package plans_test
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/afero"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/plans"
@@ -100,4 +102,92 @@ func TestMicroVMDeletePlan(t *testing.T) {
 			Expect(extraSteps).To(BeNil())
 		}
 	}
+}
+
+// The state directory boundary is passed from the plan into the delete step.
+// Pruning must stop at the state root: vm/ is removed when the last microvm
+// goes, but the state root itself is kept. A real filesystem is used because
+// the in-memory fs does not check for children on Remove.
+func TestMicroVMDeletePlan_PrunesEmptyVMParentsOnly(t *testing.T) {
+	RegisterTestingT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mList, mockedPorts := fakePorts(mockCtrl)
+	mockedPorts.FileSystem = afero.NewOsFs()
+	ctx := portsctx.WithPorts(
+		context.Background(),
+		mockedPorts,
+	)
+
+	stateRoot := t.TempDir()
+	socketRoot := t.TempDir()
+
+	spec := createTestSpec("vmid", "namespace")
+	spec.Spec.DeletedAt = 1
+	plan := plans.MicroVMDeletePlan(&plans.DeletePlanInput{
+		VM:              spec,
+		StateDirectory:  stateRoot,
+		SocketDirectory: socketRoot,
+	})
+
+	stateDir := filepath.Join(stateRoot, "vm", "namespace", "vmid", testUID)
+	Expect(os.MkdirAll(stateDir, 0o755)).To(Succeed())
+
+	mList.MicroVMService.
+		EXPECT().
+		State(gomock.Any(), gomock.Any()).
+		Return(ports.MicroVMStateRunning, nil).
+		AnyTimes()
+
+	mList.MicroVMRepository.
+		EXPECT().
+		Exists(gomock.Any(), gomock.Any()).
+		Return(true, nil).
+		AnyTimes()
+
+	mList.MicroVMService.
+		EXPECT().
+		Delete(gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mList.MicroVMService.EXPECT().Capabilities().Return(models.Capabilities{}).AnyTimes()
+
+	mList.NetworkService.
+		EXPECT().
+		IfaceExists(gomock.Any(), gomock.Any()).
+		Return(false, nil).
+		AnyTimes()
+
+	mList.MicroVMRepository.
+		EXPECT().
+		ReleaseLease(gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	mList.EventService.
+		EXPECT().
+		Publish(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	steps, createErr := plan.Create(ctx)
+	Expect(createErr).NotTo(HaveOccurred())
+
+	for _, step := range steps {
+		should, err := step.ShouldDo(ctx)
+		Expect(err).NotTo(HaveOccurred())
+
+		if should {
+			_, err := step.Do(ctx)
+			Expect(err).NotTo(HaveOccurred())
+		}
+	}
+
+	_, statErr := os.Stat(filepath.Join(stateRoot, "vm"))
+	Expect(os.IsNotExist(statErr)).To(BeTrue(), "vm/ should be pruned once empty")
+
+	_, statErr = os.Stat(stateRoot)
+	Expect(statErr).NotTo(HaveOccurred(), "state root must be kept")
 }

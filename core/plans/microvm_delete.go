@@ -27,6 +27,7 @@ type DeletePlanInput struct {
 func MicroVMDeletePlan(input *DeletePlanInput) planner.Plan {
 	return &microvmDeletePlan{
 		vm:         input.VM,
+		stateRoot:  input.StateDirectory,
 		stateDir:   path.Join(input.StateDirectory, "vm", input.VM.ID.String()),
 		socketRoot: models.SocketRoot(input.SocketDirectory, input.VM.ID),
 		steps:      []planner.Procedure{},
@@ -35,6 +36,7 @@ func MicroVMDeletePlan(input *DeletePlanInput) planner.Plan {
 
 type microvmDeletePlan struct {
 	vm         *models.MicroVM
+	stateRoot  string
 	stateDir   string
 	socketRoot string
 
@@ -91,7 +93,7 @@ func (p *microvmDeletePlan) Create(ctx context.Context) ([]planner.Procedure, er
 		return nil, fmt.Errorf("adding volume release step: %w", err)
 	}
 
-	if err := p.addStep(ctx, runtime.NewDeleteDirectory(p.stateDir, ports.FileSystem)); err != nil {
+	if err := p.addStep(ctx, runtime.NewDeleteDirectoryAndEmptyParents(p.stateDir, p.stateRoot, ports.FileSystem)); err != nil {
 		return nil, fmt.Errorf("adding root dir step: %w", err)
 	}
 
