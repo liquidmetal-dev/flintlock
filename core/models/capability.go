@@ -1,0 +1,51 @@
+package models
+
+// Capabaility represents a capability of a provider.
+type Capability string
+
+const (
+	// MetadataServiceCapability is a capability that indicates the microvm provider
+	// has a metadata service.
+	MetadataServiceCapability Capability = "metadata-service"
+
+	// AutoStartCapability is a capability of the microvm provider where the vm is automatically started
+	// as part of the creation process. If a provider doesn't have this capability then its assumed the
+	// microvm will be started via a call to the start implementation of the provider.
+	AutoStartCapability Capability = "auto-start"
+
+	// MacvtapCapability is a capability that indocates the microvm provider
+	// has support for macvtap network interfaces.
+	MacvtapCapability Capability = "macvtap"
+
+	VirtioFSCapability Capability = "virtiofs"
+
+	// VSockCapability indicates the microvm provider supports attaching a vsock device
+	// (used by the guest-agent).
+	VSockCapability Capability = "vsock"
+
+	// KVMCapabilitiesDisableCapability indicates the microvm provider supports disabling
+	// specific KVM capabilities via CPUConfig.KVMCapabilitiesToDisable.
+	KVMCapabilitiesDisableCapability Capability = "kvm-capabilities-disable"
+
+	// VolumeFullCapability indicates the microvm provider can provision a volume
+	// in VolumeModeFull. It needs the containerd devmapper snapshotter.
+	VolumeFullCapability Capability = "volume-full"
+
+	// VolumeOverlayCapability indicates the microvm provider can provision a volume
+	// in VolumeModeOverlay. It needs a reflink state directory, mkfs.erofs and mkfs.ext4.
+	VolumeOverlayCapability Capability = "volume-overlay"
+)
+
+// Capabilities represents a list of capabilities.
+type Capabilities []Capability
+
+// Has is used to test if this set of capabilities has a specific capability.
+func (cp Capabilities) Has(hasCap Capability) bool {
+	for _, c := range cp {
+		if c == hasCap {
+			return true
+		}
+	}
+
+	return false
+}

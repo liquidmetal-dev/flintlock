@@ -1,0 +1,87 @@
+package flags
+
+import (
+	"github.com/urfave/cli/v2"
+
+	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+)
+
+type WithFlagsFunc func() []cli.Flag
+
+func CLIFlags(options ...WithFlagsFunc) []cli.Flag {
+	flags := []cli.Flag{}
+
+	for _, group := range options {
+		flags = append(flags, group()...)
+	}
+
+	return flags
+}
+
+func WithContainerDFlags() WithFlagsFunc {
+	return func() []cli.Flag {
+		return []cli.Flag{
+			&cli.StringFlag{
+				Name:  containerdSocketFlag,
+				Value: defaults.ContainerdSocket,
+				Usage: "The path to the containerd socket.",
+			},
+			&cli.StringFlag{
+				Name:  containerdNamespace,
+				Value: defaults.ContainerdNamespace,
+				Usage: "The name of the containerd namespace to use.",
+			},
+			&cli.StringFlag{
+				Name:  containerdHostsDirFlag,
+				Value: defaults.ContainerdHostsDir,
+				Usage: "Directory of per-registry hosts.toml files (containerd certs.d layout) used for " +
+					"image pull auth/mirrors. Set to an empty string to disable.",
+			},
+		}
+	}
+}
+
+func WithHTTPEndpointFlags() WithFlagsFunc {
+	return func() []cli.Flag {
+		return []cli.Flag{
+			&cli.StringFlag{
+				Name:  httpEndpointFlag,
+				Value: defaults.HTTPAPIEndpoint,
+				Usage: "The endpoint for the HTTP server to listen on.",
+			},
+		}
+	}
+}
+
+func WithGlobalConfigFlags() WithFlagsFunc {
+	return func() []cli.Flag {
+		return []cli.Flag{
+			&cli.StringFlag{
+				Name:  "state-dir",
+				Value: defaults.StateRootDir,
+				Usage: "The directory to use for the as the root for runtime state.",
+			},
+			&cli.StringFlag{
+				Name:  socketDirFlag,
+				Value: defaults.SocketRootDir,
+				Usage: "The directory to use as the root for per-microvm unix sockets.",
+			},
+		}
+	}
+}
+
+func ParseFlags(cfg *config.Config) cli.BeforeFunc {
+	return func(ctx *cli.Context) error {
+		cfg.HTTPAPIEndpoint = ctx.String(httpEndpointFlag)
+
+		cfg.CtrSocketPath = ctx.String(containerdSocketFlag)
+		cfg.CtrNamespace = ctx.String(containerdNamespace)
+		cfg.CtrHostsDir = ctx.String(containerdHostsDirFlag)
+
+		cfg.StateRootDir = ctx.String("state-dir")
+		cfg.SocketDir = ctx.String(socketDirFlag)
+
+		return nil
+	}
+}

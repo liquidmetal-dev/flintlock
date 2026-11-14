@@ -1,0 +1,23 @@
+[build]
+  publish = "public"
+  command = "hugo --gc --minify --panicOnWarning"
+
+[build.environment]
+  HUGO_VERSION = "0.169.0"
+  GO_VERSION = "1.26.2"
+
+[[redirects]]
+  from = "/flintlock-api/*"
+  to = "https://github.com/liquidmetal-dev/flintlock/blob/main/api/services/microvm/v1alpha1/microvms.swagger.json"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/docs/category/getting-started/*"
+  to = "/docs/getting-started/"
+  status = 301
+
+[[redirects]]
+  from = "/docs/category/troubleshooting/*"
+  to = "/docs/troubleshooting/"
+  status = 301

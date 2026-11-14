@@ -1,0 +1,31 @@
+name: pr_type
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
+
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check_pull_request_type:
+    name: Check for PR kind
+    runs-on: ubuntu-latest
+    steps:
+      # The organisation only allows the actions on its list, which has
+      # docker://agilepathway/pull-request-label-checker:* and not the form
+      # with index.docker.io that a pinning tool writes.
+      - uses: docker://agilepathway/pull-request-label-checker:latest@sha256:253c71fe97d6ae19fff21608f1e10493ec322e7c95d4fed4695b2b8d11f58fb2 # latest, 2026-09-20
+        with:
+          one_of: kind/
+          prefix_mode: true
+          repo_token: ${{ secrets.GITHUB_TOKEN }}

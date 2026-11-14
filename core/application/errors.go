@@ -1,0 +1,67 @@
+package application
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/liquidmetal-dev/flintlock/core/models"
+)
+
+var (
+	errUIDRequired                        = errors.New("uid is required")
+	errMacvtapNotSupported                = errors.New("macvtap network interfaces not supported by the microvm provider")
+	errVirtioFSNotSupported               = errors.New("virtiofs not supported by the microvm provider")
+	errGuestAgentNotSupported             = errors.New("guest agent (vsock) not supported by the microvm provider")
+	errKVMCapabilitiesDisableNotSupported = errors.New(
+		"disabling kvm capabilities not supported by the microvm provider",
+	)
+	errVolumeFullNotSupported = errors.New(
+		"volume mode full not supported by the microvm provider: it needs the volume-full capability",
+	)
+	errVolumeOverlayNotSupported = errors.New(
+		"volume mode overlay not supported by the microvm provider: it needs the volume-overlay capability",
+	)
+	errOverlayInitrdImageRequired = errors.New(
+		"volume mode overlay needs an initrd: this build has no default, " +
+			"so set --overlay-initrd-image or name an initrd in the spec",
+	)
+)
+
+type specAlreadyExistsError struct {
+	name      string
+	namespace string
+	uid       string
+}
+
+// Error returns the error message.
+func (e specAlreadyExistsError) Error() string {
+	return fmt.Sprintf("microvm spec %s/%s/%s already exists", e.namespace, e.name, e.uid)
+}
+
+type specNotFoundError struct {
+	name      string
+	namespace string
+	uid       string
+}
+
+// Error returns the error message.
+func (e specNotFoundError) Error() string {
+	if e.name != "" {
+		return fmt.Sprintf("microvm spec %s/%s/%s not found", e.namespace, e.name, e.uid)
+	}
+
+	return fmt.Sprintf("microvm spec %s not found", e.uid)
+}
+
+type reachedMaximumRetryError struct {
+	vmid    models.VMID
+	retries int
+}
+
+func (e reachedMaximumRetryError) Error() string {
+	return fmt.Sprintf(
+		"microvm reconciliation for %s failed %d times",
+		e.vmid.String(),
+		e.retries,
+	)
+}

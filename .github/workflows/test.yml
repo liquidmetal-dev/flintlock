@@ -1,0 +1,37 @@
+name: run tests
+
+on: [pull_request, workflow_dispatch, push]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: yitsushi/devmapper-containerd-action@bfb86f4fe3121aeb8a1b06601b3f07d064665204 # v1.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - name: Install pinned mkfs.erofs
+        uses: ./.github/actions/erofs-utils # zizmor: ignore[self-repository] actionlint does not accept $/ yet
+      - name: Build
+        run: make build
+      - name: Build e2e
+        run: make compile-e2e
+      - name: Test with coverage
+        run: |
+          export CTR_SOCK_PATH=/var/run/containerd/containerd.sock
+          make test-with-cov
+        env:
+          CTR_SOCK_PATH: /run/containerd/containerd.sock
+      # - name: Upload coverage to Codecov
+      #   run: bash <(curl -s https://codecov.io/bash)
+      #   env:
+      #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

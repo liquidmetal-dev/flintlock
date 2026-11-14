@@ -1,0 +1,159 @@
+//go:build wireinject
+// +build wireinject
+
+package inject
+
+import (
+	"time"
+
+	"github.com/google/wire"
+	"github.com/spf13/afero"
+
+	"github.com/liquidmetal-dev/flintlock/core/application"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/containerd"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/controllers"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/godisk"
+	microvmgrpc "github.com/liquidmetal-dev/flintlock/infrastructure/grpc"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/network"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/ulid"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/volume/overlay"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/internal/version"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+)
+
+func InitializePorts(cfg *config.Config, volumeCaps microvm.VolumeCapabilities) (*ports.Collection, error) {
+	wire.Build(containerd.NewEventService,
+		containerd.NewImageService,
+		containerd.NewMicroVMRepo,
+		ulid.New,
+		microvm.NewFromConfig,
+		network.New,
+		godisk.New,
+		appPorts,
+		ContainerdConfig,
+		networkConfig,
+		afero.NewOsFs,
+		virtiofs.New,
+		containerd.NewClient,
+		containerd.NewLayerSource,
+		overlayConfig,
+		volumeService)
+
+	return nil, nil
+}
+
+func InitializeApp(cfg *config.Config, ports *ports.Collection) application.App {
+	wire.Build(application.New, appConfig)
+
+	return nil
+}
+
+func InializeController(app application.App, ports *ports.Collection) *controllers.MicroVMController {
+	wire.Build(controllers.New, eventSvcFromScope, reconcileUCFromApp, queryUCFromApp)
+
+	return nil
+}
+
+func InitializeGRPCServer(cfg *config.Config, app application.App, startTime time.Time) ports.MicroVMGRPCService {
+	wire.Build(microvmgrpc.NewServer, queryUCFromApp, commandUCFromApp, infoConfig)
+
+	return nil
+}
+
+func InitializeExecGRPCServer(app application.App) ports.MicroVMExecGRPCService {
+	wire.Build(microvmgrpc.NewExecServer, queryUCFromApp)
+
+	return nil
+}
+
+func InitializeSSHProxyGRPCServer(app application.App) ports.MicroVMSSHProxyGRPCService {
+	wire.Build(microvmgrpc.NewSSHProxyServer, queryUCFromApp)
+
+	return nil
+}
+
+// ContainerdConfig is the containerd configuration of cfg.
+func ContainerdConfig(cfg *config.Config) *containerd.Config {
+	return &containerd.Config{
+		SnapshotterKernel: cfg.CtrSnapshotterKernel,
+		SnapshotterVolume: defaults.ContainerdVolumeSnapshotter,
+		SocketPath:        cfg.CtrSocketPath,
+		Namespace:         cfg.CtrNamespace,
+		HostsDir:          cfg.CtrHostsDir,
+	}
+}
+
+func infoConfig(cfg *config.Config, startTime time.Time) microvmgrpc.InfoConfig {
+	return microvmgrpc.InfoConfig{
+		StartTime:       startTime,
+		ExecEnabled:     cfg.EnableExecAPI,
+		SSHProxyEnabled: cfg.EnableSSHProxyAPI,
+		GRPCAPIEndpoint: cfg.GRPCAPIEndpoint,
+	}
+}
+
+func networkConfig(cfg *config.Config) *network.Config {
+	return &network.Config{
+		ParentDeviceName: cfg.ParentIface,
+		BridgeName:       cfg.BridgeName,
+	}
+}
+
+func overlayConfig(cfg *config.Config) overlay.Config {
+	return overlay.Config{
+		StateRoot:       cfg.StateRootDir,
+		MkfsErofsPath:   cfg.MkfsErofsPath,
+		DefaultRWSizeMB: cfg.OverlayRWSizeMB,
+		BaseRetention:   cfg.OverlayBaseRetention,
+	}
+}
+
+func volumeService(cfg overlay.Config, source overlay.LayerSource) (ports.VolumeService, error) {
+	return overlay.NewService(cfg, source)
+}
+
+func appConfig(cfg *config.Config) *application.Config {
+	return &application.Config{
+		RootStateDir:       cfg.StateRootDir,
+		SocketDir:          cfg.SocketDir,
+		MaximumRetry:       cfg.MaximumRetry,
+		DefaultProvider:    cfg.DefaultVMProvider,
+		OverlayInitrdImage: cfg.EffectiveOverlayInitrdImage(version.Version),
+	}
+}
+
+func appPorts(repo ports.MicroVMRepository, providers map[string]ports.MicroVMService, es ports.EventService, is ports.IDService, ns ports.NetworkService, ims ports.ImageService, fs afero.Fs, ds ports.DiskService, vfs ports.VirtioFSService, vs ports.VolumeService) *ports.Collection {
+	return &ports.Collection{
+		Repo:              repo,
+		MicrovmProviders:  providers,
+		EventService:      es,
+		IdentifierService: is,
+		NetworkService:    ns,
+		ImageService:      ims,
+		FileSystem:        fs,
+		Clock:             time.Now,
+		DiskService:       ds,
+		VirtioFSService:   vfs,
+		VolumeService:     vs,
+	}
+}
+
+func eventSvcFromScope(ports *ports.Collection) ports.EventService {
+	return ports.EventService
+}
+
+func reconcileUCFromApp(app application.App) ports.ReconcileMicroVMsUseCase {
+	return app
+}
+
+func queryUCFromApp(app application.App) ports.MicroVMQueryUseCases {
+	return app
+}
+
+func commandUCFromApp(app application.App) ports.MicroVMCommandUseCases {
+	return app
+}

@@ -1,0 +1,307 @@
+package firecracker
+
+import (
+	"fmt"
+	"runtime"
+
+	"github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
+	"github.com/liquidmetal-dev/flintlock/internal/config"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+)
+
+const (
+	cloudInitNetVersion = 2 //nolint: unused // TODO: Remove it looks like is not used
+)
+
+type ConfigOption func(cfg *VmmConfig) error
+
+func CreateConfig(opts ...ConfigOption) (*VmmConfig, error) {
+	cfg := &VmmConfig{}
+
+	for _, opt := range opts {
+		if err := opt(cfg); err != nil {
+			return nil, fmt.Errorf("creating firecracker configuration: %w", err)
+		}
+	}
+
+	return cfg, nil
+}
+
+func WithMicroVM(vm *models.MicroVM) ConfigOption {
+	return func(cfg *VmmConfig) error {
+		if vm == nil {
+			return errors.ErrSpecRequired
+		}
+
+		cfg.MachineConfig = MachineConfig{
+			MemSizeMib: vm.Spec.MemoryInMb,
+			VcpuCount:  vm.Spec.VCPU,
+			SMT:        runtime.GOARCH == "amd64",
+		}
+
+		cfg.CPUConfig = buildCPUConfig(vm.Spec.CPUConfig)
+
+		mmdsNetDevices := []string{}
+		cfg.NetDevices = []NetworkInterfaceConfig{}
+
+		for i := range vm.Spec.NetworkInterfaces {
+			iface := vm.Spec.NetworkInterfaces[i]
+
+			status, ok := vm.Status.NetworkInterfaces[iface.GuestDeviceName]
+			if !ok {
+				return errors.NewNetworkInterfaceStatusMissing(iface.GuestDeviceName)
+			}
+
+			fcInt := createNetworkIface(&iface, status)
+			cfg.NetDevices = append(cfg.NetDevices, *fcInt)
+			if iface.AllowMetadataRequests {
+				mmdsNetDevices = append(mmdsNetDevices, fcInt.IfaceID)
+			}
+		}
+
+		cfg.Mmds = &MMDSConfig{
+			Version: MMDSVersion1,
+		}
+		if len(mmdsNetDevices) > 0 {
+			cfg.Mmds.NetworkInterfaces = mmdsNetDevices
+		}
+
+		drives, err := shared.BuildDrives(vm, shared.DriveOptions{})
+		if err != nil {
+			return fmt.Errorf("building drives: %w", err)
+		}
+
+		blockDevices, err := buildBlockDevices(vm, drives)
+		if err != nil {
+			return err
+		}
+
+		cfg.BlockDevices = blockDevices
+
+		kernelCmdLine := DefaultKernelCmdLine()
+
+		for key, value := range vm.Spec.Kernel.CmdLine {
+			kernelCmdLine.Set(key, value)
+		}
+
+		// After the spec, so that the init sees the devices this config emits.
+		shared.SetOverlayKernelParams(kernelCmdLine, drives)
+
+		if vm.Spec.Kernel.AddNetworkConfig {
+			networkConfig, err := shared.GenerateNetworkConfig(vm)
+			if err != nil {
+				return fmt.Errorf("generating kernel network-config: %w", err)
+			}
+
+			kernelCmdLine.Set("network-config", networkConfig)
+		}
+
+		bootSource, err := buildBootSource(vm, kernelCmdLine.String())
+		if err != nil {
+			return err
+		}
+
+		cfg.BootSource = *bootSource
+
+		return nil
+	}
+}
+
+// buildBlockDevices returns one block device per drive, in the order the
+// guest sees the drives.
+//
+// The drives of an overlay root get paths relative to the state directory of
+// the microvm, which Create makes the working directory of the process.
+// Firecracker stores the path string in a snapshot, so a relative path lets
+// a restored process resolve it to its own disk. Full mode keeps absolute
+// paths.
+func buildBlockDevices(vm *models.MicroVM, drives models.Drives) ([]BlockDeviceConfig, error) {
+	blockDevices := []BlockDeviceConfig{}
+
+	for _, drive := range drives {
+		if !shared.IsDriveMounted(vm, drive) {
+			return nil, errors.NewVolumeNotMounted(drive.VolumeID)
+		}
+
+		blockDevices = append(blockDevices, BlockDeviceConfig{
+			ID:           drive.ID,
+			IsReadOnly:   drive.ReadOnly,
+			IsRootDevice: drive.Role == models.DriveRoleRoot,
+			PathOnHost:   pathOnHost(drive),
+			CacheType:    CacheTypeUnsafe,
+		})
+	}
+
+	return blockDevices, nil
+}
+
+func pathOnHost(drive models.Drive) string {
+	switch drive.Role {
+	case models.DriveRoleRootBase:
+		return shared.OverlayBasePath
+	case models.DriveRoleRootRW:
+		return shared.OverlayRWPath
+	case models.DriveRoleRoot, models.DriveRoleCloudInit, models.DriveRoleVolume:
+		return drive.Path
+	}
+
+	return drive.Path
+}
+
+// buildBootSource resolves the kernel (and optional initrd) paths within their image
+// mounts, so a spec can't point the VMM at files outside the images.
+func buildBootSource(vm *models.MicroVM, kernelArgs string) (*BootSourceConfig, error) {
+	if vm.Status.KernelMount == nil {
+		return nil, fmt.Errorf("resolving kernel path: %w", errors.ErrNoMount)
+	}
+
+	kernelPath, err := shared.ResolveImageFile(vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("resolving kernel path: %w", err)
+	}
+
+	bootSource := &BootSourceConfig{
+		KernelImagePage: kernelPath,
+		BootArgs:        &kernelArgs,
+	}
+
+	if vm.Spec.Initrd != nil {
+		if vm.Status.InitrdMount == nil {
+			return nil, fmt.Errorf("resolving initrd path: %w", errors.ErrNoMount)
+		}
+
+		initrdPath, err := shared.ResolveImageFile(vm.Status.InitrdMount.Source, vm.Spec.Initrd.Filename)
+		if err != nil {
+			return nil, fmt.Errorf("resolving initrd path: %w", err)
+		}
+
+		bootSource.InitrdPath = &initrdPath
+	}
+
+	return bootSource, nil
+}
+
+// buildCPUConfig merges the enable/disable lists from the microvm spec into a single
+// Firecracker kvm_capabilities list, prefixing disabled capabilities with "!". Returns nil
+// when there's nothing to configure.
+func buildCPUConfig(modelCPUConfig *models.CPUConfig) *CPUConfig {
+	if modelCPUConfig == nil {
+		return nil
+	}
+
+	kvmCapabilities := make(
+		[]string,
+		0,
+		len(modelCPUConfig.FeaturesToEnable)+len(modelCPUConfig.KVMCapabilitiesToDisable),
+	)
+	kvmCapabilities = append(kvmCapabilities, modelCPUConfig.FeaturesToEnable...)
+
+	for _, capability := range modelCPUConfig.KVMCapabilitiesToDisable {
+		kvmCapabilities = append(kvmCapabilities, "!"+capability)
+	}
+
+	if len(kvmCapabilities) == 0 {
+		return nil
+	}
+
+	return &CPUConfig{KvmCapabilities: kvmCapabilities}
+}
+
+// DefaultKernelCmdLine is the default recommended kernel parameter list.
+//
+// console=ttyS0   [KLN] Output console device and options
+// reboot=k        [KNL] reboot_type=kbd
+// panic=1         [KNL] Kernel behaviour on panic: delay <timeout>
+//
+//	timeout > 0: seconds before rebooting
+//	timeout = 0: wait forever
+//	timeout < 0: reboot immediately
+//
+// pci=off         [X86] don't probe for the PCI bus
+// i8042.noaux     [HW]  Don't check for auxiliary (== mouse) port
+// i8042.nomux     [HW]  Don't check presence of an active multiplexing
+//
+//	controller
+//
+// i8042.nopnp     [HW]  Don't use ACPIPnP / PnPBIOS to discover KBD/AUX
+//
+//	controllers
+//
+// i8042.dumbkbd   [HW]  Pretend that controller can only read data from
+//
+//	keyboard and cannot control its state
+//	(Don't attempt to blink the leds)
+//
+// Read more:
+// https://www.kernel.org/doc/html/v5.15/admin-guide/kernel-parameters.html
+func DefaultKernelCmdLine() config.KernelCmdLine {
+	return config.KernelCmdLine{
+		"console":       "ttyS0",
+		"reboot":        "k",
+		"panic":         "1",
+		"pci":           "off",
+		"i8042.noaux":   "",
+		"i8042.nomux":   "",
+		"i8042.nopnp":   "",
+		"i8042.dumbkbd": "",
+		"ds":            "nocloud-net;s=http://169.254.169.254/latest/",
+	}
+}
+
+// WithVsock adds a vsock device to the config when the microvm has the guest-agent enabled.
+func WithVsock(vm *models.MicroVM, vmState State) ConfigOption {
+	return func(cfg *VmmConfig) error {
+		if vm == nil {
+			return errors.ErrSpecRequired
+		}
+
+		if vm.Spec.AllowGuestAgent {
+			cfg.VsockDevice = &VsockDeviceConfig{
+				ID:       "guest-agent",
+				GuestCID: defaults.GuestAgentVsockCID,
+				UDSPath:  vmState.VSockPath(),
+			}
+		}
+
+		return nil
+	}
+}
+
+func WithState(vmState State) ConfigOption {
+	return func(cfg *VmmConfig) error {
+		cfg.Logger = &LoggerConfig{
+			LogPath:       vmState.LogPath(),
+			Level:         LogLevelDebug,
+			ShowLevel:     true,
+			ShowLogOrigin: true,
+		}
+		cfg.Metrics = &MetricsConfig{
+			Path: vmState.MetricsPath(),
+		}
+
+		return nil
+	}
+}
+
+func createNetworkIface(iface *models.NetworkInterface, status *models.NetworkInterfaceStatus) *NetworkInterfaceConfig {
+	macAddr := iface.GuestMAC
+	hostDevName := status.HostDeviceName
+
+	if iface.Type == models.IfaceTypeMacvtap {
+		hostDevName = fmt.Sprintf("/dev/tap%d", status.Index)
+
+		if macAddr == "" {
+			macAddr = status.MACAddress
+		}
+	}
+
+	netInt := &NetworkInterfaceConfig{
+		IfaceID:     iface.GuestDeviceName,
+		HostDevName: hostDevName,
+		GuestMAC:    macAddr,
+	}
+
+	return netInt
+}

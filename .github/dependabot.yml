@@ -1,0 +1,67 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directories:
+      - "/"
+      - "/api"
+      - "/client"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "kind/cleanup"
+      - "area/dependency"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    labels:
+      - "kind/cleanup"
+      - "area/build-and-release"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "kind/cleanup"
+      - "area/build-and-release"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/userdocs"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "kind/cleanup"
+      - "kind/documentation"
+      - "area/build-and-release"
+    groups:
+      dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      userdocs-security:
+        applies-to: security-updates
+        patterns:
+          - "*"

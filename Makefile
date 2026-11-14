@@ -1,0 +1,227 @@
+# Build Information
+BUILD_DATE := $(shell date +%Y-%m-%dT%H:%M:%SZ)
+GIT_COMMIT := $(shell git rev-parse --short HEAD)
+VERSION := $(shell git describe --tags --abbrev=0)
+VERSION_PKG := github.com/liquidmetal-dev/flintlock/internal/version
+OS := $(shell go env GOOS)
+ARCH := $(shell go env GOARCH)
+UNAME := $(shell uname -s)
+
+# Directories
+REPO_ROOT := $(shell git rev-parse --show-toplevel)
+BIN_DIR := bin
+OUT_DIR := out
+FLINTLOCKD_CMD := cmd/flintlockd
+FLINTLOCK_METRICS_CMD := cmd/flintlock-metrics
+FLINTLOCK_PROVISION_CMD := cmd/flintlock-provision
+FLINTLOCK_OVERLAY_INIT_CMD := cmd/flintlock-overlay-init
+OVERLAY_INITRD_SCRIPT := hack/scripts/build-overlay-initrd.sh
+OVERLAY_INITRD_IMAGE := ghcr.io/liquidmetal-dev/flintlock-overlay-init
+TEST_E2E_DIR := test/e2e
+
+$(BIN_DIR):
+	mkdir -p $@
+
+$(OUT_DIR):
+	mkdir -p $@
+
+# Useful things
+test_image = liquidmetal-dev/flintlock-e2e
+
+.DEFAULT_GOAL := help
+
+##@ Build
+
+.PHONY: build
+build: build-flintlockd build-flintlock-metrics build-flintlock-provision build-flintlock-overlay-init ## Build the binaries
+
+.PHONY: build-flintlockd
+build-flintlockd: $(BIN_DIR) ## Build flintlockd binary
+	go build -o $(BIN_DIR)/flintlockd ./$(FLINTLOCKD_CMD)
+
+.PHONY: build-flintlock-metrics ## Build flintlock-metrics binary
+build-flintlock-metrics: $(BIN_DIR)
+	go build -o $(BIN_DIR)/flintlock-metrics ./$(FLINTLOCK_METRICS_CMD)
+
+.PHONY: build-flintlock-provision ## Build flintlock-provision binary
+build-flintlock-provision: $(BIN_DIR)
+	go build -o $(BIN_DIR)/flintlock-provision ./$(FLINTLOCK_PROVISION_CMD)
+
+.PHONY: build-flintlock-overlay-init ## Build flintlock-overlay-init binary
+build-flintlock-overlay-init: $(BIN_DIR)
+	CGO_ENABLED=0 GOOS=linux go build -o $(BIN_DIR)/flintlock-overlay-init ./$(FLINTLOCK_OVERLAY_INIT_CMD)
+
+.PHONY: build-overlay-initrd
+build-overlay-initrd: $(OUT_DIR) ## Build the overlay initrd (gzip cpio with flintlock-overlay-init at /init) for the host architecture
+	VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE) GIT_COMMIT=$(GIT_COMMIT) ./$(OVERLAY_INITRD_SCRIPT) $(OUT_DIR)/flintlock-overlay-initrd_$(ARCH).img $(ARCH)
+
+.PHONY: build-release
+build-release: build-release-flintlockd build-release-flintlock-metrics build-release-flintlock-provision build-release-overlay-initrd ## Build the release binaries
+
+.PHONY: build-release-overlay-initrd
+build-release-overlay-initrd: $(OUT_DIR) ## Build the overlay initrd for amd64 and arm64
+	VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE) GIT_COMMIT=$(GIT_COMMIT) ./$(OVERLAY_INITRD_SCRIPT) $(OUT_DIR)/flintlock-overlay-initrd_amd64.img amd64
+	VERSION=$(VERSION) BUILD_DATE=$(BUILD_DATE) GIT_COMMIT=$(GIT_COMMIT) ./$(OVERLAY_INITRD_SCRIPT) $(OUT_DIR)/flintlock-overlay-initrd_arm64.img arm64
+
+.PHONY: push-overlay-initrd-image
+push-overlay-initrd-image: build-release-overlay-initrd ## Publish the overlay initrd as a multi-arch OCI image. Set OVERLAY_INITRD_TAGS to the tags to push.
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		--provenance=false --sbom=false \
+		--file hack/packaging/flintlock-overlay-init.Dockerfile \
+		$(foreach tag,$(OVERLAY_INITRD_TAGS),--tag $(OVERLAY_INITRD_IMAGE):$(tag)) \
+		--push \
+		$(OUT_DIR)
+
+.PHONY: build-release-flintlockd
+build-release-flintlockd: $(BIN_DIR) ## Build flintlockd release binaries
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlockd_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCKD_CMD)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlockd_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCKD_CMD)
+
+.PHONY: build-release-flintlock-metrics
+build-release-flintlock-metrics: $(BIN_DIR) ## Build flintlock-metrics release binaries
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlock-metrics_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlock-metrics_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_METRICS_CMD)
+
+.PHONY: build-release-flintlock-provision
+build-release-flintlock-provision: $(BIN_DIR) ## Build flintlock-provision release binaries
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BIN_DIR)/flintlock-provision_amd64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_PROVISION_CMD)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/flintlock-provision_arm64 -ldflags "-X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).BuildDate=$(BUILD_DATE) -X $(VERSION_PKG).CommitHash=$(GIT_COMMIT)" ./$(FLINTLOCK_PROVISION_CMD)
+
+.PHONY: release-snapshot
+release-snapshot: ## Build a local goreleaser snapshot release (binaries + deb/rpm packages), no publishing
+	goreleaser release --snapshot --clean
+
+##@ Generate
+
+.PHONY: generate
+generate: ## Generate code
+	$(MAKE) generate-go
+	$(MAKE) generate-proto
+	$(MAKE) generate-di
+
+.PHONY: generate-go
+generate-go: ## Generate Go Code
+	mise exec -- go generate ./infrastructure/mock
+
+.PHONY: generate-proto ## Generate protobuf/grpc code
+generate-proto:
+	buf dep update
+	buf generate
+
+.PHONY: generate-di ## Generate the dependency injection code
+generate-di:
+	wire gen github.com/liquidmetal-dev/flintlock/internal/inject
+
+##@ Linting
+
+.PHONY: lint
+lint:  ## Lint code
+	golangci-lint run -v --fast=false $(GOLANGCI_LINT_EXTRA_ARGS)
+
+.PHONY: lint-fix
+lint-fix: ## Lint the codebase and run auto-fixers if supported by the linter
+	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
+
+.PHONY: lint-new
+lint-new: ## Lint only files changed vs main (fast local iteration)
+	golangci-lint run -v --new-from-rev=main $(GOLANGCI_LINT_EXTRA_ARGS)
+
+.PHONY: proto-lint
+proto-lint: ## Lint protobuf/grpc
+	buf lint
+
+.PHONY: proto-breaking
+proto-breaking: ## Check protobuf/grpc for breaking changes against the published BSR schema
+	buf breaking --against buf.build/liquidmetal-dev/flintlock:main
+
+.PHONY: lint-actions
+lint-actions: ## Lint and security-check the GitHub Actions workflows
+	actionlint
+	zizmor .github
+
+##@ Verification
+
+GO_MODULES := . api client
+GENERATED_PATHS := api infrastructure/mock internal/inject userdocs/content/docs/grpc
+
+.PHONY: check-generated
+check-generated: ## Check that the generated code is up to date
+	$(MAKE) generate-go
+# Not generate-proto: buf dep update needs the network and can change buf.lock.
+	buf generate
+	$(MAKE) generate-di
+	@if [ -n "$$(git status --porcelain -- $(GENERATED_PATHS))" ]; then \
+		git status --porcelain -- $(GENERATED_PATHS); \
+		git --no-pager diff -- $(GENERATED_PATHS); \
+		echo "The generated code is out of date, run 'make generate' and commit the result."; \
+		exit 1; \
+	fi
+
+.PHONY: check-tidy
+check-tidy: ## Check that go.mod and go.sum are tidy in every module
+	@for m in $(GO_MODULES); do (cd $$m && go mod tidy) || exit 1; done
+	@if [ -n "$$(git status --porcelain -- '*go.mod' '*go.sum')" ]; then \
+		git --no-pager diff -- '*go.mod' '*go.sum'; \
+		echo "A module is not tidy, run 'go mod tidy' in it and commit the result."; \
+		exit 1; \
+	fi
+
+.PHONY: vulncheck
+vulncheck: ## Check every module for known vulnerabilities
+	@for m in $(GO_MODULES); do echo "govulncheck $$m"; (cd $$m && govulncheck ./...) || exit 1; done
+
+##@ Testing
+
+.PHONY: test
+test: ## Run unit tests
+	go test -v -race ./...
+
+.PHONY: test-with-cov
+test-with-cov: ## Run unit tests with coverage
+	go test -v -race -timeout 2m -p 1 -covermode=atomic -coverprofile=coverage.txt -exec "sudo --preserve-env=CTR_SOCK_PATH,CI" ./...
+
+.PHONY: test-e2e
+test-e2e: compile-e2e ## Run e2e tests locally
+		./test/e2e/test.sh $(E2E_ARGS)
+
+.PHONY: test-e2e-docker
+test-e2e-docker: compile-e2e ## Run e2e tests locally in a container
+	docker run --rm -it \
+		--privileged \
+		--volume /dev:/dev \
+		--volume /run/udev/control:/run/udev/control \
+		--volume $(REPO_ROOT):/src/flintlock \
+		--ipc=host \
+		--workdir=/src/flintlock \
+		$(test_image):latest \
+		/bin/bash -c "make test-e2e"
+
+.PHONY: test-e2e-metal
+test-e2e-metal: ## Run e2e tests in Equinix
+	echo "must set EQUINIX_ORG_ID"
+	./test/tools/run.py run-e2e -o $(EQUINIX_ORG_ID)
+
+.PHONY: compile-e2e
+compile-e2e: ## Test e2e compilation
+	go test -c -o /dev/null -tags=e2e ./test/e2e
+
+##@ Docker
+
+.PHONY: docker-build
+docker-build: ## Build the e2e docker image
+	docker build -t $(test_image):latest -f test/docker/Dockerfile.e2e .
+
+.PHONY: docker-push
+docker-push: docker-build ## Push the e2e docker image to liquidmetal-dev/fl-e2e
+	docker push $(test_image):latest
+
+##@ Utility
+
+.PHONY: help
+help:  ## Display this help. Thanks to https://www.thapaliya.com/en/writings/well-documented-makefiles/
+ifeq ($(OS),Windows_NT)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target>\n"} /^[0-9a-zA-Z_-]+:.*?##/ { printf "  %-40s %s\n", $$1, $$2 } /^##@/ { printf "\n%s\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+else
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-40s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+endif

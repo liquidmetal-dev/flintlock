@@ -1,0 +1,117 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "services/microvmexec/v1alpha1/microvmexec.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "MicroVMExec"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1alpha1ExecCommandResponse": {
+      "type": "object",
+      "properties": {
+        "stdout": {
+          "type": "string",
+          "format": "byte"
+        },
+        "stderr": {
+          "type": "string",
+          "format": "byte"
+        },
+        "exitCode": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "description": "ExecCommandResponse is one message in the server-\u003eclient stream. Only\nexit_code terminates the stream; error may be sent (typically followed by\nexit_code) without ending the exchange."
+    },
+    "v1alpha1ExecStart": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "uid is the microvm identifier, as used by MicroVM.GetMicroVM/DeleteMicroVM."
+        },
+        "cmd": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cwd": {
+          "type": "string",
+          "description": "cwd is the working directory; empty means the guest-agent's cwd."
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "env entries are added to (and override) the guest-agent's environment."
+        },
+        "shell": {
+          "type": "boolean",
+          "description": "shell runs \"sh -c \u003ccmd + args joined\u003e\" instead of a direct exec."
+        },
+        "user": {
+          "type": "string",
+          "description": "user, if set, runs the command as that guest system user."
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "format": "int32",
+          "description": "timeout_seconds bounds the run; 0 means unbounded."
+        },
+        "hasStdin": {
+          "type": "boolean",
+          "description": "has_stdin tells the server to expect streamed stdin messages."
+        }
+      },
+      "description": "ExecStart describes the microvm to target and the command to run, mirroring\nthe guest-agent's own exec request fields."
+    }
+  }
+}

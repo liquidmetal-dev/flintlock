@@ -1,0 +1,141 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: flintlockd
+    main: ./cmd/flintlockd
+    binary: flintlockd
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.Version={{ .Version }}
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.BuildDate={{ .Date }}
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.CommitHash={{ .ShortCommit }}
+  - id: flintlock-metrics
+    main: ./cmd/flintlock-metrics
+    binary: flintlock-metrics
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.Version={{ .Version }}
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.BuildDate={{ .Date }}
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.CommitHash={{ .ShortCommit }}
+  - id: flintlock-provision
+    main: ./cmd/flintlock-provision
+    binary: flintlock-provision
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.Version={{ .Version }}
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.BuildDate={{ .Date }}
+      - -X github.com/liquidmetal-dev/flintlock/internal/version.CommitHash={{ .ShortCommit }}
+
+archives:
+  - id: flintlockd
+    ids:
+      - flintlockd
+    formats:
+      - binary
+    name_template: "flintlockd_{{ .Arch }}"
+  - id: flintlock-metrics
+    ids:
+      - flintlock-metrics
+    formats:
+      - binary
+    name_template: "flintlock-metrics_{{ .Arch }}"
+  - id: flintlock-provision
+    ids:
+      - flintlock-provision
+    formats:
+      - binary
+    name_template: "flintlock-provision_{{ .Arch }}"
+
+nfpms:
+  - id: flintlockd
+    ids:
+      - flintlockd
+    package_name: flintlockd
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    bindir: /usr/local/bin
+    vendor: Liquid Metal Authors
+    homepage: https://www.liquidmetal.dev
+    maintainer: Liquid Metal Authors <flintlock@liquidmetal.dev>
+    description: |-
+      Flintlock is a service for creating and managing microVMs, primarily
+      designed to run as part of the Liquid Metal stack.
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+    contents:
+      - src: flintlockd.service
+        dst: /lib/systemd/system/flintlockd.service
+        packager: deb
+      - src: flintlockd.service
+        dst: /usr/lib/systemd/system/flintlockd.service
+        packager: rpm
+    scripts:
+      postinstall: hack/packaging/flintlockd-postinstall.sh
+  - id: flintlock-metrics
+    ids:
+      - flintlock-metrics
+    package_name: flintlock-metrics
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    bindir: /usr/local/bin
+    vendor: Liquid Metal Authors
+    homepage: https://www.liquidmetal.dev
+    maintainer: Liquid Metal Authors <flintlock@liquidmetal.dev>
+    description: |-
+      flintlock-metrics exports microVM metrics collected by flintlock.
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+  - id: flintlock-provision
+    ids:
+      - flintlock-provision
+    package_name: flintlock-provision
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    bindir: /usr/local/bin
+    vendor: Liquid Metal Authors
+    homepage: https://www.liquidmetal.dev
+    maintainer: Liquid Metal Authors <flintlock@liquidmetal.dev>
+    description: |-
+      flintlock-provision bootstraps a host to run flintlock.
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  draft: true
+  prerelease: false
+  # The pinned static mkfs.erofs and its sha256, built by
+  # .github/actions/erofs-utils and staged by the release workflow.
+  # flintlock-provision erofs-utils downloads them by name.
+  extra_files:
+    - glob: ./bin/erofs-utils/mkfs.erofs-*
+
+changelog:
+  use: github-native

@@ -1,0 +1,185 @@
+package defaults
+
+import (
+	"time"
+)
+
+const (
+	// Domain is the reverse order domain name to use.
+	Domain = "dev.liquidmetal.flintlockd"
+
+	// ContainerdNamespace is the name of the namespace to use with containerd.
+	ContainerdNamespace = "flintlock"
+
+	// ContainerdSocket is the defaults path for the containerd socket.
+	ContainerdSocket = "/run/containerd/containerd.sock"
+
+	// ContainerdVolumeSnapshotter is the name of the snapshotter used for volumes.
+	ContainerdVolumeSnapshotter = "devmapper"
+
+	// ContainerdKernelSnapshotter is the name of the default snapshotter to use for kernek/initrd.
+	ContainerdKernelSnapshotter = "native"
+
+	// ContainerdHostsDir is the default certs.d directory read for registry hosts.toml files.
+	// It matches the containerd daemon's own default.
+	ContainerdHostsDir = "/etc/containerd/certs.d"
+
+	// FirecrackerBin is the name of the firecracker binary.
+	FirecrackerBin = "firecracker"
+
+	// FirecrackerDetach is the default for the flag to indicates with the child firecracker
+	// processes should be run detached.
+	FirecrackerDetach = true
+
+	// CloudHypervisorBin is the name of the Cloud Hypervisor binary.
+	CloudHypervisorBin = "cloud-hypervisor-static"
+
+	// VirtioFSBin is the name of the virtiofsd binary.
+	VirtioFSBin = "/usr/libexec/virtiofsd"
+
+	// CloudHypervisorDetach is the default for the flag to indicates with the child cloud-hypervisor
+	// processes should be run detached.
+	CloudHypervisorDetach = true
+
+	// ErofsUtilsVersion is the erofs-utils version of the pinned mkfs.erofs.
+	// CI builds this version as a static binary and attaches it to each
+	// flintlock release. The overlay base profile erofs-v1 fixes it.
+	ErofsUtilsVersion = "1.9.4"
+
+	// MkfsErofsPath is the path flintlock-provision installs the pinned
+	// mkfs.erofs to. It is under flintlock's own directory so that it does
+	// not replace a system mkfs.erofs.
+	MkfsErofsPath = "/opt/flintlock/bin/mkfs.erofs"
+
+	// OverlayRWSizeMB is the default size in megabytes of the writable disk
+	// of an overlay volume. It is the base_image_size provisioning gives
+	// devmapper today, so a full and an overlay root have the same room.
+	OverlayRWSizeMB int32 = 10240
+
+	// OverlayBaseRetention is how long an overlay base that no microvm uses
+	// is kept after its last use.
+	OverlayBaseRetention = 24 * time.Hour
+
+	// OverlayInitrdImage is the OCI image repository of the initrd that boots
+	// an overlay root. Each release publishes it with the tag of the release,
+	// in the form GoReleaser gives the daemon (0.16.0) and with a v prefix.
+	OverlayInitrdImage = "ghcr.io/liquidmetal-dev/flintlock-overlay-init"
+
+	// OverlayInitrdFilename is the path of the initrd in OverlayInitrdImage.
+	OverlayInitrdFilename = "initrd.img"
+
+	// ConfigurationDir is the default configuration directory.
+	ConfigurationDir = "/etc/opt/flintlockd"
+
+	// StateRootDir is the default directory to use for state information.
+	StateRootDir = "/var/lib/flintlock"
+
+	// SocketRootDir is the default directory to use for per-microvm unix sockets. It's kept short
+	// so socket paths stay within the unix socket path length limit.
+	SocketRootDir = "/run/flintlock"
+
+	// GRPCEndpoint is the endpoint for the gRPC server.
+	GRPCAPIEndpoint = "localhost:9090"
+
+	// HTTPAPIEndpoint is the endpoint for the HHTP proxy for the gRPC service..
+	HTTPAPIEndpoint = "localhost:8090"
+
+	// TopicMicroVMEvents is the topic name to use for microvm events.
+	TopicMicroVMEvents = "/microvm"
+
+	// MicroVMNamespace is the default namespace to use for microvms.
+	MicroVMNamespace = "default"
+
+	// ResyncPeriod is the default resync period duration.
+	ResyncPeriod time.Duration = 10 * time.Minute
+
+	// DeleteVMTimeout is the default timeout for deleting a microvm.
+	DeleteVMTimeout time.Duration = 10 * time.Second
+
+	// DataDirPerm is the permissions to use for data folders.
+	DataDirPerm = 0o755
+
+	// DataFilePerm is the permissions to use for data files.
+	DataFilePerm = 0o644
+
+	// MaximumRetry is the default value how many times we retry failed reconciliation.
+	MaximumRetry = 10
+
+	// Namespace is the default MicroVM namespace if one is not provided by the user.
+	Namespace = "default"
+
+	// VCPU is the default number if VCPUs for a MicroVM if one is not provided by the user.
+	VCPU = 2
+
+	// MemoryInMb is the default amount of RAM for a MicroVM if one is not provided by the user.
+	MemoryInMb = 1024
+
+	// GuestAgentVsockCID is the guest context id (CID) used for the guest-agent vsock device.
+	// The host is always CID 2; guests start at 3.
+	GuestAgentVsockCID = 3
+
+	// GuestAgentVsockName is the host unix-socket filename for the guest-agent vsock device.
+	GuestAgentVsockName = "guest-agent.vsock"
+
+	// GuestAgentControlPort is the guest-agent's control-channel vsock port (exec/ping/info).
+	GuestAgentControlPort = 1024
+
+	// GuestAgentSSHPort is the guest-agent's ssh-proxy vsock port.
+	GuestAgentSSHPort = 1025
+
+	// ExecSessionIdleGrace is added on top of an exec request's own
+	// TimeoutSec to get the idle deadline an exec session starts with,
+	// before its guest-agent has proven (by sending a FrameHeartbeat) that
+	// it supports heartbeat-based liveness: the guest-agent enforces
+	// TimeoutSec itself and is expected to respond by then, so this is
+	// just a buffer for it to report that outcome (plus network latency)
+	// before the host gives up on a wedged connection.
+	ExecSessionIdleGrace time.Duration = 30 * time.Second
+
+	// ExecSessionUnboundedIdleCeiling is the idle read deadline an exec
+	// session with no TimeoutSec (0, "unbounded") starts with, before its
+	// guest-agent has proven it supports heartbeat-based liveness. There's
+	// no declared budget to derive a deadline from in that case, and (for
+	// a guest-agent predating heartbeats) no protocol-level way to tell a
+	// healthy quiet command from a wedged connection, so this is a
+	// last-resort circuit breaker rather than a liveness check: sized
+	// generously so it's not expected to trip a real quiet workload, while
+	// still guaranteeing the session eventually gives up on a dead
+	// transport instead of blocking forever.
+	ExecSessionUnboundedIdleCeiling time.Duration = 15 * time.Minute
+
+	// ExecSessionIdleTimeout is the idle read deadline an exec session
+	// switches to once its guest-agent has sent at least one
+	// FrameHeartbeat, proving it supports heartbeat-based liveness
+	// (guest-agent v0.4.0+, which emits one on a fixed 5s ticker for the
+	// duration of a running command, independent of the command's own
+	// declared timeout or output activity). This is a real liveness
+	// signal rather than a proxy for one: sized to 3x the heartbeat
+	// interval to tolerate one dropped/delayed heartbeat before giving up
+	// on a wedged connection. Applies uniformly from that point on,
+	// regardless of the exec request's TimeoutSec.
+	//
+	// A guest-agent that never sends a heartbeat (pre-v0.4.0) keeps the
+	// TimeoutSec-derived deadline (ExecSessionIdleGrace /
+	// ExecSessionUnboundedIdleCeiling above) for the life of the session.
+	ExecSessionIdleTimeout time.Duration = 15 * time.Second
+
+	// GuestAgentDialRetries is how many extra attempts a guest-agent
+	// control-channel dial (the Firecracker/Cloud Hypervisor vsock-UDS
+	// CONNECT handshake) gets after an initial failure, before giving up.
+	// Rapid repeated dials against the same vsock port (e.g. a caller
+	// polling readiness with a no-op exec) have been observed to
+	// occasionally get EOF instead of the handshake's OK reply, well
+	// below the guest-agent protocol layer — most likely a transient
+	// vsock multiplexer hiccup rather than a real failure to connect. A
+	// few quick retries let the handshake ride that out instead of
+	// failing the whole exec RPC on what's usually a one-off blip.
+	GuestAgentDialRetries = 3
+
+	// GuestAgentDialRetryDelay is the delay between guest-agent
+	// control-channel dial attempts; see GuestAgentDialRetries. Kept
+	// short and fixed: this only needs to survive a brief transient
+	// hiccup within a single RPC's lifetime, not implement a general
+	// backoff policy.
+	GuestAgentDialRetryDelay time.Duration = 200 * time.Millisecond
+)

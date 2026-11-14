@@ -1,0 +1,29 @@
+# Test binary
+*.test
+
+# Output of the go coverage tool
+coverage.out
+
+# Out folder
+out/
+
+# Bin
+bin/
+
+# goreleaser output
+dist/
+
+# direnv files:
+.envrc
+
+# vim swp files
+*.swp
+
+# IDE dirs
+.vscode/
+.idea/
+
+coverage.txt
+
+.DS_Store
+.vagrant

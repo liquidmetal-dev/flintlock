@@ -1,0 +1,96 @@
+# Flintlock - Create and manage the lifecycle of MicroVMs, backed by containerd.
+
+[![GitHub](https://img.shields.io/github/license/liquidmetal-dev/flintlock)](https://img.shields.io/github/license/liquidmetal-dev/flintlock)
+[![Tests](https://github.com/liquidmetal-dev/flintlock/actions/workflows/test.yml/badge.svg)](https://github.com/liquidmetal-dev/flintlock/actions/workflows/test.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/liquidmetal-dev/flintlock.svg)](https://pkg.go.dev/github.com/liquidmetal-dev/flintlock)
+[![GitHub release](https://img.shields.io/github/v/release/liquidmetal-dev/flintlock)](https://github.com/liquidmetal-dev/flintlock/releases/latest)
+
+## What is flintlock?
+
+Flintlock is a service for creating and managing the lifecycle of microVMs on a host machine. We support the [Cloud Hypervisor](https://www.cloudhypervisor.org/) and [Firecracker](https://firecracker-microvm.github.io/) VMMs. 
+
+The original use case for flintlock was to create microVMs on a bare-metal host where the microVMs will be used as nodes in a virtualized Kubernetes cluster. It is an essential part of **Liquid Metal** and can be orchestrated by:
+
+- [Battery](https://github.com/liquidmetal-dev/battery): a warm pool manager that keeps pools of pre-booted microVMs ready to be claimed.
+- [Brigade](https://github.com/liquidmetal-dev/brigade): a distributed orchestrator that schedules microVMs across a fleet of flintlock hosts.
+- [Cluster API Provider Microvm](https://github.com/liquidmetal-dev/cluster-api-provider-microvm): a Cluster API provider that creates Kubernetes clusters with microVMs as the nodes.
+
+However, it's useful for many other use cases where lightweight virtualization is required (e.g. isolated workloads, pipelines).
+
+## Features
+
+Using API requests (via gRPC or HTTP):
+
+- Create, get, list and delete microVMs
+- Run microVMs with Firecracker or Cloud Hypervisor, chosen per microVM
+- Configure microVM metadata via cloud-init, ignition etc
+- Use OCI images for microVM volumes, kernel and initrd
+- Attach network interfaces using TAP devices (optionally on a Linux bridge) or macvtap devices (Cloud Hypervisor only), with DHCP or static IP addresses
+- Share host directories with a microVM using virtiofs (Cloud Hypervisor only)
+- Customise the CPU features presented to the guest
+- Talk to a guest agent in the microVM over a vsock device
+- Expose microVM metrics for collection by Prometheus
+
+## Documentation
+
+See our [getting started with flintlock][quickstart] tutorial.
+
+## Contributing
+
+Contributions are welcome. Please read the [CONTRIBUTING.md][contrib] and our [Code Of Conduct][coc].
+
+You can reach out to the maintainers and other contributors using the [#liquidmetal](https://cloud-native.slack.com/archives/C07B5R5BLBZ) channel on the CNCF slack.
+
+Other interesting resources include:
+
+- [The issue tracker][issues]
+- [The list of milestones][milestones]
+- [Architectural Decision Records (ADR)][adr]
+- [Getting started with flintlock][quickstart]
+
+## Getting Help
+
+If you have any questions about, feedback for or problems with flintlock:
+
+- [File an issue](CONTRIBUTING.md#opening-issues).
+
+Your feedback is always welcome!
+
+## Compatibility
+
+The table below shows you which versions of Firecracker are compatible with Flintlock:
+
+| Flintlock         | Firecracker                      | Cloud Hypervisor  |
+| ----------------- | -------------------------------- | ----------------- |
+| v0.16.x           | Official v1.16+                  | v48.0 - v53.0     |
+| v0.9.x            | Official v1.11+                  | v41.0             |
+| v0.8.x            | Official v1.10+                  | v41.0             |
+| v0.7.0            | Official v1.10+                  | v41.0             |
+| v0.6.0            | Official v1.0+ or v1.0.0-macvtap | v26.0             |
+| v0.5.0            | Official v1.0+ or v1.0.0-macvtap | v26.0             |
+| v0.4.0            | Official v1.0+ or v1.0.0-macvtap | **Not Supported** |
+| v0.3.0            | Official v1.0+ or v1.0.0-macvtap | **Not Supported** |
+| <= v0.2.0         | <= v0.25.2-macvtap               | **Not Supported** |
+| <= v0.1.0-alpha.6 | <= v0.25.2-macvtap               | **Not Supported** |
+| v0.1.0-alpha.7    | **Do not use**                   | **Not Supported** |
+| v0.1.0-alpha.8    | <= v0.25.2-macvtap               | **Not Supported** |
+
+> NOTE: we no longer support using the Weaveworks fork (with macvtap) of Firecracker. If you want macvtap then please use Cloud Hypervisor as the vm provider.
+
+> NOTE: Cloud Hypervisor before v48.0 does not start on some hosts with newer Intel CPUs, see [#1265](https://github.com/liquidmetal-dev/flintlock/issues/1265).
+
+## License
+
+[MPL-2.0 License][license]
+
+## Acknowledgements
+
+The biggest acknowledgement goes to @Weaveworks who where pioneers in the early Kubernetes world and produced some fantastic open source that lives on despite the demise of the company. A big thank you to the company and everyone that worked there. It was the engineers at Weaveworks that originally created Liquid Metal. RIP Weaveworks.
+
+[quickstart]: https://www.liquidmetal.dev
+[contrib]: ./CONTRIBUTING.md
+[coc]: ./CODE_OF_CONDUCT.md
+[issues]: https://github.com/liquidmetal-dev/flintlock/issues
+[milestones]: https://github.com/liquidmetal-dev/flintlock/milestones
+[adr]: ./docs/adr
+[license]: ./LICENSE

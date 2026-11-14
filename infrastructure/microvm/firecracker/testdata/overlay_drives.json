@@ -1,0 +1,23 @@
+[
+  {
+    "drive_id": "root_base",
+    "path_on_host": "volumes/root.base",
+    "is_root_device": false,
+    "is_read_only": true,
+    "cache_type": "Unsafe"
+  },
+  {
+    "drive_id": "root_rw",
+    "path_on_host": "volumes/root.rw",
+    "is_root_device": false,
+    "is_read_only": false,
+    "cache_type": "Unsafe"
+  },
+  {
+    "drive_id": "data",
+    "path_on_host": "/data.img",
+    "is_root_device": false,
+    "is_read_only": false,
+    "cache_type": "Unsafe"
+  }
+]

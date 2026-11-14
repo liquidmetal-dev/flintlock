@@ -1,0 +1,383 @@
+name: hosted e2e
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or SHA of flintlock to check out and test (default: the ref the workflow is run on)"
+        required: false
+        default: ""
+      firecracker_version:
+        description: "Firecracker release tag to install"
+        required: false
+        default: "v1.16.1"
+      cloud_hypervisor_version:
+        description: "Cloud Hypervisor release tag to install"
+        required: false
+        default: "v48.0"
+      containerd_version:
+        description: "containerd release tag to install"
+        required: false
+        default: "v2.2.9"
+      zot_version:
+        description: "zot release tag to install"
+        required: false
+        default: "v2.1.21"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosted-e2e-${{ github.event.inputs.ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: e2e tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # An empty ref is the same as no ref, the action then checks out the
+          # ref which the workflow was run on.
+          ref: ${{ github.event.inputs.ref }}
+          persist-credentials: false
+
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          # cpio packs the overlay initrd. xfsprogs formats the state
+          # directory, which overlay boot needs on a filesystem with reflinks.
+          # e2fsprogs has the mkfs.ext4 of the writable disks and the debugfs
+          # which the tests read them with.
+          sudo apt-get install -y --no-install-recommends \
+            bc \
+            cpio \
+            curl \
+            e2fsprogs \
+            lvm2 \
+            skopeo \
+            thin-provisioning-tools \
+            virtiofsd \
+            wget \
+            xfsprogs
+
+          # flintlockd starts virtiofsd from its default path, the tests do
+          # not pass --virtiofs-bin.
+          /usr/libexec/virtiofsd --version
+
+      - name: Install containerd
+        env:
+          CONTAINERD: ${{ github.event.inputs.containerd_version || 'v2.2.9' }}
+        run: |
+          tarball="containerd-${CONTAINERD#v}-linux-amd64.tar.gz"
+          url="https://github.com/containerd/containerd/releases/download/${CONTAINERD}"
+
+          cd "$(mktemp -d)"
+          curl -fsSLO "${url}/${tarball}"
+          curl -fsSLO "${url}/${tarball}.sha256sum"
+          sha256sum -c "${tarball}.sha256sum"
+          sudo tar -C /usr/local -xzf "${tarball}"
+
+          # The runner image ships its own containerd, make sure that the one
+          # which the tests will pick up from the PATH is the one just installed.
+          command -v containerd
+          containerd --version
+          containerd --version | grep -F " ${CONTAINERD} "
+
+      - name: Install zot
+        env:
+          ZOT: ${{ github.event.inputs.zot_version || 'v2.1.21' }}
+        run: |
+          binary="zot-linux-amd64-minimal"
+          url="https://github.com/project-zot/zot/releases/download/${ZOT}"
+
+          cd "$(mktemp -d)"
+          curl -fsSLO "${url}/${binary}"
+          curl -fsSLO "${url}/checksums.sha256.txt"
+          grep -E " \*?${binary}\$" checksums.sha256.txt | sha256sum -c -
+          sudo install -m 0755 "${binary}" /usr/local/bin/zot
+
+          zot --version
+
+      - name: Install Firecracker
+        env:
+          FIRECRACKER: ${{ github.event.inputs.firecracker_version || 'v1.16.1' }}
+        run: sudo -E ./hack/scripts/provision.sh firecracker
+
+      - name: Install Cloud Hypervisor
+        env:
+          CLOUD_HYPERVISOR: ${{ github.event.inputs.cloud_hypervisor_version || 'v48.0' }}
+        run: |
+          sudo -E ./hack/scripts/provision.sh cloudhypervisor
+
+          command -v cloud-hypervisor-static
+          cloud-hypervisor-static --version
+
+          # The script does not compare the version of the binary with the one
+          # which was asked for. The binary of the tag v48.0 reports v48.0.0,
+          # and the one of the tag v53.0 reports v53.0. The binary of v53.0
+          # prints the migration protocol versions on a second line, so only
+          # the first line is compared.
+          if [[ "${CLOUD_HYPERVISOR}" == "latest" ]]; then
+            echo "The version of the latest release is not known, it is not compared."
+          else
+            installed="$(cloud-hypervisor-static --version | head -n 1)"
+            wanted="cloud-hypervisor ${CLOUD_HYPERVISOR}"
+
+            if [[ "${installed}" != "${wanted}" && "${installed}" != "${wanted}.0" ]]; then
+              echo "Expected '${wanted}', the installed binary is '${installed}'." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Verify KVM access
+        run: |
+          if [[ ! -c /dev/kvm ]]; then
+            echo "/dev/kvm not found. GitHub-hosted e2e tests require KVM." >&2
+            exit 1
+          fi
+
+          ls -l /dev/kvm
+
+          if command -v lscpu >/dev/null 2>&1; then
+            lscpu | grep -E "Virtualization|Hypervisor|Vendor ID|Model name" || true
+          fi
+
+      # The overlay boot test builds the base of a MicroVM with the pinned
+      # mkfs.erofs. flintlockd looks for it at /opt/flintlock/bin/mkfs.erofs,
+      # which is where the action installs it. No release carries the binary
+      # yet, so the action builds it or restores it from the cache.
+      - name: Install the pinned mkfs.erofs
+        uses: ./.github/actions/erofs-utils # zizmor: ignore[self-repository] actionlint does not accept $/ yet
+
+      - name: Build flintlock-provision and the overlay initrd
+        run: |
+          # The checkout has no tags, so the version of the initrd is given.
+          make build-flintlock-provision build-overlay-initrd VERSION=e2e
+          ls -l bin/flintlock-provision out/flintlock-overlay-initrd_amd64.img
+
+      - name: Create the state directory on XFS with reflink
+        env:
+          STATE_DIR: /var/lib/flintlock
+          STATE_FILE: ${{ runner.temp }}/flintlock-state.img
+        run: |
+          # flintlockd clones the writable disk of each MicroVM from a template
+          # with FICLONE, which the filesystem of the runner does not have. The
+          # tests start flintlockd with its default state directory, so the
+          # filesystem is mounted there before the tests start. The file is
+          # sparse, it only takes the space of what is written to it.
+          sudo bin/flintlock-provision state-dir \
+            --dir "${STATE_DIR}" \
+            --loop-file "${STATE_FILE}" \
+            --size 20 \
+            --unattended
+
+          findmnt --target "${STATE_DIR}" --output TARGET,SOURCE,FSTYPE,OPTIONS
+          grep -F " ${STATE_DIR} " /etc/fstab
+
+      - name: Start a registry for the overlay initrd image
+        env:
+          REGISTRY_DIR: ${{ runner.temp }}/initrd-registry
+        run: |
+          # The overlay initrd image is only published when flintlock is
+          # released. The tests get the one which is built from this checkout,
+          # from a registry on the runner. containerd pulls from 127.0.0.1 with
+          # plain HTTP, so the registry has no TLS and no authentication. It is
+          # not the registry of the private registry tests, which the tests
+          # start on port 5050.
+          mkdir -p "${REGISTRY_DIR}/data"
+
+          cat > "${REGISTRY_DIR}/config.json" <<EOF
+          {
+            "distSpecVersion": "1.1.1",
+            "storage": {
+              "rootDirectory": "${REGISTRY_DIR}/data"
+            },
+            "http": {
+              "address": "127.0.0.1",
+              "port": "5000"
+            },
+            "log": {
+              "level": "info",
+              "output": "${REGISTRY_DIR}/zot.log"
+            }
+          }
+          EOF
+
+          setsid nohup zot serve "${REGISTRY_DIR}/config.json" > "${REGISTRY_DIR}/zot.out" 2>&1 &
+
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5000/v2/ > /dev/null; then
+              break
+            fi
+
+            sleep 0.5
+          done
+
+          curl -fsS http://127.0.0.1:5000/v2/
+          echo "The registry is ready on 127.0.0.1:5000."
+
+      - name: Build and push the overlay initrd image
+        env:
+          OVERLAY_INITRD_IMAGE: 127.0.0.1:5000/flintlock-overlay-init:e2e
+          # BuildKit sets the TARGETARCH argument of the Dockerfile.
+          DOCKER_BUILDKIT: "1"
+        run: |
+          docker build \
+            --file hack/packaging/flintlock-overlay-init.Dockerfile \
+            --tag "${OVERLAY_INITRD_IMAGE}" \
+            out
+
+          # The registry rejects the manifest that docker push sends. skopeo
+          # copies the image from the docker daemon as an OCI image instead.
+          skopeo copy \
+            --format oci \
+            --dest-tls-verify=false \
+            "docker-daemon:${OVERLAY_INITRD_IMAGE}" \
+            "docker://${OVERLAY_INITRD_IMAGE}"
+
+          curl -fsS http://127.0.0.1:5000/v2/flintlock-overlay-init/tags/list
+          echo
+
+      - name: Run e2e tests
+        env:
+          ARTEFACTS_DIR: ${{ runner.temp }}/e2e-artefacts
+          OVERLAY_INITRD_IMAGE: 127.0.0.1:5000/flintlock-overlay-init:e2e
+        run: |
+          # flintlockd removes the state directory of a MicroVM when the MicroVM
+          # is deleted, so the tests save the files of it before they delete one.
+          # The overlay boot test is skipped without the initrd image.
+          sudo env \
+            "PATH=$PATH" \
+            "GOCACHE=/tmp/go-cache" \
+            "GOMODCACHE=/tmp/go-mod" \
+            make test-e2e E2E_ARGS="-artefacts.dir=${ARTEFACTS_DIR} -overlay.initrd.image=${OVERLAY_INITRD_IMAGE}"
+
+      - name: Save the state of the MicroVMs which were left behind
+        if: always()
+        env:
+          ARTEFACTS_DIR: ${{ runner.temp }}/e2e-artefacts
+          STATE_DIR: /var/lib/flintlock/vm
+        run: |
+          # A state directory which still has files is the one of a MicroVM which
+          # was not deleted. The tests did not save its files if they were
+          # stopped, by their timeout or by a panic. The disk images are not
+          # saved, and neither is the writable disk of an overlay root.
+          left_behind="${ARTEFACTS_DIR}/left-behind"
+
+          if sudo test -d "${STATE_DIR}"; then
+            files="$(sudo find "${STATE_DIR}" -type f ! -name '*.img' ! -name 'root.rw' | wc -l)"
+            echo "${STATE_DIR} has ${files} files."
+
+            if [[ "${files}" -gt 0 ]]; then
+              sudo mkdir -p "${left_behind}"
+              sudo sh -c 'cd "$1" && find . -type f ! -name "*.img" ! -name "root.rw" -exec cp --parents -t "$2" {} +' \
+                sh "${STATE_DIR}" "${left_behind}"
+            fi
+          else
+            echo "${STATE_DIR} does not exist."
+          fi
+
+          # The bases and the templates of the overlay roots are kept when a
+          # MicroVM is deleted. They are only listed.
+          for dir in "${STATE_DIR%/vm}/bases" "${STATE_DIR%/vm}/templates"; do
+            if sudo test -d "${dir}"; then
+              echo "The files of ${dir}:"
+              sudo ls -la "${dir}"
+            fi
+          done
+
+          # The tests ran as root, and the upload does not.
+          if sudo test -d "${ARTEFACTS_DIR}"; then
+            sudo chmod -R a+rX "${ARTEFACTS_DIR}"
+
+            echo "The files of the artefact:"
+            (cd "${ARTEFACTS_DIR}" && find . -type f -printf '%10s %p\n' | sort -k 2)
+          else
+            echo "${ARTEFACTS_DIR} does not exist, the tests did not save a file."
+          fi
+
+      - name: Upload the state of the MicroVMs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-microvm-state-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/e2e-artefacts
+          if-no-files-found: warn
+          # The files of a state directory are saved whatever their names are.
+          # The directory only has what was copied from the state directories.
+          include-hidden-files: true
+
+      - name: Cleanup e2e resources
+        if: always()
+        env:
+          STATE_DIR: /var/lib/flintlock
+          STATE_FILE: ${{ runner.temp }}/flintlock-state.img
+          REGISTRY_DIR: ${{ runner.temp }}/initrd-registry
+        run: |
+          # A VMM is not a child of flintlockd. If a test left one behind, it
+          # holds on to the devices of the thinpool until it has exited. The
+          # same goes for virtiofsd, which holds on to the directory it shares.
+          vmms='(firecracker|cloud-hypervisor-static|virtiofsd) .*/(var/lib/flintlock/vm|run/flintlock)/'
+
+          sudo pkill -f "${vmms}" || true
+
+          for _ in $(seq 1 20); do
+            if ! pgrep -f "${vmms}" > /dev/null; then
+              break
+            fi
+
+            sleep 0.5
+          done
+
+          if pgrep -f "${vmms}" > /dev/null; then
+            echo "A VMM did not stop when it was asked to:"
+            pgrep -af "${vmms}" || true
+
+            sudo pkill -KILL -f "${vmms}" || true
+            sleep 1
+          fi
+
+          sudo ip link delete fl-e2e-br0 type bridge || true
+
+          sudo dmsetup remove --force dev-thinpool-e2e || true
+
+          while IFS=: read -r device _; do
+            if [[ -n "$device" ]]; then
+              sudo losetup -d "$device" || true
+            fi
+          done < <(losetup -a | grep -E "/var/lib/containerd-dev/snapshotter/devmapper/(data|metadata)-e2e" || true)
+
+          pkill -f "zot serve ${REGISTRY_DIR}/config.json" || true
+
+          # The state directory is a mount of the loop-backed XFS. The VMMs
+          # which held files on it open have stopped, so it can be unmounted.
+          # The mount is persisted in /etc/fstab, and the line is removed.
+          if mountpoint -q "${STATE_DIR}"; then
+            sudo umount "${STATE_DIR}" || sudo umount --lazy "${STATE_DIR}" || true
+          fi
+
+          while IFS=: read -r device _; do
+            if [[ -n "$device" ]]; then
+              sudo losetup -d "$device" || true
+            fi
+          done < <(losetup --associated "${STATE_FILE}" || true)
+
+          if grep -qF " ${STATE_DIR} " /etc/fstab; then
+            sudo sed -i "\| ${STATE_DIR} |d" /etc/fstab
+          fi
+
+          sudo rm -f "${STATE_FILE}"
+
+          sudo rm -rf \
+            /run/containerd-e2e \
+            /run/flintlock \
+            /var/lib/containerd-e2e \
+            /var/lib/containerd-dev/snapshotter/devmapper/data-e2e \
+            /var/lib/containerd-dev/snapshotter/devmapper/metadata-e2e \
+            /var/lib/flintlock \
+            /var/lib/flintlock-e2e

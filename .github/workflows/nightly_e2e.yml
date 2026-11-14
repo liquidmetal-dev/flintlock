@@ -1,0 +1,67 @@
+name: nightly_e2e
+
+on:
+  workflow_dispatch: {}
+#  schedule:
+#    - cron: 0 0 * * 1
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'liquidmetal-dev' }}
+    env:
+      PROJECT_NAME: "flintlock_nightly_e2e"
+    name: e2e tests
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@5250492686b253f06fa55861556d1027b067aeb5 # v9.0.2
+
+      - name: Run tests
+        env:
+          METAL_AUTH_TOKEN: ${{ secrets.METAL_AUTH_TOKEN }}
+          EQUINIX_ORG_ID: ${{ secrets.EQUINIX_ORG_ID }}
+          BRANCH: ${{ steps.branch-name.outputs.current_branch }}
+        run: |
+          pip3 install -r test/tools/requirements.txt
+          cat <<EOF >> e2e-config.yaml
+          ---
+          org_id: ${EQUINIX_ORG_ID}
+          project_name: ${PROJECT_NAME}
+          repo:
+            branch: ${BRANCH}
+          EOF
+          test/tools/run.py run-e2e -c e2e-config.yaml
+
+      - name: Notify slack on failure
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a # v1.1.0
+        if: ${{ failure() }}
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          message: "A flintlock integration test run failed :sad-parrot: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Click here> and weep."
+          channel: liquid-metal-dev
+          color: red
+          verbose: false
+
+      - name: Notify slack on success
+        uses: actions-ecosystem/action-slack-notifier@fc778468d09c43a6f4d1b8cccaca59766656996a # v1.1.0
+        if: ${{ success() }}
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          message: "A flintlock integration test run succeeded :party-gopher:"
+          channel: liquid-metal-dev
+          color: green
+          verbose: false
+
+      - name: Cleanup project
+        uses: weaveworks/metal-janitor-action@27a0594c5c92d85585b553fc0c5ef2a3de7bec95 # main
+        with:
+          metal_auth_token: ${{ secrets.METAL_AUTH_TOKEN }}
+          project_names: ${{ env.PROJECT_NAME }}

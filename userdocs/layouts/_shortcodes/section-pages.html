@@ -1,0 +1,7 @@
+{{- with where .Page.Pages.ByWeight "Params.sidebar.exclude" "!=" true -}}
+<ul>
+  {{- range . }}
+  <li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+  {{- end }}
+</ul>
+{{- end -}}

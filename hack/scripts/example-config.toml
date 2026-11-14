@@ -1,0 +1,20 @@
+version = 2
+
+root = "/var/lib/containerd-dev"
+state = "/run/containerd-dev"
+
+[grpc]
+  address = "/run/containerd-dev/containerd.sock"
+
+[metrics]
+  address = "127.0.0.1:1338"
+
+[plugins]
+  [plugins."io.containerd.snapshotter.v1.devmapper"]
+    pool_name = "dev-thinpool"
+    root_path = "/var/lib/containerd-dev/snapshotter/devmapper"
+    base_image_size = "10GB"
+    discard_blocks = true
+
+[debug]
+  level = "trace"

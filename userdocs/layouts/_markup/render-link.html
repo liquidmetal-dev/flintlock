@@ -1,0 +1,54 @@
+{{- /* Hextra's render-link with internal links that fail to resolve promoted to build errors. */ -}}
+{{- $dest := .Destination -}}
+{{- $url := urls.Parse "" -}}
+{{- $parsedURL := false -}}
+{{- with try (urls.Parse $dest) -}}
+  {{- with .Err -}}
+  {{- else -}}
+    {{- $url = .Value -}}
+    {{- $parsedURL = true -}}
+  {{- end -}}
+{{- end -}}
+{{- $query := cond $url.RawQuery (printf "?%s" $url.RawQuery) "" -}}
+{{- $fragment := cond $url.Fragment (printf "#%s" $url.Fragment) "" -}}
+{{- $resolved := false -}}
+{{- $isInternal := and $parsedURL (not $url.IsAbs) (not $url.Host) $url.Path -}}
+
+{{- if and $isInternal (strings.HasSuffix $url.Path ".md") -}}
+  {{- $pagePath := strings.TrimSuffix ".md" $url.Path -}}
+  {{- if hasPrefix $pagePath "/" -}}
+    {{- $pagePath = strings.TrimPrefix "/" $pagePath -}}
+  {{- else -}}
+    {{- $pagePath = path.Join .PageInner.File.Dir $pagePath -}}
+  {{- end -}}
+  {{- with .PageInner.GetPage $pagePath -}}
+    {{- $dest = printf "%s%s%s" .RelPermalink $query $fragment -}}
+    {{- $resolved = true -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if and $isInternal (not $resolved) (hasPrefix $url.Path "/") -}}
+  {{- with or (.PageInner.GetPage $url.Path) (.PageInner.Resources.Get $url.Path) (resources.Get $url.Path) -}}
+    {{- $dest = printf "%s%s%s" .RelPermalink $query $fragment -}}
+    {{- $resolved = true -}}
+  {{- else -}}
+    {{- if fileExists (path.Join "static" $url.Path) -}}
+      {{- $resolved = true -}}
+    {{- end -}}
+    {{- $dest = (relURL (strings.TrimPrefix "/" $dest)) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if and $isInternal (not $resolved) -}}
+  {{- errorf "%s: broken internal link %q" .PageInner.File.Path .Destination -}}
+{{- end -}}
+
+{{- with . -}}
+  {{- $isExternal := strings.HasPrefix .Destination "http" -}}
+  <a href="{{ $dest | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $isExternal }} target="_blank" rel="noopener"{{ end }}>
+    {{- .Text | safeHTML -}}
+    {{- if and .Page.Site.Params.externalLinkDecoration $isExternal -}}
+      {{- partial "utils/icon.html" (dict "name" "arrow-up-right" "attributes" `class="hx:inline hx:rtl:rotate-270 hx:align-baseline" height="1em" aria-hidden="true"`) -}}
+    {{- end -}}
+  </a>
+{{- end -}}

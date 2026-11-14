@@ -1,0 +1,380 @@
+package cloudhypervisor
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"slices"
+	"syscall"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
+
+	cerrors "github.com/liquidmetal-dev/flintlock/core/errors"
+	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
+	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
+	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/process"
+
+	virtiofs "github.com/liquidmetal-dev/flintlock/infrastructure/virtiofs"
+)
+
+// Create will create a new microvm.
+func (p *provider) Create(ctx context.Context, vm *models.MicroVM) error {
+	logger := log.GetLogger(ctx).WithFields(logrus.Fields{
+		"service": "cloudhypervisor_microvm",
+		"vmid":    vm.ID.String(),
+	})
+	logger.Debugf("creating microvm")
+	vmState := NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+
+	// Never re-create over a live cloud-hypervisor. The State()-based create guard
+	// should already prevent this, but this is a belt-and-suspenders check against a
+	// double-spawn (Address in use) or orphaning a running process by deleting its
+	// socket in ensureState.
+	pidExists, err := afero.Exists(p.fs, vmState.PIDPath())
+	if err != nil {
+		return fmt.Errorf("checking pid file exists: %w", err)
+	}
+
+	if pidExists {
+		pid, err := vmState.PID()
+		if err != nil {
+			return fmt.Errorf("getting pid from file: %w", err)
+		}
+
+		live, err := process.Exists(pid)
+		if err != nil {
+			return fmt.Errorf("checking if cloudhypervisor process is running: %w", err)
+		}
+
+		if live {
+			logger.Debug("cloud-hypervisor already running for this microvm, skipping create")
+
+			return nil
+		}
+	}
+
+	if err := p.ensureState(vmState); err != nil {
+		return fmt.Errorf("ensuring state dir: %w", err)
+	}
+
+	if err := p.createCloudInitImage(ctx, vm, vmState); err != nil {
+		return fmt.Errorf("creating metadata image: %w", err)
+	}
+
+	if vm.Spec.AllowGuestAgent {
+		vm.Status.VSockPath = vmState.VSockPath()
+	} else {
+		vm.Status.VSockPath = ""
+	}
+
+	proc, err := p.startCloudHypervisor(ctx, vm, vmState, p.config.RunDetached, logger)
+	if err != nil {
+		return fmt.Errorf("starting cloudhypervisor process: %w", err)
+	}
+
+	if err = vmState.SetPid(proc.Pid); err != nil {
+		return fmt.Errorf("saving pid %d to file: %w", proc.Pid, err)
+	}
+
+	return nil
+}
+
+func (p *provider) startCloudHypervisor(_ context.Context,
+	vm *models.MicroVM,
+	state State,
+	detached bool,
+	logger *logrus.Entry,
+) (*os.Process, error) {
+	var startErr error
+
+	args, err := p.buildArgs(vm, state, logger)
+	if err != nil {
+		return nil, err
+	}
+	// #nosec
+	cmd := exec.Command(p.config.CloudHypervisorBin, args...)
+
+	stdOutFile, err := p.fs.OpenFile(state.StdoutPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	if err != nil {
+		return nil, fmt.Errorf("opening stdout file %s: %w", state.StdoutPath(), err)
+	}
+
+	stdErrFile, err := p.fs.OpenFile(state.StderrPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	if err != nil {
+		return nil, fmt.Errorf("opening sterr file %s: %w", state.StderrPath(), err)
+	}
+
+	cmd.Stderr = stdErrFile
+	cmd.Stdout = stdOutFile
+	cmd.Stdin = &bytes.Buffer{}
+	if detached {
+		startErr = process.DetachedStart(cmd)
+	} else {
+		startErr = cmd.Start()
+	}
+
+	if startErr != nil {
+		return nil, fmt.Errorf("starting cloud hypervisor process: %w", startErr)
+	}
+
+	return cmd.Process, nil
+}
+
+func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) ([]string, error) {
+	args := []string{
+		"--api-socket",
+		state.SockPath(),
+		"--log-file",
+		state.LogPath(),
+		"-v",
+	}
+
+	drives, err := shared.BuildDrives(vm, shared.DriveOptions{CloudInitImage: state.CloudInitImage()})
+	if err != nil {
+		return nil, fmt.Errorf("building drives: %w", err)
+	}
+
+	// Kernel, initrd and cmdline args
+	bootArgs, err := buildBootArgs(vm, buildKernelCmdLine(vm, drives))
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, bootArgs...)
+
+	// CPU and memory
+	cpusArg := fmt.Sprintf("boot=%d", vm.Spec.VCPU)
+	if vm.Spec.CPUConfig != nil && slices.Contains(vm.Spec.CPUConfig.FeaturesToEnable, "amx") {
+		cpusArg += ",features=amx"
+	}
+	args = append(args, "--cpus", cpusArg)
+
+	// Volumes (root, metadata, additional)
+	diskArgs, err := buildDiskArgs(vm, drives)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, diskArgs...)
+
+	fsArgs, err := p.buildVirtioFSArgs(vm)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, fsArgs...)
+
+	if len(fsArgs) > 0 {
+		args = append(args, "--memory", fmt.Sprintf("size=%dM,shared=on", vm.Spec.MemoryInMb))
+	} else {
+		args = append(args, "--memory", fmt.Sprintf("size=%dM", vm.Spec.MemoryInMb))
+	}
+
+	// Network interfaces
+	for i := range vm.Spec.NetworkInterfaces {
+		iface := vm.Spec.NetworkInterfaces[i]
+
+		status, ok := vm.Status.NetworkInterfaces[iface.GuestDeviceName]
+		if !ok {
+			return nil, cerrors.NewNetworkInterfaceStatusMissing(iface.GuestDeviceName)
+		}
+
+		args = append(args, "--net")
+		switch {
+		case iface.Type == models.IfaceTypeMacvtap:
+			arg, err := p.createMacvtapArg(&iface, status)
+			if err != nil {
+				return nil, fmt.Errorf("creating macvtap interface: %w", err)
+			}
+			args = append(args, arg)
+		case iface.Type == models.IfaceTypeTap:
+			args = append(args, fmt.Sprintf("tap=%s,mac=%s", status.HostDeviceName, iface.GuestMAC))
+		default:
+			return nil, fmt.Errorf("unknown network interface type %v for %s", iface.Type, iface.GuestDeviceName)
+		}
+	}
+
+	// Vsock device for the guest-agent.
+	if vm.Spec.AllowGuestAgent {
+		args = append(args, "--vsock",
+			fmt.Sprintf("cid=%d,socket=%s", defaults.GuestAgentVsockCID, state.VSockPath()))
+	}
+
+	return args, nil
+}
+
+// buildBootArgs returns the options that tell the VMM what to boot. The
+// paths are resolved within their image mounts, so a spec can't point the VMM
+// at files outside the images.
+func buildBootArgs(vm *models.MicroVM, cmdLine string) ([]string, error) {
+	kernelPath, err := shared.ResolveImageFile(vm.Status.KernelMount.Source, vm.Spec.Kernel.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("resolving kernel path: %w", err)
+	}
+
+	args := []string{"--cmdline", cmdLine, "--kernel", kernelPath}
+
+	if vm.Spec.Initrd == nil {
+		return args, nil
+	}
+
+	if vm.Status.InitrdMount == nil {
+		return nil, fmt.Errorf("resolving initrd path: %w", cerrors.ErrNoMount)
+	}
+
+	initrdPath, err := shared.ResolveImageFile(vm.Status.InitrdMount.Source, vm.Spec.Initrd.Filename)
+	if err != nil {
+		return nil, fmt.Errorf("resolving initrd path: %w", err)
+	}
+
+	return append(args, "--initramfs", initrdPath), nil
+}
+
+const (
+	cmdLineReadOnly   = "ro"
+	cmdLineReadWrite  = "rw"
+	cmdLineRootDevice = "root"
+)
+
+// buildKernelCmdLine returns the kernel command line of a microvm: the
+// defaults, changed to mount the root filesystem read-only when the root
+// volume is read-only, then what the spec sets. The spec has the last word.
+// The result holds both ro and rw only when the spec itself sets both.
+//
+// In overlay mode the kernel mounts no root device itself. The defaults
+// lose root= and rw, and the guest contract parameters are set after the
+// spec, so that the init sees the devices of the drives this command emits.
+func buildKernelCmdLine(vm *models.MicroVM, drives models.Drives) string {
+	kernelCmdLine := DefaultKernelCmdLine()
+
+	if vm.Spec.RootVolume.EffectiveMode() == models.VolumeModeOverlay {
+		delete(kernelCmdLine, cmdLineRootDevice)
+		delete(kernelCmdLine, cmdLineReadWrite)
+	}
+
+	if vm.Spec.RootVolume.IsReadOnly {
+		delete(kernelCmdLine, cmdLineReadWrite)
+		kernelCmdLine.Set(cmdLineReadOnly, "")
+	}
+
+	if _, ok := vm.Spec.Kernel.CmdLine[cmdLineReadWrite]; ok {
+		delete(kernelCmdLine, cmdLineReadOnly)
+	}
+
+	if _, ok := vm.Spec.Kernel.CmdLine[cmdLineReadOnly]; ok {
+		delete(kernelCmdLine, cmdLineReadWrite)
+	}
+
+	for key, value := range vm.Spec.Kernel.CmdLine {
+		kernelCmdLine.Set(key, value)
+	}
+
+	shared.SetOverlayKernelParams(kernelCmdLine, drives)
+
+	return kernelCmdLine.String()
+}
+
+// buildDiskArgs returns the --disk option followed by one value per drive, in
+// the order the guest sees the drives.
+func buildDiskArgs(vm *models.MicroVM, drives models.Drives) ([]string, error) {
+	args := []string{"--disk"}
+
+	for _, drive := range drives {
+		if !shared.IsDriveMounted(vm, drive) {
+			return nil, cerrors.NewVolumeNotMounted(drive.VolumeID)
+		}
+
+		args = append(args, diskArg(drive))
+	}
+
+	return args, nil
+}
+
+func diskArg(drive models.Drive) string {
+	arg := "path=" + drive.Path
+
+	if drive.ReadOnly {
+		arg += ",readonly=on"
+	}
+
+	return arg
+}
+
+// buildVirtioFSArgs returns one --fs option per virtiofs volume. The option has no
+// read-only setting, which is why validation rejects a read-only virtiofs volume.
+// The tag is what the guest mounts the share by, see the cloud-init mount step.
+func (p *provider) buildVirtioFSArgs(vm *models.MicroVM) ([]string, error) {
+	args := []string{}
+
+	for _, vol := range vm.Spec.AdditionalVolumes {
+		if vol.Source.VirtioFS == nil {
+			continue
+		}
+
+		if _, ok := vm.Status.Volumes[vol.ID]; !ok {
+			return nil, cerrors.NewVolumeNotMounted(vol.ID)
+		}
+
+		vfsstate := virtiofs.NewState(vm.ID, p.config.StateRoot, p.config.SocketDir, p.fs)
+		args = append(args, "--fs",
+			fmt.Sprintf("tag=%s,socket=%s,num_queues=1,queue_size=1024",
+				models.VirtioFSTag, vfsstate.ResolveVirtioFSPath()))
+	}
+
+	return args, nil
+}
+
+func (p *provider) createMacvtapArg(netInt *models.NetworkInterface,
+	status *models.NetworkInterfaceStatus,
+) (string, error) {
+	hostDevName := fmt.Sprintf("/dev/tap%d", status.Index)
+	fd, err := syscall.Open(hostDevName, syscall.O_RDWR, 755)
+	if err != nil {
+		return "", fmt.Errorf("getting file description for %s: %w", hostDevName, err)
+	}
+
+	arg := fmt.Sprintf("fd=%d,mac=", fd)
+	if netInt.GuestMAC != "" {
+		arg += netInt.GuestMAC
+	}
+
+	return arg, nil
+}
+
+func (p *provider) ensureState(vmState State) error {
+	exists, err := afero.DirExists(p.fs, vmState.Root())
+	if err != nil {
+		return fmt.Errorf("checking if state dir %s exists: %w", vmState.Root(), err)
+	}
+
+	if !exists {
+		if err = p.fs.MkdirAll(vmState.Root(), defaults.DataDirPerm); err != nil {
+			return fmt.Errorf("creating state directory %s: %w", vmState.Root(), err)
+		}
+	}
+
+	// Remove any stale API and guest-agent vsock sockets so cloud-hypervisor can bind on
+	// (re)create. It isn't running, so sockets left in the state dir by an older flintlock can go too.
+	if err := shared.RemoveStaleSockets(p.fs,
+		vmState.SockPath(),
+		vmState.VSockPath(),
+		vmState.legacySockPath(),
+		vmState.legacyVSockPath(),
+	); err != nil {
+		return fmt.Errorf("removing stale sockets: %w", err)
+	}
+
+	logFile, err := p.fs.OpenFile(vmState.LogPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaults.DataFilePerm)
+	if err != nil {
+		return fmt.Errorf("opening log file %s: %w", vmState.LogPath(), err)
+	}
+
+	logFile.Close()
+
+	return nil
+}

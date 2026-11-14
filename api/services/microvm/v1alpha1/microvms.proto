@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package microvm.services.api.v1alpha1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/field_mask.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "types/microvm.proto";
+
+option go_package = "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+      title: "Flintlock MicroVM API"
+      version: "0.1"
+      description: "The Flintlock MicroVM API handles operations for provisioning and managing microvms"
+    }
+    consumes: "application/json"
+    produces: "application/json"
+};
+
+// MicroVM providers a service to create and manage the lifecycle of microvms.
+service MicroVM {
+  rpc CreateMicroVM(CreateMicroVMRequest) returns (CreateMicroVMResponse) {
+    option (google.api.http) = {
+      post: "/v1alpha1/microvm"
+      body: "microvm"
+    };
+  }
+  rpc DeleteMicroVM(DeleteMicroVMRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1alpha1/microvm/{uid}"
+    };
+  }
+  rpc GetMicroVM(GetMicroVMRequest) returns (GetMicroVMResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/microvm/{uid}"
+    };
+  }
+  rpc ListMicroVMs(ListMicroVMsRequest) returns (ListMicroVMsResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/microvm/{namespace}"
+    };
+  }
+  rpc ListMicroVMsStream(ListMicroVMsRequest) returns (stream ListMessage);
+  rpc ServerInfo(google.protobuf.Empty) returns (ServerInfoResponse) {
+    option (google.api.http) = {
+      get: "/v1alpha1/serverinfo"
+    };
+  }
+}
+
+message CreateMicroVMRequest {
+  flintlock.types.MicroVMSpec microvm = 1;
+  map<string, google.protobuf.Any> metadata = 2;
+}
+
+message CreateMicroVMResponse {
+  flintlock.types.MicroVM microvm = 1;
+}
+
+message DeleteMicroVMRequest {
+  string uid = 1;
+}
+
+message GetMicroVMRequest {
+  string uid = 1;
+}
+
+message GetMicroVMResponse {
+  flintlock.types.MicroVM microvm = 1;
+}
+
+message ListMicroVMsRequest {
+  string namespace = 1;
+  optional string name = 2;
+}
+
+message ListMicroVMsResponse {
+  repeated flintlock.types.MicroVM microvm = 1;
+}
+
+message ListMessage {
+  flintlock.types.MicroVM microvm = 1;
+}
+
+message ServerInfoResponse {
+  VersionInfo version = 1;
+  google.protobuf.Duration uptime = 2;
+  GuestAgentServiceInfo exec = 3;
+  GuestAgentServiceInfo ssh_proxy = 4;
+}
+
+message VersionInfo {
+  string version = 1;
+  string build_date = 2;
+  string commit_hash = 3;
+}
+
+// GuestAgentServiceInfo describes an optional gRPC service that shares the
+// main API listener. address is only populated when enabled is true.
+message GuestAgentServiceInfo {
+  bool enabled = 1;
+  string address = 2;
+}

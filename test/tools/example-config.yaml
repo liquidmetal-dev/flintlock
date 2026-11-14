@@ -1,0 +1,43 @@
+---
+org_id: "test-org" # required
+project_name: "test-project" # or project ID
+project_id: "abcdef123456" # or project ID
+repo:
+  username: "liquidmetal-dev" # username of flinklock repo to clone on device
+  branch: "main" # clone flintlock at this branch
+test:
+  skip_delete: false # skip the test cleanup and process teardown steps
+  skip_teardown: false # skip tearing down the equinix infra
+  containerd_log_level: "debug"
+  flintlock_log_level: "2"
+device:
+  skip_dmsetup: false # skip the thinpool setup
+  name: "test-device" # omit if device.id set
+  id: "abcdef123456" # set if using existing device
+  ssh:
+    # create new keys for the device, will use name and write to path if set
+    # otherwise will create a new key and save the files to a tempdir
+    create_new: true
+    # name of key to use or create
+    name: "test-key"
+    # must be set to existing dir when `device.id` is set or `create_new`
+    # is false, otherwise optional.
+    # when set in the case of using existing keys, the dir must contain child
+    # dir `key` and contain files named `public.key` and `private.key`.
+    path: "/abs/path/to/keys/dir"
+  # the following mirror the equinix options
+  # see https://metal.equinix.com/developers/docs/ for values
+  userdata: "echo hello"
+  # note: if setting up lvm thinpool, ensure that plan comes with at least
+  # one spare (unpartitioned and unmounted) disk
+  plan: "c3.small.x86"
+  # list of facilities to attempt device creation.
+  # minimum of 1 must be supplied
+  # note: ensure that the specified plan is availble in each facility
+  facility:
+    - "fr2"
+    - "fra2"
+    - "am6"
+    - "ams1"
+  operating_system: "ubuntu_20_04"
+  billing_cycle: "hourly"

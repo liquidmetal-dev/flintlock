@@ -1,0 +1,284 @@
+syntax = "proto3";
+
+package flintlock.types;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/liquidmetal-dev/flintlock/api/types;types";
+
+// MicroVM represents a microvm machine that is created via a provider.
+message MicroVM {
+  int32 version = 1;
+  // Spec is the specification of the microvm.
+  MicroVMSpec spec = 2;
+  // Status is the runtime status of the microvm.
+  MicroVMStatus status = 3;
+}
+
+// MicroVMSpec represents the specification for a microvm.
+message MicroVMSpec {
+  // ID is the identifier of the microvm.
+  // If this empty at creation time a ID will be automatically generated.
+  string id = 1;
+
+  // Namespace is the name of the namespace the microvm belongs to.
+  string namespace = 2;
+
+  // Labels allows you to include extra data for the microvms.
+  map<string, string> labels = 3;
+
+  // VCPU specifies how many vcpu the machine will be allocated.
+  int32 vcpu = 4;
+
+  // MemoryInMb is the amount of memory in megabytes that the machine will be allocated.
+  int32 memory_in_mb = 5;
+
+  // Kernel is the details of the kernel to use .
+  Kernel kernel = 6;
+
+  // Initrd is the optional details of the initial ramdisk.
+  optional Initrd initrd = 7;
+
+  // RootVolume specifies the root volume mount for the MicroVM.
+  Volume root_volume = 8;
+
+  // AdditionalVolumes specifies the volumes to be attached to the microvm.
+  repeated Volume additional_volumes = 9;
+
+  // Interfaces specifies the network interfaces to be attached to the microvm.
+  // Device names on the guest machine are determined by the order defined in
+  // the list starting from eth1, eth2, ..., ethN.
+  repeated NetworkInterface interfaces = 10;
+
+  // Metadata allows you to specify data to be added to the metadata service. The key is the name
+  // of the metadata item and the value is the base64 encoded contents of the metadata.
+  map<string, string> metadata = 11;
+
+  // CreatedAt indicates the time the microvm was created at.
+  google.protobuf.Timestamp created_at = 12;
+
+  // UpdatedAt indicates the time the microvm was last updated.
+  google.protobuf.Timestamp updated_at = 13;
+
+  // DeletedAt indicates the time the microvm was marked as deleted.
+  google.protobuf.Timestamp deleted_at = 14;
+
+  // UID is a globally unique identifier of the microvm.
+  optional string uid = 15;
+
+  // Provider allows you to specify the name of the microvm provider to use. If this isn't supplied
+  // then the default provider will be used.
+  optional string provider = 16;
+
+  // AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest
+  // guest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host.
+  bool allow_guest_agent = 17;
+
+  // CPUConfig allows you to customise the CPU features presented to the guest. Support and
+  // semantics vary by provider.
+  optional CPUConfig cpu_config = 18;
+}
+
+// CPUConfig represents CPU feature configuration for a microvm.
+message CPUConfig {
+  // FeaturesToEnable is a list of optional CPU features to enable. Supported by all providers,
+  // but the accepted values are provider specific (e.g. named features such as "amx" for
+  // Cloud Hypervisor, or numeric KVM capability IDs for Firecracker). The "!" prefix is
+  // reserved for KVMCapabilitiesToDisable and is not allowed here.
+  repeated string features_to_enable = 1;
+
+  // KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by
+  // providers that declare the KVMCapabilitiesDisable capability (currently Firecracker only).
+  repeated string kvm_capabilities_to_disable = 2;
+}
+
+// Kernel represents the configuration for a kernel.
+message Kernel {
+  // Image is the container image to use.
+  string image = 1;
+  // Cmdline is the additional kernel command line args. Each provider has its
+  // own recommended list, they will be used automatically. This field is for
+  // additional values.
+  map<string, string> cmdline = 2;
+  // Filename is used to specify the name of the kernel file
+  // in the Image.
+  optional string filename = 3;
+  // AddNetworkConfig if set to true indicates that the network-config kernel argument should be generated.
+  bool add_network_config = 4;
+}
+
+// Initrd represents the configuration for the initial ramdisk.
+message Initrd {
+  // Image is the container image to use.
+  string image = 1;
+  // Filename is used to specify the name of the kernel file
+  // in the Image. Defaults to initrd
+  optional string filename = 2;
+}
+
+message NetworkInterface {
+  enum IfaceType {
+    // MACVTAP represents a network interface that is macvtap.
+    MACVTAP = 0;
+    // TAP represents a network interface that is a tap.
+    TAP = 1;
+  }
+  // DeviceID is the ID of the interface. If guest_mac is not set, this value
+  // is also used to match the interface by name inside the guest, so it
+  // effectively becomes the guest interface name. Do not set this to `eth0`:
+  // Firecracker reserves that name for its own use, which causes a
+  // misleading network-interfaces error when creating the microvm. Use a
+  // different device_id (e.g. `eth1`) or set guest_mac to match by MAC
+  // address instead.
+  string device_id = 1;
+  // IfaceType specifies the type of network interface to create for use by the guest.
+  IfaceType type = 2;
+  // GuestMAC allows the specifying of a specifi MAC address to use for the interface. If
+  // not supplied a autogenerated MAC address will be used.
+  optional string guest_mac = 4;
+  // Address is an optional static IP address to manually assign to this interface. 
+  // If not supplied then DHCP will be used.
+  optional StaticAddress address = 5;
+  // Overrides is optional overrides applicable for network configuration.
+  optional NetworkOverrides overrides = 6;
+
+}
+
+// StaticAddress represents a static IPv4 or IPv6 address.
+message StaticAddress {
+  // Address is the static IP address (IPv4 or IPv6) to assign to this interface.
+  // Must be CIDR notation.
+  string address = 1;
+  // Gateway is used to optionaly set the default gateway for IPv4 or IPv6.
+  optional string gateway = 2;
+  // Nameservers allows you to optionaly specify nameservers for the interface.
+  repeated string nameservers = 3;
+}
+
+// Volume represents the configuration for a volume to be attached to a microvm.
+message Volume {
+  // ID is the uinique identifier of the volume.
+  string id = 1;
+  // IsReadOnly specifies that the volume is to be mounted readonly. It is not supported
+  // for a virtiofs volume, and a spec that sets it for one is rejected.
+  bool is_read_only = 2;
+  // MountPoint allows you to optionally specify a mount point for the volume. This only
+  // applies to additional volumes and it will use cloud-init to mount the volumes. A
+  // virtiofs volume is mounted by its tag with the virtiofs filesystem type, which the
+  // guest kernel has to support.
+  optional string mount_point = 3;
+  // Source is where the volume will be sourced from.
+  VolumeSource source = 4;
+  // PartitionID is the uuid of the boot partition.
+  optional string partition_id = 5;
+  // Size is the size to resize this volume to. In overlay mode it is the size of the
+  // writable disk, and the minimum is 64 MB.
+  optional int32 size_in_mb = 6;
+  // Mode selects how the volume is provisioned. The default is FULL. Only the root
+  // volume can use OVERLAY, and a read-only root cannot use it.
+  VolumeMode mode = 7;
+  // TODO: add rate limiting
+}
+
+// VolumeMode selects how a volume is provisioned.
+enum VolumeMode {
+  // FULL provisions the volume as a full copy of the image in a containerd snapshot.
+  FULL = 0;
+  // OVERLAY provisions the volume as a shared read-only base built from the image, plus
+  // a writable disk for the microvm. The guest's init joins them with overlayfs.
+  OVERLAY = 1;
+}
+
+// VolumeSource is the source of a volume. Based loosely on the volumes in Kubernetes Pod specs.
+message VolumeSource {
+  // Container is used to specify a source of a volume as a OCI container.
+  optional string container_source = 1;
+
+  // Used for the virtiofs source path
+  optional string virtiofs_source = 2;
+
+  //TODO: add CSI
+}
+
+// VirtioFSVolumeSource represents the details of a volume which is a directory of the
+// host, shared with virtiofs.
+message VirtioFSVolumeSource {
+    // Path on the host machine to pass through.
+    string path = 1;
+}
+
+
+// ContainerVolumeSource represents the details of a volume coming from a OCI image.
+message ContainerVolumeSource {
+    // Image specifies the conatiner image to use for the volume.
+    string image = 1;
+}
+
+// MicroVMStatus contains the runtime status of the microvm.
+message MicroVMStatus {
+  enum MicroVMState {
+    PENDING = 0;
+    CREATED = 1;
+    FAILED = 2;
+    DELETING = 3;
+  }
+
+  // State stores information about the last known state of the vm and the spec.
+  MicroVMState state = 1;
+  // Volumes holds the status of the volumes.
+  map<string, VolumeStatus> volumes = 2;
+  // KernelMount holds the status of the kernel mount point.
+  Mount kernel_mount = 3;
+  // InitrdMount holds the status of the initrd mount point.
+  Mount initrd_mount = 4;
+  // NetworkInterfaces holds the status of the network interfaces.
+  map<string, NetworkInterfaceStatus> network_interfaces = 5;
+  // Retry is a counter about how many times we retried to reconcile.
+  int32 retry = 6;
+  // VsockPath is the host unix-domain socket path for the guest-agent vsock device.
+  // Empty unless allow_guest_agent is set on the spec. Use with the vsock-connect host helper.
+  string vsock_path = 7;
+}
+
+message VolumeStatus {
+  // Mount represents a volume mount point. In overlay mode it is the writable disk.
+  Mount mount = 1;
+  // BaseMount represents the mount point of the read-only base in overlay mode.
+  // It is unset in full mode.
+  Mount base_mount = 2;
+  // BaseDigest is the sha256 digest of the base in overlay mode. It is empty in full mode.
+  string base_digest = 3;
+}
+
+// Mount represents a volume mount point.
+message Mount {
+  enum MountType {
+    // DEV is a block device.
+    DEV = 0;
+    // HOSTPATH is a directory on the host.
+    HOSTPATH = 1;
+    // FILE is a file on the host, such as a disk image.
+    FILE = 2;
+  }
+  // Type specifies the type of the mount (e.g. device or directory).
+  MountType type = 1;
+  // Source is the location of the mounted volume.
+  string source = 2;
+}
+
+message NetworkInterfaceStatus {
+  // HostDeviceName is the name of the network interface used from the host. This will be
+  // a tuntap or macvtap interface.
+  string host_device_name = 1;
+  // Index is the index of the network interface on the host.
+  int32 index = 2;
+  // MACAddress is the MAC address of the host interface.
+  string mac_address = 3;
+}
+
+// NetworkOverrides represents override values for a network interface.
+message NetworkOverrides {
+  // BridgeName is the name of the Linux bridge to attach TAP devices to. This overrides
+  // any value set at the overall flintlock level.
+  optional string bridge_name = 1;
+}
