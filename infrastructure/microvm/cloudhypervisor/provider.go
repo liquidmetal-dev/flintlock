@@ -3,6 +3,7 @@ package cloudhypervisor
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"time"
 
 	"github.com/liquidmetal-dev/flintlock/pkg/cloudhypervisor"
@@ -59,6 +60,10 @@ type provider struct {
 	diskSvc         ports.DiskService
 	fs              afero.Fs
 	deleteVMTimeout time.Duration
+
+	// startVMM starts the cloud-hypervisor process of a command. It is nil
+	// except in tests, which run something other than cloud-hypervisor.
+	startVMM func(cmd *exec.Cmd, detached bool) error
 }
 
 // Capabilities returns a list of the capabilities the provider supports.
