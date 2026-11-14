@@ -2224,3 +2224,36 @@ func TestVendorDataTries(t *testing.T) {
 		})
 	}
 }
+
+func TestVendorDataTriesCommandRuns(t *testing.T) {
+	g := NewWithT(t)
+
+	provider := u.Firecracker()
+	spec, err := u.NewMicroVMSpec(provider, "mvm0", "ns0")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	commands := runCommandsOfSpec(g, spec)
+	g.Expect(commands).To(HaveLen(1))
+
+	dir := t.TempDir()
+	cloudInitLog := filepath.Join(dir, "cloud-init.log")
+	console := filepath.Join(dir, provider.ConsoleFile)
+
+	g.Expect(os.WriteFile(cloudInitLog, []byte(
+		"url_helper.py[DEBUG]: [0/11] open 'http://169.254.169.254/latest/vendor-data' with {} configuration\n"+
+			"url_helper.py[DEBUG]: Read from http://169.254.169.254/latest/vendor-data (404, 9b) after 1 attempts\n"+
+			"url_helper.py[DEBUG]: [1/11] open 'http://169.254.169.254/latest/vendor-data' with {} configuration\n"+
+			"url_helper.py[DEBUG]: Read from http://169.254.169.254/latest/vendor-data (200, 16b) after 2 attempts\n",
+	), 0o600)).To(Succeed())
+
+	command := strings.ReplaceAll(commands[0], "/var/log/cloud-init.log", cloudInitLog)
+	command = strings.ReplaceAll(command, "/dev/console", console)
+
+	out, err := exec.Command("sh", "-c", command).CombinedOutput()
+	g.Expect(err).NotTo(HaveOccurred(), string(out))
+
+	tries, ok, err := u.VendorDataTries(dir, provider)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(tries).To(Equal(2))
+	g.Expect(ok).To(Equal(1))
+}
