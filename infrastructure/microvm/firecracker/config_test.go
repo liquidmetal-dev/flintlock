@@ -1,6 +1,7 @@
 package firecracker_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -9,7 +10,9 @@ import (
 
 	g "github.com/onsi/gomega"
 	"github.com/spf13/afero"
+	"gopkg.in/yaml.v2"
 
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit/network"
 	"github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/firecracker"
@@ -359,4 +362,149 @@ func TestProviderDrives_Overlay(t *testing.T) {
 	device, found := drives.GuestDeviceForVolume("data")
 	g.Expect(found).To(g.BeTrue())
 	g.Expect(device).To(g.Equal("vdc"))
+}
+
+// vmWithMetadataInterface returns a VM with the metadata interface that the
+// application adds (eth0) and a data interface (eth1). An empty address
+// gives eth0 no static address.
+func vmWithMetadataInterface(t *testing.T, address string) *models.MicroVM {
+	t.Helper()
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.Kernel.AddNetworkConfig = true
+
+	metadataIface := models.NetworkInterface{
+		GuestDeviceName:       "eth0",
+		Type:                  models.IfaceTypeTap,
+		AllowMetadataRequests: true,
+		GuestMAC:              "AA:FF:00:00:00:01",
+	}
+	if address != "" {
+		metadataIface.StaticAddress = &models.StaticAddress{Address: models.IPAddressCIDR(address)}
+	}
+
+	vm.Spec.NetworkInterfaces = []models.NetworkInterface{
+		metadataIface,
+		{
+			GuestDeviceName: "eth1",
+			Type:            models.IfaceTypeTap,
+			GuestMAC:        "AA:FF:00:00:00:02",
+			StaticAddress:   &models.StaticAddress{Address: "10.0.0.2/24"},
+		},
+	}
+	vm.Status.NetworkInterfaces = models.NetworkInterfaceStatuses{
+		"eth0": &models.NetworkInterfaceStatus{HostDeviceName: "tap0"},
+		"eth1": &models.NetworkInterfaceStatus{HostDeviceName: "tap1"},
+	}
+
+	return vm
+}
+
+func paramsWithPrefix(params []string, prefix string) []string {
+	matches := []string{}
+
+	for _, param := range params {
+		if strings.HasPrefix(param, prefix) {
+			matches = append(matches, param)
+		}
+	}
+
+	return matches
+}
+
+func netplanFromBootParams(t *testing.T, cfg *firecracker.VmmConfig) network.Network {
+	t.Helper()
+
+	encoded := paramsWithPrefix(bootParams(cfg), "network-config=")
+	g.Expect(encoded).To(g.HaveLen(1))
+
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(encoded[0], "network-config="))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	var netConf network.Network
+	g.Expect(yaml.Unmarshal(raw, &netConf)).To(g.Succeed())
+
+	return netConf
+}
+
+func TestWithMicroVM_MetadataKernelIP(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmWithMetadataInterface(t, "169.254.0.1/16")
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm, firecracker.WithMetadataKernelIP()))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(paramsWithPrefix(bootParams(cfg), "ip=")).To(g.Equal([]string{"ip=169.254.0.1:::255.255.0.0:localhost:eth0:off"}))
+
+	netConf := netplanFromBootParams(t, cfg)
+	g.Expect(netConf.Ethernet).To(g.HaveKey("eth1"))
+	g.Expect(netConf.Ethernet).NotTo(g.HaveKey("eth0"))
+}
+
+func TestWithMicroVM_MetadataKernelIPNetmask(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmWithMetadataInterface(t, "169.254.0.1/24")
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm, firecracker.WithMetadataKernelIP()))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(paramsWithPrefix(bootParams(cfg), "ip=")).To(g.Equal([]string{"ip=169.254.0.1:::255.255.255.0:localhost:eth0:off"}))
+}
+
+func TestWithMicroVM_MetadataKernelIPOff(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmWithMetadataInterface(t, "169.254.0.1/16")
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(paramsWithPrefix(bootParams(cfg), "ip=")).To(g.BeEmpty())
+
+	netConf := netplanFromBootParams(t, cfg)
+	g.Expect(netConf.Ethernet).To(g.HaveKey("eth0"))
+	g.Expect(netConf.Ethernet["eth0"].Addresses).To(g.Equal([]string{"169.254.0.1/16"}))
+}
+
+func TestWithMicroVM_MetadataKernelIPSpecWins(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmWithMetadataInterface(t, "169.254.0.1/16")
+	vm.Spec.Kernel.CmdLine = map[string]string{"ip": "dhcp"}
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm, firecracker.WithMetadataKernelIP()))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(paramsWithPrefix(bootParams(cfg), "ip=")).To(g.Equal([]string{"ip=dhcp"}))
+	g.Expect(netplanFromBootParams(t, cfg).Ethernet).To(g.HaveKey("eth0"))
+}
+
+func TestWithMicroVM_MetadataKernelIPNoNetworkConfig(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmWithMetadataInterface(t, "169.254.0.1/16")
+	vm.Spec.Kernel.AddNetworkConfig = false
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm, firecracker.WithMetadataKernelIP()))
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	g.Expect(paramsWithPrefix(bootParams(cfg), "ip=")).To(g.BeEmpty())
+}
+
+func TestWithMicroVM_MetadataKernelIPNoStaticIPv4(t *testing.T) {
+	for _, address := range []string{"", "fd00::1/64"} {
+		t.Run("address="+address, func(t *testing.T) {
+			g.RegisterTestingT(t)
+
+			vm := vmWithMetadataInterface(t, address)
+
+			cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm, firecracker.WithMetadataKernelIP()))
+			g.Expect(err).NotTo(g.HaveOccurred())
+
+			g.Expect(paramsWithPrefix(bootParams(cfg), "ip=")).To(g.BeEmpty())
+			g.Expect(netplanFromBootParams(t, cfg).Ethernet).To(g.HaveKey("eth0"))
+		})
+	}
 }
