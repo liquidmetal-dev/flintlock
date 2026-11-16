@@ -116,6 +116,49 @@ func TestWithMicroVM_CPUConfig_Empty(t *testing.T) {
 	g.Expect(cfg.CPUConfig).To(g.BeNil())
 }
 
+func TestWithMicroVM_Balloon_FreePageReporting(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.Balloon = &models.Balloon{FreePageReporting: true}
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cfg.Balloon).To(g.Equal(&firecracker.BalloonDeviceConfig{
+		AmountMib:         0,
+		DeflateOnOOM:      true,
+		FreePageReporting: true,
+	}))
+
+	data, err := json.Marshal(cfg.Balloon)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(string(data)).To(g.MatchJSON(
+		`{"amount_mib":0,"deflate_on_oom":true,"stats_polling_interval_s":0,"free_page_reporting":true}`))
+}
+
+func TestWithMicroVM_Balloon_NoFreePageReporting(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+	vm.Spec.Balloon = &models.Balloon{}
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cfg.Balloon).NotTo(g.BeNil())
+	g.Expect(cfg.Balloon.DeflateOnOOM).To(g.BeTrue())
+	g.Expect(cfg.Balloon.FreePageReporting).To(g.BeFalse())
+}
+
+func TestWithMicroVM_Balloon_Nil(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	vm := vmForMicroVM(t, nil)
+
+	cfg, err := firecracker.CreateConfig(firecracker.WithMicroVM(vm))
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(cfg.Balloon).To(g.BeNil())
+}
+
 func TestWithMicroVM_BootSourcePathsWithinMount(t *testing.T) {
 	g.RegisterTestingT(t)
 

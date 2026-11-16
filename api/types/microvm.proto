@@ -77,6 +77,17 @@ message MicroVMSpec {
   // CPUConfig allows you to customise the CPU features presented to the guest. Support and
   // semantics vary by provider.
   optional CPUConfig cpu_config = 18;
+
+  // Balloon, when set, attaches a memory balloon device to the microvm. The balloon starts
+  // empty and deflates when the guest runs out of memory.
+  optional Balloon balloon = 19;
+}
+
+// Balloon represents the configuration of a microvm's memory balloon device.
+message Balloon {
+  // FreePageReporting, when true, makes the guest report the memory it frees, and the VMM
+  // returns that memory to the host. The guest kernel needs CONFIG_PAGE_REPORTING.
+  bool free_page_reporting = 1;
 }
 
 // CPUConfig represents CPU feature configuration for a microvm.

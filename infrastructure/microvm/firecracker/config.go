@@ -63,6 +63,7 @@ func WithMicroVM(vm *models.MicroVM, opts ...MicroVMOption) ConfigOption {
 		}
 
 		cfg.CPUConfig = buildCPUConfig(vm.Spec.CPUConfig)
+		cfg.Balloon = buildBalloon(vm.Spec.Balloon)
 
 		mmdsNetDevices := []string{}
 		cfg.NetDevices = []NetworkInterfaceConfig{}
@@ -225,6 +226,20 @@ func buildCPUConfig(modelCPUConfig *models.CPUConfig) *CPUConfig {
 	}
 
 	return &CPUConfig{KvmCapabilities: kvmCapabilities}
+}
+
+// buildBalloon returns an empty balloon that deflates when the guest runs out of
+// memory, or nil if the spec asks for no balloon.
+func buildBalloon(modelBalloon *models.Balloon) *BalloonDeviceConfig {
+	if modelBalloon == nil {
+		return nil
+	}
+
+	return &BalloonDeviceConfig{
+		AmountMib:         0,
+		DeflateOnOOM:      true,
+		FreePageReporting: modelBalloon.FreePageReporting,
+	}
 }
 
 // DefaultKernelCmdLine is the default recommended kernel parameter list.

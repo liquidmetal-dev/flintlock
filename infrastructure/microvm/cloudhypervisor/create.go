@@ -175,6 +175,10 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 		args = append(args, "--memory", fmt.Sprintf("size=%dM", vm.Spec.MemoryInMb))
 	}
 
+	if vm.Spec.Balloon != nil {
+		args = append(args, "--balloon", balloonArg(vm.Spec.Balloon))
+	}
+
 	// Network interfaces
 	for i := range vm.Spec.NetworkInterfaces {
 		iface := vm.Spec.NetworkInterfaces[i]
@@ -206,6 +210,17 @@ func (p *provider) buildArgs(vm *models.MicroVM, state State, _ *logrus.Entry) (
 	}
 
 	return args, nil
+}
+
+// balloonArg returns the --balloon option for an empty balloon that deflates when
+// the guest runs out of memory.
+func balloonArg(balloon *models.Balloon) string {
+	arg := "size=0,deflate_on_oom=on"
+	if balloon.FreePageReporting {
+		arg += ",free_page_reporting=on"
+	}
+
+	return arg
 }
 
 // buildBootArgs returns the options that tell the VMM what to boot. The

@@ -94,6 +94,12 @@ func convertMicroVMToModel(spec *types.MicroVMSpec) (*models.MicroVM, error) {
 		}
 	}
 
+	if spec.Balloon != nil {
+		convertedModel.Spec.Balloon = &models.Balloon{
+			FreePageReporting: spec.Balloon.FreePageReporting,
+		}
+	}
+
 	return convertedModel, nil
 }
 
@@ -232,6 +238,12 @@ func convertModelToMicroVMSpec(mvm *models.MicroVM) *types.MicroVMSpec {
 		converted.CpuConfig = &types.CPUConfig{
 			FeaturesToEnable:         mvm.Spec.CPUConfig.FeaturesToEnable,
 			KvmCapabilitiesToDisable: mvm.Spec.CPUConfig.KVMCapabilitiesToDisable,
+		}
+	}
+
+	if mvm.Spec.Balloon != nil {
+		converted.Balloon = &types.Balloon{
+			FreePageReporting: mvm.Spec.Balloon.FreePageReporting,
 		}
 	}
 
