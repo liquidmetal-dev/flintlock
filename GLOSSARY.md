@@ -24,3 +24,8 @@ _Avoid_: Fallback vendor data, placeholder vendor data
 The metadata service of Firecracker, from which a Firecracker guest reads its
 cloud-init data over the network.
 _Avoid_: Metadata server, IMDS
+
+**Metadata interface**:
+The network interface that flintlock adds to a Firecracker microVM so that the
+guest can reach the MMDS.
+_Avoid_: MMDS interface

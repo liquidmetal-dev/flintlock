@@ -69,6 +69,8 @@ Implement the following changes to the Flintlock API:
 | Remove allow metadata requests         | If the metadata network interface is created automatically then we should remove the `allow_metadata_req` option on the network interface model                                                                                                         | `MicroVM.NetworkInterfaces`                                   |                                                          |
 | `RootVolume` and `AdditionalVolumes[]` | Separate the `Volumes` field in the model into two fields. `RootVolume` specifically for the root volume, allowing us to hide the `is_root` flag, and `AdditionalVolumes[]` for non-root volumes.                                                       | `MicroVM.Volumes`                                             | `MicroVM.RootVolume` and `MicroVM.AdditionalVolumes[]`   |
 
+For Firecracker, [ADR 1396](1396-metadata-interface-kernel-ip.md) changes how the guest gets the metadata network interface address.
+
 Note: This proposal _specifically_ avoids diving too deep into implementation details. E.g. Automatically generating a network device name will require us to validate that there are no conflicts in the name we use. These implementation details belong within the scope of the implementation phase and PR discussion.
 
 ## Consequences
