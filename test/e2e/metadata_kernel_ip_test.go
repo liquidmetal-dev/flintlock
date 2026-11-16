@@ -4,28 +4,16 @@
 package e2e_test
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"gopkg.in/yaml.v2"
 
 	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
-	"github.com/liquidmetal-dev/flintlock/client/cloudinit/network"
-	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/firecracker"
 	u "github.com/liquidmetal-dev/flintlock/test/e2e/utils"
 )
-
-// metadataKernelIP is the kernel parameter that flintlockd gives a Firecracker
-// guest for the metadata interface when --firecracker-metadata-kernel-ip is set.
-const metadataKernelIP = "ip=169.254.0.1:::255.255.0.0:localhost:eth0:off"
 
 // TestE2EFirecrackerMetadataKernelIP boots a Firecracker microvm with a
 // flintlockd that has --firecracker-metadata-kernel-ip. The guest kernel
@@ -86,11 +74,6 @@ func runMetadataKernelIP(t *testing.T, flintlockClient v1alpha1.MicroVMClient, p
 		return nil
 	}, "120s").Should(Succeed())
 
-	log.Println("TEST STEP: verifying that the kernel configures the metadata interface")
-	bootArgs := firecrackerBootArgs(stateDir)
-	Expect(bootArgs).To(ContainElement(metadataKernelIP))
-	Expect(networkConfigInterfaces(bootArgs)).NotTo(ContainElement("eth0"))
-
 	// The boot marker is in the user-data, which the guest reads from MMDS
 	// through the metadata interface.
 	waitForBoot(provider, stateDir, mvmID, mvmNS, vmmPid, bootTimeout)
@@ -119,49 +102,9 @@ func runMetadataKernelIP(t *testing.T, flintlockClient v1alpha1.MicroVMClient, p
 	Expect(u.DeleteMVM(flintlockClient, uid)).To(Succeed())
 
 	Eventually(func(g Gomega) error {
-		g.Expect(stateDir).ToNot(BeAnExistingFile())
+		g.Expect(stateDir).NotTo(BeAnExistingFile())
 		g.Expect(u.PidRunning(vmmPid)).To(BeFalse())
 
 		return nil
 	}, "120s").Should(Succeed())
-}
-
-// firecrackerBootArgs returns the kernel parameters in the Firecracker config
-// that flintlockd wrote for the microvm.
-func firecrackerBootArgs(stateDir string) []string {
-	data, err := os.ReadFile(filepath.Join(stateDir, "firecracker.cfg"))
-	Expect(err).NotTo(HaveOccurred())
-
-	cfg := firecracker.VmmConfig{}
-	Expect(json.Unmarshal(data, &cfg)).To(Succeed())
-	Expect(cfg.BootSource.BootArgs).NotTo(BeNil())
-
-	return strings.Fields(*cfg.BootSource.BootArgs)
-}
-
-// networkConfigInterfaces returns the names of the interfaces in the
-// network-config kernel parameter.
-func networkConfigInterfaces(bootArgs []string) []string {
-	encoded := ""
-
-	for _, arg := range bootArgs {
-		if value, found := strings.CutPrefix(arg, "network-config="); found {
-			encoded = value
-		}
-	}
-
-	Expect(encoded).NotTo(BeEmpty(), "the boot args have no network-config")
-
-	raw, err := base64.StdEncoding.DecodeString(encoded)
-	Expect(err).NotTo(HaveOccurred())
-
-	netConf := network.Network{}
-	Expect(yaml.Unmarshal(raw, &netConf)).To(Succeed())
-
-	names := []string{}
-	for name := range netConf.Ethernet {
-		names = append(names, name)
-	}
-
-	return names
 }

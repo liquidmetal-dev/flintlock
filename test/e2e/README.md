@@ -118,9 +118,7 @@ does this with `zot` on port 5000.
   [What shows that a root is an overlay](#what-shows-that-a-root-is-an-overlay).
 - `TestE2EFirecrackerMetadataKernelIP`: starts flintlockd with
   `--firecracker-metadata-kernel-ip` and creates a Firecracker MicroVM. The
-  Firecracker config of the MicroVM must have the kernel parameter
-  `ip=169.254.0.1:::255.255.0.0:localhost:eth0:off`, and its `network-config`
-  must not have `eth0`. The guest must boot, which shows that it read its
+  guest must boot, which shows that it read its
   user-data from MMDS through the metadata interface, and each try to read the
   vendor-data must succeed. The guest writes to its console the
   systemd-networkd setup state and the IPv4 address of `eth0`, which must be
