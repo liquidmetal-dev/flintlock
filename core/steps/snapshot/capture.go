@@ -37,7 +37,8 @@ func (e *PauseBudgetExceededError) Error() string {
 type CaptureInput struct {
 	// Snapshot is the record of the snapshot.
 	Snapshot *models.Snapshot
-	// VM is the source microvm.
+	// VM is the source microvm as the caller read it. The capture reads it
+	// again from Repo once it holds the lock of the source.
 	VM *models.MicroVM
 	// Dir is the directory of the snapshot on the host.
 	Dir string
@@ -47,6 +48,7 @@ type CaptureInput struct {
 	// FlintlockVersion is the version of flintlock written to the descriptor.
 	FlintlockVersion string
 
+	Repo      ports.MicroVMRepository
 	Provider  ports.MicroVMService
 	Volumes   ports.VolumeService
 	Images    ports.ImageService
@@ -60,8 +62,9 @@ type CaptureInput struct {
 // Capture is the state that the steps of one capture share. Use NewCapture.
 type Capture struct {
 	in CaptureInput
+	vm *models.MicroVM
 
-	locked        bool
+	lockedUID     string
 	paused        bool
 	pausedAt      time.Time
 	pauseDeadline time.Time
@@ -70,7 +73,7 @@ type Capture struct {
 
 // NewCapture returns the state of a capture that has not started.
 func NewCapture(in CaptureInput) *Capture {
-	return &Capture{in: in}
+	return &Capture{in: in, vm: in.VM}
 }
 
 // Abort makes the source and the snapshot directory safe after a step failed
@@ -104,23 +107,25 @@ func (c *Capture) Abort(ctx context.Context, cause error) error {
 	return err
 }
 
-func (c *Capture) lock() {
-	c.in.Locks.Lock(c.in.VM.ID.UID())
-	c.locked = true
+func (c *Capture) lock(_ context.Context) error {
+	c.lockedUID = c.vm.ID.UID()
+	c.in.Locks.Lock(c.lockedUID)
+
+	return nil
 }
 
 func (c *Capture) unlock() {
-	if !c.locked {
+	if c.lockedUID == "" {
 		return
 	}
 
-	c.in.Locks.Unlock(c.in.VM.ID.UID())
-	c.locked = false
+	c.in.Locks.Unlock(c.lockedUID)
+	c.lockedUID = ""
 }
 
 func (c *Capture) pause(ctx context.Context) error {
-	if err := c.in.Provider.Pause(ctx, c.in.VM); err != nil {
-		return fmt.Errorf("pausing microvm %s: %w", c.in.VM.ID, err)
+	if err := c.in.Provider.Pause(ctx, c.vm); err != nil {
+		return fmt.Errorf("pausing microvm %s: %w", c.vm.ID, err)
 	}
 
 	c.paused = true
@@ -131,8 +136,8 @@ func (c *Capture) pause(ctx context.Context) error {
 }
 
 func (c *Capture) resume(ctx context.Context) error {
-	if err := c.in.Provider.Resume(ctx, c.in.VM); err != nil {
-		return fmt.Errorf("resuming microvm %s: %w", c.in.VM.ID, err)
+	if err := c.in.Provider.Resume(ctx, c.vm); err != nil {
+		return fmt.Errorf("resuming microvm %s: %w", c.vm.ID, err)
 	}
 
 	c.paused = false
@@ -169,6 +174,6 @@ func (c *Capture) budgetSpent(parent, budgetCtx context.Context) bool {
 func (c *Capture) logger(ctx context.Context) *logrus.Entry {
 	return log.GetLogger(ctx).WithFields(logrus.Fields{
 		"snapshot": c.in.Snapshot.UID,
-		"vmid":     c.in.VM.ID.String(),
+		"vmid":     c.vm.ID.String(),
 	})
 }

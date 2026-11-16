@@ -38,7 +38,7 @@ func (c *Capture) writeFiles(ctx context.Context) error {
 		return err
 	}
 
-	return c.writeJSON(models.SnapshotSpecFilename, c.in.VM.Spec)
+	return c.writeJSON(models.SnapshotSpecFilename, c.vm.Spec)
 }
 
 // descriptor returns the compatibility descriptor of the snapshot. It has no
@@ -48,7 +48,7 @@ func (c *Capture) descriptor(ctx context.Context) (*models.SnapshotDescriptor, e
 		return nil, errNoCapturedVolume
 	}
 
-	vm := c.in.VM
+	vm := c.vm
 
 	facts, err := c.in.HostInfo.Facts(ctx, vm.Spec.Provider)
 	if err != nil {
@@ -102,7 +102,7 @@ func (c *Capture) descriptor(ctx context.Context) (*models.SnapshotDescriptor, e
 // image returns the reference and the digest of an image the source booted
 // from. A restore needs the exact image, as a tag can move to other content.
 func (c *Capture) image(ctx context.Context, ref string) (*models.SnapshotImage, error) {
-	digest, err := c.in.Images.Digest(ctx, &ports.ImageSpec{ImageName: ref, Owner: c.in.VM.ID.String()})
+	digest, err := c.in.Images.Digest(ctx, &ports.ImageSpec{ImageName: ref, Owner: c.vm.ID.String()})
 	if err != nil {
 		return nil, fmt.Errorf("getting the digest of image %s: %w", ref, err)
 	}
@@ -117,9 +117,9 @@ func (c *Capture) image(ctx context.Context, ref string) (*models.SnapshotImage,
 // rootVolume describes the captured writable disk of the root, at the
 // position the guest sees it.
 func (c *Capture) rootVolume() (models.SnapshotVolume, error) {
-	drives, err := c.in.Provider.Drives(c.in.VM)
+	drives, err := c.in.Provider.Drives(c.vm)
 	if err != nil {
-		return models.SnapshotVolume{}, fmt.Errorf("getting the drives of microvm %s: %w", c.in.VM.ID, err)
+		return models.SnapshotVolume{}, fmt.Errorf("getting the drives of microvm %s: %w", c.vm.ID, err)
 	}
 
 	for order, drive := range drives {
@@ -137,7 +137,7 @@ func (c *Capture) rootVolume() (models.SnapshotVolume, error) {
 		}, nil
 	}
 
-	return models.SnapshotVolume{}, fmt.Errorf("microvm %s: %w", c.in.VM.ID, errNoRootRWDrive)
+	return models.SnapshotVolume{}, fmt.Errorf("microvm %s: %w", c.vm.ID, errNoRootRWDrive)
 }
 
 // writeJSON writes value as JSON to the file with the name in the snapshot

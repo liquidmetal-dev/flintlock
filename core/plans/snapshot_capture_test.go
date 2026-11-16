@@ -74,6 +74,7 @@ func (l *fakeLocker) Unlock(uid string) {
 }
 
 type captureMocks struct {
+	repo      *mock.MockMicroVMRepository
 	provider  *mock.MockMicroVMService
 	volumes   *mock.MockVolumeService
 	images    *mock.MockImageService
@@ -98,6 +99,7 @@ func newCaptureTest(t *testing.T) *captureTest {
 	rec := &recorder{}
 
 	m := captureMocks{
+		repo:      mock.NewMockMicroVMRepository(ctrl),
 		provider:  mock.NewMockMicroVMService(ctrl),
 		volumes:   mock.NewMockVolumeService(ctrl),
 		images:    mock.NewMockImageService(ctrl),
@@ -119,6 +121,7 @@ func newCaptureTest(t *testing.T) *captureTest {
 
 	clock := captureTestStart
 	collection := &ports.Collection{
+		Repo:             m.repo,
 		MicrovmProviders: map[string]ports.MicroVMService{"mock": m.provider},
 		VolumeService:    m.volumes,
 		ImageService:     m.images,
@@ -191,7 +194,20 @@ func testHostFacts() *models.HostFacts {
 
 // expectRunning, expectPause and the others record each call, so a test can
 // check the order. Each returns the call for more options.
+// expectGet expects the plan to read the source again, and returns vm as the
+// stored copy. It checks the plan holds the lock of the source when it reads.
+func (c *captureTest) expectGet(vm *models.MicroVM) {
+	c.m.repo.EXPECT().Get(gomock.Any(), ports.RepositoryGetOptions{UID: testUID}).DoAndReturn(
+		func(_ context.Context, _ ports.RepositoryGetOptions) (*models.MicroVM, error) {
+			Expect(c.m.locks.held).To(HaveKey(testUID), "the source is read under its lock")
+			c.m.rec.add("get")
+
+			return vm, nil
+		})
+}
+
 func (c *captureTest) expectRunning() {
+	c.expectGet(captureSourceVM())
 	c.m.provider.EXPECT().State(gomock.Any(), c.vm.ID.String()).DoAndReturn(
 		func(_ context.Context, _ string) (ports.MicroVMState, error) {
 			c.m.rec.add("state")
@@ -307,6 +323,7 @@ func TestSnapshotCapturePlan_Steps(t *testing.T) {
 	steps, err := plan.Create(c.ctx)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(stepNames(steps)).To(Equal([]string{
+		snapshot.LockStepName,
 		snapshot.CheckStepName,
 		snapshot.PauseStepName,
 		snapshot.VMMSnapshotStepName,
@@ -335,8 +352,9 @@ func TestRunSnapshotCapture_Success(t *testing.T) {
 	Expect(c.run()).To(Succeed())
 
 	Expect(c.m.rec.list()).To(Equal([]string{
-		"state",
 		lockCall("lock"),
+		"get",
+		"state",
 		"pause",
 		"vmm-snapshot",
 		"disk-capture",
@@ -505,7 +523,7 @@ func TestRunSnapshotCapture_FailureAfterPause(t *testing.T) {
 			Expect(err.Error()).To(ContainSubstring(captureSnapshotUID))
 			Expect(err.Error()).NotTo(ContainSubstring("resuming the source microvm failed"))
 
-			expected := append([]string{"state", lockCall("lock"), "pause"}, tc.expected...)
+			expected := append([]string{lockCall("lock"), "get", "state", "pause"}, tc.expected...)
 			Expect(c.m.rec.list()).To(Equal(expected))
 			Expect(c.m.locks.held).To(BeEmpty())
 		})
@@ -528,7 +546,7 @@ func TestRunSnapshotCapture_FailedResume(t *testing.T) {
 	Expect(err).To(MatchError(errResumeTest))
 	Expect(err.Error()).To(ContainSubstring("resuming the source microvm failed"))
 	Expect(c.m.rec.list()).To(Equal([]string{
-		"state", lockCall("lock"), "pause", "vmm-snapshot", "resume", lockCall("unlock"), "remove-files",
+		lockCall("lock"), "get", "state", "pause", "vmm-snapshot", "resume", lockCall("unlock"), "remove-files",
 	}))
 	Expect(c.m.locks.held).To(BeEmpty(), "the lock is released so the reconciler can see the paused microvm")
 }
@@ -566,7 +584,7 @@ func TestRunSnapshotCapture_PauseBudgetAbortsSlowSnapshot(t *testing.T) {
 	Expect(budgetErr.Budget).To(Equal(20 * time.Millisecond))
 
 	Expect(c.m.rec.list()).To(Equal([]string{
-		"state", lockCall("lock"), "pause", "vmm-snapshot", "resume", lockCall("unlock"), "remove-files",
+		lockCall("lock"), "get", "state", "pause", "vmm-snapshot", "resume", lockCall("unlock"), "remove-files",
 	}))
 }
 
@@ -616,12 +634,25 @@ func TestRunSnapshotCapture_CheckRefuses(t *testing.T) {
 			RegisterTestingT(t)
 
 			c := newCaptureTest(t)
+
+			stored := captureSourceVM()
 			if tc.mutate != nil {
-				tc.mutate(c.vm)
+				tc.mutate(stored)
 			}
 
+			c.expectGet(stored)
+
+			expected := []string{lockCall("lock"), "get"}
+
 			if tc.state != "" {
-				c.m.provider.EXPECT().State(gomock.Any(), c.vm.ID.String()).Return(tc.state, nil)
+				c.m.provider.EXPECT().State(gomock.Any(), c.vm.ID.String()).DoAndReturn(
+					func(_ context.Context, _ string) (ports.MicroVMState, error) {
+						c.m.rec.add("state")
+
+						return tc.state, nil
+					})
+
+				expected = append(expected, "state")
 			}
 
 			c.expectRemoveFiles()
@@ -629,7 +660,9 @@ func TestRunSnapshotCapture_CheckRefuses(t *testing.T) {
 			err := c.run()
 
 			Expect(err).To(MatchError(ContainSubstring(tc.expectErr)))
-			Expect(c.m.rec.list()).To(Equal([]string{"remove-files"}), "nothing is paused or locked")
+			Expect(c.m.rec.list()).To(Equal(append(expected, lockCall("unlock"), "remove-files")),
+				"nothing is paused, and the lock is released")
+			Expect(c.m.locks.held).To(BeEmpty())
 		})
 	}
 }
@@ -644,9 +677,65 @@ func TestRunSnapshotCapture_NoSnapshotCapability(t *testing.T) {
 	collection, _ := portsctx.GetPorts(c.ctx)
 	collection.MicrovmProviders["mock"] = other
 
+	c.expectGet(captureSourceVM())
 	c.expectRemoveFiles()
 
 	Expect(c.run()).To(MatchError(snapshot.ErrSnapshotNotSupported))
+	Expect(c.m.locks.held).To(BeEmpty())
+}
+
+func TestRunSnapshotCapture_SourceDeletedAfterStart_rejectedUnderLockWithoutPause(t *testing.T) {
+	RegisterTestingT(t)
+
+	c := newCaptureTest(t)
+
+	stored := captureSourceVM()
+	stored.Spec.DeletedAt = 1
+	stored.Status.State = models.DeletingState
+	c.expectGet(stored)
+	c.expectRemoveFiles()
+
+	err := c.run()
+
+	Expect(err).To(MatchError(ContainSubstring("is being deleted")))
+	Expect(c.m.rec.list()).To(Equal([]string{lockCall("lock"), "get", lockCall("unlock"), "remove-files"}))
+	Expect(c.m.locks.held).To(BeEmpty())
+}
+
+func TestRunSnapshotCapture_SourceGoneAfterStart_rejectedUnderLockWithoutPause(t *testing.T) {
+	RegisterTestingT(t)
+
+	c := newCaptureTest(t)
+	c.m.repo.EXPECT().Get(gomock.Any(), ports.RepositoryGetOptions{UID: testUID}).Return(nil, nil)
+	c.expectRemoveFiles()
+
+	err := c.run()
+
+	Expect(err).To(MatchError(ContainSubstring("not found")))
+	Expect(c.m.rec.list()).To(Equal([]string{lockCall("lock"), lockCall("unlock"), "remove-files"}))
+	Expect(c.m.locks.held).To(BeEmpty())
+}
+
+func TestRunSnapshotCapture_CapturesTheSourceReadUnderTheLock(t *testing.T) {
+	RegisterTestingT(t)
+
+	c := newCaptureTest(t)
+
+	stored := captureSourceVM()
+	stored.Spec.Metadata = map[string]string{"user-data": "bmV3ZXI="}
+	c.expectGet(stored)
+	c.m.provider.EXPECT().State(gomock.Any(), c.vm.ID.String()).Return(ports.MicroVMStateRunning, nil)
+	c.m.provider.EXPECT().Pause(gomock.Any(), stored).Return(nil)
+	c.m.provider.EXPECT().Snapshot(gomock.Any(), stored, captureDir).Return(nil)
+	c.m.volumes.EXPECT().Capture(gomock.Any(), gomock.Any(), captureDir).Return(testCapturedVolume(), nil)
+	c.m.provider.EXPECT().Resume(gomock.Any(), stored).Return(nil)
+	c.expectFacts(nil)
+	c.expectDigests()
+
+	Expect(c.run()).To(Succeed())
+
+	spec := c.readJSON(models.SnapshotSpecFilename)
+	Expect(spec["metadata"]).To(HaveKeyWithValue("user-data", "bmV3ZXI="))
 }
 
 func TestRunSnapshotCapture_ImageDigestUnknown_failsAndCleansUp(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	LockStepName        = "snapshot_lock"
 	CheckStepName       = "snapshot_check"
 	PauseStepName       = "snapshot_pause"
 	VMMSnapshotStepName = "snapshot_vmm"
@@ -18,11 +19,14 @@ const (
 	DescriptorStepName  = "snapshot_descriptor"
 )
 
-// Steps returns the steps of the capture, in the order they run.
+// Steps returns the steps of the capture, in the order they run. The lock of
+// the source is taken before the check, so the source cannot change between
+// the check and the pause.
 func Steps(c *Capture) []planner.Procedure {
 	return []planner.Procedure{
+		&step{name: LockStepName, do: c.lock},
 		&step{name: CheckStepName, do: c.check},
-		&step{name: PauseStepName, do: c.lockAndPause},
+		&step{name: PauseStepName, do: c.pause},
 		&step{name: VMMSnapshotStepName, do: c.vmmSnapshot},
 		&step{name: DiskCaptureStepName, do: c.diskCapture},
 		&step{name: ResumeStepName, do: c.resumeAndUnlock},
@@ -53,35 +57,44 @@ func (s *step) Verify(_ context.Context) error {
 	return nil
 }
 
+// check reads the source again and checks that it can be snapshotted. The
+// caller holds the lock of the source.
 func (c *Capture) check(ctx context.Context) error {
-	if err := CheckSource(c.in.VM, c.in.Provider); err != nil {
+	uid := c.vm.ID.UID()
+
+	vm, err := c.in.Repo.Get(ctx, ports.RepositoryGetOptions{UID: uid})
+	if err != nil {
+		return fmt.Errorf("getting source microvm %s: %w", uid, err)
+	}
+
+	if vm == nil {
+		return coreerrs.NewSpecNotFound("", "", "", uid)
+	}
+
+	c.vm = vm
+
+	if err := CheckSource(c.vm, c.in.Provider); err != nil {
 		return err
 	}
 
-	state, err := c.in.Provider.State(ctx, c.in.VM.ID.String())
+	state, err := c.in.Provider.State(ctx, c.vm.ID.String())
 	if err != nil {
-		return fmt.Errorf("getting the state of microvm %s: %w", c.in.VM.ID, err)
+		return fmt.Errorf("getting the state of microvm %s: %w", c.vm.ID, err)
 	}
 
 	if state != ports.MicroVMStateRunning {
 		return coreerrs.NewFailedPrecondition(
-			fmt.Sprintf("the vmm of microvm %s is not running (state: %s)", c.in.VM.ID.UID(), state),
+			fmt.Sprintf("the vmm of microvm %s is not running (state: %s)", c.vm.ID.UID(), state),
 		)
 	}
 
 	return nil
 }
 
-func (c *Capture) lockAndPause(ctx context.Context) error {
-	c.lock()
-
-	return c.pause(ctx)
-}
-
 func (c *Capture) vmmSnapshot(ctx context.Context) error {
 	return c.withinBudget(ctx, func(ctx context.Context) error {
-		if err := c.in.Provider.Snapshot(ctx, c.in.VM, c.in.Dir); err != nil {
-			return fmt.Errorf("taking the vmm snapshot of microvm %s: %w", c.in.VM.ID, err)
+		if err := c.in.Provider.Snapshot(ctx, c.vm, c.in.Dir); err != nil {
+			return fmt.Errorf("taking the vmm snapshot of microvm %s: %w", c.vm.ID, err)
 		}
 
 		return nil
@@ -89,12 +102,12 @@ func (c *Capture) vmmSnapshot(ctx context.Context) error {
 }
 
 func (c *Capture) diskCapture(ctx context.Context) error {
-	ref := ports.VolumeRef{VMID: c.in.VM.ID, VolumeID: c.in.VM.Spec.RootVolume.ID}
+	ref := ports.VolumeRef{VMID: c.vm.ID, VolumeID: c.vm.Spec.RootVolume.ID}
 
 	return c.withinBudget(ctx, func(ctx context.Context) error {
 		volume, err := c.in.Volumes.Capture(ctx, ref, c.in.Dir)
 		if err != nil {
-			return fmt.Errorf("capturing the root volume of microvm %s: %w", c.in.VM.ID, err)
+			return fmt.Errorf("capturing the root volume of microvm %s: %w", c.vm.ID, err)
 		}
 
 		c.volume = volume

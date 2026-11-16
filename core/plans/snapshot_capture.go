@@ -16,7 +16,7 @@ import (
 const SnapshotCapturePlanName = "snapshot_capture"
 
 var errCaptureServicesMissing = errors.New(
-	"a snapshot capture needs the volume, image and host info services and the snapshot store",
+	"a snapshot capture needs the microvm and snapshot stores and the volume, image and host info services",
 )
 
 // SnapshotCapturePlanInput is the input of the snapshot capture plan.
@@ -36,7 +36,8 @@ type SnapshotCapturePlanInput struct {
 }
 
 // SnapshotCapturePlan returns the plan that captures a snapshot of a running
-// microvm: check, pause, VMM snapshot, disk capture, resume, descriptor.
+// microvm: lock, check, pause, VMM snapshot, disk capture, resume and unlock,
+// descriptor.
 func SnapshotCapturePlan(input *SnapshotCapturePlanInput) planner.Plan {
 	return &snapshotCapturePlan{input: input}
 }
@@ -86,8 +87,8 @@ func (p *snapshotCapturePlan) Create(ctx context.Context) ([]planner.Procedure, 
 		return nil, fmt.Errorf("microvm provider %s isn't available", vm.Spec.Provider)
 	}
 
-	if ports.VolumeService == nil || ports.ImageService == nil || ports.HostInfoService == nil ||
-		ports.SnapshotRepo == nil {
+	if ports.Repo == nil || ports.VolumeService == nil || ports.ImageService == nil ||
+		ports.HostInfoService == nil || ports.SnapshotRepo == nil {
 		return nil, errCaptureServicesMissing
 	}
 
@@ -97,6 +98,7 @@ func (p *snapshotCapturePlan) Create(ctx context.Context) ([]planner.Procedure, 
 		Dir:              ports.SnapshotRepo.Dir(p.input.Snapshot.UID),
 		PauseBudget:      p.input.PauseBudget,
 		FlintlockVersion: p.input.FlintlockVersion,
+		Repo:             ports.Repo,
 		Provider:         provider,
 		Volumes:          ports.VolumeService,
 		Images:           ports.ImageService,

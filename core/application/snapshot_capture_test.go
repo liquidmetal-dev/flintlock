@@ -82,7 +82,7 @@ func TestApp_CaptureSnapshot(t *testing.T) {
 	vm := snapshotSourceVM()
 	record := captureRecord(vm)
 
-	m.repo.EXPECT().Get(gomock.Any(), ports.RepositoryGetOptions{UID: testUID}).Return(vm, nil)
+	m.repo.EXPECT().Get(gomock.Any(), ports.RepositoryGetOptions{UID: testUID}).Return(vm, nil).Times(2)
 	m.provider.EXPECT().Drives(gomock.Any()).Return(models.Drives{{ID: "rw", Role: models.DriveRoleRootRW}}, nil)
 
 	gomock.InOrder(
@@ -106,7 +106,7 @@ func TestApp_CaptureSnapshot_FailureResumesAndCleansUp(t *testing.T) {
 	app, m := newCaptureTestApp(t, &application.Config{})
 	vm := snapshotSourceVM()
 
-	m.repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vm, nil)
+	m.repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vm, nil).Times(2)
 
 	gomock.InOrder(
 		m.provider.EXPECT().State(gomock.Any(), vm.ID.String()).Return(ports.MicroVMStateRunning, nil),
@@ -125,7 +125,7 @@ func TestApp_CaptureSnapshot_PauseBudgetFromConfig(t *testing.T) {
 	app, m := newCaptureTestApp(t, &application.Config{SnapshotMaxPause: 30 * time.Millisecond})
 	vm := snapshotSourceVM()
 
-	m.repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vm, nil)
+	m.repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vm, nil).Times(2)
 	m.provider.EXPECT().State(gomock.Any(), gomock.Any()).Return(ports.MicroVMStateRunning, nil)
 	m.provider.EXPECT().Pause(gomock.Any(), vm).Return(nil)
 	m.provider.EXPECT().Snapshot(gomock.Any(), vm, captureTestDir).DoAndReturn(

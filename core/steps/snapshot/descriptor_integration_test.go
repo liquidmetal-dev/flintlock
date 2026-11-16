@@ -151,11 +151,13 @@ func integrationInput(t *testing.T, vm *models.MicroVM, dir string) snapshot.Cap
 	t.Helper()
 
 	ctrl := gomock.NewController(t)
+	repo := mock.NewMockMicroVMRepository(ctrl)
 	provider := mock.NewMockMicroVMService(ctrl)
 	volumes := mock.NewMockVolumeService(ctrl)
 	images := mock.NewMockImageService(ctrl)
 	hostInfo := mock.NewMockHostInfoService(ctrl)
 
+	repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vm, nil).AnyTimes()
 	provider.EXPECT().Capabilities().Return(models.Capabilities{models.SnapshotCapability}).AnyTimes()
 	provider.EXPECT().State(gomock.Any(), gomock.Any()).Return(ports.MicroVMStateRunning, nil).AnyTimes()
 	provider.EXPECT().Pause(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -173,6 +175,7 @@ func integrationInput(t *testing.T, vm *models.MicroVM, dir string) snapshot.Cap
 		VM:          vm,
 		Dir:         dir,
 		PauseBudget: time.Minute,
+		Repo:        repo,
 		Provider:    provider,
 		Volumes:     volumes,
 		Images:      images,
