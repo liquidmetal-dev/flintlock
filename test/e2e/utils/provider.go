@@ -67,6 +67,9 @@ type Provider struct {
 	// ResetsGuest is true if the VMM keeps running and starts the guest again
 	// when the guest reboots. The kernel of a guest reboots when it panics.
 	ResetsGuest bool
+	// ReadsMetadataService is true if the guest reads its cloud-init data from
+	// the metadata service of the VMM over the network.
+	ReadsMetadataService bool
 }
 
 // BinaryPath returns the path of the VMM binary of the provider, which is
@@ -133,7 +136,8 @@ func Firecracker() Provider {
 		KernelImage:    "ghcr.io/liquidmetal-dev/firecracker-kernel:6.1",
 		KernelFilename: "boot/vmlinux",
 		// Firecracker exits when the guest reboots.
-		ResetsGuest: false,
+		ResetsGuest:          false,
+		ReadsMetadataService: true,
 	}
 }
 
