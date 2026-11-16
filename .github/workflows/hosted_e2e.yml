@@ -14,7 +14,7 @@ on:
       cloud_hypervisor_version:
         description: "Cloud Hypervisor release tag to install"
         required: false
-        default: "v48.0"
+        default: "v54.1"
       containerd_version:
         description: "containerd release tag to install"
         required: false
@@ -111,7 +111,7 @@ jobs:
 
       - name: Install Cloud Hypervisor
         env:
-          CLOUD_HYPERVISOR: ${{ github.event.inputs.cloud_hypervisor_version || 'v48.0' }}
+          CLOUD_HYPERVISOR: ${{ github.event.inputs.cloud_hypervisor_version || 'v54.1' }}
         run: |
           sudo env "CLOUD_HYPERVISOR=${CLOUD_HYPERVISOR}" ./hack/scripts/provision.sh cloudhypervisor
 
