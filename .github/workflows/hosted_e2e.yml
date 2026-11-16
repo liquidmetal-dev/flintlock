@@ -106,13 +106,14 @@ jobs:
       - name: Install Firecracker
         env:
           FIRECRACKER: ${{ github.event.inputs.firecracker_version || 'v1.16.1' }}
-        run: sudo -E ./hack/scripts/provision.sh firecracker
+        # sudo on the runner ignores -E, so the version is given with env.
+        run: sudo env "FIRECRACKER=${FIRECRACKER}" ./hack/scripts/provision.sh firecracker
 
       - name: Install Cloud Hypervisor
         env:
           CLOUD_HYPERVISOR: ${{ github.event.inputs.cloud_hypervisor_version || 'v48.0' }}
         run: |
-          sudo -E ./hack/scripts/provision.sh cloudhypervisor
+          sudo env "CLOUD_HYPERVISOR=${CLOUD_HYPERVISOR}" ./hack/scripts/provision.sh cloudhypervisor
 
           command -v cloud-hypervisor-static
           cloud-hypervisor-static --version
