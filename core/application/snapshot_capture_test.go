@@ -26,6 +26,7 @@ type captureAppMocks struct {
 	snapshots *mock.MockSnapshotRepository
 	provider  *mock.MockMicroVMService
 	volumes   *mock.MockVolumeService
+	images    *mock.MockImageService
 	hostInfo  *mock.MockHostInfoService
 	ids       *mock.MockIDService
 }
@@ -40,6 +41,7 @@ func newCaptureTestApp(t *testing.T, cfg *application.Config) (application.App, 
 		snapshots: mock.NewMockSnapshotRepository(ctrl),
 		provider:  mock.NewMockMicroVMService(ctrl),
 		volumes:   mock.NewMockVolumeService(ctrl),
+		images:    mock.NewMockImageService(ctrl),
 		hostInfo:  mock.NewMockHostInfoService(ctrl),
 		ids:       mock.NewMockIDService(ctrl),
 	}
@@ -53,6 +55,7 @@ func newCaptureTestApp(t *testing.T, cfg *application.Config) (application.App, 
 		SnapshotRepo:      m.snapshots,
 		MicrovmProviders:  map[string]ports.MicroVMService{"mock": m.provider},
 		VolumeService:     m.volumes,
+		ImageService:      m.images,
 		HostInfoService:   m.hostInfo,
 		IdentifierService: m.ids,
 		FileSystem:        afero.NewMemMapFs(),
@@ -90,6 +93,7 @@ func TestApp_CaptureSnapshot(t *testing.T) {
 			Return(&models.CapturedVolume{BaseDigest: "abc"}, nil),
 		m.provider.EXPECT().Resume(gomock.Any(), vm).Return(nil),
 		m.hostInfo.EXPECT().Facts(gomock.Any(), "mock").Return(&models.HostFacts{}, nil),
+		m.images.EXPECT().Digest(gomock.Any(), gomock.Any()).Return("sha256:abc", nil),
 	)
 
 	Expect(app.CaptureSnapshot(context.Background(), record)).To(Succeed())

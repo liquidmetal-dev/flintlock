@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
+	"github.com/liquidmetal-dev/flintlock/core/ports"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 var (
 	errNoCapturedVolume = errors.New("the root volume has not been captured")
 	errNoRootRWDrive    = errors.New("no drive holds the writable disk of the root volume")
+	errNoImageDigest    = errors.New("the image service returned no digest")
 )
 
 func (c *Capture) writeFiles(ctx context.Context) error {
@@ -58,6 +60,11 @@ func (c *Capture) descriptor(ctx context.Context) (*models.SnapshotDescriptor, e
 		return nil, err
 	}
 
+	kernel, err := c.image(ctx, string(vm.Spec.Kernel.Image))
+	if err != nil {
+		return nil, err
+	}
+
 	desc := &models.SnapshotDescriptor{
 		FormatVersion:     models.SnapshotDescriptorFormatVersion,
 		VMMType:           facts.VMMType,
@@ -71,7 +78,7 @@ func (c *Capture) descriptor(ctx context.Context) (*models.SnapshotDescriptor, e
 		HostKernel:        facts.HostKernel,
 		VCPUs:             vm.Spec.VCPU,
 		MemoryMB:          vm.Spec.MemoryInMb,
-		KernelImage:       models.SnapshotImage{Reference: string(vm.Spec.Kernel.Image)},
+		KernelImage:       *kernel,
 		Volumes:           []models.SnapshotVolume{root},
 		CreatedAt:         c.pausedAt,
 		Source: models.SnapshotOrigin{
@@ -83,10 +90,28 @@ func (c *Capture) descriptor(ctx context.Context) (*models.SnapshotDescriptor, e
 	}
 
 	if vm.Spec.Initrd != nil {
-		desc.InitrdImage = &models.SnapshotImage{Reference: string(vm.Spec.Initrd.Image)}
+		desc.InitrdImage, err = c.image(ctx, string(vm.Spec.Initrd.Image))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return desc, nil
+}
+
+// image returns the reference and the digest of an image the source booted
+// from. A restore needs the exact image, as a tag can move to other content.
+func (c *Capture) image(ctx context.Context, ref string) (*models.SnapshotImage, error) {
+	digest, err := c.in.Images.Digest(ctx, &ports.ImageSpec{ImageName: ref, Owner: c.in.VM.ID.String()})
+	if err != nil {
+		return nil, fmt.Errorf("getting the digest of image %s: %w", ref, err)
+	}
+
+	if digest == "" {
+		return nil, fmt.Errorf("image %s: %w", ref, errNoImageDigest)
+	}
+
+	return &models.SnapshotImage{Reference: ref, Digest: digest}, nil
 }
 
 // rootVolume describes the captured writable disk of the root, at the

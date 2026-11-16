@@ -447,6 +447,21 @@ func (m *MockImageService) EXPECT() *MockImageServiceMockRecorder {
 	return m.recorder
 }
 
+// Digest mocks base method.
+func (m *MockImageService) Digest(arg0 context.Context, arg1 *ports.ImageSpec) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Digest", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Digest indicates an expected call of Digest.
+func (mr *MockImageServiceMockRecorder) Digest(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Digest", reflect.TypeOf((*MockImageService)(nil).Digest), arg0, arg1)
+}
+
 // Exists mocks base method.
 func (m *MockImageService) Exists(arg0 context.Context, arg1 *ports.ImageSpec) (bool, error) {
 	m.ctrl.T.Helper()

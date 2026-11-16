@@ -280,3 +280,56 @@ func testImageMounted(ctx context.Context, imageSvc ports.ImageService, opts tes
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mounted).To(Equal(opts.Expected))
 }
+
+// TestImageService_Digest_Integration pulls an image and checks that Digest
+// returns the digest containerd records for the name, and that an image that
+// is not on the host is an error rather than an empty digest.
+func TestImageService_Digest_Integration(t *testing.T) {
+	if !runContainerDTests() {
+		t.Skip("skipping containerd image service integration test")
+	}
+
+	RegisterTestingT(t)
+
+	client, ctx := testCreateClient(t)
+	namespaceCtx := namespaces.WithNamespace(ctx, testContainerdNS)
+	owner := fmt.Sprintf("%s/%s-digest", testOwnerNamespace, testOwnerName)
+
+	imageSvc := containerd.NewImageServiceWithClient(&containerd.Config{
+		SnapshotterKernel: testSnapshotter,
+		SnapshotterVolume: testSnapshotter,
+		Namespace:         testContainerdNS,
+	}, client)
+
+	defer func() {
+		if err := client.ImageService().Delete(namespaceCtx, getTestKernelImage()); err != nil {
+			t.Logf("Unable to delete the %s image: %s\n", getTestKernelImage(), err.Error())
+		}
+
+		leases, err := client.LeasesService().List(namespaceCtx)
+		if err != nil {
+			t.Logf("Unable to list leases: %s\n", err.Error())
+		}
+
+		for _, lease := range leases {
+			if err := client.LeasesService().Delete(namespaceCtx, lease); err != nil {
+				t.Logf("Unable to delete %s lease: %s\n", lease.ID, err.Error())
+			}
+		}
+	}()
+
+	input := &ports.ImageSpec{ImageName: getTestKernelImage(), Owner: owner}
+
+	Expect(imageSvc.Pull(ctx, input)).To(Succeed())
+
+	image, err := client.GetImage(namespaceCtx, getTestKernelImage())
+	Expect(err).NotTo(HaveOccurred())
+
+	got, err := imageSvc.Digest(ctx, input)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(got).To(Equal(image.Target().Digest.String()))
+	Expect(got).To(HavePrefix("sha256:"))
+
+	_, err = imageSvc.Digest(ctx, &ports.ImageSpec{ImageName: "docker.io/library/not-pulled:never", Owner: owner})
+	Expect(err).To(HaveOccurred())
+}

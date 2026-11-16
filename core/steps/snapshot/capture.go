@@ -49,6 +49,7 @@ type CaptureInput struct {
 
 	Provider  ports.MicroVMService
 	Volumes   ports.VolumeService
+	Images    ports.ImageService
 	HostInfo  ports.HostInfoService
 	Snapshots ports.SnapshotRepository
 	Locks     Locker

@@ -122,6 +122,10 @@ type ImageService interface {
 	Exists(ctx context.Context, input *ImageSpec) (bool, error)
 	// IsMounted checks if the image is pulled and mounted.
 	IsMounted(ctx context.Context, input *ImageMountSpec) (bool, error)
+	// Digest returns the digest, as sha256:<hex>, of the image that the name
+	// resolves to on the host. It does not pull: an image that is not on the
+	// host is an error.
+	Digest(ctx context.Context, input *ImageSpec) (string, error)
 }
 
 type ImageSpec struct {

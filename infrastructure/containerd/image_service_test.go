@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	ctr "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
+	"github.com/containerd/errdefs"
 	"github.com/golang/mock/gomock"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
@@ -14,6 +16,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/infrastructure/mock"
 	g "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -676,4 +679,52 @@ func TestImageService_Exists_failedCheck(t *testing.T) {
 	})
 	g.Expect(err).To(g.HaveOccurred())
 	g.Expect(exists).To(g.BeFalse())
+}
+
+func TestImageService_Digest_imageOnHost_returnsTargetDigest(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	mockCtrl := gomock.NewController(t)
+	containerdClient := mock.NewMockClient(mockCtrl)
+	image := mock.NewMockImage(mockCtrl)
+	svcConfig := containerd.Config{Namespace: "unit_test_ns"}
+	client := containerd.NewImageServiceWithClient(&svcConfig, containerdClient)
+
+	expected := digest.FromString("manifest")
+
+	containerdClient.EXPECT().
+		GetImage(gomock.Any(), testImage).
+		DoAndReturn(func(ctx context.Context, _ string) (ctr.Image, error) {
+			ns, ok := namespaces.Namespace(ctx)
+			g.Expect(ok).To(g.BeTrue())
+			g.Expect(ns).To(g.Equal("unit_test_ns"))
+
+			return image, nil
+		})
+	image.EXPECT().Target().Return(ocispec.Descriptor{Digest: expected})
+
+	got, err := client.Digest(context.Background(), &ports.ImageSpec{ImageName: testImage, Owner: testOwner})
+
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(got).To(g.Equal(expected.String()))
+	g.Expect(got).To(g.HavePrefix("sha256:"))
+}
+
+func TestImageService_Digest_imageNotOnHost_returnsError(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	mockCtrl := gomock.NewController(t)
+	containerdClient := mock.NewMockClient(mockCtrl)
+	svcConfig := containerd.Config{Namespace: "unit_test_ns"}
+	client := containerd.NewImageServiceWithClient(&svcConfig, containerdClient)
+
+	containerdClient.EXPECT().
+		GetImage(gomock.Any(), testImage).
+		Return(nil, errdefs.ErrNotFound)
+
+	got, err := client.Digest(context.Background(), &ports.ImageSpec{ImageName: testImage, Owner: testOwner})
+
+	g.Expect(err).To(g.MatchError(errdefs.ErrNotFound))
+	g.Expect(err.Error()).To(g.ContainSubstring(testImage))
+	g.Expect(got).To(g.BeEmpty())
 }

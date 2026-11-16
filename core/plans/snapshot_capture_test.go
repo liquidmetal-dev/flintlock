@@ -23,10 +23,12 @@ import (
 )
 
 const (
-	captureSnapshotUID = "8f5b2a4e-2b8c-4f4e-9d61-0b6f2f0a7c11"
-	captureDir         = "/var/lib/flintlock/snapshots/" + captureSnapshotUID
-	captureSecret      = "I2Nsb3VkLWNvbmZpZwpwYXNzd29yZDogaHVudGVyMgo="
-	capturePauseBudget = 10 * time.Second
+	captureKernelDigest = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+	captureInitrdDigest = "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+	captureSnapshotUID  = "8f5b2a4e-2b8c-4f4e-9d61-0b6f2f0a7c11"
+	captureDir          = "/var/lib/flintlock/snapshots/" + captureSnapshotUID
+	captureSecret       = "I2Nsb3VkLWNvbmZpZwpwYXNzd29yZDogaHVudGVyMgo="
+	capturePauseBudget  = 10 * time.Second
 )
 
 var (
@@ -74,6 +76,7 @@ func (l *fakeLocker) Unlock(uid string) {
 type captureMocks struct {
 	provider  *mock.MockMicroVMService
 	volumes   *mock.MockVolumeService
+	images    *mock.MockImageService
 	hostInfo  *mock.MockHostInfoService
 	snapshots *mock.MockSnapshotRepository
 	fs        afero.Fs
@@ -97,6 +100,7 @@ func newCaptureTest(t *testing.T) *captureTest {
 	m := captureMocks{
 		provider:  mock.NewMockMicroVMService(ctrl),
 		volumes:   mock.NewMockVolumeService(ctrl),
+		images:    mock.NewMockImageService(ctrl),
 		hostInfo:  mock.NewMockHostInfoService(ctrl),
 		snapshots: mock.NewMockSnapshotRepository(ctrl),
 		fs:        afero.NewMemMapFs(),
@@ -117,6 +121,7 @@ func newCaptureTest(t *testing.T) *captureTest {
 	collection := &ports.Collection{
 		MicrovmProviders: map[string]ports.MicroVMService{"mock": m.provider},
 		VolumeService:    m.volumes,
+		ImageService:     m.images,
 		HostInfoService:  m.hostInfo,
 		SnapshotRepo:     m.snapshots,
 		FileSystem:       m.fs,
@@ -250,6 +255,17 @@ func (c *captureTest) expectFacts(err error) {
 		})
 }
 
+func (c *captureTest) expectDigests() {
+	owner := c.vm.ID.String()
+
+	c.m.images.EXPECT().
+		Digest(gomock.Any(), &ports.ImageSpec{ImageName: string(c.vm.Spec.Kernel.Image), Owner: owner}).
+		Return(captureKernelDigest, nil)
+	c.m.images.EXPECT().
+		Digest(gomock.Any(), &ports.ImageSpec{ImageName: string(c.vm.Spec.Initrd.Image), Owner: owner}).
+		Return(captureInitrdDigest, nil)
+}
+
 func (c *captureTest) expectRemoveFiles() {
 	c.m.snapshots.EXPECT().RemoveFiles(gomock.Any(), captureSnapshotUID).DoAndReturn(
 		func(_ context.Context, _ string) error {
@@ -314,6 +330,7 @@ func TestRunSnapshotCapture_Success(t *testing.T) {
 	c.expectCapture(nil)
 	c.expectResume(nil)
 	c.expectFacts(nil)
+	c.expectDigests()
 
 	Expect(c.run()).To(Succeed())
 
@@ -340,6 +357,7 @@ func TestRunSnapshotCapture_Descriptor(t *testing.T) {
 	c.expectCapture(nil)
 	c.expectResume(nil)
 	c.expectFacts(nil)
+	c.expectDigests()
 
 	Expect(c.run()).To(Succeed())
 
@@ -363,8 +381,14 @@ func TestRunSnapshotCapture_Descriptor(t *testing.T) {
 		HostKernel:        "6.8.0-45-generic",
 		VCPUs:             2,
 		MemoryMB:          2048,
-		KernelImage:       models.SnapshotImage{Reference: "docker.io/linuxkit/kernel:5.4.129"},
-		InitrdImage:       &models.SnapshotImage{Reference: "ghcr.io/liquidmetal-dev/flintlock-overlay-init:0.16.0"},
+		KernelImage: models.SnapshotImage{
+			Reference: "docker.io/linuxkit/kernel:5.4.129",
+			Digest:    captureKernelDigest,
+		},
+		InitrdImage: &models.SnapshotImage{
+			Reference: "ghcr.io/liquidmetal-dev/flintlock-overlay-init:0.16.0",
+			Digest:    captureInitrdDigest,
+		},
 		Volumes: []models.SnapshotVolume{{
 			DriveID:    "root-rw",
 			Order:      1,
@@ -413,6 +437,7 @@ func TestRunSnapshotCapture_FileModeOfExistingFiles(t *testing.T) {
 	c.expectCapture(nil)
 	c.expectResume(nil)
 	c.expectFacts(nil)
+	c.expectDigests()
 
 	Expect(c.run()).To(Succeed())
 
@@ -622,6 +647,42 @@ func TestRunSnapshotCapture_NoSnapshotCapability(t *testing.T) {
 	c.expectRemoveFiles()
 
 	Expect(c.run()).To(MatchError(snapshot.ErrSnapshotNotSupported))
+}
+
+func TestRunSnapshotCapture_ImageDigestUnknown_failsAndCleansUp(t *testing.T) {
+	RegisterTestingT(t)
+
+	c := newCaptureTest(t)
+	c.expectRunning()
+	c.expectPause()
+	c.expectSnapshot(nil)
+	c.expectCapture(nil)
+	c.expectResume(nil)
+	c.expectFacts(nil)
+	c.m.images.EXPECT().Digest(gomock.Any(), gomock.Any()).Return("", errCaptureTest)
+	c.expectRemoveFiles()
+
+	err := c.run()
+
+	Expect(err).To(MatchError(errCaptureTest))
+	Expect(err.Error()).To(ContainSubstring("digest of image docker.io/linuxkit/kernel:5.4.129"))
+	Expect(c.m.rec.list()).To(ContainElement("remove-files"))
+}
+
+func TestRunSnapshotCapture_ImageDigestEmpty_fails(t *testing.T) {
+	RegisterTestingT(t)
+
+	c := newCaptureTest(t)
+	c.expectRunning()
+	c.expectPause()
+	c.expectSnapshot(nil)
+	c.expectCapture(nil)
+	c.expectResume(nil)
+	c.expectFacts(nil)
+	c.m.images.EXPECT().Digest(gomock.Any(), gomock.Any()).Return("", nil)
+	c.expectRemoveFiles()
+
+	Expect(c.run()).To(MatchError(ContainSubstring("returned no digest")))
 }
 
 func TestRunSnapshotCapture_FailedRemoval(t *testing.T) {

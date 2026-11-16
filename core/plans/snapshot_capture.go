@@ -16,7 +16,7 @@ import (
 const SnapshotCapturePlanName = "snapshot_capture"
 
 var errCaptureServicesMissing = errors.New(
-	"a snapshot capture needs the volume service, the host info service and the snapshot store",
+	"a snapshot capture needs the volume, image and host info services and the snapshot store",
 )
 
 // SnapshotCapturePlanInput is the input of the snapshot capture plan.
@@ -86,7 +86,8 @@ func (p *snapshotCapturePlan) Create(ctx context.Context) ([]planner.Procedure, 
 		return nil, fmt.Errorf("microvm provider %s isn't available", vm.Spec.Provider)
 	}
 
-	if ports.VolumeService == nil || ports.HostInfoService == nil || ports.SnapshotRepo == nil {
+	if ports.VolumeService == nil || ports.ImageService == nil || ports.HostInfoService == nil ||
+		ports.SnapshotRepo == nil {
 		return nil, errCaptureServicesMissing
 	}
 
@@ -98,6 +99,7 @@ func (p *snapshotCapturePlan) Create(ctx context.Context) ([]planner.Procedure, 
 		FlintlockVersion: p.input.FlintlockVersion,
 		Provider:         provider,
 		Volumes:          ports.VolumeService,
+		Images:           ports.ImageService,
 		HostInfo:         ports.HostInfoService,
 		Snapshots:        ports.SnapshotRepo,
 		Locks:            p.input.Locks,
