@@ -50,9 +50,14 @@ func requestContext() (context.Context, context.CancelFunc) {
 }
 
 // CreateMVM creates a microvm with the provider.
-func CreateMVM(client v1alpha1.MicroVMClient, provider Provider, name, ns string) *v1alpha1.CreateMicroVMResponse {
+func CreateMVM(
+	client v1alpha1.MicroVMClient,
+	provider Provider,
+	name, ns string,
+	runCommands ...string,
+) *v1alpha1.CreateMicroVMResponse {
 	createReq := v1alpha1.CreateMicroVMRequest{
-		Microvm: newMicroVMSpec(provider, name, ns),
+		Microvm: newMicroVMSpec(provider, name, ns, runCommands...),
 	}
 	ctx, cancel := requestContext()
 	defer cancel()
@@ -237,20 +242,30 @@ func vendorDataTriesCommand() string {
 		VendorDataTriesMarker, vendorDataURL, cloudInitLog, vendorDataURL, cloudInitLog)
 }
 
-func newMicroVMSpec(provider Provider, name, namespace string) *types.MicroVMSpec {
-	spec, err := NewMicroVMSpec(provider, name, namespace)
+// MetadataInterfaceStateCommand returns a command which writes to the console
+// the systemd-networkd setup state and the IPv4 address of eth0, the metadata
+// interface of a Firecracker guest.
+func MetadataInterfaceStateCommand() string {
+	return fmt.Sprintf(`echo "%s setup=$(networkctl list --no-legend --no-pager eth0 | awk '{print $5}')`+
+		` address=$(ip -4 -o addr show dev eth0 | awk '{print $4}')" > /dev/console`, MetadataInterfaceMarker)
+}
+
+func newMicroVMSpec(provider Provider, name, namespace string, runCommands ...string) *types.MicroVMSpec {
+	spec, err := NewMicroVMSpec(provider, name, namespace, runCommands...)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	return spec
 }
 
 // NewMicroVMSpec returns the spec of a test microvm which is created with the
-// provider.
-func NewMicroVMSpec(provider Provider, name, namespace string) (*types.MicroVMSpec, error) {
+// provider. The guest runs the extra commands after its own checks.
+func NewMicroVMSpec(provider Provider, name, namespace string, extraCommands ...string) (*types.MicroVMSpec, error) {
 	var runCommands []string
 	if provider.ReadsMetadataService {
 		runCommands = append(runCommands, vendorDataTriesCommand())
 	}
+
+	runCommands = append(runCommands, extraCommands...)
 
 	metadata, err := MicroVMMetadata(name, namespace, runCommands...)
 	if err != nil {

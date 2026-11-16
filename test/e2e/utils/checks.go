@@ -36,6 +36,10 @@ const (
 	// vendorDataTriesCommand.
 	VendorDataTriesMarker = "flintlock-e2e vendor-data"
 
+	// MetadataInterfaceMarker starts the line which MetadataInterfaceStateCommand
+	// writes to the console of the guest.
+	MetadataInterfaceMarker = "flintlock-e2e metadata-interface"
+
 	diagnosticLines = 40
 )
 
@@ -211,6 +215,25 @@ func VendorDataTries(stateDir string, provider Provider) (int, int, error) {
 
 // VMMErrorLine returns the line of the stderr of the VMM of a microvm which
 // has all of the texts, in any case. It is an error if there is no such line.
+// MetadataInterfaceState returns the systemd-networkd setup state and the IPv4
+// address of the metadata interface, from the line that
+// MetadataInterfaceStateCommand writes to the console of the guest.
+func MetadataInterfaceState(stateDir string, provider Provider) (string, string, error) {
+	line, err := ConsoleLine(stateDir, provider, MetadataInterfaceMarker+" setup=")
+	if err != nil {
+		return "", "", err
+	}
+
+	var setup, address string
+
+	_, text, _ := strings.Cut(line, MetadataInterfaceMarker)
+	if _, err := fmt.Sscanf(text, " setup=%s address=%s", &setup, &address); err != nil {
+		return "", "", fmt.Errorf("parsing the metadata interface line %q: %w", line, err)
+	}
+
+	return setup, address, nil
+}
+
 func VMMErrorLine(stateDir string, provider Provider, texts ...string) (string, error) {
 	return lineWith(filepath.Join(stateDir, provider.StderrFile), "the stderr of the VMM", texts)
 }
