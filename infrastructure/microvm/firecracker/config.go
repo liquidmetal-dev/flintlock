@@ -288,9 +288,7 @@ func setNetworkConfig(vm *models.MicroVM, kernelCmdLine config.KernelCmdLine, op
 	return nil
 }
 
-// metadataKernelIP returns the guest device name and the kernel ip= value for
-// the first metadata interface with a static IPv4 address.
-func metadataKernelIP(vm *models.MicroVM) (string, string, bool) {
+func metadataKernelIP(vm *models.MicroVM) (device string, param string, ok bool) {
 	for i := range vm.Spec.NetworkInterfaces {
 		iface := vm.Spec.NetworkInterfaces[i]
 		if !iface.AllowMetadataRequests || iface.StaticAddress == nil {
@@ -304,7 +302,7 @@ func metadataKernelIP(vm *models.MicroVM) (string, string, bool) {
 
 		// With an empty hostname field the kernel names the host after the
 		// address, and cloud-init keeps that name if the meta-data has none.
-		param := fmt.Sprintf("%s:::%s:localhost:%s:off", ip, net.IP(ipNet.Mask), iface.GuestDeviceName)
+		param = fmt.Sprintf("%s:::%s:localhost:%s:off", ip, net.IP(ipNet.Mask), iface.GuestDeviceName)
 
 		return iface.GuestDeviceName, param, true
 	}

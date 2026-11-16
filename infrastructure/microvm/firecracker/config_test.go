@@ -364,9 +364,7 @@ func TestProviderDrives_Overlay(t *testing.T) {
 	g.Expect(device).To(g.Equal("vdc"))
 }
 
-// vmWithMetadataInterface returns a VM with the metadata interface that the
-// application adds (eth0) and a data interface (eth1). An empty address
-// gives eth0 no static address.
+// An empty address gives eth0 no static address.
 func vmWithMetadataInterface(t *testing.T, address string) *models.MicroVM {
 	t.Helper()
 
