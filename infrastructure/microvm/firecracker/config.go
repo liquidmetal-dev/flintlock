@@ -111,21 +111,9 @@ func WithMicroVM(vm *models.MicroVM, opts ...MicroVMOption) ConfigOption {
 		shared.SetOverlayKernelParams(kernelCmdLine, drives)
 
 		if vm.Spec.Kernel.AddNetworkConfig {
-			exclude := []string{}
-
-			if _, specIP := vm.Spec.Kernel.CmdLine["ip"]; options.metadataKernelIP && !specIP {
-				if device, param, ok := metadataKernelIP(vm); ok {
-					kernelCmdLine.Set("ip", param)
-					exclude = append(exclude, device)
-				}
+			if err := setNetworkConfig(vm, kernelCmdLine, options); err != nil {
+				return err
 			}
-
-			networkConfig, err := shared.GenerateNetworkConfig(vm, exclude...)
-			if err != nil {
-				return fmt.Errorf("generating kernel network-config: %w", err)
-			}
-
-			kernelCmdLine.Set("network-config", networkConfig)
 		}
 
 		bootSource, err := buildBootSource(vm, kernelCmdLine.String())
@@ -278,6 +266,26 @@ func DefaultKernelCmdLine() config.KernelCmdLine {
 		"i8042.dumbkbd": "",
 		"ds":            "nocloud-net;s=http://169.254.169.254/latest/",
 	}
+}
+
+func setNetworkConfig(vm *models.MicroVM, kernelCmdLine config.KernelCmdLine, options microVMOptions) error {
+	exclude := []string{}
+
+	if _, specIP := vm.Spec.Kernel.CmdLine["ip"]; options.metadataKernelIP && !specIP {
+		if device, param, ok := metadataKernelIP(vm); ok {
+			kernelCmdLine.Set("ip", param)
+			exclude = append(exclude, device)
+		}
+	}
+
+	networkConfig, err := shared.GenerateNetworkConfig(vm, exclude...)
+	if err != nil {
+		return fmt.Errorf("generating kernel network-config: %w", err)
+	}
+
+	kernelCmdLine.Set("network-config", networkConfig)
+
+	return nil
 }
 
 // metadataKernelIP returns the guest device name and the kernel ip= value for
