@@ -3,6 +3,10 @@ package firecracker
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	g "github.com/onsi/gomega"
@@ -97,4 +101,57 @@ func TestWriteMetadata_MMDSFileHasDefaultVendorData(t *testing.T) {
 	g.Expect(written.Latest).To(g.HaveKeyWithValue("vendor-data", defaultVendorData))
 	g.Expect(written.Latest).To(g.HaveKeyWithValue("user-data", "ud"))
 	g.Expect(vm.Spec.Metadata).To(g.HaveLen(2))
+}
+
+func TestVmmConfig_MetadataKernelIP(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		t.Run(fmt.Sprintf("enabled=%t", enabled), func(t *testing.T) {
+			g.RegisterTestingT(t)
+
+			vmid, err := models.NewVMID("test", "ns", "344780b0-6249-11ec-90d6-0242ac120003")
+			g.Expect(err).NotTo(g.HaveOccurred())
+
+			kernelDir := t.TempDir()
+			g.Expect(os.WriteFile(filepath.Join(kernelDir, "vmlinux"), []byte("kernel"), 0o600)).To(g.Succeed())
+
+			vm := &models.MicroVM{
+				ID: *vmid,
+				Spec: models.MicroVMSpec{
+					VCPU:       1,
+					MemoryInMb: 1024,
+					Kernel:     models.Kernel{Filename: "vmlinux", AddNetworkConfig: true},
+					RootVolume: models.Volume{ID: "root"},
+					NetworkInterfaces: []models.NetworkInterface{{
+						GuestDeviceName:       "eth0",
+						Type:                  models.IfaceTypeTap,
+						AllowMetadataRequests: true,
+						GuestMAC:              "AA:FF:00:00:00:01",
+						StaticAddress:         &models.StaticAddress{Address: "169.254.0.1/16"},
+					}},
+				},
+				Status: models.MicroVMStatus{
+					KernelMount: &models.Mount{Source: kernelDir},
+					Volumes: models.VolumeStatuses{
+						"root": &models.VolumeStatus{Mount: models.Mount{Source: "/root.img"}},
+					},
+					NetworkInterfaces: models.NetworkInterfaceStatuses{
+						"eth0": &models.NetworkInterfaceStatus{HostDeviceName: "tap0"},
+					},
+				},
+			}
+
+			p := &fcProvider{config: &Config{MetadataKernelIP: enabled}, fs: afero.NewMemMapFs()}
+			vmState := NewState(*vmid, "/var/lib/flintlock/vm", "/run/flintlock", p.fs)
+
+			cfg, err := p.vmmConfig(vm, vmState)
+			g.Expect(err).NotTo(g.HaveOccurred())
+
+			params := strings.Fields(*cfg.BootSource.BootArgs)
+			if enabled {
+				g.Expect(params).To(g.ContainElement("ip=169.254.0.1:::255.255.0.0:localhost:eth0:off"))
+			} else {
+				g.Expect(params).NotTo(g.ContainElement(g.HavePrefix("ip=")))
+			}
+		})
+	}
 }
