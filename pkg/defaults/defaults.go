@@ -32,8 +32,9 @@ const (
 	FirecrackerDetach = true
 
 	// FirecrackerMetadataKernelIP is the default for the flag that makes the guest
-	// kernel configure the metadata interface with the ip= parameter.
-	FirecrackerMetadataKernelIP = true
+	// kernel configure the metadata interface with the ip= parameter. It is opt-in
+	// until operators have had notice that the default will change.
+	FirecrackerMetadataKernelIP = false
 
 	// CloudHypervisorBin is the name of the Cloud Hypervisor binary.
 	CloudHypervisorBin = "cloud-hypervisor-static"

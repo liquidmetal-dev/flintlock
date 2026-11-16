@@ -245,7 +245,7 @@ func addFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 	cmd.Flags().BoolVar(&cfg.FirecrackerMetadataKernelIP,
 		firecrackerMetadataKernelIPFlag,
 		defaults.FirecrackerMetadataKernelIP,
-		"If true the guest kernel configures the metadata interface with the ip= parameter, which needs CONFIG_IP_PNP in the guest kernel. If false the metadata interface is in the network-config.")
+		"If true the guest kernel configures the metadata interface with the ip= parameter, which needs CONFIG_IP_PNP in the guest kernel. This removes the guest wait for IPv4 address conflict detection (about 6s, twice per boot). If false the metadata interface is in the network-config. The default will change to true in a future release.")
 }
 
 func addCloudHypervisorFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
