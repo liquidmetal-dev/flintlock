@@ -16,7 +16,7 @@ Firecracker MMDS accepts only a link-local address. netplan has no setting to di
 
 When flintlock adds the network-config for a Firecracker microVM, it leaves the metadata interface out of the netplan. It configures the interface with the kernel `ip=` parameter, for example `ip=169.254.0.1:::255.255.0.0:localhost:eth0:off`. The kernel sets the address without a conflict check, and systemd-networkd does not manage the interface. The hostname field is `localhost`, because the kernel otherwise sets the hostname to the address.
 
-The flintlockd flag `--firecracker-metadata-kernel-ip` turns this on. It is `false` by default, so a guest kernel without `CONFIG_IP_PNP` does not lose its metadata on upgrade. When the flag is `false`, or when the spec kernel cmdline already has `ip`, flintlock writes the metadata interface into the netplan as before. After operators have had notice in the release notes, a future release will change the default to `true`.
+The flintlockd flag `--firecracker-metadata-kernel-ip` turns this on. It is `false` by default, so a guest kernel without `CONFIG_IP_PNP` does not lose its metadata on upgrade. When the flag is `false`, or when the spec kernel cmdline already has `ip`, flintlock writes the metadata interface into the netplan as before. After operators have had notice in the release notes, a future release will change the default to `true` (#1411).
 
 Boot tests with Firecracker v1.18.0, the liquidmetal 5.10 kernel and the Ubuntu 24.04 image: the wait for `network-online.target` went from about 6 s to 0.02 s, and the time to the end of cloud-init went down by about 10.5 s. MMDS answered on the first boot, on a reboot, and on a restart of a microVM that was first booted with the old configuration.
 

@@ -19,7 +19,7 @@ times. See [ADR 1396][adr] for the reasons.
 
 The flag is `false` by default, so the metadata interface is in the
 `network-config` unless you turn it on. A future release will change the
-default to `true`.
+default to `true` ([#1411][default-issue]).
 
 ## The guest gets no meta-data or user-data
 
@@ -56,3 +56,4 @@ value and writes the metadata interface into the `network-config` as
 before.
 
 [adr]: https://github.com/liquidmetal-dev/flintlock/blob/main/docs/adr/1396-metadata-interface-kernel-ip.md
+[default-issue]: https://github.com/liquidmetal-dev/flintlock/issues/1411
