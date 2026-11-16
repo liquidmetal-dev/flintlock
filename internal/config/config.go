@@ -24,6 +24,8 @@ type Config struct {
 	FirecrackerBin string
 	// FirecrackerDetatch indicates if the child firecracker processes should be detached from their parent.
 	FirecrackerDetatch bool
+	// FirecrackerMetadataKernelIP indicates that the guest kernel configures the metadata interface (ip= parameter).
+	FirecrackerMetadataKernelIP bool
 	// CloudHypervisorBin is the Cloud Hypervisor binary to use.
 	CloudHypervisorBin string
 	// VirtioFSBin is the VirtioFS binary to use.

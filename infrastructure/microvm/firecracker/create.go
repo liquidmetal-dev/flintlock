@@ -38,7 +38,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("ensuring state dir: %w", err)
 	}
 
-	config, err := CreateConfig(WithMicroVM(vm), WithState(vmState), WithVsock(vm, vmState))
+	config, err := p.vmmConfig(vm, vmState)
 	if err != nil {
 		return fmt.Errorf("creating firecracker config: %w", err)
 	}
@@ -67,6 +67,15 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	}
 
 	return nil
+}
+
+func (p *fcProvider) vmmConfig(vm *models.MicroVM, vmState State) (*VmmConfig, error) {
+	opts := []MicroVMOption{}
+	if p.config.MetadataKernelIP {
+		opts = append(opts, WithMetadataKernelIP())
+	}
+
+	return CreateConfig(WithMicroVM(vm, opts...), WithState(vmState), WithVsock(vm, vmState))
 }
 
 // command returns the command that starts firecracker for a microvm. The

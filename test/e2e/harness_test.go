@@ -2251,3 +2251,55 @@ func TestVendorDataTriesCommandRuns(t *testing.T) {
 	g.Expect(tries).To(Equal(2))
 	g.Expect(ok).To(Equal(1))
 }
+
+func TestNewMicroVMSpecAddsRunCommands(t *testing.T) {
+	g := NewWithT(t)
+
+	spec, err := u.NewMicroVMSpec(u.Firecracker(), "mvm0", "ns0", "echo one")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	commands := runCommandsOfSpec(g, spec)
+	g.Expect(commands).To(HaveLen(2))
+	g.Expect(commands[0]).To(ContainSubstring(u.VendorDataTriesMarker))
+	g.Expect(commands[1]).To(Equal("echo one"))
+}
+
+func TestMetadataInterfaceStateCommandRuns(t *testing.T) {
+	g := NewWithT(t)
+
+	provider := u.Firecracker()
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "bin")
+	g.Expect(os.Mkdir(bin, 0o755)).To(Succeed())
+
+	// Fakes with the output of networkctl and ip in a guest whose kernel
+	// configured eth0.
+	g.Expect(os.WriteFile(filepath.Join(bin, "networkctl"), []byte(
+		"#!/bin/sh\necho '  2 eth0 ether routable unmanaged'\n"), 0o755)).To(Succeed())
+	g.Expect(os.WriteFile(filepath.Join(bin, "ip"), []byte(
+		"#!/bin/sh\necho '2: eth0    inet 169.254.0.1/16 brd 169.254.255.255 scope global eth0'\n"), 0o755)).To(Succeed())
+
+	console := filepath.Join(dir, provider.ConsoleFile)
+	command := strings.ReplaceAll(u.MetadataInterfaceStateCommand(), "/dev/console", console)
+
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"))
+	out, err := cmd.CombinedOutput()
+	g.Expect(err).NotTo(HaveOccurred(), string(out))
+
+	setup, address, err := u.MetadataInterfaceState(dir, provider)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(setup).To(Equal("unmanaged"))
+	g.Expect(address).To(Equal("169.254.0.1/16"))
+}
+
+func TestMetadataInterfaceStateWithoutLine(t *testing.T) {
+	g := NewWithT(t)
+
+	provider := u.Firecracker()
+	dir := t.TempDir()
+	g.Expect(os.WriteFile(filepath.Join(dir, provider.ConsoleFile), []byte("boot\n"), 0o600)).To(Succeed())
+
+	_, _, err := u.MetadataInterfaceState(dir, provider)
+	g.Expect(err).To(HaveOccurred())
+}

@@ -59,12 +59,15 @@ type Runner struct {
 	containerdSession *gexec.Session
 	flintlockdSession *gexec.Session
 	flintlockdConn    *grpc.ClientConn
+	flintlockdFlags   []string
 }
 
-// NewRunner creates a new instance of Runner with a set of Params.
-func NewRunner(params *Params) Runner {
+// NewRunner creates a new instance of Runner with a set of Params. flintlockd
+// gets the extra flags after the flags of the runner.
+func NewRunner(params *Params, flintlockdFlags ...string) Runner {
 	return Runner{
-		params: params,
+		params:          params,
+		flintlockdFlags: flintlockdFlags,
 	}
 }
 
@@ -362,6 +365,7 @@ func (r *Runner) startFlintlockd() {
 	args = append(args, providerFlags...)
 
 	args = append(args, OverlayFlags(r.params.OverlayInitrdImage)...)
+	args = append(args, r.flintlockdFlags...)
 
 	//nolint: gosec // We know what we're doing.
 	flCmd := exec.Command(r.flintlockdBin, args...)

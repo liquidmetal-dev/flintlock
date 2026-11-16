@@ -41,6 +41,8 @@ const (
 	overlayRWSizeMBFlag       = "overlay-rw-size-mb"
 	overlayBaseRetentionFlag  = "overlay-base-retention"
 	overlayInitrdImageFlag    = "overlay-initrd-image"
+
+	firecrackerMetadataKernelIPFlag = "firecracker-metadata-kernel-ip"
 )
 
 // AddGRPCServerFlagsToCommand will add gRPC server flags to the supplied command.
@@ -240,6 +242,10 @@ func addFirecrackerFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		firecrackerDetachFlag,
 		defaults.FirecrackerDetach,
 		"If true the child firecracker processes will be detached from the parent flintlock process.")
+	cmd.Flags().BoolVar(&cfg.FirecrackerMetadataKernelIP,
+		firecrackerMetadataKernelIPFlag,
+		defaults.FirecrackerMetadataKernelIP,
+		"If true the guest kernel configures the metadata interface with the ip= parameter, which needs CONFIG_IP_PNP in the guest kernel. This removes the guest wait for IPv4 address conflict detection (about 6s, twice per boot). If false the metadata interface is in the network-config. The default will change to true in a future release.")
 }
 
 func addCloudHypervisorFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {

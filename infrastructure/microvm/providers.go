@@ -72,6 +72,7 @@ func firecrackerConfig(cfg *config.Config, volumeCaps VolumeCapabilities) *firec
 	return &firecracker.Config{
 		FirecrackerBin:     cfg.FirecrackerBin,
 		RunDetached:        cfg.FirecrackerDetatch,
+		MetadataKernelIP:   cfg.FirecrackerMetadataKernelIP,
 		StateRoot:          cfg.StateRootDir + "/vm",
 		SocketDir:          cfg.SocketDir,
 		VolumeCapabilities: models.Capabilities(volumeCaps),

@@ -34,6 +34,8 @@ type Config struct {
 	SocketDir string
 	// RunDetached indicates that the firecracker processes should be run detached (a.k.a daemon) from the parent process.
 	RunDetached bool
+	// MetadataKernelIP indicates that the guest kernel configures the metadata interface with the ip= parameter.
+	MetadataKernelIP bool
 	// DeleteVMTimeout is the timeout to wait for the microvm to be deleted.
 	DeleteVMTimeout time.Duration
 	// VolumeCapabilities are the volume modes the host accepts, from the

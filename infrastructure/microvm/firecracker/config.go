@@ -2,6 +2,7 @@ package firecracker
 
 import (
 	"fmt"
+	"net"
 	"runtime"
 
 	"github.com/liquidmetal-dev/flintlock/core/errors"
@@ -29,7 +30,27 @@ func CreateConfig(opts ...ConfigOption) (*VmmConfig, error) {
 	return cfg, nil
 }
 
-func WithMicroVM(vm *models.MicroVM) ConfigOption {
+type microVMOptions struct {
+	metadataKernelIP bool
+}
+
+// MicroVMOption changes how WithMicroVM builds the configuration.
+type MicroVMOption func(opts *microVMOptions)
+
+// WithMetadataKernelIP makes the guest kernel configure the metadata interface
+// with the ip= parameter, and leaves the interface out of the network-config.
+func WithMetadataKernelIP() MicroVMOption {
+	return func(opts *microVMOptions) {
+		opts.metadataKernelIP = true
+	}
+}
+
+func WithMicroVM(vm *models.MicroVM, opts ...MicroVMOption) ConfigOption {
+	options := microVMOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	return func(cfg *VmmConfig) error {
 		if vm == nil {
 			return errors.ErrSpecRequired
@@ -90,12 +111,9 @@ func WithMicroVM(vm *models.MicroVM) ConfigOption {
 		shared.SetOverlayKernelParams(kernelCmdLine, drives)
 
 		if vm.Spec.Kernel.AddNetworkConfig {
-			networkConfig, err := shared.GenerateNetworkConfig(vm)
-			if err != nil {
-				return fmt.Errorf("generating kernel network-config: %w", err)
+			if err := setNetworkConfig(vm, kernelCmdLine, options); err != nil {
+				return err
 			}
-
-			kernelCmdLine.Set("network-config", networkConfig)
 		}
 
 		bootSource, err := buildBootSource(vm, kernelCmdLine.String())
@@ -248,6 +266,48 @@ func DefaultKernelCmdLine() config.KernelCmdLine {
 		"i8042.dumbkbd": "",
 		"ds":            "nocloud-net;s=http://169.254.169.254/latest/",
 	}
+}
+
+func setNetworkConfig(vm *models.MicroVM, kernelCmdLine config.KernelCmdLine, options microVMOptions) error {
+	exclude := []string{}
+
+	if _, specIP := vm.Spec.Kernel.CmdLine["ip"]; options.metadataKernelIP && !specIP {
+		if device, param, ok := metadataKernelIP(vm); ok {
+			kernelCmdLine.Set("ip", param)
+			exclude = append(exclude, device)
+		}
+	}
+
+	networkConfig, err := shared.GenerateNetworkConfig(vm, exclude...)
+	if err != nil {
+		return fmt.Errorf("generating kernel network-config: %w", err)
+	}
+
+	kernelCmdLine.Set("network-config", networkConfig)
+
+	return nil
+}
+
+func metadataKernelIP(vm *models.MicroVM) (device string, param string, ok bool) {
+	for i := range vm.Spec.NetworkInterfaces {
+		iface := vm.Spec.NetworkInterfaces[i]
+		if !iface.AllowMetadataRequests || iface.StaticAddress == nil {
+			continue
+		}
+
+		ip, ipNet, err := net.ParseCIDR(string(iface.StaticAddress.Address))
+		if err != nil || ip.To4() == nil {
+			continue
+		}
+
+		// With an empty hostname field the kernel names the host after the
+		// address, and cloud-init keeps that name if the meta-data has none.
+		param = fmt.Sprintf("%s:::%s:localhost:%s:off", ip, net.IP(ipNet.Mask), iface.GuestDeviceName)
+
+		return iface.GuestDeviceName, param, true
+	}
+
+	return "", "", false
 }
 
 // WithVsock adds a vsock device to the config when the microvm has the guest-agent enabled.
