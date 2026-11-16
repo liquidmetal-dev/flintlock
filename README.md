@@ -62,6 +62,7 @@ The table below shows you which versions of Firecracker are compatible with Flin
 
 | Flintlock         | Firecracker                      | Cloud Hypervisor  |
 | ----------------- | -------------------------------- | ----------------- |
+| v0.17.0           | Official v1.16+                  | v54.0+            |
 | v0.16.x           | Official v1.16+                  | v48.0 - v53.0     |
 | v0.9.x            | Official v1.11+                  | v41.0             |
 | v0.8.x            | Official v1.10+                  | v41.0             |

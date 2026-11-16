@@ -36,7 +36,7 @@ require (
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/spf13/viper v1.21.0
 	github.com/vishvananda/netlink v1.3.1
 	golang.org/x/net v0.61.0 // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/liquidmetal-dev/flintlock/api v0.0.0-20230211152005-2177e42d0ee6
 	github.com/liquidmetal-dev/flintlock/client v0.0.0-20230211152005-2177e42d0ee6
 	github.com/liquidmetal-dev/guest-agent v0.5.0
-	github.com/onsi/ginkgo/v2 v2.33.1
+	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/yitsushi/file-tailor v1.0.0
 	golang.org/x/crypto v0.58.0

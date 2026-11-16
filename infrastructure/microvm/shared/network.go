@@ -3,6 +3,7 @@ package shared
 import (
 	"encoding/base64"
 	"fmt"
+	"slices"
 
 	"github.com/firecracker-microvm/firecracker-go-sdk"
 	"gopkg.in/yaml.v2"
@@ -17,7 +18,8 @@ const (
 )
 
 // GenerateNetworkConfig will generate the cloud-init network config from the vm spec.
-func GenerateNetworkConfig(vm *models.MicroVM) (string, error) {
+// Interfaces whose guest device name is in exclude are left out.
+func GenerateNetworkConfig(vm *models.MicroVM, exclude ...string) (string, error) {
 	netConf := &network.Network{
 		Version:  cloudInitNetVersion,
 		Ethernet: map[string]network.Ethernet{},
@@ -25,6 +27,9 @@ func GenerateNetworkConfig(vm *models.MicroVM) (string, error) {
 
 	for i := range vm.Spec.NetworkInterfaces {
 		iface := vm.Spec.NetworkInterfaces[i]
+		if slices.Contains(exclude, iface.GuestDeviceName) {
+			continue
+		}
 
 		status, ok := vm.Status.NetworkInterfaces[iface.GuestDeviceName]
 		if !ok {

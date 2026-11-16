@@ -305,7 +305,9 @@ func buildDiskArgs(vm *models.MicroVM, drives models.Drives) ([]string, error) {
 }
 
 func diskArg(drive models.Drive) string {
-	arg := "path=" + drive.Path
+	// Cloud Hypervisor v54.0 removed image type autodetection, so the image
+	// type must be given explicitly. Flintlock drives are always raw images.
+	arg := "path=" + drive.Path + ",image_type=raw"
 
 	if drive.ReadOnly {
 		arg += ",readonly=on"

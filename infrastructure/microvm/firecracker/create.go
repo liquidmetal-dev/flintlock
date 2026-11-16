@@ -3,6 +3,7 @@ package firecracker
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
+	"github.com/liquidmetal-dev/flintlock/client/cloudinit"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/infrastructure/microvm/shared"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
@@ -23,6 +25,10 @@ import (
 const socketDirPerm = 0o700
 
 var errSymlinkNotSupported = errors.New("file system does not support symlinks")
+
+// defaultVendorData is served when the spec has no vendor-data. Without it
+// MMDS returns 404 and cloud-init retries the URL for about 10 seconds.
+const defaultVendorData = "#cloud-config\n{}\n"
 
 // Create will create a new microvm.
 func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
@@ -38,7 +44,7 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("ensuring state dir: %w", err)
 	}
 
-	config, err := CreateConfig(WithMicroVM(vm), WithState(vmState), WithVsock(vm, vmState))
+	config, err := p.vmmConfig(vm, vmState)
 	if err != nil {
 		return fmt.Errorf("creating firecracker config: %w", err)
 	}
@@ -53,12 +59,8 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 		return fmt.Errorf("saving firecracker config: %w", err)
 	}
 
-	meta := &Metadata{
-		Latest: vm.Spec.Metadata,
-	}
-
-	if err = vmState.SetMetadata(meta); err != nil {
-		return fmt.Errorf("saving firecracker metadata: %w", err)
+	if err = writeMetadata(vm, vmState); err != nil {
+		return err
 	}
 
 	proc, err := p.startFirecracker(p.command(vm, vmState), vmState, p.config.RunDetached)
@@ -71,6 +73,15 @@ func (p *fcProvider) Create(ctx context.Context, vm *models.MicroVM) error {
 	}
 
 	return nil
+}
+
+func (p *fcProvider) vmmConfig(vm *models.MicroVM, vmState State) (*VmmConfig, error) {
+	opts := []MicroVMOption{}
+	if p.config.MetadataKernelIP {
+		opts = append(opts, WithMetadataKernelIP())
+	}
+
+	return CreateConfig(WithMicroVM(vm, opts...), WithState(vmState), WithVsock(vm, vmState))
 }
 
 // command returns the command that starts firecracker for a microvm from its
@@ -215,4 +226,25 @@ func (p *fcProvider) ensureSocketLink(vmState State) error {
 	}
 
 	return nil
+}
+
+func writeMetadata(vm *models.MicroVM, vmState State) error {
+	if err := vmState.SetMetadata(&Metadata{Latest: mmdsMetadata(vm.Spec.Metadata)}); err != nil {
+		return fmt.Errorf("saving firecracker metadata: %w", err)
+	}
+
+	return nil
+}
+
+func mmdsMetadata(specMetadata map[string]string) map[string]string {
+	latest := make(map[string]string, len(specMetadata)+1)
+	for key, value := range specMetadata {
+		latest[key] = value
+	}
+
+	if _, ok := latest[cloudinit.VendorDataKey]; !ok {
+		latest[cloudinit.VendorDataKey] = base64.StdEncoding.EncodeToString([]byte(defaultVendorData))
+	}
+
+	return latest
 }

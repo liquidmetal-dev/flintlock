@@ -54,9 +54,14 @@ func requestContext() (context.Context, context.CancelFunc) {
 }
 
 // CreateMVM creates a microvm with the provider.
-func CreateMVM(client v1alpha1.MicroVMClient, provider Provider, name, ns string) *v1alpha1.CreateMicroVMResponse {
+func CreateMVM(
+	client v1alpha1.MicroVMClient,
+	provider Provider,
+	name, ns string,
+	runCommands ...string,
+) *v1alpha1.CreateMicroVMResponse {
 	createReq := v1alpha1.CreateMicroVMRequest{
-		Microvm: newMicroVMSpec(provider, name, ns),
+		Microvm: newMicroVMSpec(provider, name, ns, runCommands...),
 	}
 	ctx, cancel := requestContext()
 	defer cancel()
@@ -225,17 +230,48 @@ func MicroVMMetadata(name, namespace string, runCommands ...string) (map[string]
 	}, nil
 }
 
-func newMicroVMSpec(provider Provider, name, namespace string) *types.MicroVMSpec {
-	spec, err := NewMicroVMSpec(provider, name, namespace)
+// vendorDataTriesCommand returns a command which writes to the console how
+// many times cloud-init tried to read the vendor-data of the metadata
+// service, and how many of the tries succeeded. The counts come from the
+// lines which readurl of cloudinit/url_helper.py logs at debug level:
+// "[%s/%s] open '%s' with %s configuration" before each try, and
+// "Read from %s (%s, %sb) after %s attempts" when a try succeeds.
+func vendorDataTriesCommand() string {
+	const (
+		vendorDataURL = "http://169.254.169.254/latest/vendor-data"
+		cloudInitLog  = "/var/log/cloud-init.log"
+	)
+
+	return fmt.Sprintf(`echo "%s tries=$(grep -cF "open '%s'" %s) ok=$(grep -cF "Read from %s (200" %s)" > /dev/console`,
+		VendorDataTriesMarker, vendorDataURL, cloudInitLog, vendorDataURL, cloudInitLog)
+}
+
+// MetadataInterfaceStateCommand returns a command which writes to the console
+// the systemd-networkd setup state and the IPv4 address of eth0, the metadata
+// interface of a Firecracker guest.
+func MetadataInterfaceStateCommand() string {
+	return fmt.Sprintf(`echo "%s setup=$(networkctl list --no-legend --no-pager eth0 | awk '{print $5}')`+
+		` address=$(ip -4 -o addr show dev eth0 | awk '{print $4}')" > /dev/console`, MetadataInterfaceMarker)
+}
+
+func newMicroVMSpec(provider Provider, name, namespace string, runCommands ...string) *types.MicroVMSpec {
+	spec, err := NewMicroVMSpec(provider, name, namespace, runCommands...)
 	g.Expect(err).NotTo(g.HaveOccurred())
 
 	return spec
 }
 
 // NewMicroVMSpec returns the spec of a test microvm which is created with the
-// provider.
-func NewMicroVMSpec(provider Provider, name, namespace string) (*types.MicroVMSpec, error) {
-	metadata, err := MicroVMMetadata(name, namespace)
+// provider. The guest runs the extra commands after its own checks.
+func NewMicroVMSpec(provider Provider, name, namespace string, extraCommands ...string) (*types.MicroVMSpec, error) {
+	var runCommands []string
+	if provider.ReadsMetadataService {
+		runCommands = append(runCommands, vendorDataTriesCommand())
+	}
+
+	runCommands = append(runCommands, extraCommands...)
+
+	metadata, err := MicroVMMetadata(name, namespace, runCommands...)
 	if err != nil {
 		return nil, err
 	}
