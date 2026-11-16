@@ -141,7 +141,9 @@ func (c *Capture) rootVolume() (models.SnapshotVolume, error) {
 }
 
 // writeJSON writes value as JSON to the file with the name in the snapshot
-// directory, readable by the owner only.
+// directory, readable by the owner only. The bytes go to a new 0600 file that
+// is renamed over the destination, so they are never in a file with a wider
+// mode, such as one an earlier run left behind.
 func (c *Capture) writeJSON(name string, value any) error {
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -150,14 +152,58 @@ func (c *Capture) writeJSON(name string, value any) error {
 
 	path := filepath.Join(c.in.Dir, name)
 
-	if err := afero.WriteFile(c.in.FS, path, data, filePerm); err != nil {
-		return fmt.Errorf("writing %s: %w", path, err)
+	tmp, err := afero.TempFile(c.in.FS, c.in.Dir, "."+name+".tmp-*")
+	if err != nil {
+		return fmt.Errorf("creating a temporary file for %s: %w", path, err)
 	}
 
-	// WriteFile does not change the mode of a file that exists, and the umask
-	// applies to one it creates.
-	if err := c.in.FS.Chmod(path, filePerm); err != nil {
-		return fmt.Errorf("setting the mode of %s: %w", path, err)
+	tmpPath := tmp.Name()
+
+	if err := writeSynced(c.in.FS, tmp, data); err != nil {
+		_ = c.in.FS.Remove(tmpPath)
+
+		return fmt.Errorf("writing %s: %w", tmpPath, err)
+	}
+
+	if err := c.in.FS.Rename(tmpPath, path); err != nil {
+		_ = c.in.FS.Remove(tmpPath)
+
+		return fmt.Errorf("renaming %s to %s: %w", tmpPath, path, err)
+	}
+
+	return syncDir(c.in.FS, c.in.Dir)
+}
+
+// writeSynced sets the mode of the file to 0600 before it writes data, and
+// syncs and closes it.
+func writeSynced(fs afero.Fs, f afero.File, data []byte) error {
+	defer func() { _ = f.Close() }()
+
+	if err := fs.Chmod(f.Name(), filePerm); err != nil {
+		return fmt.Errorf("setting the mode: %w", err)
+	}
+
+	if _, err := f.Write(data); err != nil {
+		return fmt.Errorf("writing: %w", err)
+	}
+
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("syncing: %w", err)
+	}
+
+	return f.Close() //nolint:wrapcheck // the caller adds the path
+}
+
+func syncDir(fs afero.Fs, dir string) error {
+	d, err := fs.Open(dir)
+	if err != nil {
+		return fmt.Errorf("opening %s: %w", dir, err)
+	}
+
+	defer func() { _ = d.Close() }()
+
+	if err := d.Sync(); err != nil {
+		return fmt.Errorf("syncing %s: %w", dir, err)
 	}
 
 	return nil
