@@ -250,6 +250,53 @@ func MetadataInterfaceStateCommand() string {
 		` address=$(ip -4 -o addr show dev eth0 | awk '{print $4}')" > /dev/console`, MetadataInterfaceMarker)
 }
 
+// BalloonStateCommand returns a command which writes to the console the
+// virtio device that the balloon driver has bound, and bit 5 of its features,
+// VIRTIO_BALLOON_F_REPORTING, which is 1 when free page reporting is on.
+func BalloonStateCommand() string {
+	return `d=$(ls /sys/bus/virtio/drivers/virtio_balloon 2>/dev/null | grep '^virtio' | head -n 1); r=0;` +
+		` [ -n "$d" ] && r=$(cut -c6 /sys/bus/virtio/devices/$d/features);` +
+		fmt.Sprintf(` echo "%s device=${d:-none} reporting=$r" > /dev/console`, BalloonMarker)
+}
+
+// BalloonFillCommand returns a command which writes sizeMiB of zeros to a
+// tmpfs, writes "filled" to the console, waits for waitSeconds, then frees the
+// memory and writes "freed". The guest touches the memory, so the VMM's
+// resident set grows, and then frees it for free page reporting to return.
+func BalloonFillCommand(sizeMiB, waitSeconds int) string {
+	const (
+		dir = "/mnt/flintlock-e2e-fill"
+		// fillHeadroomMiB makes the tmpfs a little larger than the file.
+		fillHeadroomMiB = 64
+	)
+
+	return fmt.Sprintf(`mkdir -p %[1]s && mount -t tmpfs -o size=%[2]dm tmpfs %[1]s`+
+		` && dd if=/dev/zero of=%[1]s/fill bs=1M count=%[3]d 2>/dev/null`+
+		` && echo "%[4]s filled" > /dev/console && sleep %[5]d`+
+		` && rm %[1]s/fill && umount %[1]s && echo "%[4]s freed" > /dev/console`,
+		dir, sizeMiB+fillHeadroomMiB, sizeMiB, BalloonMarker, waitSeconds)
+}
+
+// CreateBalloonMVM creates a microvm with a balloon with free page reporting.
+// The guest runs the extra commands after its own checks.
+func CreateBalloonMVM(
+	client v1alpha1.MicroVMClient,
+	provider Provider,
+	name, ns string,
+	runCommands ...string,
+) *v1alpha1.CreateMicroVMResponse {
+	spec := newMicroVMSpec(provider, name, ns, runCommands...)
+	spec.Balloon = &types.Balloon{FreePageReporting: true}
+
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	created, err := client.CreateMicroVM(ctx, &v1alpha1.CreateMicroVMRequest{Microvm: spec})
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	return created
+}
+
 func newMicroVMSpec(provider Provider, name, namespace string, runCommands ...string) *types.MicroVMSpec {
 	spec, err := NewMicroVMSpec(provider, name, namespace, runCommands...)
 	g.Expect(err).NotTo(g.HaveOccurred())
