@@ -11,4 +11,5 @@ func init() {
 	typeurl.Register(&MicroVMRestored{}, "microvm.services.api.events.microvmrestored")
 	typeurl.Register(&SnapshotCreated{}, "snapshot.services.api.events.snapshotcreated")
 	typeurl.Register(&SnapshotDeleted{}, "snapshot.services.api.events.snapshotdeleted")
+	typeurl.Register(&SnapshotUpdated{}, "snapshot.services.api.events.snapshotupdated")
 }
