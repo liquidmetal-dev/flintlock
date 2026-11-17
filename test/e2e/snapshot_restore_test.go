@@ -348,7 +348,12 @@ func (s *snapshotRun) verifyRestored(vm snapshotVM, generation int) {
 
 	log.Printf("TEST STEP: checking the guest of %s", vm)
 
-	Expect(guestRun(s.exec, vm, "cat "+guestMarker)).To(Equal(s.marker+"\n"),
+	marker := guestRun(s.exec, vm, "cat "+guestMarker)
+	if marker != s.marker+"\n" {
+		logGuestFile(s.exec, vm, guestMarker)
+	}
+
+	Expect(marker).To(Equal(s.marker+"\n"),
 		"the marker file of the restored guest is not the one which was written in the source")
 
 	lines := verifyCounterResumes(s.exec, s.source, vm)
@@ -479,6 +484,22 @@ func guestRun(client execv1.MicroVMExecClient, vm snapshotVM, script string) str
 	Expect(result.Err()).NotTo(HaveOccurred(), "running %q in %s", script, vm)
 
 	return result.Stdout
+}
+
+// logGuestFile logs what the guest reports about a file, so that a read that
+// differs from the expected content can be told apart from lost exec output.
+func logGuestFile(client execv1.MicroVMExecClient, vm snapshotVM, path string) {
+	for _, script := range []string{
+		"cat " + path,
+		"stat " + path,
+		"wc -c " + path + " && md5sum " + path,
+		"findmnt -T " + path,
+		"dmesg | tail -n 40",
+	} {
+		result, err := u.ExecShell(client, vm.uid, script)
+		log.Printf("TEST INFO: %s in %s: stdout %q, stderr %q, err %v, exec err %v",
+			script, vm, result.Stdout, result.Stderr, result.Err(), err)
+	}
 }
 
 func readCounter(client execv1.MicroVMExecClient, vm snapshotVM) []u.CounterLine {
