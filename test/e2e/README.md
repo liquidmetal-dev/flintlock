@@ -386,7 +386,9 @@ gh run download <run id> --name e2e-microvm-state-1
 The tests do not save anything when they are stopped, by their timeout or by a
 panic. The state directories of their MicroVMs are still there then, and the
 workflow copies the files of them to the `left-behind` directory of the
-artefact. It has no such directory when all of the MicroVMs were deleted.
+artefact. It has no such directory when all of the MicroVMs were deleted. The
+JSON files of the snapshots which are left in `/var/lib/flintlock/snapshots`
+are copied to `left-behind-snapshots`.
 
 ### Configuration
 
