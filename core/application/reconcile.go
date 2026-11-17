@@ -17,10 +17,25 @@ import (
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
 )
 
-const backoffBaseInSeconds = 20
+const (
+	backoffBaseInSeconds = 20
+	lockedRequeueDelay   = 5 * time.Second
+)
 
+// ReconcileMicroVM reconciles the microvm while it holds its lock. When other work,
+// such as a snapshot capture, holds the lock, it returns at once and the microvm is
+// reconciled again after lockedRequeueDelay.
 func (a *app) ReconcileMicroVM(ctx context.Context, vmid models.VMID) error {
 	logger := log.GetLogger(ctx).WithField("action", "reconcile")
+
+	if !a.vmLocks.TryLock(vmid.UID()) {
+		logger.Infof("microvm %s is locked, reconciling it again in %s", vmid.String(), a.lockedRequeueDelay)
+		a.publishUpdatedAfter(logger, vmid, a.lockedRequeueDelay)
+
+		return nil
+	}
+
+	defer a.vmLocks.Unlock(vmid.UID())
 
 	logger.Debugf("Getting spec for %s", vmid.String())
 
@@ -78,24 +93,30 @@ func (a *app) reschedule(ctx context.Context, logger *logrus.Entry, spec *models
 		return fmt.Errorf("saving spec failed: %w", err)
 	}
 
-	go func(uid string, sleepTime time.Duration) {
-		time.Sleep(sleepTime)
+	a.publishUpdatedAfter(logger, spec.ID, waitTime)
+
+	return nil
+}
+
+// publishUpdatedAfter publishes an update event of the microvm after the delay,
+// so that the controller reconciles it again.
+func (a *app) publishUpdatedAfter(logger *logrus.Entry, vmid models.VMID, delay time.Duration) {
+	go func() {
+		time.Sleep(delay)
 
 		err := a.ports.EventService.Publish(
 			context.Background(),
 			defaults.TopicMicroVMEvents,
 			&events.MicroVMSpecUpdated{
-				UID:       uid,
-				Namespace: spec.ID.Namespace(),
-				ID:        spec.ID.Name(),
+				UID:       vmid.UID(),
+				Namespace: vmid.Namespace(),
+				ID:        vmid.Name(),
 			},
 		)
 		if err != nil {
-			logger.Errorf("failed to publish an update event for %s", uid)
+			logger.Errorf("failed to publish an update event for %s", vmid.UID())
 		}
-	}(spec.ID.UID(), waitTime)
-
-	return nil
+	}()
 }
 
 func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logrus.Entry) error {

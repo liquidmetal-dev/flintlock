@@ -24,6 +24,8 @@ func New(cfg *Config, ports *ports.Collection) App {
 		cfg:     cfg,
 		ports:   ports,
 		vmLocks: NewVMLocks(),
+
+		lockedRequeueDelay: lockedRequeueDelay,
 	}
 }
 
@@ -39,6 +41,10 @@ type app struct {
 
 	// vmLocks keeps a snapshot capture and other work on the same microvm apart.
 	vmLocks *VMLocks
+
+	// lockedRequeueDelay is how long a reconcile of a locked microvm waits before
+	// it is tried again.
+	lockedRequeueDelay time.Duration
 }
 
 type Config struct {
