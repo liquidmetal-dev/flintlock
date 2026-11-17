@@ -147,7 +147,17 @@ func (a *app) reconcile(ctx context.Context, spec *models.MicroVM, logger *logru
 	spec.Status.Retry = 0
 	spec.Status.NotBefore = 0
 
-	return a.saveState(ctx, spec, plan, models.CreatedState)
+	return a.saveState(ctx, spec, plan, reconciledState(spec))
+}
+
+// reconciledState is the state of a microvm after a create or update plan ran
+// all its steps. The plan pauses the VMM of a microvm whose client wants it paused.
+func reconciledState(spec *models.MicroVM) models.MicroVMState {
+	if spec.Spec.WantsPaused() {
+		return models.PausedState
+	}
+
+	return models.CreatedState
 }
 
 func (a *app) saveState(ctx context.Context, spec *models.MicroVM, plan planner.Plan, state models.MicroVMState) error {
