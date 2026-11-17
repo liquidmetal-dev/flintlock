@@ -479,6 +479,7 @@ VolumeSource is the source of a volume. Based loosely on the volumes in Kubernet
 | CREATED | 1 |  |
 | FAILED | 2 |  |
 | DELETING | 3 |  |
+| PAUSED | 4 | PAUSED is a microvm whose vCPUs PauseMicroVM paused. |
 
 
 

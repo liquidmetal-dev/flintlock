@@ -677,6 +677,34 @@ func (mr *MockMicroVMCommandUseCasesMockRecorder) DeleteMicroVM(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMicroVM", reflect.TypeOf((*MockMicroVMCommandUseCases)(nil).DeleteMicroVM), arg0, arg1)
 }
 
+// PauseMicroVM mocks base method.
+func (m *MockMicroVMCommandUseCases) PauseMicroVM(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PauseMicroVM", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PauseMicroVM indicates an expected call of PauseMicroVM.
+func (mr *MockMicroVMCommandUseCasesMockRecorder) PauseMicroVM(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseMicroVM", reflect.TypeOf((*MockMicroVMCommandUseCases)(nil).PauseMicroVM), arg0, arg1)
+}
+
+// ResumeMicroVM mocks base method.
+func (m *MockMicroVMCommandUseCases) ResumeMicroVM(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResumeMicroVM", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResumeMicroVM indicates an expected call of ResumeMicroVM.
+func (mr *MockMicroVMCommandUseCasesMockRecorder) ResumeMicroVM(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeMicroVM", reflect.TypeOf((*MockMicroVMCommandUseCases)(nil).ResumeMicroVM), arg0, arg1)
+}
+
 // MockMicroVMQueryUseCases is a mock of MicroVMQueryUseCases interface.
 type MockMicroVMQueryUseCases struct {
 	ctrl     *gomock.Controller

@@ -22,6 +22,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	MicroVM_CreateMicroVM_FullMethodName      = "/microvm.services.api.v1alpha1.MicroVM/CreateMicroVM"
 	MicroVM_DeleteMicroVM_FullMethodName      = "/microvm.services.api.v1alpha1.MicroVM/DeleteMicroVM"
+	MicroVM_PauseMicroVM_FullMethodName       = "/microvm.services.api.v1alpha1.MicroVM/PauseMicroVM"
+	MicroVM_ResumeMicroVM_FullMethodName      = "/microvm.services.api.v1alpha1.MicroVM/ResumeMicroVM"
 	MicroVM_GetMicroVM_FullMethodName         = "/microvm.services.api.v1alpha1.MicroVM/GetMicroVM"
 	MicroVM_ListMicroVMs_FullMethodName       = "/microvm.services.api.v1alpha1.MicroVM/ListMicroVMs"
 	MicroVM_ListMicroVMsStream_FullMethodName = "/microvm.services.api.v1alpha1.MicroVM/ListMicroVMsStream"
@@ -36,6 +38,14 @@ const (
 type MicroVMClient interface {
 	CreateMicroVM(ctx context.Context, in *CreateMicroVMRequest, opts ...grpc.CallOption) (*CreateMicroVMResponse, error)
 	DeleteMicroVM(ctx context.Context, in *DeleteMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// PauseMicroVM pauses the vCPUs of a running microvm. The microvm keeps its memory
+	// and its devices. It stays paused until ResumeMicroVM, also when flintlockd restarts.
+	// Pausing a paused microvm succeeds. A microvm in another state fails with
+	// FAILED_PRECONDITION.
+	PauseMicroVM(ctx context.Context, in *PauseMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// ResumeMicroVM resumes a paused microvm. Resuming a running microvm succeeds. A
+	// microvm in another state fails with FAILED_PRECONDITION.
+	ResumeMicroVM(ctx context.Context, in *ResumeMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetMicroVM(ctx context.Context, in *GetMicroVMRequest, opts ...grpc.CallOption) (*GetMicroVMResponse, error)
 	ListMicroVMs(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (*ListMicroVMsResponse, error)
 	ListMicroVMsStream(ctx context.Context, in *ListMicroVMsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListMessage], error)
@@ -64,6 +74,26 @@ func (c *microVMClient) DeleteMicroVM(ctx context.Context, in *DeleteMicroVMRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, MicroVM_DeleteMicroVM_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *microVMClient) PauseMicroVM(ctx context.Context, in *PauseMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, MicroVM_PauseMicroVM_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *microVMClient) ResumeMicroVM(ctx context.Context, in *ResumeMicroVMRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, MicroVM_ResumeMicroVM_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +157,14 @@ func (c *microVMClient) ServerInfo(ctx context.Context, in *emptypb.Empty, opts 
 type MicroVMServer interface {
 	CreateMicroVM(context.Context, *CreateMicroVMRequest) (*CreateMicroVMResponse, error)
 	DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error)
+	// PauseMicroVM pauses the vCPUs of a running microvm. The microvm keeps its memory
+	// and its devices. It stays paused until ResumeMicroVM, also when flintlockd restarts.
+	// Pausing a paused microvm succeeds. A microvm in another state fails with
+	// FAILED_PRECONDITION.
+	PauseMicroVM(context.Context, *PauseMicroVMRequest) (*emptypb.Empty, error)
+	// ResumeMicroVM resumes a paused microvm. Resuming a running microvm succeeds. A
+	// microvm in another state fails with FAILED_PRECONDITION.
+	ResumeMicroVM(context.Context, *ResumeMicroVMRequest) (*emptypb.Empty, error)
 	GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error)
 	ListMicroVMs(context.Context, *ListMicroVMsRequest) (*ListMicroVMsResponse, error)
 	ListMicroVMsStream(*ListMicroVMsRequest, grpc.ServerStreamingServer[ListMessage]) error
@@ -145,6 +183,12 @@ func (UnimplementedMicroVMServer) CreateMicroVM(context.Context, *CreateMicroVMR
 }
 func (UnimplementedMicroVMServer) DeleteMicroVM(context.Context, *DeleteMicroVMRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMicroVM not implemented")
+}
+func (UnimplementedMicroVMServer) PauseMicroVM(context.Context, *PauseMicroVMRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PauseMicroVM not implemented")
+}
+func (UnimplementedMicroVMServer) ResumeMicroVM(context.Context, *ResumeMicroVMRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResumeMicroVM not implemented")
 }
 func (UnimplementedMicroVMServer) GetMicroVM(context.Context, *GetMicroVMRequest) (*GetMicroVMResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMicroVM not implemented")
@@ -210,6 +254,42 @@ func _MicroVM_DeleteMicroVM_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MicroVMServer).DeleteMicroVM(ctx, req.(*DeleteMicroVMRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MicroVM_PauseMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseMicroVMRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MicroVMServer).PauseMicroVM(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MicroVM_PauseMicroVM_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MicroVMServer).PauseMicroVM(ctx, req.(*PauseMicroVMRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MicroVM_ResumeMicroVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeMicroVMRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MicroVMServer).ResumeMicroVM(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MicroVM_ResumeMicroVM_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MicroVMServer).ResumeMicroVM(ctx, req.(*ResumeMicroVMRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -293,6 +373,14 @@ var MicroVM_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMicroVM",
 			Handler:    _MicroVM_DeleteMicroVM_Handler,
+		},
+		{
+			MethodName: "PauseMicroVM",
+			Handler:    _MicroVM_PauseMicroVM_Handler,
+		},
+		{
+			MethodName: "ResumeMicroVM",
+			Handler:    _MicroVM_ResumeMicroVM_Handler,
 		},
 		{
 			MethodName: "GetMicroVM",
