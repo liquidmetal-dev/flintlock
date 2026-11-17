@@ -54,6 +54,9 @@ func (s *deleteStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 	logger.Debug("deleting microvm")
 
 	id := s.vm.ID.String()
+
+	s.resumeIfPaused(ctx, logger)
+
 	if err := s.vmSvc.Delete(ctx, id); err != nil {
 		return nil, fmt.Errorf("deleting microvm: %w", err)
 	}
@@ -63,4 +66,26 @@ func (s *deleteStep) Do(ctx context.Context) ([]planner.Procedure, error) {
 
 func (s *deleteStep) Verify(_ context.Context) error {
 	return nil
+}
+
+// resumeIfPaused resumes a paused VMM before the delete, so that the provider
+// does not have to handle a paused VMM: Cloud Hypervisor, for one, shuts the
+// VM down through its API. A failed resume is logged, and the delete goes on.
+func (s *deleteStep) resumeIfPaused(ctx context.Context, logger *logrus.Entry) {
+	state, err := s.vmSvc.State(ctx, s.vm.ID.String())
+	if err != nil {
+		logger.WithError(err).Warn("checking if microvm is paused before the delete")
+
+		return
+	}
+
+	if state != ports.MicroVMStatePaused {
+		return
+	}
+
+	logger.Info("resuming paused microvm before the delete")
+
+	if err := s.vmSvc.Resume(ctx, s.vm); err != nil {
+		logger.WithError(err).Warn("resuming paused microvm before the delete")
+	}
 }

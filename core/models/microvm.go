@@ -9,6 +9,18 @@ const (
 	CreatedState  = "created"
 	FailedState   = "failed"
 	DeletingState = "deleting"
+	// PausedState is a created microvm whose vCPUs a client paused.
+	PausedState = "paused"
+)
+
+// PowerState is the power state that a client wants for a microvm.
+type PowerState string
+
+const (
+	// PowerStateRunning is a microvm whose vCPUs run. An empty power state means running.
+	PowerStateRunning PowerState = "running"
+	// PowerStatePaused is a microvm whose vCPUs are paused.
+	PowerStatePaused PowerState = "paused"
 )
 
 // MicroVM represents a microvm machine that is created via a provider.
@@ -60,6 +72,9 @@ type MicroVMSpec struct {
 	UpdatedAt int64 `json:"updated_at" validate:"omitempty,datetimeInPast"`
 	// DeletedAt indicates the time the microvm was marked as deleted.
 	DeletedAt int64 `json:"deleted_at" validate:"omitempty,datetimeInPast"`
+	// PowerState is the power state the client wants. PauseMicroVM and ResumeMicroVM set
+	// it, and the reconciler keeps the VMM in it. An empty value means running.
+	PowerState PowerState `json:"power_state,omitempty"`
 }
 
 // CPUConfig represents CPU feature configuration for a microvm.
@@ -109,3 +124,8 @@ type ContainerImage string
 
 // ListMicroVMQuery is a key-value map to query microvms.
 type ListMicroVMQuery map[string]string
+
+// WantsPaused reports whether the client wants the microvm paused.
+func (s *MicroVMSpec) WantsPaused() bool {
+	return s.PowerState == PowerStatePaused
+}

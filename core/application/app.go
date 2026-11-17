@@ -29,7 +29,9 @@ type app struct {
 	ports *ports.Collection
 
 	// snapshotMu makes the in-progress check and the create of a snapshot one step,
-	// so two requests for the same microvm cannot both pass the check.
+	// so two requests for the same microvm cannot both pass the check. A pause and a
+	// resume hold it too, so that they do not change a microvm while a snapshot of it
+	// is requested, and two of them do not interleave.
 	snapshotMu sync.Mutex
 }
 

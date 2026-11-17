@@ -134,6 +134,11 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding guest-agent ready step: %w", err)
 	}
 
+	// The pause comes last, so that a VMM that starts again boots its guest first.
+	if err := p.addStep(ctx, microvm.NewPauseStep(p.vm, provider)); err != nil {
+		return nil, fmt.Errorf("adding microvm pause step: %w", err)
+	}
+
 	return p.steps, nil
 }
 

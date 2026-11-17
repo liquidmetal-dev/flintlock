@@ -111,6 +111,48 @@ func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequ
 	return &emptypb.Empty{}, nil
 }
 
+func (s *server) PauseMicroVM(ctx context.Context, req *mvmv1.PauseMicroVMRequest) (*emptypb.Empty, error) {
+	logger := log.GetLogger(ctx)
+
+	if req.GetUid() == "" {
+		logger.Error("invalid pause microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request: uid required")
+	}
+
+	logger.Infof("pausing microvm %s", req.GetUid())
+
+	if err := s.commandUC.PauseMicroVM(ctx, req.GetUid()); err != nil {
+		logger.Errorf("failed to pause microvm: %s", err)
+
+		return nil, useCaseError("pausing microvm", err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *server) ResumeMicroVM(ctx context.Context, req *mvmv1.ResumeMicroVMRequest) (*emptypb.Empty, error) {
+	logger := log.GetLogger(ctx)
+
+	if req.GetUid() == "" {
+		logger.Error("invalid resume microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request: uid required")
+	}
+
+	logger.Infof("resuming microvm %s", req.GetUid())
+
+	if err := s.commandUC.ResumeMicroVM(ctx, req.GetUid()); err != nil {
+		logger.Errorf("failed to resume microvm: %s", err)
+
+		return nil, useCaseError("resuming microvm", err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
 func (s *server) GetMicroVM(ctx context.Context, req *mvmv1.GetMicroVMRequest) (*mvmv1.GetMicroVMResponse, error) {
 	logger := log.GetLogger(ctx)
 

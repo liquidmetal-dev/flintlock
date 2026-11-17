@@ -17,6 +17,8 @@ editURL: https://github.com/liquidmetal-dev/flintlock/edit/main/api/services/mic
     - [ListMessage](#microvm-services-api-v1alpha1-ListMessage)
     - [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest)
     - [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse)
+    - [PauseMicroVMRequest](#microvm-services-api-v1alpha1-PauseMicroVMRequest)
+    - [ResumeMicroVMRequest](#microvm-services-api-v1alpha1-ResumeMicroVMRequest)
     - [ServerInfoResponse](#microvm-services-api-v1alpha1-ServerInfoResponse)
     - [VersionInfo](#microvm-services-api-v1alpha1-VersionInfo)
   
@@ -189,6 +191,36 @@ main API listener. address is only populated when enabled is true.
 
 
 
+<a name="microvm-services-api-v1alpha1-PauseMicroVMRequest"></a>
+
+### PauseMicroVMRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="microvm-services-api-v1alpha1-ResumeMicroVMRequest"></a>
+
+### ResumeMicroVMRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uid | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="microvm-services-api-v1alpha1-ServerInfoResponse"></a>
 
 ### ServerInfoResponse
@@ -239,6 +271,8 @@ MicroVM providers a service to create and manage the lifecycle of microvms.
 | ----------- | ------------ | ------------- | ------------|
 | CreateMicroVM | [CreateMicroVMRequest](#microvm-services-api-v1alpha1-CreateMicroVMRequest) | [CreateMicroVMResponse](#microvm-services-api-v1alpha1-CreateMicroVMResponse) |  |
 | DeleteMicroVM | [DeleteMicroVMRequest](#microvm-services-api-v1alpha1-DeleteMicroVMRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) |  |
+| PauseMicroVM | [PauseMicroVMRequest](#microvm-services-api-v1alpha1-PauseMicroVMRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | PauseMicroVM pauses the vCPUs of a running microvm. The microvm keeps its memory and its devices. It stays paused until ResumeMicroVM, also when flintlockd restarts. Pausing a paused microvm succeeds. A microvm in another state fails with FAILED_PRECONDITION. |
+| ResumeMicroVM | [ResumeMicroVMRequest](#microvm-services-api-v1alpha1-ResumeMicroVMRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | ResumeMicroVM resumes a paused microvm. Resuming a running microvm succeeds. A microvm in another state fails with FAILED_PRECONDITION. |
 | GetMicroVM | [GetMicroVMRequest](#microvm-services-api-v1alpha1-GetMicroVMRequest) | [GetMicroVMResponse](#microvm-services-api-v1alpha1-GetMicroVMResponse) |  |
 | ListMicroVMs | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMicroVMsResponse](#microvm-services-api-v1alpha1-ListMicroVMsResponse) |  |
 | ListMicroVMsStream | [ListMicroVMsRequest](#microvm-services-api-v1alpha1-ListMicroVMsRequest) | [ListMessage](#microvm-services-api-v1alpha1-ListMessage) stream |  |
