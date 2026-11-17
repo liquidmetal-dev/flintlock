@@ -64,6 +64,10 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 				return fmt.Errorf("validating socket dir: %w", err)
 			}
 
+			if err := cfg.ValidateSnapshotLimits(); err != nil {
+				return fmt.Errorf("validating snapshot flags: %w", err)
+			}
+
 			providerFound := false
 			for _, supportedProvider := range microvm.GetProviderNames() {
 				if supportedProvider == cfg.DefaultVMProvider {
@@ -94,6 +98,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 	cmdflags.AddVirtioFSFlagsToCommand(cmd, cfg)
 	cmdflags.AddOverlayFlagsToCommand(cmd, cfg)
 	cmdflags.AddGuestAgentAPIFlagsToCommand(cmd, cfg)
+	cmdflags.AddSnapshotFlagsToCommand(cmd, cfg)
 
 	if err := cmdflags.AddNetworkFlagsToCommand(cmd, cfg); err != nil {
 		return nil, fmt.Errorf("adding network flags to run command: %w", err)
@@ -108,6 +113,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 
 func runServer(ctx context.Context, cfg *config.Config) error {
 	startTime := time.Now()
+	cfg.StartedAt = startTime
 	logger := log.GetLogger(ctx)
 	logger.Info("flintlockd grpc api server starting")
 
@@ -292,14 +298,31 @@ func runControllers(ctx context.Context, cfg *config.Config, volumeCaps microvm.
 		return fmt.Errorf("initialising ports for controller: %w", err)
 	}
 
+	// Both controllers use one app, so that they share the locks of the microvms.
 	app := inject.InitializeApp(cfg, ports)
 	mvmControllers := inject.InializeController(app, ports)
+	snapshotController := inject.InitializeSnapshotController(app, ports)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		logger.Info("starting snapshot controller")
+
+		if err := snapshotController.Run(ctx, cfg.SnapshotMaxConcurrent, cfg.ResyncPeriod); err != nil {
+			logger.Fatalf("starting snapshot controller: %v", err)
+		}
+	}()
 
 	logger.Info("starting microvm controller")
 
 	if err := mvmControllers.Run(ctx, 1, cfg.ResyncPeriod, true); err != nil {
 		logger.Fatalf("starting microvm controller: %v", err)
 	}
+
+	wg.Wait()
 
 	return nil
 }

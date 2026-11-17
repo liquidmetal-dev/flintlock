@@ -65,6 +65,12 @@ func InializeController(app application.App, ports *ports.Collection) *controlle
 	return nil
 }
 
+func InitializeSnapshotController(app application.App, ports *ports.Collection) *controllers.SnapshotController {
+	wire.Build(controllers.NewSnapshotController, eventSvcFromScope, snapshotReconcileUCFromApp, snapshotQueryUCFromApp)
+
+	return nil
+}
+
 func InitializeGRPCServer(cfg *config.Config, app application.App, startTime time.Time) ports.MicroVMGRPCService {
 	wire.Build(microvmgrpc.NewServer, queryUCFromApp, commandUCFromApp, infoConfig)
 
@@ -142,6 +148,8 @@ func appConfig(cfg *config.Config) *application.Config {
 		OverlayInitrdImage:     cfg.EffectiveOverlayInitrdImage(version.Version),
 		VMMStartTimeout:        cfg.VMMStartTimeout,
 		GuestAgentReadyTimeout: cfg.GuestAgentReadyTimeout,
+		SnapshotMaxPause:       cfg.SnapshotMaxPause,
+		StartedAt:              cfg.StartedAt,
 	}
 }
 
@@ -181,6 +189,10 @@ func commandUCFromApp(app application.App) ports.MicroVMCommandUseCases {
 }
 
 func snapshotQueryUCFromApp(app application.App) ports.SnapshotQueryUseCases {
+	return app
+}
+
+func snapshotReconcileUCFromApp(app application.App) ports.ReconcileSnapshotsUseCase {
 	return app
 }
 

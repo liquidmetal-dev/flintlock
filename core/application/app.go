@@ -16,6 +16,7 @@ type App interface {
 	ports.SnapshotCommandUseCases
 	ports.SnapshotQueryUseCases
 	ports.SnapshotCaptureUseCase
+	ports.ReconcileSnapshotsUseCase
 }
 
 func New(cfg *Config, ports *ports.Collection) App {
@@ -23,6 +24,8 @@ func New(cfg *Config, ports *ports.Collection) App {
 		cfg:     cfg,
 		ports:   ports,
 		vmLocks: NewVMLocks(),
+
+		lockedRequeueDelay: lockedRequeueDelay,
 	}
 }
 
@@ -38,6 +41,10 @@ type app struct {
 
 	// vmLocks keeps a snapshot capture and other work on the same microvm apart.
 	vmLocks *VMLocks
+
+	// lockedRequeueDelay is how long a reconcile of a locked microvm waits before
+	// it is tried again.
+	lockedRequeueDelay time.Duration
 }
 
 type Config struct {
@@ -56,4 +63,7 @@ type Config struct {
 	// SnapshotMaxPause is the longest time a snapshot capture keeps the source
 	// microvm paused. Zero selects defaults.SnapshotMaxPause.
 	SnapshotMaxPause time.Duration
+	// StartedAt is when this run of flintlockd started. A snapshot created before it
+	// was left in progress by an earlier run. Zero means every snapshot in progress was.
+	StartedAt time.Time
 }

@@ -114,6 +114,9 @@ const (
 	// microvm paused.
 	SnapshotMaxPause time.Duration = 10 * time.Second
 
+	// SnapshotMaxConcurrent is the largest number of snapshot captures that run at a time.
+	SnapshotMaxConcurrent = 1
+
 	// ResyncPeriod is the default resync period duration.
 	ResyncPeriod time.Duration = 10 * time.Minute
 
