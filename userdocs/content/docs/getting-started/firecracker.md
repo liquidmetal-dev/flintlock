@@ -24,6 +24,9 @@ for your `flintlock`.
 Firecracker does not run as a service; flintlock will execute the binary and each MicroVM
 will run as a `firecracker` process.
 
+Flintlock can snapshot a running Firecracker microVM and restore it. See
+[Snapshots and clones](/docs/guides/snapshots).
+
 > [!NOTE]
 > If you are feeling weird, you can build this yourself, but we don't recommend it:
 >
