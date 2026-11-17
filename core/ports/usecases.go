@@ -43,6 +43,13 @@ type SnapshotCaptureUseCase interface {
 	CaptureSnapshot(ctx context.Context, snapshot *models.Snapshot) error
 }
 
+// ReconcileSnapshotsUseCase is the interface for use cases that are related to capturing snapshots.
+type ReconcileSnapshotsUseCase interface {
+	// ReconcileSnapshot captures a pending snapshot and records the phase it ends in.
+	// A snapshot that is not pending, or is deleted, is left as it is.
+	ReconcileSnapshot(ctx context.Context, uid string) error
+}
+
 // SnapshotQueryUseCases is the interface for uses cases that are queries for snapshots.
 type SnapshotQueryUseCases interface {
 	// GetSnapshot is a use case for getting details of a specific snapshot.

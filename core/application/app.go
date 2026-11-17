@@ -16,6 +16,7 @@ type App interface {
 	ports.SnapshotCommandUseCases
 	ports.SnapshotQueryUseCases
 	ports.SnapshotCaptureUseCase
+	ports.ReconcileSnapshotsUseCase
 }
 
 func New(cfg *Config, ports *ports.Collection) App {

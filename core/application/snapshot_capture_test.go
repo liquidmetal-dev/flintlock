@@ -29,6 +29,7 @@ type captureAppMocks struct {
 	images    *mock.MockImageService
 	hostInfo  *mock.MockHostInfoService
 	ids       *mock.MockIDService
+	events    *mock.MockEventService
 }
 
 func newCaptureTestApp(t *testing.T, cfg *application.Config) (application.App, captureAppMocks) {
@@ -44,6 +45,7 @@ func newCaptureTestApp(t *testing.T, cfg *application.Config) (application.App, 
 		images:    mock.NewMockImageService(ctrl),
 		hostInfo:  mock.NewMockHostInfoService(ctrl),
 		ids:       mock.NewMockIDService(ctrl),
+		events:    mock.NewMockEventService(ctrl),
 	}
 
 	m.provider.EXPECT().Capabilities().Return(snapshotCapabilities).AnyTimes()
@@ -58,6 +60,7 @@ func newCaptureTestApp(t *testing.T, cfg *application.Config) (application.App, 
 		ImageService:      m.images,
 		HostInfoService:   m.hostInfo,
 		IdentifierService: m.ids,
+		EventService:      m.events,
 		FileSystem:        afero.NewMemMapFs(),
 		Clock:             func() time.Time { return snapshotTestTime },
 	})
