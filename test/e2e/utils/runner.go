@@ -23,6 +23,8 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	execv1 "github.com/liquidmetal-dev/flintlock/api/services/microvmexec/v1alpha1"
+	snapv1 "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1"
 )
 
 const (
@@ -424,4 +426,16 @@ func baseDir() string {
 	gm.Expect(err).NotTo(gm.HaveOccurred())
 
 	return filepath.Dir(filepath.Dir(wd))
+}
+
+// SnapshotClient returns a client of the snapshot service of the flintlockd
+// which Setup started.
+func (r *Runner) SnapshotClient() snapv1.SnapshotServiceClient {
+	return snapv1.NewSnapshotServiceClient(r.flintlockdConn)
+}
+
+// ExecClient returns a client of the exec service of the flintlockd which
+// Setup started. flintlockd only serves it with --enable-exec-api.
+func (r *Runner) ExecClient() execv1.MicroVMExecClient {
+	return execv1.NewMicroVMExecClient(r.flintlockdConn)
 }

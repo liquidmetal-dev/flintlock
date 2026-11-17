@@ -126,18 +126,25 @@ func CreateOverlayMVM(
 	name, ns, rootImage string,
 	sizeMB int32,
 ) *v1alpha1.CreateMicroVMResponse {
-	spec := newMicroVMSpec(provider, name, ns)
+	spec, err := NewOverlayMicroVMSpec(provider, name, ns, rootImage, sizeMB)
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	return CreateMVMWithSpec(client, spec)
+}
+
+// NewOverlayMicroVMSpec returns the spec of a test microvm whose root volume
+// is an overlay of the root image, with a writable disk of sizeMB.
+func NewOverlayMicroVMSpec(provider Provider, name, ns, rootImage string, sizeMB int32) (*types.MicroVMSpec, error) {
+	spec, err := NewMicroVMSpec(provider, name, ns)
+	if err != nil {
+		return nil, err
+	}
+
 	spec.RootVolume.Mode = types.VolumeMode_OVERLAY
 	spec.RootVolume.SizeInMb = &sizeMB
 	spec.RootVolume.Source.ContainerSource = pointyString(rootImage)
 
-	ctx, cancel := requestContext()
-	defer cancel()
-
-	created, err := client.CreateMicroVM(ctx, &v1alpha1.CreateMicroVMRequest{Microvm: spec})
-	g.Expect(err).NotTo(g.HaveOccurred())
-
-	return created
+	return spec, nil
 }
 
 // OverlayContract is the line which the overlay init writes to the console

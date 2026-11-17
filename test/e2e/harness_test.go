@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
+	snapv1 "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1"
 	"github.com/liquidmetal-dev/flintlock/api/types"
 	"github.com/liquidmetal-dev/flintlock/internal/command/flags"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -2332,4 +2334,333 @@ func TestMetadataInterfaceStateWithoutLine(t *testing.T) {
 
 	_, _, err := u.MetadataInterfaceState(dir, provider)
 	g.Expect(err).To(HaveOccurred())
+}
+
+// The flags are parsed with the flags of flintlockd, so the test fails if
+// flintlockd does not have one of them.
+func TestSnapshotFlagsAreFlagsOfFlintlockd(t *testing.T) {
+	g := NewWithT(t)
+
+	cfg := &config.Config{}
+	cmd := &cobra.Command{}
+	flags.AddGuestAgentAPIFlagsToCommand(cmd, cfg)
+	flags.AddSnapshotFlagsToCommand(cmd, cfg)
+
+	g.Expect(cmd.Flags().Parse(u.SnapshotFlags(7 * time.Second))).To(Succeed())
+	g.Expect(cfg.EnableExecAPI).To(BeTrue())
+	g.Expect(cfg.SnapshotMaxPause).To(Equal(7 * time.Second))
+}
+
+// The counter runs in the guest under systemd-run. The fake runs the command
+// which it is given in the background, as systemd does.
+func TestCounterScriptRuns(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "bin")
+	g.Expect(os.Mkdir(bin, 0o755)).To(Succeed())
+
+	pidFile := filepath.Join(dir, "counter.pid")
+	g.Expect(os.WriteFile(filepath.Join(bin, "systemd-run"), []byte(
+		"#!/bin/sh\n"+
+			`[ "$1" = --unit ] && [ "$2" = e2e-counter ] && [ "$3" = --collect ] || exit 2`+"\n"+
+			"shift 3\n"+
+			`"$@" > /dev/null 2>&1 &`+"\n"+
+			"echo $! > "+pidFile+"\n"), 0o755)).To(Succeed())
+
+	file := filepath.Join(dir, "guest", "counter")
+
+	cmd := exec.Command("sh", "-c", u.CounterScript("e2e-counter", file))
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"))
+	out, err := cmd.CombinedOutput()
+	g.Expect(err).NotTo(HaveOccurred(), string(out))
+
+	defer func() {
+		content, err := os.ReadFile(pidFile)
+		if err != nil {
+			return
+		}
+
+		if pid, err := strconv.Atoi(strings.TrimSpace(string(content))); err == nil {
+			_ = syscall.Kill(pid, syscall.SIGKILL)
+		}
+	}()
+
+	var lines []u.CounterLine
+
+	g.Eventually(func(g Gomega) {
+		content, err := os.ReadFile(file)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		lines, err = u.ParseCounter(string(content))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(len(lines)).To(BeNumerically(">=", 2))
+	}, "5s", "100ms").Should(Succeed())
+
+	g.Expect(lines[0].N).To(Equal(1))
+	g.Expect(lines[0].Realtime).To(BeNumerically("~", float64(time.Now().Unix()), 10))
+	g.Expect(lines[0].Uptime).To(BeNumerically(">", 0))
+	g.Expect(lines[1].Realtime - lines[0].Realtime).To(BeNumerically("~", 1, 0.5))
+}
+
+func TestParseCounter(t *testing.T) {
+	tt := []struct {
+		name      string
+		content   string
+		expected  []u.CounterLine
+		expectErr string
+	}{
+		{
+			name:    "lines and a last line which is still being written",
+			content: "1 100.25 10.50\n2 101.5 11.75\n3 10",
+			expected: []u.CounterLine{
+				{N: 1, Realtime: 100.25, Uptime: 10.5, Text: "1 100.25 10.50"},
+				{N: 2, Realtime: 101.5, Uptime: 11.75, Text: "2 101.5 11.75"},
+			},
+		},
+		{
+			name:     "nothing written yet",
+			content:  "",
+			expected: []u.CounterLine{},
+		},
+		{
+			name:      "counter which started again",
+			content:   "1 100 10\n2 101 11\n1 102 1\n",
+			expectErr: "line 3 of the counter has the count 1",
+		},
+		{
+			name:      "line with a missing field",
+			content:   "1 100\n",
+			expectErr: "has 2 fields",
+		},
+		{
+			name:      "line which is not a number",
+			content:   "1 100 up\n",
+			expectErr: "uptime",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			lines, err := u.ParseCounter(tc.content)
+			if tc.expectErr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.expectErr)))
+
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(lines).To(Equal(tc.expected))
+		})
+	}
+}
+
+func TestMaxCounterGap(t *testing.T) {
+	g := NewWithT(t)
+
+	lines, err := u.ParseCounter("1 100 10\n2 101 11\n3 105.5 15.5\n4 106.5 16.5\n")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	gap, before := u.MaxCounterGap(lines)
+	g.Expect(gap).To(Equal(4500 * time.Millisecond))
+	g.Expect(before).To(Equal(1))
+
+	gap, before = u.MaxCounterGap(lines[:1])
+	g.Expect(gap).To(BeZero())
+	g.Expect(before).To(Equal(-1))
+}
+
+func TestCommonCounterLines(t *testing.T) {
+	g := NewWithT(t)
+
+	source, err := u.ParseCounter("1 100 10\n2 101 11\n3 102 12\n4 103 13\n")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	restored, err := u.ParseCounter("1 100 10\n2 101 11\n3 102.75 12.75\n")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	g.Expect(u.CommonCounterLines(source, restored)).To(Equal(2))
+	g.Expect(u.CommonCounterLines(restored, source)).To(Equal(2))
+	g.Expect(u.CommonCounterLines(source, source[:3])).To(Equal(3))
+	g.Expect(u.CommonCounterLines(source, nil)).To(Equal(0))
+}
+
+func TestParseUptime(t *testing.T) {
+	g := NewWithT(t)
+
+	uptime, err := u.ParseUptime("123.45 678.90\n")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(uptime).To(Equal(123.45))
+
+	_, err = u.ParseUptime("")
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestSaveSnapshotFiles(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+	snapshotDir := filepath.Join(dir, "snapshot")
+	g.Expect(os.MkdirAll(filepath.Join(snapshotDir, "refs"), 0o700)).To(Succeed())
+
+	for _, name := range []string{"descriptor.json", "spec.json", "record.json", "memory", "vmstate", "root.rw"} {
+		g.Expect(os.WriteFile(filepath.Join(snapshotDir, name), []byte(name), 0o600)).To(Succeed())
+	}
+
+	g.Expect(os.Symlink("/nowhere", filepath.Join(snapshotDir, "root.base"))).To(Succeed())
+
+	dest := filepath.Join(dir, "artefacts")
+
+	saved, err := u.SaveSnapshotFiles(snapshotDir, dest)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(saved).To(ConsistOf("descriptor.json", "spec.json", "record.json"))
+
+	names, err := u.DirEntries(dest)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(names).To(Equal([]string{"descriptor.json", "record.json", "spec.json"}))
+
+	saved, err = u.SaveSnapshotFiles(filepath.Join(dir, "gone"), dest)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(saved).To(BeEmpty())
+}
+
+func TestFileModesAndPathsWith(t *testing.T) {
+	g := NewWithT(t)
+
+	dir := t.TempDir()
+	g.Expect(os.MkdirAll(filepath.Join(dir, "refs"), 0o700)).To(Succeed())
+	g.Expect(os.WriteFile(filepath.Join(dir, "memory"), nil, 0o600)).To(Succeed())
+	g.Expect(os.WriteFile(filepath.Join(dir, "refs", "uid1"), nil, 0o644)).To(Succeed())
+	g.Expect(os.Chmod(filepath.Join(dir, "refs", "uid1"), 0o644)).To(Succeed())
+	g.Expect(os.Symlink("memory", filepath.Join(dir, "link"))).To(Succeed())
+
+	modes, err := u.FileModes(dir)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(modes).To(Equal(map[string]os.FileMode{
+		"memory":    0o600,
+		"refs/uid1": 0o644,
+	}))
+
+	found, err := u.PathsWith(dir, "uid1", "nothing")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(found).To(Equal([]string{filepath.Join(dir, "refs", "uid1")}))
+
+	found, err = u.PathsWith(filepath.Join(dir, "gone"), "uid1")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(found).To(BeEmpty())
+}
+
+// fakeSnapshotClient answers the requests of the snapshot helpers without a
+// flintlockd.
+type fakeSnapshotClient struct {
+	snapv1.SnapshotServiceClient
+
+	deadlines []time.Duration
+}
+
+func (f *fakeSnapshotClient) request(ctx context.Context) {
+	left := time.Duration(0)
+	if deadline, ok := ctx.Deadline(); ok {
+		left = time.Until(deadline)
+	}
+
+	f.deadlines = append(f.deadlines, left)
+}
+
+func (f *fakeSnapshotClient) CreateSnapshot(
+	ctx context.Context, in *snapv1.CreateSnapshotRequest, _ ...grpc.CallOption,
+) (*snapv1.CreateSnapshotResponse, error) {
+	f.request(ctx)
+
+	return &snapv1.CreateSnapshotResponse{Snapshot: &types.Snapshot{Name: in.GetName()}}, nil
+}
+
+func (f *fakeSnapshotClient) GetSnapshot(
+	ctx context.Context, _ *snapv1.GetSnapshotRequest, _ ...grpc.CallOption,
+) (*snapv1.GetSnapshotResponse, error) {
+	f.request(ctx)
+
+	return &snapv1.GetSnapshotResponse{Snapshot: &types.Snapshot{}}, nil
+}
+
+func (f *fakeSnapshotClient) ListSnapshots(
+	ctx context.Context, _ *snapv1.ListSnapshotsRequest, _ ...grpc.CallOption,
+) (*snapv1.ListSnapshotsResponse, error) {
+	f.request(ctx)
+
+	return &snapv1.ListSnapshotsResponse{}, nil
+}
+
+func (f *fakeSnapshotClient) DeleteSnapshot(
+	ctx context.Context, _ *snapv1.DeleteSnapshotRequest, _ ...grpc.CallOption,
+) (*emptypb.Empty, error) {
+	f.request(ctx)
+
+	return &emptypb.Empty{}, nil
+}
+
+func TestRequestsOfTheSnapshotHelpersHaveADeadline(t *testing.T) {
+	RegisterTestingT(t)
+
+	tt := []struct {
+		name    string
+		request func(snapshots snapv1.SnapshotServiceClient, microvms v1alpha1.MicroVMClient)
+	}{
+		{
+			name: "CreateSnapshot",
+			request: func(snapshots snapv1.SnapshotServiceClient, _ v1alpha1.MicroVMClient) {
+				Expect(u.CreateSnapshot(snapshots, "uid0", "snap0", nil).GetName()).To(Equal("snap0"))
+			},
+		},
+		{
+			name: "GetSnapshot",
+			request: func(snapshots snapv1.SnapshotServiceClient, _ v1alpha1.MicroVMClient) {
+				_, err := u.GetSnapshot(snapshots, "uid0")
+				Expect(err).NotTo(HaveOccurred())
+			},
+		},
+		{
+			name: "ListSnapshots",
+			request: func(snapshots snapv1.SnapshotServiceClient, _ v1alpha1.MicroVMClient) {
+				u.ListSnapshots(snapshots, "ns0")
+			},
+		},
+		{
+			name: "DeleteSnapshot",
+			request: func(snapshots snapv1.SnapshotServiceClient, _ v1alpha1.MicroVMClient) {
+				Expect(u.DeleteSnapshot(snapshots, "uid0")).To(Succeed())
+			},
+		},
+		{
+			name: "RestoreMVM",
+			request: func(_ snapv1.SnapshotServiceClient, microvms v1alpha1.MicroVMClient) {
+				_, err := u.RestoreMVM(microvms, &types.SnapshotSource{Name: "mvm1"}, nil)
+				Expect(err).NotTo(HaveOccurred())
+			},
+		},
+		{
+			name: "CreateMVMWithSpec",
+			request: func(_ snapv1.SnapshotServiceClient, microvms v1alpha1.MicroVMClient) {
+				u.CreateMVMWithSpec(microvms, &types.MicroVMSpec{Id: "mvm0"})
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			snapshots := &fakeSnapshotClient{}
+			microvms := &fakeMicroVMClient{}
+			tc.request(snapshots, microvms)
+
+			deadlines := append(snapshots.deadlines, microvms.deadlines...)
+
+			Expect(deadlines).To(HaveLen(1))
+			Expect(deadlines[0]).To(BeNumerically(">", 0), "the request has no deadline")
+			Expect(deadlines[0]).To(BeNumerically("<=", 30*time.Second))
+		})
+	}
 }

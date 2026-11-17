@@ -90,6 +90,17 @@ func CreateGuestAgentMVM(
 	return created
 }
 
+// CreateMVMWithSpec creates a microvm with the spec.
+func CreateMVMWithSpec(client v1alpha1.MicroVMClient, spec *types.MicroVMSpec) *v1alpha1.CreateMicroVMResponse {
+	ctx, cancel := requestContext()
+	defer cancel()
+
+	created, err := client.CreateMicroVM(ctx, &v1alpha1.CreateMicroVMRequest{Microvm: spec})
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	return created
+}
+
 // CreateMVMWithImages creates a microvm which uses the given images for its
 // kernel and its root volume. The kernel image must have the kernel of the
 // provider.
