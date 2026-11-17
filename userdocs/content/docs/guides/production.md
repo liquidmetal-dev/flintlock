@@ -136,6 +136,26 @@ sudo journalctl -u flintlockd -f
 `/etc/containerd/certs.d`. Use `--containerd-hosts-dir` to point at another
 directory. See [MicroVM images](/docs/guides/images/) for more about images.
 
+## Size the host's memory
+
+A guest keeps every page of memory it has touched, its page cache included,
+until the microVM is deleted. A busy microVM soon holds its full
+`memory_in_mb`, even when the guest has memory free. Without a balloon,
+give the host enough memory for the sum of its microVMs' `memory_in_mb`.
+
+To return the memory that a guest frees, create the microVM with a balloon
+and free page reporting:
+
+```json
+"balloon": { "free_page_reporting": true }
+```
+
+flintlock then gives the VMM an empty balloon that deflates when the guest
+runs out of memory. The guest reports the pages it frees, and the VMM
+returns them to the host. The guest kernel needs `CONFIG_VIRTIO_BALLOON`
+and `CONFIG_PAGE_REPORTING`. Firecracker and Cloud Hypervisor both support
+it.
+
 ## Monitor the host
 
 Run the [metrics exporter](/docs/guides/metrics/) so Prometheus can scrape

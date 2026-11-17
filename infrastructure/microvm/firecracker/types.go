@@ -144,6 +144,9 @@ type BalloonDeviceConfig struct {
 	DeflateOnOOM bool `json:"deflate_on_oom"`
 	// StatsPollingInterval is the interval in seconds between refreshing statistics.
 	StatsPollingInterval int64 `json:"stats_polling_interval_s"`
+	// FreePageReporting when set to true makes the guest report the memory it frees, and
+	// Firecracker returns that memory to the host.
+	FreePageReporting bool `json:"free_page_reporting,omitempty"`
 }
 
 // MetrcsConfig contains the configuration for the microvm metrics.

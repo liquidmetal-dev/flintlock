@@ -124,6 +124,14 @@ does this with `zot` on port 5000.
   systemd-networkd setup state and the IPv4 address of `eth0`, which must be
   `unmanaged` and `169.254.0.1/16`. The test is skipped when `firecracker` is
   not one of the providers.
+- `TestE2EBalloon`: creates a MicroVM with a balloon with free page reporting,
+  with a subtest for each of the providers. The guest writes to its console
+  the virtio device that its balloon driver bound, and whether free page
+  reporting is on, which it must be. The guest then writes 1 GiB to a tmpfs,
+  holds it for 20 s and frees it. The VMM's resident set, read from
+  `/proc/<pid>/status`, must drop by at least 512 MiB from its size while the
+  memory was full. Free page reporting returns only blocks of a minimum order,
+  so less than all of it comes back.
 
 Each of the tests does its own setup and teardown, so that the private registry
 tests start with a containerd which does not have any of the images. The

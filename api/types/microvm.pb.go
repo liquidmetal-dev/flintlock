@@ -117,7 +117,7 @@ func (x NetworkInterface_IfaceType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NetworkInterface_IfaceType.Descriptor instead.
 func (NetworkInterface_IfaceType) EnumDescriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{5, 0}
+	return file_types_microvm_proto_rawDescGZIP(), []int{6, 0}
 }
 
 type MicroVMStatus_MicroVMState int32
@@ -169,7 +169,7 @@ func (x MicroVMStatus_MicroVMState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MicroVMStatus_MicroVMState.Descriptor instead.
 func (MicroVMStatus_MicroVMState) EnumDescriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{11, 0}
+	return file_types_microvm_proto_rawDescGZIP(), []int{12, 0}
 }
 
 type Mount_MountType int32
@@ -221,7 +221,7 @@ func (x Mount_MountType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Mount_MountType.Descriptor instead.
 func (Mount_MountType) EnumDescriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{13, 0}
+	return file_types_microvm_proto_rawDescGZIP(), []int{14, 0}
 }
 
 // MicroVM represents a microvm machine that is created via a provider.
@@ -332,7 +332,10 @@ type MicroVMSpec struct {
 	AllowGuestAgent bool `protobuf:"varint,17,opt,name=allow_guest_agent,json=allowGuestAgent,proto3" json:"allow_guest_agent,omitempty"`
 	// CPUConfig allows you to customise the CPU features presented to the guest. Support and
 	// semantics vary by provider.
-	CpuConfig     *CPUConfig `protobuf:"bytes,18,opt,name=cpu_config,json=cpuConfig,proto3,oneof" json:"cpu_config,omitempty"`
+	CpuConfig *CPUConfig `protobuf:"bytes,18,opt,name=cpu_config,json=cpuConfig,proto3,oneof" json:"cpu_config,omitempty"`
+	// Balloon, when set, attaches a memory balloon device to the microvm. The balloon starts
+	// empty and deflates when the guest runs out of memory.
+	Balloon       *Balloon `protobuf:"bytes,19,opt,name=balloon,proto3,oneof" json:"balloon,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -493,6 +496,60 @@ func (x *MicroVMSpec) GetCpuConfig() *CPUConfig {
 	return nil
 }
 
+func (x *MicroVMSpec) GetBalloon() *Balloon {
+	if x != nil {
+		return x.Balloon
+	}
+	return nil
+}
+
+// Balloon represents the configuration of a microvm's memory balloon device.
+type Balloon struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// FreePageReporting, when true, makes the guest report the memory it frees, and the VMM
+	// returns that memory to the host. The guest kernel needs CONFIG_PAGE_REPORTING.
+	FreePageReporting bool `protobuf:"varint,1,opt,name=free_page_reporting,json=freePageReporting,proto3" json:"free_page_reporting,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *Balloon) Reset() {
+	*x = Balloon{}
+	mi := &file_types_microvm_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Balloon) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Balloon) ProtoMessage() {}
+
+func (x *Balloon) ProtoReflect() protoreflect.Message {
+	mi := &file_types_microvm_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Balloon.ProtoReflect.Descriptor instead.
+func (*Balloon) Descriptor() ([]byte, []int) {
+	return file_types_microvm_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Balloon) GetFreePageReporting() bool {
+	if x != nil {
+		return x.FreePageReporting
+	}
+	return false
+}
+
 // CPUConfig represents CPU feature configuration for a microvm.
 type CPUConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -510,7 +567,7 @@ type CPUConfig struct {
 
 func (x *CPUConfig) Reset() {
 	*x = CPUConfig{}
-	mi := &file_types_microvm_proto_msgTypes[2]
+	mi := &file_types_microvm_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -522,7 +579,7 @@ func (x *CPUConfig) String() string {
 func (*CPUConfig) ProtoMessage() {}
 
 func (x *CPUConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[2]
+	mi := &file_types_microvm_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -535,7 +592,7 @@ func (x *CPUConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CPUConfig.ProtoReflect.Descriptor instead.
 func (*CPUConfig) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{2}
+	return file_types_microvm_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CPUConfig) GetFeaturesToEnable() []string {
@@ -572,7 +629,7 @@ type Kernel struct {
 
 func (x *Kernel) Reset() {
 	*x = Kernel{}
-	mi := &file_types_microvm_proto_msgTypes[3]
+	mi := &file_types_microvm_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -584,7 +641,7 @@ func (x *Kernel) String() string {
 func (*Kernel) ProtoMessage() {}
 
 func (x *Kernel) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[3]
+	mi := &file_types_microvm_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -597,7 +654,7 @@ func (x *Kernel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Kernel.ProtoReflect.Descriptor instead.
 func (*Kernel) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{3}
+	return file_types_microvm_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Kernel) GetImage() string {
@@ -642,7 +699,7 @@ type Initrd struct {
 
 func (x *Initrd) Reset() {
 	*x = Initrd{}
-	mi := &file_types_microvm_proto_msgTypes[4]
+	mi := &file_types_microvm_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -654,7 +711,7 @@ func (x *Initrd) String() string {
 func (*Initrd) ProtoMessage() {}
 
 func (x *Initrd) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[4]
+	mi := &file_types_microvm_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -667,7 +724,7 @@ func (x *Initrd) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Initrd.ProtoReflect.Descriptor instead.
 func (*Initrd) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{4}
+	return file_types_microvm_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Initrd) GetImage() string {
@@ -710,7 +767,7 @@ type NetworkInterface struct {
 
 func (x *NetworkInterface) Reset() {
 	*x = NetworkInterface{}
-	mi := &file_types_microvm_proto_msgTypes[5]
+	mi := &file_types_microvm_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -722,7 +779,7 @@ func (x *NetworkInterface) String() string {
 func (*NetworkInterface) ProtoMessage() {}
 
 func (x *NetworkInterface) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[5]
+	mi := &file_types_microvm_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -735,7 +792,7 @@ func (x *NetworkInterface) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkInterface.ProtoReflect.Descriptor instead.
 func (*NetworkInterface) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{5}
+	return file_types_microvm_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *NetworkInterface) GetDeviceId() string {
@@ -789,7 +846,7 @@ type StaticAddress struct {
 
 func (x *StaticAddress) Reset() {
 	*x = StaticAddress{}
-	mi := &file_types_microvm_proto_msgTypes[6]
+	mi := &file_types_microvm_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -801,7 +858,7 @@ func (x *StaticAddress) String() string {
 func (*StaticAddress) ProtoMessage() {}
 
 func (x *StaticAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[6]
+	mi := &file_types_microvm_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -814,7 +871,7 @@ func (x *StaticAddress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StaticAddress.ProtoReflect.Descriptor instead.
 func (*StaticAddress) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{6}
+	return file_types_microvm_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *StaticAddress) GetAddress() string {
@@ -867,7 +924,7 @@ type Volume struct {
 
 func (x *Volume) Reset() {
 	*x = Volume{}
-	mi := &file_types_microvm_proto_msgTypes[7]
+	mi := &file_types_microvm_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -879,7 +936,7 @@ func (x *Volume) String() string {
 func (*Volume) ProtoMessage() {}
 
 func (x *Volume) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[7]
+	mi := &file_types_microvm_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -892,7 +949,7 @@ func (x *Volume) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Volume.ProtoReflect.Descriptor instead.
 func (*Volume) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{7}
+	return file_types_microvm_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Volume) GetId() string {
@@ -957,7 +1014,7 @@ type VolumeSource struct {
 
 func (x *VolumeSource) Reset() {
 	*x = VolumeSource{}
-	mi := &file_types_microvm_proto_msgTypes[8]
+	mi := &file_types_microvm_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -969,7 +1026,7 @@ func (x *VolumeSource) String() string {
 func (*VolumeSource) ProtoMessage() {}
 
 func (x *VolumeSource) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[8]
+	mi := &file_types_microvm_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -982,7 +1039,7 @@ func (x *VolumeSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VolumeSource.ProtoReflect.Descriptor instead.
 func (*VolumeSource) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{8}
+	return file_types_microvm_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *VolumeSource) GetContainerSource() string {
@@ -1011,7 +1068,7 @@ type VirtioFSVolumeSource struct {
 
 func (x *VirtioFSVolumeSource) Reset() {
 	*x = VirtioFSVolumeSource{}
-	mi := &file_types_microvm_proto_msgTypes[9]
+	mi := &file_types_microvm_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1023,7 +1080,7 @@ func (x *VirtioFSVolumeSource) String() string {
 func (*VirtioFSVolumeSource) ProtoMessage() {}
 
 func (x *VirtioFSVolumeSource) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[9]
+	mi := &file_types_microvm_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1036,7 +1093,7 @@ func (x *VirtioFSVolumeSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VirtioFSVolumeSource.ProtoReflect.Descriptor instead.
 func (*VirtioFSVolumeSource) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{9}
+	return file_types_microvm_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *VirtioFSVolumeSource) GetPath() string {
@@ -1057,7 +1114,7 @@ type ContainerVolumeSource struct {
 
 func (x *ContainerVolumeSource) Reset() {
 	*x = ContainerVolumeSource{}
-	mi := &file_types_microvm_proto_msgTypes[10]
+	mi := &file_types_microvm_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1069,7 +1126,7 @@ func (x *ContainerVolumeSource) String() string {
 func (*ContainerVolumeSource) ProtoMessage() {}
 
 func (x *ContainerVolumeSource) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[10]
+	mi := &file_types_microvm_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1082,7 +1139,7 @@ func (x *ContainerVolumeSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerVolumeSource.ProtoReflect.Descriptor instead.
 func (*ContainerVolumeSource) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{10}
+	return file_types_microvm_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ContainerVolumeSource) GetImage() string {
@@ -1116,7 +1173,7 @@ type MicroVMStatus struct {
 
 func (x *MicroVMStatus) Reset() {
 	*x = MicroVMStatus{}
-	mi := &file_types_microvm_proto_msgTypes[11]
+	mi := &file_types_microvm_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1128,7 +1185,7 @@ func (x *MicroVMStatus) String() string {
 func (*MicroVMStatus) ProtoMessage() {}
 
 func (x *MicroVMStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[11]
+	mi := &file_types_microvm_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1141,7 +1198,7 @@ func (x *MicroVMStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MicroVMStatus.ProtoReflect.Descriptor instead.
 func (*MicroVMStatus) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{11}
+	return file_types_microvm_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *MicroVMStatus) GetState() MicroVMStatus_MicroVMState {
@@ -1208,7 +1265,7 @@ type VolumeStatus struct {
 
 func (x *VolumeStatus) Reset() {
 	*x = VolumeStatus{}
-	mi := &file_types_microvm_proto_msgTypes[12]
+	mi := &file_types_microvm_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1220,7 +1277,7 @@ func (x *VolumeStatus) String() string {
 func (*VolumeStatus) ProtoMessage() {}
 
 func (x *VolumeStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[12]
+	mi := &file_types_microvm_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1233,7 +1290,7 @@ func (x *VolumeStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VolumeStatus.ProtoReflect.Descriptor instead.
 func (*VolumeStatus) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{12}
+	return file_types_microvm_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *VolumeStatus) GetMount() *Mount {
@@ -1270,7 +1327,7 @@ type Mount struct {
 
 func (x *Mount) Reset() {
 	*x = Mount{}
-	mi := &file_types_microvm_proto_msgTypes[13]
+	mi := &file_types_microvm_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1282,7 +1339,7 @@ func (x *Mount) String() string {
 func (*Mount) ProtoMessage() {}
 
 func (x *Mount) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[13]
+	mi := &file_types_microvm_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1295,7 +1352,7 @@ func (x *Mount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Mount.ProtoReflect.Descriptor instead.
 func (*Mount) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{13}
+	return file_types_microvm_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Mount) GetType() Mount_MountType {
@@ -1327,7 +1384,7 @@ type NetworkInterfaceStatus struct {
 
 func (x *NetworkInterfaceStatus) Reset() {
 	*x = NetworkInterfaceStatus{}
-	mi := &file_types_microvm_proto_msgTypes[14]
+	mi := &file_types_microvm_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1339,7 +1396,7 @@ func (x *NetworkInterfaceStatus) String() string {
 func (*NetworkInterfaceStatus) ProtoMessage() {}
 
 func (x *NetworkInterfaceStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[14]
+	mi := &file_types_microvm_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1352,7 +1409,7 @@ func (x *NetworkInterfaceStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkInterfaceStatus.ProtoReflect.Descriptor instead.
 func (*NetworkInterfaceStatus) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{14}
+	return file_types_microvm_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *NetworkInterfaceStatus) GetHostDeviceName() string {
@@ -1388,7 +1445,7 @@ type NetworkOverrides struct {
 
 func (x *NetworkOverrides) Reset() {
 	*x = NetworkOverrides{}
-	mi := &file_types_microvm_proto_msgTypes[15]
+	mi := &file_types_microvm_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1400,7 +1457,7 @@ func (x *NetworkOverrides) String() string {
 func (*NetworkOverrides) ProtoMessage() {}
 
 func (x *NetworkOverrides) ProtoReflect() protoreflect.Message {
-	mi := &file_types_microvm_proto_msgTypes[15]
+	mi := &file_types_microvm_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1413,7 +1470,7 @@ func (x *NetworkOverrides) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkOverrides.ProtoReflect.Descriptor instead.
 func (*NetworkOverrides) Descriptor() ([]byte, []int) {
-	return file_types_microvm_proto_rawDescGZIP(), []int{15}
+	return file_types_microvm_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *NetworkOverrides) GetBridgeName() string {
@@ -1439,7 +1496,7 @@ var file_types_microvm_proto_rawDesc = string([]byte{
 	0x36, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x1e, 0x2e, 0x66, 0x6c, 0x69, 0x6e, 0x74, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x74, 0x79, 0x70, 0x65,
 	0x73, 0x2e, 0x4d, 0x69, 0x63, 0x72, 0x6f, 0x56, 0x4d, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52,
-	0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0xa3, 0x08, 0x0a, 0x0b, 0x4d, 0x69, 0x63, 0x72,
+	0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0xe8, 0x08, 0x0a, 0x0b, 0x4d, 0x69, 0x63, 0x72,
 	0x6f, 0x56, 0x4d, 0x53, 0x70, 0x65, 0x63, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x1c, 0x0a, 0x09, 0x6e, 0x61, 0x6d, 0x65, 0x73,
 	0x70, 0x61, 0x63, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x6e, 0x61, 0x6d, 0x65,
@@ -1495,17 +1552,25 @@ var file_types_microvm_proto_rawDesc = string([]byte{
 	0x6e, 0x66, 0x69, 0x67, 0x18, 0x12, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x66, 0x6c, 0x69,
 	0x6e, 0x74, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x43, 0x50, 0x55,
 	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x48, 0x03, 0x52, 0x09, 0x63, 0x70, 0x75, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x88, 0x01, 0x01, 0x1a, 0x39, 0x0a, 0x0b, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73,
-	0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38,
-	0x01, 0x1a, 0x3b, 0x0a, 0x0d, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x74,
-	0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x42, 0x09,
-	0x0a, 0x07, 0x5f, 0x69, 0x6e, 0x69, 0x74, 0x72, 0x64, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x75, 0x69,
-	0x64, 0x42, 0x0b, 0x0a, 0x09, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x42, 0x0d,
-	0x0a, 0x0b, 0x5f, 0x63, 0x70, 0x75, 0x5f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x22, 0x78, 0x0a,
+	0x66, 0x69, 0x67, 0x88, 0x01, 0x01, 0x12, 0x37, 0x0a, 0x07, 0x62, 0x61, 0x6c, 0x6c, 0x6f, 0x6f,
+	0x6e, 0x18, 0x13, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x66, 0x6c, 0x69, 0x6e, 0x74, 0x6c,
+	0x6f, 0x63, 0x6b, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x42, 0x61, 0x6c, 0x6c, 0x6f, 0x6f,
+	0x6e, 0x48, 0x04, 0x52, 0x07, 0x62, 0x61, 0x6c, 0x6c, 0x6f, 0x6f, 0x6e, 0x88, 0x01, 0x01, 0x1a,
+	0x39, 0x0a, 0x0b, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10,
+	0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79,
+	0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x3b, 0x0a, 0x0d, 0x4d, 0x65,
+	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b,
+	0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a,
+	0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x42, 0x09, 0x0a, 0x07, 0x5f, 0x69, 0x6e, 0x69, 0x74,
+	0x72, 0x64, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x75, 0x69, 0x64, 0x42, 0x0b, 0x0a, 0x09, 0x5f, 0x70,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x42, 0x0d, 0x0a, 0x0b, 0x5f, 0x63, 0x70, 0x75, 0x5f,
+	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x62, 0x61, 0x6c, 0x6c, 0x6f,
+	0x6f, 0x6e, 0x22, 0x39, 0x0a, 0x07, 0x42, 0x61, 0x6c, 0x6c, 0x6f, 0x6f, 0x6e, 0x12, 0x2e, 0x0a,
+	0x13, 0x66, 0x72, 0x65, 0x65, 0x5f, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x72, 0x65, 0x70, 0x6f, 0x72,
+	0x74, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x11, 0x66, 0x72, 0x65, 0x65,
+	0x50, 0x61, 0x67, 0x65, 0x52, 0x65, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6e, 0x67, 0x22, 0x78, 0x0a,
 	0x09, 0x43, 0x50, 0x55, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x2c, 0x0a, 0x12, 0x66, 0x65,
 	0x61, 0x74, 0x75, 0x72, 0x65, 0x73, 0x5f, 0x74, 0x6f, 0x5f, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65,
 	0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x10, 0x66, 0x65, 0x61, 0x74, 0x75, 0x72, 0x65, 0x73,
@@ -1695,7 +1760,7 @@ func file_types_microvm_proto_rawDescGZIP() []byte {
 }
 
 var file_types_microvm_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_types_microvm_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_types_microvm_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_types_microvm_proto_goTypes = []any{
 	(VolumeMode)(0),                 // 0: flintlock.types.VolumeMode
 	(NetworkInterface_IfaceType)(0), // 1: flintlock.types.NetworkInterface.IfaceType
@@ -1703,62 +1768,64 @@ var file_types_microvm_proto_goTypes = []any{
 	(Mount_MountType)(0),            // 3: flintlock.types.Mount.MountType
 	(*MicroVM)(nil),                 // 4: flintlock.types.MicroVM
 	(*MicroVMSpec)(nil),             // 5: flintlock.types.MicroVMSpec
-	(*CPUConfig)(nil),               // 6: flintlock.types.CPUConfig
-	(*Kernel)(nil),                  // 7: flintlock.types.Kernel
-	(*Initrd)(nil),                  // 8: flintlock.types.Initrd
-	(*NetworkInterface)(nil),        // 9: flintlock.types.NetworkInterface
-	(*StaticAddress)(nil),           // 10: flintlock.types.StaticAddress
-	(*Volume)(nil),                  // 11: flintlock.types.Volume
-	(*VolumeSource)(nil),            // 12: flintlock.types.VolumeSource
-	(*VirtioFSVolumeSource)(nil),    // 13: flintlock.types.VirtioFSVolumeSource
-	(*ContainerVolumeSource)(nil),   // 14: flintlock.types.ContainerVolumeSource
-	(*MicroVMStatus)(nil),           // 15: flintlock.types.MicroVMStatus
-	(*VolumeStatus)(nil),            // 16: flintlock.types.VolumeStatus
-	(*Mount)(nil),                   // 17: flintlock.types.Mount
-	(*NetworkInterfaceStatus)(nil),  // 18: flintlock.types.NetworkInterfaceStatus
-	(*NetworkOverrides)(nil),        // 19: flintlock.types.NetworkOverrides
-	nil,                             // 20: flintlock.types.MicroVMSpec.LabelsEntry
-	nil,                             // 21: flintlock.types.MicroVMSpec.MetadataEntry
-	nil,                             // 22: flintlock.types.Kernel.CmdlineEntry
-	nil,                             // 23: flintlock.types.MicroVMStatus.VolumesEntry
-	nil,                             // 24: flintlock.types.MicroVMStatus.NetworkInterfacesEntry
-	(*timestamppb.Timestamp)(nil),   // 25: google.protobuf.Timestamp
+	(*Balloon)(nil),                 // 6: flintlock.types.Balloon
+	(*CPUConfig)(nil),               // 7: flintlock.types.CPUConfig
+	(*Kernel)(nil),                  // 8: flintlock.types.Kernel
+	(*Initrd)(nil),                  // 9: flintlock.types.Initrd
+	(*NetworkInterface)(nil),        // 10: flintlock.types.NetworkInterface
+	(*StaticAddress)(nil),           // 11: flintlock.types.StaticAddress
+	(*Volume)(nil),                  // 12: flintlock.types.Volume
+	(*VolumeSource)(nil),            // 13: flintlock.types.VolumeSource
+	(*VirtioFSVolumeSource)(nil),    // 14: flintlock.types.VirtioFSVolumeSource
+	(*ContainerVolumeSource)(nil),   // 15: flintlock.types.ContainerVolumeSource
+	(*MicroVMStatus)(nil),           // 16: flintlock.types.MicroVMStatus
+	(*VolumeStatus)(nil),            // 17: flintlock.types.VolumeStatus
+	(*Mount)(nil),                   // 18: flintlock.types.Mount
+	(*NetworkInterfaceStatus)(nil),  // 19: flintlock.types.NetworkInterfaceStatus
+	(*NetworkOverrides)(nil),        // 20: flintlock.types.NetworkOverrides
+	nil,                             // 21: flintlock.types.MicroVMSpec.LabelsEntry
+	nil,                             // 22: flintlock.types.MicroVMSpec.MetadataEntry
+	nil,                             // 23: flintlock.types.Kernel.CmdlineEntry
+	nil,                             // 24: flintlock.types.MicroVMStatus.VolumesEntry
+	nil,                             // 25: flintlock.types.MicroVMStatus.NetworkInterfacesEntry
+	(*timestamppb.Timestamp)(nil),   // 26: google.protobuf.Timestamp
 }
 var file_types_microvm_proto_depIdxs = []int32{
 	5,  // 0: flintlock.types.MicroVM.spec:type_name -> flintlock.types.MicroVMSpec
-	15, // 1: flintlock.types.MicroVM.status:type_name -> flintlock.types.MicroVMStatus
-	20, // 2: flintlock.types.MicroVMSpec.labels:type_name -> flintlock.types.MicroVMSpec.LabelsEntry
-	7,  // 3: flintlock.types.MicroVMSpec.kernel:type_name -> flintlock.types.Kernel
-	8,  // 4: flintlock.types.MicroVMSpec.initrd:type_name -> flintlock.types.Initrd
-	11, // 5: flintlock.types.MicroVMSpec.root_volume:type_name -> flintlock.types.Volume
-	11, // 6: flintlock.types.MicroVMSpec.additional_volumes:type_name -> flintlock.types.Volume
-	9,  // 7: flintlock.types.MicroVMSpec.interfaces:type_name -> flintlock.types.NetworkInterface
-	21, // 8: flintlock.types.MicroVMSpec.metadata:type_name -> flintlock.types.MicroVMSpec.MetadataEntry
-	25, // 9: flintlock.types.MicroVMSpec.created_at:type_name -> google.protobuf.Timestamp
-	25, // 10: flintlock.types.MicroVMSpec.updated_at:type_name -> google.protobuf.Timestamp
-	25, // 11: flintlock.types.MicroVMSpec.deleted_at:type_name -> google.protobuf.Timestamp
-	6,  // 12: flintlock.types.MicroVMSpec.cpu_config:type_name -> flintlock.types.CPUConfig
-	22, // 13: flintlock.types.Kernel.cmdline:type_name -> flintlock.types.Kernel.CmdlineEntry
-	1,  // 14: flintlock.types.NetworkInterface.type:type_name -> flintlock.types.NetworkInterface.IfaceType
-	10, // 15: flintlock.types.NetworkInterface.address:type_name -> flintlock.types.StaticAddress
-	19, // 16: flintlock.types.NetworkInterface.overrides:type_name -> flintlock.types.NetworkOverrides
-	12, // 17: flintlock.types.Volume.source:type_name -> flintlock.types.VolumeSource
-	0,  // 18: flintlock.types.Volume.mode:type_name -> flintlock.types.VolumeMode
-	2,  // 19: flintlock.types.MicroVMStatus.state:type_name -> flintlock.types.MicroVMStatus.MicroVMState
-	23, // 20: flintlock.types.MicroVMStatus.volumes:type_name -> flintlock.types.MicroVMStatus.VolumesEntry
-	17, // 21: flintlock.types.MicroVMStatus.kernel_mount:type_name -> flintlock.types.Mount
-	17, // 22: flintlock.types.MicroVMStatus.initrd_mount:type_name -> flintlock.types.Mount
-	24, // 23: flintlock.types.MicroVMStatus.network_interfaces:type_name -> flintlock.types.MicroVMStatus.NetworkInterfacesEntry
-	17, // 24: flintlock.types.VolumeStatus.mount:type_name -> flintlock.types.Mount
-	17, // 25: flintlock.types.VolumeStatus.base_mount:type_name -> flintlock.types.Mount
-	3,  // 26: flintlock.types.Mount.type:type_name -> flintlock.types.Mount.MountType
-	16, // 27: flintlock.types.MicroVMStatus.VolumesEntry.value:type_name -> flintlock.types.VolumeStatus
-	18, // 28: flintlock.types.MicroVMStatus.NetworkInterfacesEntry.value:type_name -> flintlock.types.NetworkInterfaceStatus
-	29, // [29:29] is the sub-list for method output_type
-	29, // [29:29] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	16, // 1: flintlock.types.MicroVM.status:type_name -> flintlock.types.MicroVMStatus
+	21, // 2: flintlock.types.MicroVMSpec.labels:type_name -> flintlock.types.MicroVMSpec.LabelsEntry
+	8,  // 3: flintlock.types.MicroVMSpec.kernel:type_name -> flintlock.types.Kernel
+	9,  // 4: flintlock.types.MicroVMSpec.initrd:type_name -> flintlock.types.Initrd
+	12, // 5: flintlock.types.MicroVMSpec.root_volume:type_name -> flintlock.types.Volume
+	12, // 6: flintlock.types.MicroVMSpec.additional_volumes:type_name -> flintlock.types.Volume
+	10, // 7: flintlock.types.MicroVMSpec.interfaces:type_name -> flintlock.types.NetworkInterface
+	22, // 8: flintlock.types.MicroVMSpec.metadata:type_name -> flintlock.types.MicroVMSpec.MetadataEntry
+	26, // 9: flintlock.types.MicroVMSpec.created_at:type_name -> google.protobuf.Timestamp
+	26, // 10: flintlock.types.MicroVMSpec.updated_at:type_name -> google.protobuf.Timestamp
+	26, // 11: flintlock.types.MicroVMSpec.deleted_at:type_name -> google.protobuf.Timestamp
+	7,  // 12: flintlock.types.MicroVMSpec.cpu_config:type_name -> flintlock.types.CPUConfig
+	6,  // 13: flintlock.types.MicroVMSpec.balloon:type_name -> flintlock.types.Balloon
+	23, // 14: flintlock.types.Kernel.cmdline:type_name -> flintlock.types.Kernel.CmdlineEntry
+	1,  // 15: flintlock.types.NetworkInterface.type:type_name -> flintlock.types.NetworkInterface.IfaceType
+	11, // 16: flintlock.types.NetworkInterface.address:type_name -> flintlock.types.StaticAddress
+	20, // 17: flintlock.types.NetworkInterface.overrides:type_name -> flintlock.types.NetworkOverrides
+	13, // 18: flintlock.types.Volume.source:type_name -> flintlock.types.VolumeSource
+	0,  // 19: flintlock.types.Volume.mode:type_name -> flintlock.types.VolumeMode
+	2,  // 20: flintlock.types.MicroVMStatus.state:type_name -> flintlock.types.MicroVMStatus.MicroVMState
+	24, // 21: flintlock.types.MicroVMStatus.volumes:type_name -> flintlock.types.MicroVMStatus.VolumesEntry
+	18, // 22: flintlock.types.MicroVMStatus.kernel_mount:type_name -> flintlock.types.Mount
+	18, // 23: flintlock.types.MicroVMStatus.initrd_mount:type_name -> flintlock.types.Mount
+	25, // 24: flintlock.types.MicroVMStatus.network_interfaces:type_name -> flintlock.types.MicroVMStatus.NetworkInterfacesEntry
+	18, // 25: flintlock.types.VolumeStatus.mount:type_name -> flintlock.types.Mount
+	18, // 26: flintlock.types.VolumeStatus.base_mount:type_name -> flintlock.types.Mount
+	3,  // 27: flintlock.types.Mount.type:type_name -> flintlock.types.Mount.MountType
+	17, // 28: flintlock.types.MicroVMStatus.VolumesEntry.value:type_name -> flintlock.types.VolumeStatus
+	19, // 29: flintlock.types.MicroVMStatus.NetworkInterfacesEntry.value:type_name -> flintlock.types.NetworkInterfaceStatus
+	30, // [30:30] is the sub-list for method output_type
+	30, // [30:30] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_types_microvm_proto_init() }
@@ -1767,20 +1834,20 @@ func file_types_microvm_proto_init() {
 		return
 	}
 	file_types_microvm_proto_msgTypes[1].OneofWrappers = []any{}
-	file_types_microvm_proto_msgTypes[3].OneofWrappers = []any{}
 	file_types_microvm_proto_msgTypes[4].OneofWrappers = []any{}
 	file_types_microvm_proto_msgTypes[5].OneofWrappers = []any{}
 	file_types_microvm_proto_msgTypes[6].OneofWrappers = []any{}
 	file_types_microvm_proto_msgTypes[7].OneofWrappers = []any{}
 	file_types_microvm_proto_msgTypes[8].OneofWrappers = []any{}
-	file_types_microvm_proto_msgTypes[15].OneofWrappers = []any{}
+	file_types_microvm_proto_msgTypes[9].OneofWrappers = []any{}
+	file_types_microvm_proto_msgTypes[16].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_microvm_proto_rawDesc), len(file_types_microvm_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   21,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

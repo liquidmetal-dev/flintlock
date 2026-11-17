@@ -51,6 +51,8 @@ type MicroVMSpec struct {
 	// CPUConfig allows you to customise the CPU features presented to the guest. Support and
 	// semantics vary by provider.
 	CPUConfig *CPUConfig `json:"cpu_config,omitempty" validate:"omitempty"`
+	// Balloon, when set, attaches a memory balloon device to the machine.
+	Balloon *Balloon `json:"balloon,omitempty"`
 	// CreatedAt indicates the time the microvm was created at.
 	CreatedAt int64 `json:"created_at" validate:"omitempty,datetimeInPast"`
 	// UpdatedAt indicates the time the microvm was last updated.
@@ -69,6 +71,14 @@ type CPUConfig struct {
 	// KVMCapabilitiesToDisable is a list of KVM capability IDs to disable. Only supported by
 	// providers that declare the KVMCapabilitiesDisableCapability (currently Firecracker only).
 	KVMCapabilitiesToDisable []string `json:"kvm_capabilities_to_disable,omitempty" validate:"omitempty,dive,kvmCapability"` //nolint: lll // struct tag can't be split
+}
+
+// Balloon represents the configuration of a microvm's memory balloon device. The balloon
+// starts empty and deflates when the guest runs out of memory.
+type Balloon struct {
+	// FreePageReporting, when true, makes the guest report the memory it frees, and the VMM
+	// returns that memory to the host.
+	FreePageReporting bool `json:"free_page_reporting"`
 }
 
 // MicroVMStatus contains the runtime status of the microvm.

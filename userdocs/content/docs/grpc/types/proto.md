@@ -7,6 +7,7 @@ editURL: https://github.com/liquidmetal-dev/flintlock/edit/main/api/types/microv
 ## Table of Contents
 
 - [types/microvm.proto](#types_microvm-proto)
+    - [Balloon](#flintlock-types-Balloon)
     - [CPUConfig](#flintlock-types-CPUConfig)
     - [ContainerVolumeSource](#flintlock-types-ContainerVolumeSource)
     - [Initrd](#flintlock-types-Initrd)
@@ -42,6 +43,21 @@ editURL: https://github.com/liquidmetal-dev/flintlock/edit/main/api/types/microv
 <p align="right"><a href="#top">Top</a></p>
 
 ## types/microvm.proto
+
+
+
+<a name="flintlock-types-Balloon"></a>
+
+### Balloon
+Balloon represents the configuration of a microvm's memory balloon device.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| free_page_reporting | [bool](#bool) |  | FreePageReporting, when true, makes the guest report the memory it frees, and the VMM returns that memory to the host. The guest kernel needs CONFIG_PAGE_REPORTING. |
+
+
+
 
 
 
@@ -169,6 +185,7 @@ MicroVMSpec represents the specification for a microvm.
 | provider | [string](#string) | optional | Provider allows you to specify the name of the microvm provider to use. If this isn't supplied then the default provider will be used. |
 | allow_guest_agent | [bool](#bool) |  | AllowGuestAgent, when true, attaches a vsock device to the microvm so the in-guest guest-agent (https://github.com/liquidmetal-dev/guest-agent) can communicate with the host. |
 | cpu_config | [CPUConfig](#flintlock-types-CPUConfig) | optional | CPUConfig allows you to customise the CPU features presented to the guest. Support and semantics vary by provider. |
+| balloon | [Balloon](#flintlock-types-Balloon) | optional | Balloon, when set, attaches a memory balloon device to the microvm. The balloon starts empty and deflates when the guest runs out of memory. |
 
 
 

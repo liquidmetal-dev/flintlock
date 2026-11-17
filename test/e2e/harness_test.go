@@ -2303,3 +2303,84 @@ func TestMetadataInterfaceStateWithoutLine(t *testing.T) {
 	_, _, err := u.MetadataInterfaceState(dir, provider)
 	g.Expect(err).To(HaveOccurred())
 }
+
+func TestBalloonStateCommandRuns(t *testing.T) {
+	tests := []struct {
+		name          string
+		features      string
+		bound         bool
+		wantDevice    string
+		wantReporting bool
+	}{
+		// Bit 5 is VIRTIO_BALLOON_F_REPORTING.
+		{name: "reporting", features: "0110010000000000", bound: true, wantDevice: "virtio3", wantReporting: true},
+		{name: "no reporting", features: "0110000000000000", bound: true, wantDevice: "virtio3"},
+		{name: "no device", wantDevice: "none"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			provider := u.Firecracker()
+			dir := t.TempDir()
+			sys := filepath.Join(dir, "virtio")
+			g.Expect(os.MkdirAll(filepath.Join(sys, "drivers", "virtio_balloon"), 0o755)).To(Succeed())
+			g.Expect(os.WriteFile(filepath.Join(sys, "drivers", "virtio_balloon", "bind"), nil, 0o600)).To(Succeed())
+
+			if tt.bound {
+				device := filepath.Join(sys, "devices", "virtio3")
+				g.Expect(os.MkdirAll(device, 0o755)).To(Succeed())
+				g.Expect(os.WriteFile(filepath.Join(device, "features"), []byte(tt.features+"\n"), 0o600)).To(Succeed())
+				g.Expect(os.Symlink(device, filepath.Join(sys, "drivers", "virtio_balloon", "virtio3"))).To(Succeed())
+			}
+
+			console := filepath.Join(dir, provider.ConsoleFile)
+			command := strings.ReplaceAll(u.BalloonStateCommand(), "/dev/console", console)
+			command = strings.ReplaceAll(command, "/sys/bus/virtio", sys)
+
+			out, err := exec.Command("sh", "-c", command).CombinedOutput()
+			g.Expect(err).NotTo(HaveOccurred(), string(out))
+
+			device, reporting, err := u.BalloonState(dir, provider)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(device).To(Equal(tt.wantDevice))
+			g.Expect(reporting).To(Equal(tt.wantReporting))
+		})
+	}
+}
+
+func TestBalloonStateWithoutLine(t *testing.T) {
+	g := NewWithT(t)
+
+	provider := u.Firecracker()
+	dir := t.TempDir()
+	g.Expect(os.WriteFile(filepath.Join(dir, provider.ConsoleFile), []byte("boot\n"), 0o600)).To(Succeed())
+
+	_, _, err := u.BalloonState(dir, provider)
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestBalloonFillCommand(t *testing.T) {
+	g := NewWithT(t)
+
+	command := u.BalloonFillCommand(1024, 20)
+
+	g.Expect(command).To(ContainSubstring("size=1088m"))
+	g.Expect(command).To(ContainSubstring("count=1024"))
+	g.Expect(command).To(ContainSubstring("sleep 20"))
+	g.Expect(strings.Index(command, u.BalloonMarker+" filled")).To(
+		BeNumerically("<", strings.Index(command, "rm ")), "the guest writes filled before it frees the memory")
+	g.Expect(command).To(HaveSuffix(u.BalloonMarker + ` freed" > /dev/console`))
+}
+
+func TestVMMRSSMiB(t *testing.T) {
+	g := NewWithT(t)
+
+	rss, err := u.VMMRSSMiB(os.Getpid())
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(rss).To(BeNumerically(">", 0))
+
+	_, err = u.VMMRSSMiB(-1)
+	g.Expect(err).To(HaveOccurred())
+}

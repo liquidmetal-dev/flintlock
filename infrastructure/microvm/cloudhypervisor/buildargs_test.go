@@ -92,6 +92,46 @@ func TestBuildArgs_CPUFeaturesUnrecognisedIgnored(t *testing.T) {
 	g.Expect(strings.Join(args, " ")).NotTo(g.ContainSubstring("features"))
 }
 
+func TestBuildArgs_BalloonFreePageReporting(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.Balloon = &models.Balloon{FreePageReporting: true}
+
+	args, err := p.buildArgs(vm, state, nil)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(strings.Join(args, " ")).To(g.ContainSubstring(
+		"--balloon size=0,deflate_on_oom=on,free_page_reporting=on"))
+}
+
+func TestBuildArgs_BalloonNoFreePageReporting(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	vm := vmForArgs(t, false)
+	vm.Spec.Balloon = &models.Balloon{}
+
+	args, err := p.buildArgs(vm, state, nil)
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	joined := strings.Join(args, " ")
+	g.Expect(joined).To(g.ContainSubstring("--balloon size=0,deflate_on_oom=on"))
+	g.Expect(joined).NotTo(g.ContainSubstring("free_page_reporting"))
+}
+
+func TestBuildArgs_NoBalloon(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, _, state := newTestProvider(t)
+
+	args, err := p.buildArgs(vmForArgs(t, false), state, nil)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(strings.Join(args, " ")).NotTo(g.ContainSubstring("--balloon"))
+}
+
 func TestBuildArgs_CPUConfigNil(t *testing.T) {
 	g.RegisterTestingT(t)
 

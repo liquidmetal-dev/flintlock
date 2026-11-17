@@ -40,6 +40,10 @@ const (
 	// writes to the console of the guest.
 	MetadataInterfaceMarker = "flintlock-e2e metadata-interface"
 
+	// BalloonMarker starts the lines which BalloonStateCommand and
+	// BalloonFillCommand write to the console of the guest.
+	BalloonMarker = "flintlock-e2e balloon"
+
 	diagnosticLines = 40
 )
 
@@ -401,4 +405,55 @@ func Tail(content []byte, lines int) []string {
 	}
 
 	return all
+}
+
+// BalloonState returns the virtio device that the guest's balloon driver has
+// bound, and whether the device and the driver agreed on free page
+// reporting, from the line which BalloonStateCommand writes to the console.
+// The device is "none" if the driver bound no device.
+func BalloonState(stateDir string, provider Provider) (string, bool, error) {
+	line, err := ConsoleLine(stateDir, provider, BalloonMarker+" device=")
+	if err != nil {
+		return "", false, err
+	}
+
+	var device, reporting string
+
+	_, text, _ := strings.Cut(line, BalloonMarker)
+	if _, err := fmt.Sscanf(text, " device=%s reporting=%s", &device, &reporting); err != nil {
+		return "", false, fmt.Errorf("parsing the balloon line %q: %w", line, err)
+	}
+
+	return device, reporting == "1", nil
+}
+
+// VMMRSSMiB returns the resident set size of the process pid, in MiB, from
+// the VmRSS line of /proc/<pid>/status.
+func VMMRSSMiB(pid int) (int, error) {
+	return rssMiB(fmt.Sprintf("/proc/%d/status", pid))
+}
+
+// kibPerMiB is the number of KiB in a MiB.
+const kibPerMiB = 1024
+
+func rssMiB(statusFile string) (int, error) {
+	content, err := os.ReadFile(statusFile)
+	if err != nil {
+		return 0, fmt.Errorf("reading %s: %w", statusFile, err)
+	}
+
+	for _, line := range strings.Split(string(content), "\n") {
+		if !strings.HasPrefix(line, "VmRSS:") {
+			continue
+		}
+
+		var kib int
+		if _, err := fmt.Sscanf(strings.TrimPrefix(line, "VmRSS:"), "%d kB", &kib); err != nil {
+			return 0, fmt.Errorf("parsing %q of %s: %w", line, statusFile, err)
+		}
+
+		return kib / kibPerMiB, nil
+	}
+
+	return 0, fmt.Errorf("%s has no VmRSS line", statusFile)
 }

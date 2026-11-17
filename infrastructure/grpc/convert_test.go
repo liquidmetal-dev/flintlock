@@ -63,6 +63,37 @@ func TestConvert_CPUConfigNil(t *testing.T) {
 	g.Expect(back.CpuConfig).To(g.BeNil())
 }
 
+func TestConvert_Balloon(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	spec := &types.MicroVMSpec{
+		Id:        "test",
+		Namespace: "ns",
+		Balloon:   &types.Balloon{FreePageReporting: true},
+	}
+
+	model, err := convertMicroVMToModel(spec)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(model.Spec.Balloon).To(g.Equal(&models.Balloon{FreePageReporting: true}))
+
+	back := convertModelToMicroVMSpec(model)
+	g.Expect(back.Balloon).NotTo(g.BeNil())
+	g.Expect(back.Balloon.FreePageReporting).To(g.BeTrue())
+}
+
+func TestConvert_BalloonNil(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	spec := &types.MicroVMSpec{Id: "test", Namespace: "ns"}
+
+	model, err := convertMicroVMToModel(spec)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(model.Spec.Balloon).To(g.BeNil())
+
+	back := convertModelToMicroVMSpec(model)
+	g.Expect(back.Balloon).To(g.BeNil())
+}
+
 func TestConvert_StatusVsockPath(t *testing.T) {
 	g.RegisterTestingT(t)
 
