@@ -251,7 +251,8 @@ jobs:
         run: |
           # flintlockd removes the state directory of a MicroVM when the MicroVM
           # is deleted, so the tests save the files of it before they delete one.
-          # The overlay boot test is skipped without the initrd image.
+          # The overlay boot and the snapshot restore tests are skipped without
+          # the initrd image.
           sudo env \
             "PATH=$PATH" \
             "GOCACHE=/tmp/go-cache" \
@@ -281,6 +282,25 @@ jobs:
             fi
           else
             echo "${STATE_DIR} does not exist."
+          fi
+
+          # A snapshot is not in the state directory of a MicroVM. Its memory,
+          # its VMM state and its disk are large, so only its JSON files are
+          # saved.
+          snapshots_dir="${STATE_DIR%/vm}/snapshots"
+          left_behind_snapshots="${ARTEFACTS_DIR}/left-behind-snapshots"
+
+          if sudo test -d "${snapshots_dir}"; then
+            echo "The files of ${snapshots_dir}:"
+            sudo ls -laR "${snapshots_dir}"
+
+            files="$(sudo find "${snapshots_dir}" -type f -name '*.json' | wc -l)"
+
+            if [[ "${files}" -gt 0 ]]; then
+              sudo mkdir -p "${left_behind_snapshots}"
+              sudo sh -c 'cd "$1" && find . -type f -name "*.json" -exec cp --parents -t "$2" {} +' \
+                sh "${snapshots_dir}" "${left_behind_snapshots}"
+            fi
           fi
 
           # The bases and the templates of the overlay roots are kept when a

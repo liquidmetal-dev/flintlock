@@ -128,6 +128,41 @@ does this with `zot` on port 5000.
   skipped without the `overlay.initrd.image` flag, and a subtest is skipped
   when its provider is not one of the providers. See
   [What shows that a root is an overlay](#what-shows-that-a-root-is-an-overlay).
+- `TestE2EFirecrackerSnapshotRestore`: takes a snapshot of a running MicroVM
+  and restores it twice, with the `firecracker-6.1` kernel of
+  `TestE2EOverlayBoot`. flintlockd is started with `--enable-exec-api` and
+  `--snapshot-max-pause 10s`. The source boots from an overlay root with the
+  guest agent. Through the exec API the test writes a marker file in the guest
+  and starts a counter, which appends the count, the wall clock and the uptime
+  of the guest to a file once a second. The test then:
+  - takes the snapshot and waits for it to be `READY`. The source has to run
+    on, and the longest gap in its counter has to be shorter than
+    `--snapshot-max-pause`.
+  - checks the files of the snapshot in `/var/lib/flintlock/snapshots/<uid>`:
+    all of them are `0600`, `descriptor.json` has the fields of the descriptor
+    and no metadata, `spec.json` has the spec and the metadata of the source,
+    and `root.base` is the base of the source.
+  - asks for a restore with a spec which has another vCPU count, which has to
+    be refused.
+  - restores the snapshot twice. Each restored MicroVM has to be `CREATED`
+    with `GuestAgentReady`, have the metadata of the source with the restore
+    markers and the restore generations 1 and 2, the marker file, a counter
+    which goes on from the line of the source at the snapshot, and an uptime
+    which goes on from the one of the source at the snapshot.
+  - checks that the source and the restored MicroVMs share the base and
+    nothing else: each has its own `root.rw`, TAP, API socket and vsock
+    socket, and a file which one of the guests writes is not in the others.
+  - deletes the snapshot while the restored MicroVMs run. It is gone from the
+    API, its directory keeps `memory` and `vmstate`, and the restored MicroVMs
+    run on. The directory goes when the last restored MicroVM is deleted.
+  - deletes the MicroVMs. Nothing with the uid of one of them or of the
+    snapshot is left in `/var/lib/flintlock` or `/run/flintlock`, and their
+    TAPs are gone.
+
+  The test needs what `TestE2EOverlayBoot` needs, and is skipped without the
+  `overlay.initrd.image` flag or when `firecracker` is not one of the
+  providers. With the `artefacts.dir` flag the JSON files of the snapshot are
+  saved to `<test>/snapshots/<uid>`.
 - `TestE2EFirecrackerMetadataKernelIP`: starts flintlockd with
   `--firecracker-metadata-kernel-ip` and creates a Firecracker MicroVM. The
   guest must boot, which shows that it read its
@@ -351,7 +386,9 @@ gh run download <run id> --name e2e-microvm-state-1
 The tests do not save anything when they are stopped, by their timeout or by a
 panic. The state directories of their MicroVMs are still there then, and the
 workflow copies the files of them to the `left-behind` directory of the
-artefact. It has no such directory when all of the MicroVMs were deleted.
+artefact. It has no such directory when all of the MicroVMs were deleted. The
+JSON files of the snapshots which are left in `/var/lib/flintlock/snapshots`
+are copied to `left-behind-snapshots`.
 
 ### Configuration
 

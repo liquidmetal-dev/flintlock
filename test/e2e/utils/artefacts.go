@@ -161,3 +161,40 @@ func makeReadableDirectories(dir string) error {
 
 	return nil
 }
+
+// SaveSnapshotFiles copies the JSON files of the directory of a snapshot to
+// another directory, and returns the names of the ones which it has saved.
+// The memory, the VMM state and the disk of a snapshot are large, and are not
+// saved. A snapshot which is gone has nothing to save, which is not an error.
+func SaveSnapshotFiles(snapshotDir, destDir string) ([]string, error) {
+	saved := []string{}
+
+	entries, err := os.ReadDir(snapshotDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return saved, nil
+		}
+
+		return saved, fmt.Errorf("reading the snapshot directory: %w", err)
+	}
+
+	var failed []error
+
+	for _, entry := range entries {
+		name := entry.Name()
+
+		if !entry.Type().IsRegular() || filepath.Ext(name) != snapshotArtefactExt {
+			continue
+		}
+
+		if err := copyFile(filepath.Join(snapshotDir, name), destDir, name); err != nil {
+			failed = append(failed, err)
+
+			continue
+		}
+
+		saved = append(saved, name)
+	}
+
+	return saved, errors.Join(failed...)
+}
