@@ -65,6 +65,9 @@ func (a *app) recoverSnapshot(ctx context.Context, snapshot *models.Snapshot) er
 func (a *app) resumeCaptureSource(ctx context.Context, snapshot *models.Snapshot) error {
 	uid := snapshot.Source.UID()
 
+	a.vmLocks.Lock(uid)
+	defer a.vmLocks.Unlock(uid)
+
 	vm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{UID: uid})
 	if err != nil {
 		return fmt.Errorf("getting source microvm %s: %w", uid, err)
@@ -78,9 +81,6 @@ func (a *app) resumeCaptureSource(ctx context.Context, snapshot *models.Snapshot
 	if !ok {
 		return fmt.Errorf("microvm provider %s isn't available", vm.Spec.Provider)
 	}
-
-	a.vmLocks.Lock(uid)
-	defer a.vmLocks.Unlock(uid)
 
 	state, err := provider.State(ctx, vm.ID.String())
 	if err != nil {

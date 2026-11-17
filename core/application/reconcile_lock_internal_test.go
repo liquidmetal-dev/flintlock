@@ -86,3 +86,34 @@ func TestDefaultLockedRequeueDelay(t *testing.T) {
 
 	g.Expect(a.lockedRequeueDelay).To(g.Equal(5 * time.Second))
 }
+
+func TestRecoverSnapshots_ReadsTheSourceUnderTheLock(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	ctrl := gomock.NewController(t)
+	repo := mock.NewMockMicroVMRepository(ctrl)
+	snapshots := mock.NewMockSnapshotRepository(ctrl)
+	eventSvc := mock.NewMockEventService(ctrl)
+	a, _ := New(&Config{}, &ports.Collection{
+		Repo: repo, SnapshotRepo: snapshots, EventService: eventSvc,
+	}).(*app)
+
+	vmid, _ := models.NewVMID("vm1", "ns1", lockTestUID)
+	snapshots.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*models.Snapshot{{
+		UID: "snap1", Source: *vmid, Status: models.SnapshotStatus{Phase: models.SnapshotPhaseCapturing},
+	}}, nil)
+	repo.EXPECT().Get(gomock.Any(), ports.RepositoryGetOptions{UID: lockTestUID}).
+		DoAndReturn(func(context.Context, ports.RepositoryGetOptions) (*models.MicroVM, error) {
+			g.Expect(a.vmLocks.TryLock(lockTestUID)).To(g.BeFalse(), "recovery holds the lock")
+
+			return nil, nil
+		})
+	snapshots.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+	eventSvc.EXPECT().Publish(gomock.Any(), defaults.TopicSnapshotEvents, gomock.Any()).Return(nil)
+	snapshots.EXPECT().RemoveFiles(gomock.Any(), "snap1").Return(nil)
+
+	g.Expect(a.RecoverSnapshots(context.Background())).To(g.Succeed())
+
+	g.Expect(a.vmLocks.TryLock(lockTestUID)).To(g.BeTrue(), "recovery released the lock")
+	a.vmLocks.Unlock(lockTestUID)
+}
