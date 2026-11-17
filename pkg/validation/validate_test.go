@@ -255,6 +255,32 @@ func TestValidation_ReadOnlyVirtioFS(t *testing.T) {
 	}
 }
 
+func TestValidation_DuplicateMountPoint(t *testing.T) {
+	RegisterTestingT(t)
+
+	volume := func(id string) models.Volume {
+		return models.Volume{
+			ID:         id,
+			MountPoint: "/data",
+			Source: models.VolumeSource{
+				Container: &models.ContainerVolumeSource{Image: "docker.io/library/ubuntu:latest"},
+			},
+		}
+	}
+
+	vm := basicMicroVM
+	vm.Spec.AdditionalVolumes = models.Volumes{volume("data1"), volume("data2")}
+
+	err := NewValidator().ValidateStruct(vm)
+	Expect(err).To(HaveOccurred())
+
+	var valErrors validator.ValidationErrors
+
+	Expect(errors.As(err, &valErrors)).To(BeTrue())
+	Expect(valErrors).To(HaveLen(1))
+	Expect(valErrors[0].Tag()).To(Equal("uniqueMountPoints"))
+}
+
 var basicMicroVM = models.MicroVM{
 	Spec: models.MicroVMSpec{
 		VCPU:       2,
