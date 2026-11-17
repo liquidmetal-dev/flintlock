@@ -78,6 +78,9 @@ Deleting the microVM removes its writable disk and its link to the base.
 The base stays for other microVMs and is removed after the retention period
 once no microVM links to it.
 
+A running microVM with an overlay root can be snapshotted and restored. See
+[Snapshots and clones](snapshots.md).
+
 ## Capabilities
 
 A provider advertises the volume modes its host can serve:
