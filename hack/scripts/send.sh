@@ -27,7 +27,7 @@ ${0} [flags] -s service -m method>
   -h/--help              help
 
 Special:
- * DeleteMicroVM uses --uid
+ * DeleteMicroVM, PauseMicroVM and ResumeMicroVM use --uid
  * ListMicroVMs uses --namespace
 
 Examples:
@@ -81,7 +81,7 @@ done
 pushd "$(dirname "${0}")" > /dev/null
 
 case "${method}" in
-  "DeleteMicroVM")
+  "DeleteMicroVM" | "PauseMicroVM" | "ResumeMicroVM")
     grpcurl -d "{\"uid\": \"${uid}\"}" \
       -plaintext "${host}:${port}" \
       "${service}/${method}"
