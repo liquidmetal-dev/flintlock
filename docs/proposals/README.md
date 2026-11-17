@@ -29,6 +29,21 @@ design.
 | [Root Volume Decision: implement Option C directly](26-09-25-snapshot-restore/0204-root-volume-decision.md) | proposed |
 | [Overlay Boot: design for the first Option C milestone](26-09-25-snapshot-restore/0204-overlay-boot-design.md) | proposed design |
 
+### [26-09-25-local-db-store](26-09-25-local-db-store/)
+
+Local embedded database as an optional backing store for microVM records,
+instead of the containerd content store. Tracking issue:
+[#1172](https://github.com/liquidmetal-dev/flintlock/issues/1172).
+
+Suggested reading order: requirements, then the options survey, then the
+design candidate.
+
+| Document | Status |
+| --- | --- |
+| [Local Database Backing Store Requirements](26-09-25-local-db-store/1172-local-db-store-requirements.md) | proposed |
+| [Embedded Database Options for the Local Store](26-09-25-local-db-store/1172-embedded-db-options.md) | informative |
+| [Local Store Design Candidate](26-09-25-local-db-store/1172-local-db-store-design.md) | proposed design candidate |
+
 ## Adding a proposal
 
 1. Create `docs/proposals/YY-MM-DD-<slug>/` using today's date.
