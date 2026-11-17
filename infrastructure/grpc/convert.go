@@ -315,6 +315,8 @@ func convertModelToMicroVMStatus(mvm *models.MicroVM) *types.MicroVMStatus {
 		converted.State = types.MicroVMStatus_FAILED
 	case models.DeletingState:
 		converted.State = types.MicroVMStatus_DELETING
+	case models.PausedState:
+		converted.State = types.MicroVMStatus_PAUSED
 	}
 
 	converted.Volumes = make(map[string]*types.VolumeStatus, len(mvm.Status.Volumes))
@@ -526,7 +528,6 @@ func convertModelToSnapshotRef(ref *models.SnapshotRef) *types.SnapshotRef {
 	}
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertSnapshotSourceToModel(source *types.SnapshotSource) *models.SnapshotSource {
 	converted := &models.SnapshotSource{
 		Snapshot:   convertSnapshotRefToModel(source.GetSnapshot()),
@@ -578,7 +579,6 @@ func convertModelToSnapshotSource(source *models.SnapshotSource) *types.Snapshot
 	return converted
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertMemoryModeToModel(mode types.MemoryMode) models.MemoryMode {
 	switch mode {
 	case types.MemoryMode_FILE:

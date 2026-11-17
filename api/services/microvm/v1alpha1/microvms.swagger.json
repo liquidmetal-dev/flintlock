@@ -479,6 +479,70 @@
         ]
       }
     },
+    "/v1alpha1/microvm/{uid}/pause": {
+      "post": {
+        "summary": "PauseMicroVM pauses the vCPUs of a running microvm. The microvm keeps its memory\nand its devices. It stays paused until ResumeMicroVM, also when flintlockd restarts.\nPausing a paused microvm succeeds. A microvm in another state fails with\nFAILED_PRECONDITION.",
+        "operationId": "MicroVM_PauseMicroVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
+    },
+    "/v1alpha1/microvm/{uid}/resume": {
+      "post": {
+        "summary": "ResumeMicroVM resumes a paused microvm. Resuming a running microvm succeeds. A\nmicrovm in another state fails with FAILED_PRECONDITION.",
+        "operationId": "MicroVM_ResumeMicroVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MicroVM"
+        ]
+      }
+    },
     "/v1alpha1/serverinfo": {
       "get": {
         "operationId": "MicroVM_ServerInfo",
@@ -509,9 +573,11 @@
         "PENDING",
         "CREATED",
         "FAILED",
-        "DELETING"
+        "DELETING",
+        "PAUSED"
       ],
-      "default": "PENDING"
+      "default": "PENDING",
+      "description": " - PAUSED: PAUSED is a microvm whose vCPUs PauseMicroVM paused."
     },
     "MountMountType": {
       "type": "string",

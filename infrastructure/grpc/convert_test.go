@@ -182,3 +182,25 @@ func TestConvert_VolumeRoundTrip(t *testing.T) {
 	g.Expect(back.AdditionalVolumes[0].MountPoint).To(g.HaveValue(g.Equal(mountPoint)))
 	g.Expect(back.AdditionalVolumes[0].Source.VirtiofsSource).To(g.HaveValue(g.Equal(sharePath)))
 }
+
+func TestConvert_StatusState(t *testing.T) {
+	tt := []struct {
+		state models.MicroVMState
+		want  types.MicroVMStatus_MicroVMState
+	}{
+		{state: models.PendingState, want: types.MicroVMStatus_PENDING},
+		{state: models.CreatedState, want: types.MicroVMStatus_CREATED},
+		{state: models.FailedState, want: types.MicroVMStatus_FAILED},
+		{state: models.DeletingState, want: types.MicroVMStatus_DELETING},
+		{state: models.PausedState, want: types.MicroVMStatus_PAUSED},
+	}
+
+	for _, tc := range tt {
+		t.Run(string(tc.state), func(t *testing.T) {
+			g.RegisterTestingT(t)
+
+			status := convertModelToMicroVMStatus(&models.MicroVM{Status: models.MicroVMStatus{State: tc.state}})
+			g.Expect(status.GetState()).To(g.Equal(tc.want))
+		})
+	}
+}

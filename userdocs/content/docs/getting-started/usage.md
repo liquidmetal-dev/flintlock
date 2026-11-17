@@ -103,6 +103,29 @@ To create a MicroVM:
   --method CreateMicroVM
 ```
 
+### Pause and resume
+
+`PauseMicroVM` stops the vCPUs of a running microVM. The microVM keeps its
+memory and its devices, so it still uses its memory on the host. Its state is
+`PAUSED`. `ResumeMicroVM` starts the vCPUs again, and the state goes back to
+`CREATED`:
+
+```bash
+./hack/scripts/send.sh --method PauseMicroVM --uid <uid>
+
+./hack/scripts/send.sh --method ResumeMicroVM --uid <uid>
+```
+
+The HTTP API has `POST /v1alpha1/microvm/{uid}/pause` and
+`POST /v1alpha1/microvm/{uid}/resume`.
+
+A paused microVM stays paused when `flintlockd` restarts. If its VMM has to
+start again, for example after the host restarts, flintlock boots it and then
+pauses it. Pausing a paused microVM, or resuming a running one, does nothing
+and succeeds. Any other state fails with `FAILED_PRECONDITION`. You can delete a
+paused microVM. The guest agent does not answer while the microVM is paused, so
+exec and SSH refuse a paused microVM.
+
 ## BloomRPC
 
 [BloomRPC][bloomrpc] is a GUI tool to test gRPC endpoints.

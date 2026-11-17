@@ -58,7 +58,7 @@ func (s *snapshotServer) CreateSnapshot(
 	if err != nil {
 		logger.Errorf("failed to create snapshot: %s", err)
 
-		return nil, snapshotError("creating snapshot", err)
+		return nil, useCaseError("creating snapshot", err)
 	}
 
 	return &snapv1.CreateSnapshotResponse{Snapshot: convertModelToSnapshot(snapshot)}, nil
@@ -81,7 +81,7 @@ func (s *snapshotServer) GetSnapshot(
 	if err != nil {
 		logger.Errorf("failed to get snapshot: %s", err)
 
-		return nil, snapshotError("getting snapshot", err)
+		return nil, useCaseError("getting snapshot", err)
 	}
 
 	return &snapv1.GetSnapshotResponse{Snapshot: convertModelToSnapshot(snapshot)}, nil
@@ -104,7 +104,7 @@ func (s *snapshotServer) ListSnapshots(
 	if err != nil {
 		logger.Errorf("failed to list snapshots: %s", err)
 
-		return nil, snapshotError("listing snapshots", err)
+		return nil, useCaseError("listing snapshots", err)
 	}
 
 	resp := &snapv1.ListSnapshotsResponse{Snapshots: []*types.Snapshot{}}
@@ -134,7 +134,7 @@ func (s *snapshotServer) ListSnapshotsStream(
 	if err != nil {
 		logger.Errorf("failed to list snapshots: %s", err)
 
-		return snapshotError("listing snapshots", err)
+		return useCaseError("listing snapshots", err)
 	}
 
 	for _, snapshot := range snapshots {
@@ -164,15 +164,16 @@ func (s *snapshotServer) DeleteSnapshot(
 	if err := s.commandUC.DeleteSnapshot(ctx, convertSnapshotRefToModel(req.GetRef())); err != nil {
 		logger.Errorf("failed to delete snapshot: %s", err)
 
-		return nil, snapshotError("deleting snapshot", err)
+		return nil, useCaseError("deleting snapshot", err)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
-// snapshotError gives an error of the snapshot use cases the gRPC code of its kind. Any
-// other error is wrapped, as the microvm server wraps the errors of its use cases.
-func snapshotError(action string, err error) error {
+// useCaseError gives an error of a snapshot, pause or resume use case the gRPC
+// code of its kind. Any other error is wrapped, as the microvm server wraps the
+// errors of its other use cases.
+func useCaseError(action string, err error) error {
 	var code codes.Code
 
 	switch {
@@ -182,6 +183,8 @@ func snapshotError(action string, err error) error {
 		code = codes.AlreadyExists
 	case coreerrs.IsFailedPrecondition(err):
 		code = codes.FailedPrecondition
+	case coreerrs.IsInvalidArgument(err):
+		code = codes.InvalidArgument
 	default:
 		return fmt.Errorf("%s: %w", action, err)
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/steps/microvm"
 	"github.com/liquidmetal-dev/flintlock/core/steps/network"
 	"github.com/liquidmetal-dev/flintlock/core/steps/runtime"
+	"github.com/liquidmetal-dev/flintlock/core/steps/snapshot"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 	"github.com/liquidmetal-dev/flintlock/pkg/planner"
@@ -81,6 +82,14 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding socket dir step: %w", err)
 	}
 
+	if p.vm.Spec.SnapshotSource.RestorePending() {
+		if err := p.addRestoreSteps(ctx, provider, ports); err != nil {
+			return nil, err
+		}
+
+		return p.steps, nil
+	}
+
 	// MicroVM provider doesn't have virtiofs
 	if provider.Capabilities().Has(models.VirtioFSCapability) {
 		if err := p.addVirtioFSSteps(ctx, p.vm, ports.VirtioFSService); err != nil {
@@ -125,16 +134,85 @@ func (p *microvmCreateOrUpdatePlan) Create(ctx context.Context) ([]planner.Proce
 		return nil, fmt.Errorf("adding vmm running step: %w", err)
 	}
 
-	agentWait := microvm.WaitConfig{
-		Timeout:  p.guestAgentReadyTimeout,
-		Interval: defaults.ReadyPollInterval,
-		Clock:    ports.Clock,
-	}
-	if err := p.addStep(ctx, microvm.NewGuestAgentReadyStep(p.vm, provider, ports.GuestAgent, agentWait)); err != nil {
+	if err := p.addStep(ctx, p.guestAgentReadyStep(provider, ports)); err != nil {
 		return nil, fmt.Errorf("adding guest-agent ready step: %w", err)
 	}
 
+	// The pause comes last, so that a VMM that starts again boots its guest first.
+	if err := p.addStep(ctx, microvm.NewPauseStep(p.vm, provider)); err != nil {
+		return nil, fmt.Errorf("adding microvm pause step: %w", err)
+	}
+
 	return p.steps, nil
+}
+
+// addRestoreSteps adds the steps that restore the microvm from its snapshot, in
+// place of the steps that provision its root volume and boot it. A restore
+// pulls no image: the kernel and the initrd are in the snapshot.
+func (p *microvmCreateOrUpdatePlan) addRestoreSteps(
+	ctx context.Context,
+	provider ports.MicroVMService,
+	svcs *ports.Collection,
+) error {
+	if svcs.SnapshotRepo == nil {
+		return errSnapshotRepoMissing
+	}
+
+	if svcs.VolumeService == nil {
+		return errVolumeServiceMissing
+	}
+
+	root := &p.vm.Spec.RootVolume
+	if !root.IsOverlay() {
+		return errRestoreRootNotOverlay
+	}
+
+	snapshotDir := svcs.SnapshotRepo.Dir(p.vm.Spec.SnapshotSource.Snapshot.UID)
+
+	if err := p.addNetworkSteps(ctx, p.vm, svcs.NetworkService); err != nil {
+		return fmt.Errorf("adding network steps: %w", err)
+	}
+
+	rootStatus, ok := p.vm.Status.Volumes[root.ID]
+	if !ok {
+		rootStatus = &models.VolumeStatus{}
+		p.vm.Status.Volumes[root.ID] = rootStatus
+	}
+
+	vmmWait := microvm.WaitConfig{
+		Timeout:  p.vmmStartTimeout,
+		Interval: defaults.ReadyPollInterval,
+		Clock:    svcs.Clock,
+	}
+
+	steps := []planner.Procedure{
+		runtime.NewVolumeRestore(&p.vm.ID, root, rootStatus, snapshotDir, svcs.VolumeService, svcs.FileSystem),
+		snapshot.NewAddRef(p.vm, svcs.SnapshotRepo),
+		microvm.NewRestoreStep(p.vm, provider, snapshotDir, vmmWait),
+		p.guestAgentReadyStep(provider, svcs),
+		microvm.NewRestoredStep(p.vm, svcs.EventService),
+	}
+
+	for _, step := range steps {
+		if err := p.addStep(ctx, step); err != nil {
+			return fmt.Errorf("adding restore step %s: %w", step.Name(), err)
+		}
+	}
+
+	return nil
+}
+
+func (p *microvmCreateOrUpdatePlan) guestAgentReadyStep(
+	provider ports.MicroVMService,
+	svcs *ports.Collection,
+) planner.Procedure {
+	agentWait := microvm.WaitConfig{
+		Timeout:  p.guestAgentReadyTimeout,
+		Interval: defaults.ReadyPollInterval,
+		Clock:    svcs.Clock,
+	}
+
+	return microvm.NewGuestAgentReadyStep(p.vm, provider, svcs.GuestAgent, agentWait)
 }
 
 func (p *microvmCreateOrUpdatePlan) Finalise(state models.MicroVMState) {

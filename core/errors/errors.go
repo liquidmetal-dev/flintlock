@@ -210,3 +210,25 @@ func IsFailedPrecondition(err error) bool {
 
 	return errors.As(err, e)
 }
+
+// NewInvalidArgument returns the error for a request with a value that is not valid,
+// whatever the state of the system. The reason names the value.
+func NewInvalidArgument(reason string) error {
+	return invalidArgumentError{reason: reason}
+}
+
+type invalidArgumentError struct {
+	reason string
+}
+
+// Error returns the error message.
+func (e invalidArgumentError) Error() string {
+	return e.reason
+}
+
+// IsInvalidArgument tests an error to see if its an invalid argument error.
+func IsInvalidArgument(err error) bool {
+	e := &invalidArgumentError{}
+
+	return errors.As(err, e)
+}

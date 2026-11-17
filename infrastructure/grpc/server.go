@@ -16,6 +16,7 @@ import (
 	"github.com/liquidmetal-dev/flintlock/core/ports"
 	"github.com/liquidmetal-dev/flintlock/internal/version"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
+	"github.com/liquidmetal-dev/flintlock/pkg/validation"
 )
 
 // InfoConfig carries the runtime facts ServerInfo needs beyond what's
@@ -57,11 +58,22 @@ func (s *server) CreateMicroVM(
 	logger := log.GetLogger(ctx)
 	logger.Trace("converting request to model")
 
-	if req == nil || req.Microvm == nil {
+	if req == nil || (req.Microvm == nil && req.SnapshotSource == nil) {
 		logger.Error("invalid create microvm request: MicroVMSpec required")
 
 		//nolint:wrapcheck // don't wrap grpc errors when using the status package
 		return nil, status.Error(codes.InvalidArgument, "invalid create microvm request: MicroVMSpec required")
+	}
+
+	if err := validation.ValidateCreateMicroVMRequest(req); err != nil {
+		logger.Errorf("invalid create microvm request: %s", err)
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Errorf(codes.InvalidArgument, "invalid create microvm request: %s", err)
+	}
+
+	if req.SnapshotSource != nil {
+		return s.restoreMicroVM(ctx, req.SnapshotSource)
 	}
 
 	sanitizeMicroVMImageReferences(logger, req.Microvm)
@@ -79,15 +91,41 @@ func (s *server) CreateMicroVM(
 		return nil, fmt.Errorf("creating microvm: %w", err)
 	}
 
-	resp := &mvmv1.CreateMicroVMResponse{
+	return createMicroVMResponse(createdModel), nil
+}
+
+// restoreMicroVM creates a microvm from a snapshot. The command builds the spec
+// from the snapshot and the overrides of the source.
+func (s *server) restoreMicroVM(
+	ctx context.Context,
+	source *types.SnapshotSource,
+) (*mvmv1.CreateMicroVMResponse, error) {
+	logger := log.GetLogger(ctx)
+
+	modelSource := convertSnapshotSourceToModel(source)
+
+	logger.Infof("restoring microvm %s from a snapshot", modelSource.Name)
+
+	createdModel, err := s.commandUC.CreateMicroVM(ctx, &models.MicroVM{
+		Spec: models.MicroVMSpec{SnapshotSource: modelSource},
+	})
+	if err != nil {
+		logger.Errorf("failed to restore microvm: %s", err)
+
+		return nil, snapshotError("restoring microvm", err)
+	}
+
+	return createMicroVMResponse(createdModel), nil
+}
+
+func createMicroVMResponse(createdModel *models.MicroVM) *mvmv1.CreateMicroVMResponse {
+	return &mvmv1.CreateMicroVMResponse{
 		Microvm: &types.MicroVM{
 			Version: int32(createdModel.Version),
 			Spec:    convertModelToMicroVMSpec(createdModel),
 			Status:  convertModelToMicroVMStatus(createdModel),
 		},
 	}
-
-	return resp, nil
 }
 
 func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequest) (*emptypb.Empty, error) {
@@ -106,6 +144,48 @@ func (s *server) DeleteMicroVM(ctx context.Context, req *mvmv1.DeleteMicroVMRequ
 		logger.Errorf("failed to delete microvm: %s", err)
 
 		return nil, fmt.Errorf("deleting microvm: %w", err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *server) PauseMicroVM(ctx context.Context, req *mvmv1.PauseMicroVMRequest) (*emptypb.Empty, error) {
+	logger := log.GetLogger(ctx)
+
+	if req.GetUid() == "" {
+		logger.Error("invalid pause microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request: uid required")
+	}
+
+	logger.Infof("pausing microvm %s", req.GetUid())
+
+	if err := s.commandUC.PauseMicroVM(ctx, req.GetUid()); err != nil {
+		logger.Errorf("failed to pause microvm: %s", err)
+
+		return nil, useCaseError("pausing microvm", err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *server) ResumeMicroVM(ctx context.Context, req *mvmv1.ResumeMicroVMRequest) (*emptypb.Empty, error) {
+	logger := log.GetLogger(ctx)
+
+	if req.GetUid() == "" {
+		logger.Error("invalid resume microvm request")
+
+		//nolint:wrapcheck // don't wrap grpc errors when using the status package
+		return nil, status.Error(codes.InvalidArgument, "invalid request: uid required")
+	}
+
+	logger.Infof("resuming microvm %s", req.GetUid())
+
+	if err := s.commandUC.ResumeMicroVM(ctx, req.GetUid()); err != nil {
+		logger.Errorf("failed to resume microvm: %s", err)
+
+		return nil, useCaseError("resuming microvm", err)
 	}
 
 	return &emptypb.Empty{}, nil

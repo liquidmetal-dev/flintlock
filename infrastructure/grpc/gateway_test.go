@@ -10,6 +10,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	g "github.com/onsi/gomega"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	mvmv1 "github.com/liquidmetal-dev/flintlock/api/services/microvm/v1alpha1"
 	snapshotv1 "github.com/liquidmetal-dev/flintlock/api/services/snapshot/v1alpha1"
@@ -133,4 +134,42 @@ func TestGateway_CreateMicroVM(t *testing.T) {
 			tc.expect(srv.got)
 		})
 	}
+}
+
+type recordingPowerServer struct {
+	mvmv1.MicroVMServer
+
+	paused  string
+	resumed string
+}
+
+func (s *recordingPowerServer) PauseMicroVM(_ context.Context, req *mvmv1.PauseMicroVMRequest) (*emptypb.Empty, error) {
+	s.paused = req.GetUid()
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *recordingPowerServer) ResumeMicroVM(_ context.Context, req *mvmv1.ResumeMicroVMRequest) (*emptypb.Empty, error) {
+	s.resumed = req.GetUid()
+
+	return &emptypb.Empty{}, nil
+}
+
+func TestGateway_PauseResumeMicroVM(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	srv := &recordingPowerServer{}
+	mux := runtime.NewServeMux()
+	g.Expect(mvmv1.RegisterMicroVMHandlerServer(context.Background(), mux, srv)).To(g.Succeed())
+
+	for _, path := range []string{"/v1alpha1/microvm/vm-uid/pause", "/v1alpha1/microvm/other-uid/resume"} {
+		req := httptest.NewRequest(http.MethodPost, path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		g.Expect(rec.Code).To(g.Equal(http.StatusOK), rec.Body.String())
+	}
+
+	g.Expect(srv.paused).To(g.Equal("vm-uid"))
+	g.Expect(srv.resumed).To(g.Equal("other-uid"))
 }

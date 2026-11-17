@@ -31,6 +31,10 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		return nil, coreerrs.ErrSpecRequired
 	}
 
+	if mvm.Spec.SnapshotSource != nil {
+		return a.restoreMicroVM(ctx, mvm)
+	}
+
 	logger.Trace("validating model")
 	validator := validation.NewValidator()
 	if validErr := validator.ValidateStruct(mvm); validErr != nil {
@@ -68,23 +72,8 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 	mvm.ID.SetUID(uid)
 	logger = logger.WithField("vmid", mvm.ID)
 
-	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
-		Name:      mvm.ID.Name(),
-		Namespace: mvm.ID.Namespace(),
-		UID:       mvm.ID.UID(),
-	})
-	if err != nil {
-		if !coreerrs.IsSpecNotFound(err) {
-			return nil, fmt.Errorf("checking to see if spec exists: %w", err)
-		}
-	}
-
-	if foundMvm != nil {
-		return nil, specAlreadyExistsError{
-			name:      mvm.ID.Name(),
-			namespace: mvm.ID.Namespace(),
-			uid:       mvm.ID.UID(),
-		}
+	if err := a.checkMicroVMNotExists(ctx, mvm.ID); err != nil {
+		return nil, err
 	}
 
 	if err := checkProviderCapabilities(mvm, provider); err != nil {
@@ -103,7 +92,35 @@ func (a *app) CreateMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.M
 		a.addMetadataInterface(mvm)
 	}
 
-	// Set the timestamp when the VMspec was created.
+	return a.saveNewMicroVM(ctx, mvm)
+}
+
+func (a *app) checkMicroVMNotExists(ctx context.Context, vmid models.VMID) error {
+	foundMvm, err := a.ports.Repo.Get(ctx, ports.RepositoryGetOptions{
+		Name:      vmid.Name(),
+		Namespace: vmid.Namespace(),
+		UID:       vmid.UID(),
+	})
+	if err != nil {
+		if !coreerrs.IsSpecNotFound(err) {
+			return fmt.Errorf("checking to see if spec exists: %w", err)
+		}
+	}
+
+	if foundMvm != nil {
+		return specAlreadyExistsError{
+			name:      vmid.Name(),
+			namespace: vmid.Namespace(),
+			uid:       vmid.UID(),
+		}
+	}
+
+	return nil
+}
+
+// saveNewMicroVM saves the spec of a new microvm as pending and publishes the
+// event that starts its reconcile.
+func (a *app) saveNewMicroVM(ctx context.Context, mvm *models.MicroVM) (*models.MicroVM, error) {
 	mvm.Spec.CreatedAt = a.ports.Clock().Unix()
 	mvm.Status.State = models.PendingState
 	mvm.Status.Retry = 0

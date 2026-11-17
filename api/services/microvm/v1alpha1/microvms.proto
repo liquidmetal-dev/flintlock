@@ -40,6 +40,22 @@ service MicroVM {
       delete: "/v1alpha1/microvm/{uid}"
     };
   }
+  // PauseMicroVM pauses the vCPUs of a running microvm. The microvm keeps its memory
+  // and its devices. It stays paused until ResumeMicroVM, also when flintlockd restarts.
+  // Pausing a paused microvm succeeds. A microvm in another state fails with
+  // FAILED_PRECONDITION.
+  rpc PauseMicroVM(PauseMicroVMRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1alpha1/microvm/{uid}/pause"
+    };
+  }
+  // ResumeMicroVM resumes a paused microvm. Resuming a running microvm succeeds. A
+  // microvm in another state fails with FAILED_PRECONDITION.
+  rpc ResumeMicroVM(ResumeMicroVMRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1alpha1/microvm/{uid}/resume"
+    };
+  }
   rpc GetMicroVM(GetMicroVMRequest) returns (GetMicroVMResponse) {
     option (google.api.http) = {
       get: "/v1alpha1/microvm/{uid}"
@@ -73,6 +89,14 @@ message CreateMicroVMResponse {
 }
 
 message DeleteMicroVMRequest {
+  string uid = 1;
+}
+
+message PauseMicroVMRequest {
+  string uid = 1;
+}
+
+message ResumeMicroVMRequest {
   string uid = 1;
 }
 

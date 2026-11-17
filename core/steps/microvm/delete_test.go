@@ -51,7 +51,8 @@ func TestNewDeleteStep(t *testing.T) {
 	microVMService.
 		EXPECT().
 		State(ctx, vm.ID.String()).
-		Return(ports.MicroVMStateRunning, nil)
+		Return(ports.MicroVMStateRunning, nil).
+		Times(2)
 
 	microVMService.
 		EXPECT().
@@ -79,6 +80,7 @@ func TestNewDeleteStep_StateCheck(t *testing.T) {
 		{State: ports.MicroVMStatePending, ExpectToRun: false},
 		{State: ports.MicroVMStateConfigured, ExpectToRun: true},
 		{State: ports.MicroVMStateRunning, ExpectToRun: true},
+		{State: ports.MicroVMStatePaused, ExpectToRun: true},
 		{State: ports.MicroVMStateUnknown, ExpectToRun: false},
 	}
 
@@ -164,6 +166,11 @@ func TestNewDeleteStep_ServiceDeleteError(t *testing.T) {
 
 	microVMService.
 		EXPECT().
+		State(ctx, vm.ID.String()).
+		Return(ports.MicroVMStateRunning, nil)
+
+	microVMService.
+		EXPECT().
 		Delete(ctx, vm.ID.String()).
 		Return(errors.New("ensuring state dir: ...."))
 
@@ -173,4 +180,50 @@ func TestNewDeleteStep_ServiceDeleteError(t *testing.T) {
 	g.Expect(subSteps).To(g.BeEmpty())
 	g.Expect(err).ToNot(g.BeNil())
 	g.Expect(verifyErr).To(g.BeNil())
+}
+
+func TestNewDeleteStep_ResumesPausedVMM(t *testing.T) {
+	tt := []struct {
+		name      string
+		state     ports.MicroVMState
+		stateErr  error
+		resumeErr error
+		resumes   bool
+	}{
+		{name: "paused vmm is resumed", state: ports.MicroVMStatePaused, resumes: true},
+		{
+			name:      "failed resume does not stop the delete",
+			state:     ports.MicroVMStatePaused,
+			resumeErr: errors.New("resume failed"),
+			resumes:   true,
+		},
+		{
+			name:     "failed state check does not stop the delete",
+			state:    ports.MicroVMStateUnknown,
+			stateErr: errors.New("no idea"),
+		},
+		{name: "running vmm is not resumed", state: ports.MicroVMStateRunning},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g.RegisterTestingT(t)
+			mockCtrl := gomock.NewController(t)
+
+			microVMService := mock.NewMockMicroVMService(mockCtrl)
+			ctx := context.Background()
+			vm := testVMToDelete()
+
+			stateCall := microVMService.EXPECT().State(ctx, vm.ID.String()).Return(tc.state, tc.stateErr)
+			deleteCall := microVMService.EXPECT().Delete(ctx, vm.ID.String()).Return(nil).After(stateCall)
+
+			if tc.resumes {
+				resumeCall := microVMService.EXPECT().Resume(ctx, vm).Return(tc.resumeErr).After(stateCall)
+				deleteCall.After(resumeCall)
+			}
+
+			_, err := microvm.NewDeleteStep(vm, microVMService).Do(ctx)
+			g.Expect(err).NotTo(g.HaveOccurred())
+		})
+	}
 }
