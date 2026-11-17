@@ -23,6 +23,20 @@ func ValidateSocketDir(dir string) error {
 	return nil
 }
 
+// ValidateSnapshotLimits checks that a capture can pause its source and that at
+// least one capture can run.
+func (c *Config) ValidateSnapshotLimits() error {
+	if c.SnapshotMaxPause <= 0 {
+		return errSnapshotMaxPause
+	}
+
+	if c.SnapshotMaxConcurrent < 1 {
+		return errSnapshotMaxConcurrent
+	}
+
+	return nil
+}
+
 // Validate will validate the TLS config.
 func (t TLSConfig) Validate() error {
 	if t.Insecure {

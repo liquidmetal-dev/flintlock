@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/internal/config"
@@ -180,6 +181,35 @@ func TestValidateSocketDir(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestValidateSnapshotLimits(t *testing.T) {
+	tt := []struct {
+		name       string
+		pause      time.Duration
+		concurrent int
+		wantErr    string
+	}{
+		{name: "valid", pause: 10 * time.Second, concurrent: 1},
+		{name: "no pause", pause: 0, concurrent: 1, wantErr: "snapshot-max-pause"},
+		{name: "negative pause", pause: -time.Second, concurrent: 1, wantErr: "snapshot-max-pause"},
+		{name: "no capture at a time", pause: time.Second, concurrent: 0, wantErr: "snapshot-max-concurrent"},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cfg := &config.Config{SnapshotMaxPause: tc.pause, SnapshotMaxConcurrent: tc.concurrent}
+			err := cfg.ValidateSnapshotLimits()
+
+			if tc.wantErr == "" {
+				g.Expect(err).NotTo(HaveOccurred())
+			} else {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.wantErr)))
 			}
 		})
 	}

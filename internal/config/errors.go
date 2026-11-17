@@ -6,10 +6,12 @@ import (
 )
 
 var (
-	errNoCertWhenInsecure = errors.New("cannot specify tls certificate details when running insecurely")
-	errCertRequired       = errors.New("certificate file path is required when running securely")
-	errKeyRequired        = errors.New("certificate key file path is required when running securely")
-	errClientCARequired   = errors.New("client certificate key file path is required when running mTLS")
+	errNoCertWhenInsecure    = errors.New("cannot specify tls certificate details when running insecurely")
+	errCertRequired          = errors.New("certificate file path is required when running securely")
+	errKeyRequired           = errors.New("certificate key file path is required when running securely")
+	errClientCARequired      = errors.New("client certificate key file path is required when running mTLS")
+	errSnapshotMaxPause      = errors.New("snapshot-max-pause must be more than zero")
+	errSnapshotMaxConcurrent = errors.New("snapshot-max-concurrent must be at least 1")
 )
 
 type certMissingError struct {

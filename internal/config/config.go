@@ -85,6 +85,10 @@ type Config struct {
 	EnableExecAPI bool
 	// EnableSSHProxyAPI indicates that the MicroVMSSHProxy gRPC service should be registered.
 	EnableSSHProxyAPI bool
+	// SnapshotMaxPause is the longest time a snapshot capture keeps the source microvm paused.
+	SnapshotMaxPause time.Duration
+	// SnapshotMaxConcurrent is the largest number of snapshot captures that run at a time.
+	SnapshotMaxConcurrent int
 }
 
 // TLSConfig holds the configuration for TLS.

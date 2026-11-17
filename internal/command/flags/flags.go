@@ -41,6 +41,8 @@ const (
 	overlayRWSizeMBFlag       = "overlay-rw-size-mb"
 	overlayBaseRetentionFlag  = "overlay-base-retention"
 	overlayInitrdImageFlag    = "overlay-initrd-image"
+	snapshotMaxPauseFlag      = "snapshot-max-pause"
+	snapshotMaxConcurrentFlag = "snapshot-max-concurrent"
 
 	firecrackerMetadataKernelIPFlag = "firecracker-metadata-kernel-ip"
 )
@@ -292,4 +294,18 @@ func AddOverlayFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
 		"",
 		"The OCI image of the initrd that boots an overlay root. "+
 			"When empty, a release build uses the initrd published for its own version.")
+}
+
+// AddSnapshotFlagsToCommand will add the snapshot flags to the supplied command.
+func AddSnapshotFlagsToCommand(cmd *cobra.Command, cfg *config.Config) {
+	cmd.Flags().DurationVar(&cfg.SnapshotMaxPause,
+		snapshotMaxPauseFlag,
+		defaults.SnapshotMaxPause,
+		"The longest time a snapshot capture keeps the source microvm paused. "+
+			"A capture that would take longer is aborted and the source microvm resumed.")
+
+	cmd.Flags().IntVar(&cfg.SnapshotMaxConcurrent,
+		snapshotMaxConcurrentFlag,
+		defaults.SnapshotMaxConcurrent,
+		"The largest number of snapshot captures that run at a time.")
 }
