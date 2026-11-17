@@ -150,11 +150,9 @@ and free page reporting:
 "balloon": { "free_page_reporting": true }
 ```
 
-flintlock then gives the VMM an empty balloon that deflates when the guest
-runs out of memory. The guest reports the pages it frees, and the VMM
-returns them to the host. The guest kernel needs `CONFIG_VIRTIO_BALLOON`
-and `CONFIG_PAGE_REPORTING`. Firecracker and Cloud Hypervisor both support
-it.
+flintlock then gives the VMM an empty balloon, and the VMM returns the
+pages that the guest frees to the host. See [Guest memory](/docs/guides/memory/)
+for what each provider gets, the requirements and the performance cost.
 
 ## Monitor the host
 
