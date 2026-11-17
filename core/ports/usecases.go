@@ -48,6 +48,9 @@ type ReconcileSnapshotsUseCase interface {
 	// ReconcileSnapshot captures a pending snapshot and records the phase it ends in.
 	// A snapshot that is not pending, or is deleted, is left as it is.
 	ReconcileSnapshot(ctx context.Context, uid string) error
+	// RecoverSnapshots fails every snapshot that a previous run left in progress,
+	// removes its files and resumes its source if the capture left it paused.
+	RecoverSnapshots(ctx context.Context) error
 }
 
 // SnapshotQueryUseCases is the interface for uses cases that are queries for snapshots.
