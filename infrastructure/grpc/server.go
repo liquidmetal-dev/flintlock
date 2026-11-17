@@ -112,7 +112,7 @@ func (s *server) restoreMicroVM(
 	if err != nil {
 		logger.Errorf("failed to restore microvm: %s", err)
 
-		return nil, snapshotError("restoring microvm", err)
+		return nil, useCaseError("restoring microvm", err)
 	}
 
 	return createMicroVMResponse(createdModel), nil
