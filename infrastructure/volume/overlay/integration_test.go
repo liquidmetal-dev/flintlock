@@ -629,6 +629,16 @@ func TestIntegration_CaptureAndRestore(t *testing.T) {
 	g.Expect(fileInode(t, first.BaseMount.Source)).To(Equal(fileInode(t, second.BaseMount.Source)))
 	g.Expect(fileInode(t, first.BaseMount.Source)).To(Equal(fileInode(t, src.BaseMount.Source)))
 
+	// A write in one restore is seen neither in the other, nor in the
+	// source, nor in the snapshot. The reflinked extents are copied on write.
+	sourceSum := fileSum(t, src.RWMount.Source)
+
+	writeFileAt(t, first.RWMount.Source, 1<<20, "guest writes in the first restore")
+	g.Expect(fileSum(t, first.RWMount.Source)).NotTo(Equal(before))
+	g.Expect(fileSum(t, second.RWMount.Source)).To(Equal(before))
+	g.Expect(fileSum(t, src.RWMount.Source)).To(Equal(sourceSum))
+	g.Expect(fileSum(t, rw)).To(Equal(before))
+
 	for _, name := range []string{"source", "first", "second"} {
 		g.Expect(svc.Release(ctx, ref(name))).To(Succeed())
 	}

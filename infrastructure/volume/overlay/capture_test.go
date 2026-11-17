@@ -194,6 +194,11 @@ func TestService_Restore(t *testing.T) {
 	writeAt(t, b.RWMount.Source, 4096, "guest writes after the restore")
 	written := sha256File(t, b.RWMount.Source)
 
+	// The write is in b only: c and the snapshot keep the captured disk.
+	g.Expect(written).NotTo(Equal(want))
+	g.Expect(sha256File(t, c.RWMount.Source)).To(Equal(want))
+	g.Expect(sha256File(t, filepath.Join(dir, "root.rw"))).To(Equal(want))
+
 	_, err = env.svc.Restore(ctx, restoreInput("b", dir))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(sha256File(t, b.RWMount.Source)).To(Equal(written))
