@@ -180,6 +180,7 @@ func appConfig(cfg *config.Config) *application.Config {
 		VMMStartTimeout:        cfg.VMMStartTimeout,
 		GuestAgentReadyTimeout: cfg.GuestAgentReadyTimeout,
 		SnapshotMaxPause:       cfg.SnapshotMaxPause,
+		StartedAt:              cfg.StartedAt,
 	}
 }
 

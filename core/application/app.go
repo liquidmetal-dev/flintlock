@@ -63,4 +63,7 @@ type Config struct {
 	// SnapshotMaxPause is the longest time a snapshot capture keeps the source
 	// microvm paused. Zero selects defaults.SnapshotMaxPause.
 	SnapshotMaxPause time.Duration
+	// StartedAt is when this run of flintlockd started. A snapshot created before it
+	// was left in progress by an earlier run. Zero means every snapshot in progress was.
+	StartedAt time.Time
 }

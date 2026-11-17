@@ -13,7 +13,8 @@ import (
 const restartedDuringCaptureMsg = "flintlockd restarted during the capture"
 
 // RecoverSnapshots fails every snapshot left in progress by a previous run of
-// flintlockd, as no capture runs for it any more. It resumes the source of each
+// flintlockd, as no capture runs for it any more. A snapshot created since this
+// run started is left to the controller. It resumes the source of each
 // if the capture left it paused, records the snapshot failed and removes every
 // file of the snapshot but its record. It recovers every snapshot it can and
 // returns the errors of the others.
@@ -26,7 +27,7 @@ func (a *app) RecoverSnapshots(ctx context.Context) error {
 	var errs []error
 
 	for _, snapshot := range snapshots {
-		if !snapshot.Status.Phase.InProgress() {
+		if !snapshot.Status.Phase.InProgress() || a.createdSinceStart(snapshot) {
 			continue
 		}
 
@@ -97,4 +98,8 @@ func (a *app) resumeCaptureSource(ctx context.Context, snapshot *models.Snapshot
 	log.GetLogger(ctx).WithField("snapshot", snapshot.UID).Infof("resumed source microvm %s", uid)
 
 	return nil
+}
+
+func (a *app) createdSinceStart(snapshot *models.Snapshot) bool {
+	return !a.cfg.StartedAt.IsZero() && !snapshot.CreatedAt.Before(a.cfg.StartedAt)
 }

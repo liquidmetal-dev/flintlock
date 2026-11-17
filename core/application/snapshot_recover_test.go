@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -143,4 +144,26 @@ func TestApp_RecoverSnapshots_ListFails(t *testing.T) {
 	m.snapshots.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil, errCaptureTest)
 
 	Expect(app.RecoverSnapshots(context.Background())).To(MatchError(errCaptureTest))
+}
+
+func TestApp_RecoverSnapshots_OnlyFailsSnapshotsCreatedBeforeStart(t *testing.T) {
+	RegisterTestingT(t)
+
+	app, m := newCaptureTestApp(t, &application.Config{StartedAt: snapshotTestTime})
+	vm := snapshotSourceVM()
+
+	before := recordInPhase(vm, models.SnapshotPhaseCapturing)
+	before.CreatedAt = snapshotTestTime.Add(-time.Minute)
+
+	after := recordInPhase(vm, models.SnapshotPhasePending)
+	after.UID = "created-after-start"
+	after.CreatedAt = snapshotTestTime.Add(time.Second)
+
+	m.snapshots.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*models.Snapshot{before, after}, nil)
+	m.repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(vm, nil)
+	m.provider.EXPECT().State(gomock.Any(), vm.ID.String()).Return(ports.MicroVMStateRunning, nil)
+	gomock.InOrder(expectFailedOnRestart(m, vm)...)
+
+	Expect(app.RecoverSnapshots(context.Background())).To(Succeed())
+	Expect(after.Status.Phase).To(Equal(models.SnapshotPhasePending))
 }

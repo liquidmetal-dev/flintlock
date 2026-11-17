@@ -113,6 +113,7 @@ func NewCommand(cfg *config.Config) (*cobra.Command, error) {
 
 func runServer(ctx context.Context, cfg *config.Config) error {
 	startTime := time.Now()
+	cfg.StartedAt = startTime
 	logger := log.GetLogger(ctx)
 	logger.Info("flintlockd grpc api server starting")
 
