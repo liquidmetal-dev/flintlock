@@ -470,3 +470,57 @@ func TestRestart_FinishesInterruptedDelete(t *testing.T) {
 	g.Expect(restarted.ReleaseRef(ctx, snapshot.UID, restoredVMUID)).To(Succeed())
 	g.Expect(dir).NotTo(BeADirectory())
 }
+
+func TestRemoveFiles_KeepsTheRecord(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	store := newStore(t, t.TempDir())
+
+	snapshot := newSnapshot("snap")
+	g.Expect(store.Create(ctx, snapshot)).To(Succeed())
+
+	dir := store.Dir(snapshot.UID)
+	for _, name := range []string{"descriptor.json", "spec.json", "memory", "root.rw"} {
+		g.Expect(os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o600)).To(Succeed())
+	}
+
+	g.Expect(os.MkdirAll(filepath.Join(dir, "vmstate"), 0o700)).To(Succeed())
+	g.Expect(os.WriteFile(filepath.Join(dir, "vmstate", "state.json"), []byte("x"), 0o600)).To(Succeed())
+	g.Expect(os.Symlink("../../bases/abc.img", filepath.Join(dir, "root.base"))).To(Succeed())
+
+	g.Expect(store.RemoveFiles(ctx, snapshot.UID)).To(Succeed())
+
+	entries, err := os.ReadDir(dir)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	names := []string{}
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+
+	g.Expect(names).To(ConsistOf("record.json", "refs", ".lock"))
+
+	got, err := store.Get(ctx, models.SnapshotRef{UID: snapshot.UID})
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(got.Name).To(Equal("snap"))
+}
+
+func TestRemoveFiles_Idempotent(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	store := newStore(t, t.TempDir())
+
+	snapshot := newSnapshot("snap")
+	g.Expect(store.Create(ctx, snapshot)).To(Succeed())
+
+	g.Expect(store.RemoveFiles(ctx, snapshot.UID)).To(Succeed())
+	g.Expect(store.RemoveFiles(ctx, snapshot.UID)).To(Succeed())
+}
+
+func TestRemoveFiles_NotFound(t *testing.T) {
+	g := NewWithT(t)
+	store := newStore(t, t.TempDir())
+
+	err := store.RemoveFiles(context.Background(), "8f5b2a4e-2b8c-4f4e-9d61-0b6f2f0a7c11")
+	g.Expect(coreerrs.IsSnapshotNotFound(err)).To(BeTrue())
+}

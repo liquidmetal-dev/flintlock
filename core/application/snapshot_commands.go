@@ -9,6 +9,7 @@ import (
 	coreerrs "github.com/liquidmetal-dev/flintlock/core/errors"
 	"github.com/liquidmetal-dev/flintlock/core/models"
 	"github.com/liquidmetal-dev/flintlock/core/ports"
+	snapshotsteps "github.com/liquidmetal-dev/flintlock/core/steps/snapshot"
 	"github.com/liquidmetal-dev/flintlock/pkg/defaults"
 	"github.com/liquidmetal-dev/flintlock/pkg/log"
 )
@@ -122,14 +123,8 @@ func (a *app) DeleteSnapshot(ctx context.Context, ref models.SnapshotRef) error 
 
 // checkSnapshotSource rejects a source microvm that cannot be snapshotted.
 func (a *app) checkSnapshotSource(mvm *models.MicroVM) error {
-	if mvm.Spec.DeletedAt != 0 || mvm.Status.State == models.DeletingState {
-		return coreerrs.NewFailedPrecondition(fmt.Sprintf("microvm %s is being deleted", mvm.ID.UID()))
-	}
-
-	if mvm.Status.State != models.CreatedState {
-		return coreerrs.NewFailedPrecondition(
-			fmt.Sprintf("microvm %s is not running (state: %s)", mvm.ID.UID(), mvm.Status.State),
-		)
+	if err := snapshotsteps.CheckState(mvm); err != nil {
+		return err
 	}
 
 	provider, ok := a.ports.MicrovmProviders[mvm.Spec.Provider]
@@ -141,65 +136,7 @@ func (a *app) checkSnapshotSource(mvm *models.MicroVM) error {
 		return err
 	}
 
-	if err := checkSnapshotVolumes(mvm); err != nil {
-		return err
-	}
-
-	if !mvm.Spec.AllowGuestAgent {
-		return coreerrs.NewFailedPrecondition(
-			fmt.Sprintf("microvm %s does not have allow_guest_agent set", mvm.ID.UID()),
-		)
-	}
-
-	if !guestAgentReady(mvm) {
-		return coreerrs.NewFailedPrecondition(
-			fmt.Sprintf("the guest agent of microvm %s is not ready", mvm.ID.UID()),
-		)
-	}
-
-	return nil
-}
-
-// checkSnapshotVolumes rejects a microvm with a device that a snapshot cannot capture.
-// Only an overlay root can be captured.
-func checkSnapshotVolumes(mvm *models.MicroVM) error {
-	uid := mvm.ID.UID()
-
-	if !mvm.Spec.RootVolume.IsOverlay() {
-		return coreerrs.NewFailedPrecondition(fmt.Sprintf(
-			"microvm %s has a root volume that is not an overlay: only an overlay root can be snapshotted", uid,
-		))
-	}
-
-	for _, volume := range mvm.Spec.AdditionalVolumes {
-		if volume.Source.VirtioFS != nil {
-			return coreerrs.NewFailedPrecondition(fmt.Sprintf(
-				"microvm %s has virtiofs volume %s: a virtiofs mount cannot be snapshotted", uid, volume.ID,
-			))
-		}
-	}
-
-	for _, volume := range mvm.Spec.AdditionalVolumes {
-		if volume.Source.Container != nil && volume.EffectiveMode() == models.VolumeModeFull {
-			return coreerrs.NewFailedPrecondition(fmt.Sprintf(
-				"microvm %s has full volume %s: a full volume cannot be snapshotted", uid, volume.ID,
-			))
-		}
-	}
-
-	if len(mvm.Spec.AdditionalVolumes) > 0 {
-		return coreerrs.NewFailedPrecondition(fmt.Sprintf(
-			"microvm %s has additional volumes: a microvm with additional volumes cannot be snapshotted", uid,
-		))
-	}
-
-	return nil
-}
-
-func guestAgentReady(mvm *models.MicroVM) bool {
-	cond, ok := mvm.Status.Conditions.Get(models.ConditionGuestAgentReady)
-
-	return ok && cond.Status == models.ConditionTrue
+	return snapshotsteps.CheckSpec(mvm)
 }
 
 // checkNoSnapshotInProgress rejects a second snapshot of a microvm while one is being taken.

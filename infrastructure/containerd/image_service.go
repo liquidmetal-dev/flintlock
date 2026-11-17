@@ -124,6 +124,22 @@ func (im *imageService) IsMounted(ctx context.Context, input *ports.ImageMountSp
 	return snapshotExists, nil
 }
 
+// Digest returns the digest of the manifest or index that the image name
+// resolves to in containerd.
+func (im *imageService) Digest(ctx context.Context, input *ports.ImageSpec) (string, error) {
+	logger := log.GetLogger(ctx).WithField("service", "containerd_image")
+	logger.Debugf("getting digest of image %s", input.ImageName)
+
+	nsCtx := namespaces.WithNamespace(ctx, im.config.Namespace)
+
+	image, err := im.client.GetImage(nsCtx, input.ImageName)
+	if err != nil {
+		return "", fmt.Errorf("getting image %s from containerd: %w", input.ImageName, err)
+	}
+
+	return image.Target().Digest.String(), nil
+}
+
 func (im *imageService) imageExists(ctx context.Context, imageName, owner string) (bool, error) {
 	leaseCtx, err := withOwnerLease(ctx, owner, im.client)
 	if err != nil {
