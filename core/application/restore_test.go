@@ -619,3 +619,115 @@ func TestApp_CreateMicroVM_RestoreGenerationError(t *testing.T) {
 	_, err := app.CreateMicroVM(context.Background(), restoreRequest(defaultSnapshotSource()))
 	Expect(err).To(MatchError(ContainSubstring("taking the restore generation")))
 }
+
+func macvtapSourceSpec() *models.MicroVMSpec {
+	spec := restoreSourceSpec(models.VMMTypeCloudHypervisor)
+	spec.NetworkInterfaces[1].Type = models.IfaceTypeMacvtap
+
+	return spec
+}
+
+func TestApp_CreateMicroVM_RestoreMacvtapOnce(t *testing.T) {
+	testCases := []struct {
+		name       string
+		generation int
+		expectErr  bool
+	}{
+		{name: "first restore", generation: 1},
+		{name: "second restore", generation: 2, expectErr: true},
+		{name: "later restore", generation: 5, expectErr: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			app, mocks := newRestoreTestApp(t)
+			desc := restoreDescriptor(models.VMMTypeCloudHypervisor)
+			writeSnapshotFiles(t, mocks.fs, desc, macvtapSourceSpec())
+
+			expectRestoreLookups(mocks, readySnapshot(), restoreFacts(desc), models.VMMTypeCloudHypervisor)
+			mocks.ch.EXPECT().Capabilities().Return(append(models.Capabilities{models.MacvtapCapability}, restoreCapabilities...)).AnyTimes()
+			mocks.ids.EXPECT().GenerateRandom().Return(restoreNewUID, nil)
+			mocks.repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, nil)
+			mocks.snapshots.EXPECT().NextGeneration(gomock.Any(), testSnapshotUID).Return(tc.generation, nil)
+
+			if !tc.expectErr {
+				mocks.repo.EXPECT().Save(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ context.Context, vm *models.MicroVM) (*models.MicroVM, error) { return vm, nil })
+				mocks.events.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			}
+
+			_, err := app.CreateMicroVM(context.Background(), restoreRequest(defaultSnapshotSource()))
+
+			if !tc.expectErr {
+				Expect(err).NotTo(HaveOccurred())
+
+				return
+			}
+
+			// The refusal comes before the spec is saved: Save is not expected.
+			Expect(coreerrs.IsFailedPrecondition(err)).To(BeTrue(), "got %v", err)
+			Expect(err).To(MatchError(ContainSubstring("it can be restored only once")))
+		})
+	}
+}
+
+// TestApp_CreateMicroVM_RestoreTwice restores one snapshot twice. Each
+// restored microvm has its own uid and generation, and no host device of
+// the source: the network steps create new ones.
+func TestApp_CreateMicroVM_RestoreTwice(t *testing.T) {
+	RegisterTestingT(t)
+
+	app, mocks := newRestoreTestApp(t)
+	desc := restoreDescriptor(models.VMMTypeFirecracker)
+	writeSnapshotFiles(t, mocks.fs, desc, restoreSourceSpec(models.VMMTypeFirecracker))
+
+	var saved []*models.MicroVM
+
+	mocks.snapshots.EXPECT().Get(gomock.Any(), gomock.Any()).Return(readySnapshot(), nil).Times(2)
+	mocks.snapshots.EXPECT().Dir(testSnapshotUID).Return(restoreSnapshotDir).Times(2)
+	mocks.hostInfo.EXPECT().Facts(gomock.Any(), models.VMMTypeFirecracker).Return(restoreFacts(desc), nil).Times(2)
+	mocks.fc.EXPECT().Capabilities().Return(restoreCapabilities).AnyTimes()
+	gomock.InOrder(
+		mocks.ids.EXPECT().GenerateRandom().Return("01HRESTOREDUID00000000001", nil),
+		mocks.ids.EXPECT().GenerateRandom().Return("01HRESTOREDUID00000000002", nil),
+	)
+	mocks.repo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+	gomock.InOrder(
+		mocks.snapshots.EXPECT().NextGeneration(gomock.Any(), testSnapshotUID).Return(1, nil),
+		mocks.snapshots.EXPECT().NextGeneration(gomock.Any(), testSnapshotUID).Return(2, nil),
+	)
+	mocks.repo.EXPECT().Save(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, vm *models.MicroVM) (*models.MicroVM, error) {
+			saved = append(saved, vm)
+
+			return vm, nil
+		}).Times(2)
+	mocks.events.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+
+	for _, name := range []string{"clone1", "clone2"} {
+		source := defaultSnapshotSource()
+		source.Name = name
+
+		_, err := app.CreateMicroVM(context.Background(), restoreRequest(source))
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	Expect(saved).To(HaveLen(2))
+	first, second := saved[0], saved[1]
+
+	Expect(first.ID.UID()).NotTo(Equal(second.ID.UID()))
+	Expect(first.Spec.SnapshotSource.Generation).To(Equal(1))
+	Expect(second.Spec.SnapshotSource.Generation).To(Equal(2))
+	Expect(decodedMarker(t, first, models.MetadataRestoreGeneration)).To(Equal("1"))
+	Expect(decodedMarker(t, second, models.MetadataRestoreGeneration)).To(Equal("2"))
+	Expect(decodedMarker(t, first, models.MetadataRestoreUID)).To(Equal(first.ID.UID()))
+	Expect(decodedMarker(t, second, models.MetadataRestoreUID)).To(Equal(second.ID.UID()))
+
+	// Both restore the same snapshot, and neither has a host device name.
+	for _, vm := range saved {
+		Expect(vm.Spec.SnapshotSource.Snapshot).To(Equal(models.SnapshotRef{UID: testSnapshotUID}))
+		Expect(vm.Status.NetworkInterfaces).To(BeEmpty())
+	}
+}

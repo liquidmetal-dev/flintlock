@@ -100,6 +100,16 @@ func (a *app) restoreMicroVM(ctx context.Context, req *models.MicroVM) (*models.
 		return nil, fmt.Errorf("taking the restore generation of snapshot %s: %w", snapshot.UID, err)
 	}
 
+	// The check uses the generation that this restore took, so two restores
+	// at once cannot both pass. A refused restore still uses up a generation,
+	// but the snapshot cannot be restored again anyway.
+	if generation > 1 && hasMacvtap(sourceSpec) {
+		return nil, coreerrs.NewFailedPrecondition(fmt.Sprintf(
+			"snapshot %s has a macvtap interface and was already restored: it can be restored only once",
+			snapshot.UID,
+		))
+	}
+
 	mvm.Spec.SnapshotSource.Generation = generation
 	addRestoreMarkers(mvm, snapshot.UID, generation)
 
@@ -350,4 +360,17 @@ func addRestoreMarkers(mvm *models.MicroVM, snapshotUID string, generation int) 
 	for key, value := range markers {
 		mvm.Spec.Metadata[key] = base64.StdEncoding.EncodeToString([]byte(value))
 	}
+}
+
+// hasMacvtap reports whether the spec has a macvtap interface. A macvtap
+// device is bound to the MAC address of the guest, so two restores of one
+// snapshot would share it (SNAP-CLN-004).
+func hasMacvtap(spec *models.MicroVMSpec) bool {
+	for i := range spec.NetworkInterfaces {
+		if spec.NetworkInterfaces[i].Type == models.IfaceTypeMacvtap {
+			return true
+		}
+	}
+
+	return false
 }

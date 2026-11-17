@@ -452,3 +452,88 @@ func TestCapabilities_HasSnapshot(t *testing.T) {
 
 	g.Expect(p.Capabilities()).To(g.ContainElement(models.SnapshotCapability))
 }
+
+// TestRestore_Twice restores one snapshot into two microvms on one provider.
+// Each firecracker process gets its own working directory, sockets and pid
+// file, and both load the same state and memory files.
+func TestRestore_Twice(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	p, first, firstState := newTestProvider(t)
+	first = restoreVM(first)
+
+	secondID, err := models.NewVMID(testVMName+"-2", testVMNamespace, "344780b0-6249-11ec-90d6-0242ac120004")
+	g.Expect(err).NotTo(g.HaveOccurred())
+
+	second := restoreVM(&models.MicroVM{ID: *secondID})
+	second.Status.NetworkInterfaces["eth0"].HostDeviceName = "fltapnew2"
+	secondState := NewState(*secondID, p.config.StateRoot, p.config.SocketDir, p.fs)
+
+	src := t.TempDir()
+	runs := []struct {
+		vm      *models.MicroVM
+		state   State
+		api     *fakeAPI
+		started *startedVMM
+	}{
+		{vm: first, state: firstState, api: &fakeAPI{}, started: &startedVMM{}},
+		{vm: second, state: secondState, api: &fakeAPI{}, started: &startedVMM{}},
+	}
+
+	for _, run := range runs {
+		p.startVMM = fakeStart(t, run.state, run.api, run.started)
+
+		err := p.Restore(context.Background(), run.vm, src, ports.RestoreInput{MemoryMode: models.MemoryModeFile})
+		g.Expect(err).NotTo(g.HaveOccurred())
+	}
+
+	a, b := runs[0], runs[1]
+
+	g.Expect(a.started.dir).To(g.Equal(firstState.Root()))
+	g.Expect(b.started.dir).To(g.Equal(secondState.Root()))
+	g.Expect(a.started.dir).NotTo(g.Equal(b.started.dir))
+	g.Expect(a.started.pid).NotTo(g.Equal(b.started.pid))
+	g.Expect(firstState.APISockPath()).NotTo(g.Equal(secondState.APISockPath()))
+	g.Expect(first.Status.VSockPath).NotTo(g.Equal(second.Status.VSockPath))
+
+	// Each sock link names the socket directory of its own microvm, so the
+	// relative vsock path in the snapshot resolves to a different socket.
+	for _, run := range runs {
+		target, err := os.Readlink(run.state.SocketLinkPath())
+		g.Expect(err).NotTo(g.HaveOccurred())
+		g.Expect(target).To(g.Equal(run.state.SocketRoot()))
+
+		pid, err := run.state.PID()
+		g.Expect(err).NotTo(g.HaveOccurred())
+		g.Expect(pid).To(g.Equal(run.started.pid))
+	}
+
+	g.Expect(firstState.SocketRoot()).NotTo(g.Equal(secondState.SocketRoot()))
+
+	// Both load the same files, each with its own host devices.
+	loadA, ok := a.api.call(http.MethodPut, "/snapshot/load")
+	g.Expect(ok).To(g.BeTrue())
+	loadB, ok := b.api.call(http.MethodPut, "/snapshot/load")
+	g.Expect(ok).To(g.BeTrue())
+
+	type load struct {
+		SnapshotPath string `json:"snapshot_path"`
+		MemBackend   struct {
+			BackendPath string `json:"backend_path"`
+		} `json:"mem_backend"`
+		NetworkOverrides []struct {
+			HostDevName string `json:"host_dev_name"`
+		} `json:"network_overrides"`
+	}
+
+	var bodyA, bodyB load
+	g.Expect(json.Unmarshal([]byte(loadA.body), &bodyA)).To(g.Succeed())
+	g.Expect(json.Unmarshal([]byte(loadB.body), &bodyB)).To(g.Succeed())
+
+	g.Expect(bodyA.SnapshotPath).To(g.Equal(filepath.Join(src, models.SnapshotVMStateFile)))
+	g.Expect(bodyB.SnapshotPath).To(g.Equal(bodyA.SnapshotPath))
+	g.Expect(bodyA.MemBackend.BackendPath).To(g.Equal(filepath.Join(src, models.SnapshotMemoryFile)))
+	g.Expect(bodyB.MemBackend.BackendPath).To(g.Equal(bodyA.MemBackend.BackendPath))
+	g.Expect(bodyA.NetworkOverrides[0].HostDevName).To(g.Equal("fltapnew0"))
+	g.Expect(bodyB.NetworkOverrides[0].HostDevName).To(g.Equal("fltapnew2"))
+}
