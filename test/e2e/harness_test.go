@@ -853,6 +853,7 @@ func TestE2ETestsSkipWhenTheEnvironmentIsLeftRunning(t *testing.T) {
 		{name: "TestE2ECloudHypervisorKernelWithoutPVH", test: TestE2ECloudHypervisorKernelWithoutPVH},
 		{name: "TestE2EGuestWithoutInit", test: TestE2EGuestWithoutInit},
 		{name: "TestE2ECloudHypervisorVirtioFS", test: TestE2ECloudHypervisorVirtioFS},
+		{name: "TestE2EFirecrackerSnapshotRestore", test: TestE2EFirecrackerSnapshotRestore},
 	}
 
 	leftRunning := environmentLeftRunning
