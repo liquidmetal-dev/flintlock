@@ -528,7 +528,6 @@ func convertModelToSnapshotRef(ref *models.SnapshotRef) *types.SnapshotRef {
 	}
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertSnapshotSourceToModel(source *types.SnapshotSource) *models.SnapshotSource {
 	converted := &models.SnapshotSource{
 		Snapshot:   convertSnapshotRefToModel(source.GetSnapshot()),
@@ -580,7 +579,6 @@ func convertModelToSnapshotSource(source *models.SnapshotSource) *types.Snapshot
 	return converted
 }
 
-//nolint:unused // the snapshot API is not served yet
 func convertMemoryModeToModel(mode types.MemoryMode) models.MemoryMode {
 	switch mode {
 	case types.MemoryMode_FILE:

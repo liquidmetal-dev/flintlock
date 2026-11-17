@@ -29,3 +29,17 @@ type MicroVMSpecDeleted struct {
 	// UID is the unique id of the deleted microvm.
 	UID string
 }
+
+// MicroVMRestored is an event for when a microvm has been restored from a snapshot.
+type MicroVMRestored struct {
+	// ID is the identifier of the restored microvm.
+	ID string
+	// Namespace is the namespace of the restored microvm.
+	Namespace string
+	// UID is the unique id of the restored microvm.
+	UID string
+	// SnapshotUID is the unique id of the snapshot the microvm was restored from.
+	SnapshotUID string
+	// Generation is the restore generation of the snapshot for this restore.
+	Generation int
+}
