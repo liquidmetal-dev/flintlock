@@ -19,6 +19,21 @@ func TestValidation_Valid(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func TestValidation_ReservedMACOnMetadataInterface(t *testing.T) {
+	RegisterTestingT(t)
+
+	vm := basicMicroVM
+	vm.Spec.NetworkInterfaces = []models.NetworkInterface{
+		{
+			GuestDeviceName: models.MetadataInterfaceName,
+			GuestMAC:        models.MetadataInterfaceMAC,
+			Type:            "tap",
+		},
+	}
+
+	Expect(NewValidator().ValidateStruct(vm)).To(Succeed())
+}
+
 func TestValidation_Valid_CPUConfig(t *testing.T) {
 	RegisterTestingT(t)
 	val := NewValidator()
@@ -115,6 +130,15 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 	}
 
+	reservedGuestMAC := basicMicroVM
+	reservedGuestMAC.Spec.NetworkInterfaces = []models.NetworkInterface{
+		{
+			GuestDeviceName: "eth1",
+			GuestMAC:        "aa:ff:00:00:00:01",
+			Type:            "tap",
+		},
+	}
+
 	invalidVolumes := basicMicroVM
 	invalidVolumes.Spec.RootVolume = models.Volume{}
 
@@ -152,6 +176,11 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "invalid guest device name should fail validation",
 			numErrors: 1,
 			vmspec:    invalidNetworkGuestDeviceName,
+		},
+		{
+			name:      "guest mac reserved for the metadata interface should fail validation",
+			numErrors: 1,
+			vmspec:    reservedGuestMAC,
 		},
 		{
 			name:      "should fail validation when there is no root volume",
